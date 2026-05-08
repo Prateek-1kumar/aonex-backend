@@ -1,0 +1,44 @@
+# Local dev infra. Mirrors the production shape:
+#   - Postgres 16 (RDS Multi-AZ in prod)
+#   - Redis 7 (ElastiCache Multi-AZ in prod)
+#
+# Start:   docker compose up -d
+# Reset:   docker compose down -v
+#
+# Env DATABASE_URL / REDIS_URL in .env match these defaults.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aonex-postgres
+    environment:
+      POSTGRES_USER: aonex
+      POSTGRES_PASSWORD: aonex
+      POSTGRES_DB: aonex_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - aonex-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aonex -d aonex_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: aonex-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - aonex-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  aonex-postgres-data:
+  aonex-redis-data:

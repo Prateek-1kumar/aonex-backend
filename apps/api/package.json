@@ -1,0 +1,30 @@
+{
+  "name": "@aonex/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint src/",
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@aonex/types": "workspace:*",
+    "@aonex/lib-utils": "workspace:*",
+    "@aonex/db": "workspace:*",
+    "@aonex/connector-gateway": "workspace:*",
+    "@aonex/audit": "workspace:*",
+    "hono": "^4.6.14",
+    "bullmq": "^5.34.5",
+    "ioredis": "^5.4.2",
+    "jose": "^5.9.6",
+    "zod": "^3.24.1",
+    "pino": "^9.5.0",
+    "drizzle-orm": "^0.36.4",
+    "pg": "^8.13.1"
+  }
+}

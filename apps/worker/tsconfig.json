@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "./dist", "rootDir": "./src" },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../../packages/types" },
+    { "path": "../../packages/lib-utils" },
+    { "path": "../../packages/db" },
+    { "path": "../../packages/connector-gateway" },
+    { "path": "../../packages/audit" }
+  ]
+}

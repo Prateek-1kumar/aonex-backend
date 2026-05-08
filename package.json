@@ -1,0 +1,42 @@
+{
+  "name": "aonex-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aonex backend monorepo — implements the senior's HLD (Aonex_Production_HLD_Catalog_Ingestion_Distribution_v2). Phase 1 scope: tenants/merchants, Connector Gateway, Nango Shopify ingestion, source_artifacts, audit. See docs/HLD-alignment.md.",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/ingestion/*",
+    "packages/catalog/*",
+    "packages/action/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "depcheck": "depcruise --config .dependency-cruiser.cjs apps packages",
+    "db:generate": "bun run --cwd packages/db drizzle-kit generate",
+    "db:migrate": "bun run --cwd packages/db drizzle-kit migrate",
+    "db:push": "bun run --cwd packages/db drizzle-kit push",
+    "db:studio": "bun run --cwd packages/db drizzle-kit studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.16.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "dependency-cruiser": "^16.6.0",
+    "prettier": "^3.4.2"
+  },
+  "packageManager": "bun@1.1.38",
+  "engines": {
+    "bun": ">=1.1.30"
+  },
+  "resolutions": {
+    "pg-native": false
+  }
+}

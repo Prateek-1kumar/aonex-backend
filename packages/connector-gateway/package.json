@@ -1,0 +1,26 @@
+{
+  "name": "@aonex/connector-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contract": "./src/contract/index.ts",
+    "./adapters/nango": "./src/adapters/nango/index.ts",
+    "./adapters/mock": "./src/adapters/mock/adapter.ts"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@aonex/types": "workspace:*",
+    "@aonex/lib-utils": "workspace:*",
+    "@nangohq/node": "^0.46.0",
+    "zod": "^3.24.1"
+  }
+}

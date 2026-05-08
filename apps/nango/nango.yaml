@@ -1,0 +1,28 @@
+integrations:
+  shopify:
+    syncs:
+      shopify-products:
+        runs: every 6h
+        description: Pulls products + variants + inventory from Shopify Admin GraphQL.
+        output: ShopifyProduct
+        sync_type: incremental
+        endpoint:
+          method: GET
+          path: /products
+        scopes:
+          - read_products
+          - read_inventory
+
+models:
+  ShopifyProduct:
+    id: string
+    title: string
+    handle: string
+    status: string
+    vendor: string | null
+    productType: string | null
+    tags: string[]
+    updated_at: string
+    options: array
+    images: array
+    variants: array

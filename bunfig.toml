@@ -1,0 +1,13 @@
+# Bun runtime config — pinned per LLD invariants.
+# pg-native excluded (Bun + pg TLS edge case).
+
+[install]
+exact = false
+
+[install.scopes]
+# (private registry config goes here when we publish @aonex/*)
+
+[test]
+# Co-located *.test.ts files
+preload = []
+coverage = false
