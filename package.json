@@ -17,10 +17,10 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "depcheck": "depcruise --config .dependency-cruiser.cjs apps packages",
-    "db:generate": "bun run --cwd packages/db drizzle-kit generate",
-    "db:migrate": "bun run --cwd packages/db drizzle-kit migrate",
-    "db:push": "bun run --cwd packages/db drizzle-kit push",
-    "db:studio": "bun run --cwd packages/db drizzle-kit studio"
+    "db:generate": "bun --bun --cwd packages/db drizzle-kit generate",
+    "db:migrate": "bun --bun --cwd packages/db drizzle-kit migrate",
+    "db:push": "bun --bun --cwd packages/db drizzle-kit push",
+    "db:studio": "bun --bun --cwd packages/db drizzle-kit studio"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
