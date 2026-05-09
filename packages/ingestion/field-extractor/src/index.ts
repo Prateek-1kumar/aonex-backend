@@ -1,2 +1,4 @@
-// Phase 2 stub — see README.md.
-export const PHASE: number = 2;
+// HLD §9 — Field Extractor public API.
+export * from "./types.js";
+export * from "./registry.js";
+export { EXTRACTOR_VERSION } from "./strategies/shopify.js";
