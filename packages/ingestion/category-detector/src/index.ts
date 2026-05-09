@@ -1,2 +1,3 @@
-// Phase 2 stub — see README.md.
-export const PHASE: number = 2;
+// HLD §9 — Category Detector public API.
+export * from "./types.js";
+export { detect, DETECTOR_VERSION, CONFIDENCE_THRESHOLD } from "./detect.js";
