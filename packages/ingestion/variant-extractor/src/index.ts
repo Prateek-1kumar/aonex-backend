@@ -1,2 +1,3 @@
-// Phase 2 stub — see README.md.
-export const PHASE: number = 2;
+// HLD §8 — Variant Extractor public API.
+export * from "./types.js";
+export { extractVariants } from "./extract.js";

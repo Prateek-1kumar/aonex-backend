@@ -1,2 +1,4 @@
-// Phase 2 stub — see README.md.
-export const PHASE: number = 2;
+// HLD §13 — Deduplicator public API.
+export * from "./types.js";
+export { dedupe } from "./rules.js";
+export { normalizedSimilarity } from "./similarity.js";

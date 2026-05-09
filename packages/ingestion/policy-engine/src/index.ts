@@ -1,2 +1,3 @@
-// Phase 2 stub — see README.md.
-export const PHASE: number = 2;
+// HLD §14 — Policy Engine public API.
+export * from "./types.js";
+export { score } from "./formula.js";
