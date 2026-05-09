@@ -64,3 +64,61 @@ export const deletionRequestStatusEnum = pgEnum("deletion_request_status", [
 
 /** Tenant-level lifecycle — HLD §20 */
 export const tenantStatusEnum = pgEnum("tenant_status", ["active", "suspended", "archived"]);
+
+// ---------- Phase 2 enums ------------------------------------------------
+
+/** HLD §14 / §20 — proposed_diffs.status routing outcomes */
+export const proposedDiffStatusEnum = pgEnum("proposed_diff_status", [
+  "pending",
+  "open",
+  "auto_approved",
+  "approved",
+  "rejected"
+]);
+
+/** HLD §9 — how a fact value was obtained */
+export const extractionMethodEnum = pgEnum("extraction_method", [
+  "direct",
+  "computed",
+  "inferred"
+]);
+
+/** HLD §15 / §20 — review_tasks.severity */
+export const reviewTaskSeverityEnum = pgEnum("review_task_severity", [
+  "low",
+  "medium",
+  "high",
+  "critical"
+]);
+
+/** HLD §15 / §20 — review_tasks.status */
+export const reviewTaskStatusEnum = pgEnum("review_task_status", [
+  "open",
+  "in_progress",
+  "resolved",
+  "dismissed"
+]);
+
+/** HLD §13 / §20 — deduplication decision kind */
+export const dedupKindEnum = pgEnum("dedup_kind", [
+  "new",
+  "merge",
+  "review",
+  "conflict"
+]);
+
+/** HLD §8 / §20 — product lifecycle */
+export const productStatusEnum = pgEnum("product_status", [
+  "active",
+  "draft",
+  "archived",
+  "deleted"
+]);
+
+/** HLD §20 — extraction_runs.status */
+export const extractionRunStatusEnum = pgEnum("extraction_run_status", [
+  "pending",
+  "running",
+  "succeeded",
+  "failed"
+]);

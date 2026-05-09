@@ -76,3 +76,67 @@ export const WebhookId = {
     return value as WebhookId;
   }
 };
+
+// ---------- Phase 2 IDs ------------------------------------------------
+
+declare const productIdBrand: unique symbol;
+export type ProductId = string & { readonly [productIdBrand]: true };
+export const ProductId = {
+  parse(input: unknown): ProductId { return uuidSchema.parse(input) as ProductId; },
+  unsafeFrom(value: string): ProductId { return value as ProductId; }
+};
+
+declare const productVersionIdBrand: unique symbol;
+export type ProductVersionId = string & { readonly [productVersionIdBrand]: true };
+export const ProductVersionId = {
+  parse(input: unknown): ProductVersionId { return uuidSchema.parse(input) as ProductVersionId; },
+  unsafeFrom(value: string): ProductVersionId { return value as ProductVersionId; }
+};
+
+declare const productVariantIdBrand: unique symbol;
+export type ProductVariantId = string & { readonly [productVariantIdBrand]: true };
+export const ProductVariantId = {
+  parse(input: unknown): ProductVariantId { return uuidSchema.parse(input) as ProductVariantId; },
+  unsafeFrom(value: string): ProductVariantId { return value as ProductVariantId; }
+};
+
+declare const proposedDiffIdBrand: unique symbol;
+export type ProposedDiffId = string & { readonly [proposedDiffIdBrand]: true };
+export const ProposedDiffId = {
+  parse(input: unknown): ProposedDiffId { return uuidSchema.parse(input) as ProposedDiffId; },
+  unsafeFrom(value: string): ProposedDiffId { return value as ProposedDiffId; }
+};
+
+declare const extractionRunIdBrand: unique symbol;
+export type ExtractionRunId = string & { readonly [extractionRunIdBrand]: true };
+export const ExtractionRunId = {
+  parse(input: unknown): ExtractionRunId { return uuidSchema.parse(input) as ExtractionRunId; },
+  unsafeFrom(value: string): ExtractionRunId { return value as ExtractionRunId; }
+};
+
+declare const factSetIdBrand: unique symbol;
+export type FactSetId = string & { readonly [factSetIdBrand]: true };
+export const FactSetId = {
+  parse(input: unknown): FactSetId { return uuidSchema.parse(input) as FactSetId; },
+  unsafeFrom(value: string): FactSetId { return value as FactSetId; }
+};
+
+// CategoryPath is a slash-delimited string, e.g. "Apparel/Tops/T-Shirts"
+declare const categoryPathBrand: unique symbol;
+export type CategoryPath = string & { readonly [categoryPathBrand]: true };
+export const CategoryPath = {
+  parse(input: unknown): CategoryPath {
+    return z.string().min(1).parse(input) as CategoryPath;
+  },
+  unsafeFrom(value: string): CategoryPath { return value as CategoryPath; }
+};
+
+// CanonicalKey is the dotted attribute key, e.g. "product.brand"
+declare const canonicalKeyBrand: unique symbol;
+export type CanonicalKey = string & { readonly [canonicalKeyBrand]: true };
+export const CanonicalKey = {
+  parse(input: unknown): CanonicalKey {
+    return z.string().min(1).parse(input) as CanonicalKey;
+  },
+  unsafeFrom(value: string): CanonicalKey { return value as CanonicalKey; }
+};
