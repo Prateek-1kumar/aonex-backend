@@ -90,3 +90,57 @@ CREATE TRIGGER trg_block_audit_delete
     BEFORE DELETE ON audit_events
     FOR EACH ROW
     EXECUTE FUNCTION block_audit_mutation();
+
+-- ----------------------------------------------------------------
+-- product_versions: fully immutable (HLD §8.3).
+-- The ONLY path to new System Truth is create proposed_diff → approve.
+-- GDPR purge uses session_replication_role='replica' to bypass.
+-- ----------------------------------------------------------------
+CREATE OR REPLACE FUNCTION block_product_version_mutation()
+RETURNS trigger AS $$
+BEGIN
+    RAISE EXCEPTION 'product_versions row % is immutable (HLD §8.3). Create a proposed_diff and approve it.', OLD.id
+        USING ERRCODE = 'feature_not_supported';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_block_product_version_update ON product_versions;
+CREATE TRIGGER trg_block_product_version_update
+    BEFORE UPDATE ON product_versions
+    FOR EACH ROW
+    EXECUTE FUNCTION block_product_version_mutation();
+
+DROP TRIGGER IF EXISTS trg_block_product_version_delete ON product_versions;
+CREATE TRIGGER trg_block_product_version_delete
+    BEFORE DELETE ON product_versions
+    FOR EACH ROW
+    EXECUTE FUNCTION block_product_version_mutation();
+
+-- ----------------------------------------------------------------
+-- product_versions: enforce that proposed_diff_id points to an
+-- approved or auto_approved diff (HLD §2.4 / spec rule 8).
+-- ----------------------------------------------------------------
+CREATE OR REPLACE FUNCTION check_product_version_diff_status()
+RETURNS trigger AS $$
+DECLARE
+    diff_status text;
+BEGIN
+    SELECT status INTO diff_status
+    FROM proposed_diffs
+    WHERE id = NEW.proposed_diff_id;
+
+    IF diff_status NOT IN ('approved', 'auto_approved') THEN
+        RAISE EXCEPTION
+            'product_versions.proposed_diff_id % must reference an approved or auto_approved diff (got: %)',
+            NEW.proposed_diff_id, diff_status
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_check_product_version_diff ON product_versions;
+CREATE TRIGGER trg_check_product_version_diff
+    BEFORE INSERT ON product_versions
+    FOR EACH ROW
+    EXECUTE FUNCTION check_product_version_diff_status();

@@ -15,6 +15,8 @@ export const QUEUE = {
   CONNECTION_SWEEPER: "connection.sweeper",
   /** Phase 2 — extraction hook off staged artifacts */
   INGESTION_EXTRACT: "ingestion.extract",
+  /** Phase 3 — parse uploaded CSV file into row-level source_artifacts */
+  CSV_PARSE: "csv.parse",
   /** Audit emitter fallback queue (HLD §23: must not drop) */
   AUDIT_FALLBACK: "audit.fallback"
 } as const;
@@ -28,7 +30,8 @@ export const JOB_KIND = {
   MANUAL_SYNC: "manual-sync",
   DRAIN: "drain",
   SWEEP_REFRESH_FAILING: "sweep-refresh-failing",
-  EXTRACT: "extract"
+  EXTRACT: "extract",
+  CSV_PARSE: "csv-parse"
 } as const;
 
 export type JobKind = (typeof JOB_KIND)[keyof typeof JOB_KIND];
