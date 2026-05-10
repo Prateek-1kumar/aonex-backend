@@ -8,5 +8,7 @@ export default {
     url: process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev"
   },
   strict: true,
-  verbose: true
+  verbose: true,
+  // drizzle-kit loads schema via CJS require; bundle:true resolves ESM .js → .ts
+  bundle: true
 } satisfies Config;
