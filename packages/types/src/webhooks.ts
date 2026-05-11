@@ -44,11 +44,7 @@ const SyncEvent = z.object({
     .optional()
 });
 
-export const NangoWebhookEventSchema = z.discriminatedUnion("type", [
-  AuthSuccess,
-  AuthFailure,
-  SyncEvent
-]);
+export const NangoWebhookEventSchema = z.union([AuthSuccess, AuthFailure, SyncEvent]);
 
 export type NangoWebhookEvent = z.infer<typeof NangoWebhookEventSchema>;
 export type NangoAuthEvent = z.infer<typeof AuthSuccess> | z.infer<typeof AuthFailure>;

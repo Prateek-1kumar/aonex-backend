@@ -90,7 +90,7 @@ CREATE TABLE "deletion_requests" (
 	"reviewed_by" uuid,
 	"reviewed_at" timestamp with time zone,
 	"completed_at" timestamp with time zone,
-	"sla_deadline" timestamp with time zone GENERATED ALWAYS AS (requested_at + INTERVAL '30 days') STORED,
+	"sla_deadline" timestamp with time zone DEFAULT now() + INTERVAL '30 days' NOT NULL,
 	"rejection_reason" text
 );
 --> statement-breakpoint

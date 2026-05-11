@@ -23,7 +23,10 @@ export const EnvSchema = z.object({
 
   // Observability
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional()
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().url().optional()
+  )
 });
 
 export type Env = z.infer<typeof EnvSchema>;

@@ -1,5 +1,5 @@
 // LLD §15 — GDPR Article 17 (right to erasure) workflow.
-// 30-day SLA per Article 12(3); auto-computed `sla_deadline`.
+// 30-day SLA per Article 12(3); defaulted `sla_deadline`.
 // HLD §22 implies this in "Security/Multi-tenancy"; LLD makes it concrete.
 
 import {
@@ -28,10 +28,14 @@ export const deletionRequests = pgTable(
     reviewedBy: uuid("reviewed_by"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
-    /** Generated column — requested_at + 30d (Article 12(3)). */
-    slaDeadline: timestamp("sla_deadline", { withTimezone: true }).generatedAlwaysAs(
-      sql`requested_at + INTERVAL '30 days'`
-    ),
+    /**
+     * Defaults to now + 30d. Do not use a generated column here:
+     * PostgreSQL rejects timestamptz arithmetic in generated expressions
+     * because it is not immutable across timezone settings.
+     */
+    slaDeadline: timestamp("sla_deadline", { withTimezone: true })
+      .notNull()
+      .default(sql`now() + INTERVAL '30 days'`),
     rejectionReason: text("rejection_reason")
   },
   (t) => ({

@@ -107,7 +107,10 @@
     },
     "packages/ingestion/category-detector": {
       "name": "@aonex/ingestion-category-detector",
-      "version": "0.0.0",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/ingestion-field-extractor": "workspace:*",
+      },
     },
     "packages/ingestion/connector-fetcher": {
       "name": "@aonex/ingestion-connector-fetcher",
@@ -119,11 +122,17 @@
     },
     "packages/ingestion/deduplicator": {
       "name": "@aonex/ingestion-deduplicator",
-      "version": "0.0.0",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/types": "workspace:*",
+      },
     },
     "packages/ingestion/field-extractor": {
       "name": "@aonex/ingestion-field-extractor",
-      "version": "0.0.0",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/types": "workspace:*",
+      },
     },
     "packages/ingestion/orchestrator": {
       "name": "@aonex/ingestion-orchestrator",
@@ -131,11 +140,18 @@
     },
     "packages/ingestion/policy-engine": {
       "name": "@aonex/ingestion-policy-engine",
-      "version": "0.0.0",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/ingestion-deduplicator": "workspace:*",
+      },
     },
     "packages/ingestion/semantic-mapper": {
       "name": "@aonex/ingestion-semantic-mapper",
-      "version": "0.0.0",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/db": "workspace:*",
+        "@aonex/ingestion-field-extractor": "workspace:*",
+      },
     },
     "packages/ingestion/source-classifier": {
       "name": "@aonex/ingestion-source-classifier",
@@ -143,7 +159,12 @@
     },
     "packages/ingestion/variant-extractor": {
       "name": "@aonex/ingestion-variant-extractor",
-      "version": "0.0.0",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/db": "workspace:*",
+        "@aonex/ingestion-semantic-mapper": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
+      },
     },
     "packages/lib-utils": {
       "name": "@aonex/lib-utils",
