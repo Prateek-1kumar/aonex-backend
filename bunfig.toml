@@ -9,5 +9,5 @@ exact = false
 
 [test]
 # Co-located *.test.ts files
-preload = []
+# preload = []
 coverage = false

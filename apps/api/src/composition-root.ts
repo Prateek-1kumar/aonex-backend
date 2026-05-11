@@ -6,6 +6,7 @@
 // may be instantiated here and only here.
 
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import IORedis from "ioredis";
 import pino from "pino";
 import { Queue } from "bullmq";
@@ -74,6 +75,15 @@ export function buildContainer(env: Env): ApiContainer {
 
   // ---- Hono app -------------------------------------------------
   const app = new Hono();
+  app.use(
+    "*",
+    cors({
+      origin: env.NODE_ENV === "production" ? [] : "http://localhost:3000",
+      credentials: true,
+      allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization"],
+    })
+  );
   app.use("*", requestIdMiddleware());
   app.use("*", loggerMiddleware(logger));
   app.onError(errorHandler);
@@ -82,7 +92,13 @@ export function buildContainer(env: Env): ApiContainer {
   app.route("/", healthRoutes({ pool: db.pool, redis }));
   app.route(
     "/api/auth",
-    authRoutes({ db: db.client, jwt, clock: SystemClock, verifyPassword: defaultVerifyPassword })
+    authRoutes({
+      db: db.client,
+      jwt,
+      clock: SystemClock,
+      verifyPassword: defaultVerifyPassword,
+      cookieSecure: env.NODE_ENV === "production",
+    })
   );
   // Webhooks — public but HMAC-protected, NOT JWT-protected.
   app.route(

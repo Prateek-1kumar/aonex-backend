@@ -3,9 +3,10 @@
 // LLD §4 surface 1.
 
 import { Hono } from "hono";
+import { setCookie, deleteCookie } from "hono/cookie";
 import { z } from "zod";
 import { and, eq, isNull } from "drizzle-orm";
-import { randomUUID, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { JwtService } from "../services/jwt.js";
 import type { Clock } from "@aonex/lib-utils";
@@ -14,9 +15,13 @@ export interface AuthDeps {
   db: DrizzleClient;
   jwt: JwtService;
   clock: Clock;
-  /** Pluggable for tests. */
   verifyPassword: (plain: string, hashed: string) => Promise<boolean>;
+  /** true in production (HTTPS). false for local dev (HTTP). */
+  cookieSecure: boolean;
 }
+
+const COOKIE_NAME = "aonex_token";
+const COOKIE_TTL_SECONDS = 60 * 60;
 
 const LoginBody = z.object({ email: z.string().email(), password: z.string().min(1) });
 
@@ -41,19 +46,28 @@ export function authRoutes(deps: AuthDeps): Hono {
     }
 
     const jti = randomBytes(32).toString("hex");
-    const expiresAt = new Date(deps.clock.nowMs() + 60 * 60 * 1000);
+    const expiresAt = new Date(deps.clock.nowMs() + COOKIE_TTL_SECONDS * 1000);
     await deps.db.insert(schema.merchantSessions).values({
       jti,
       merchantId: merchant.id,
-      expiresAt
+      expiresAt,
     });
 
     const token = await deps.jwt.issue({
       jti,
       sub: merchant.id,
       tenant: merchant.tenantId,
-      roles: ["operator"]
+      roles: ["operator"],
     });
+
+    setCookie(c, COOKIE_NAME, token, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "Lax",
+      maxAge: COOKIE_TTL_SECONDS,
+      secure: deps.cookieSecure,
+    });
+
     return c.json({ data: { token, expiresAt: expiresAt.toISOString() } });
   });
 
@@ -61,7 +75,6 @@ export function authRoutes(deps: AuthDeps): Hono {
     const auth = c.req.header("authorization");
     if (!auth?.startsWith("Bearer ")) return c.json({ error: { code: "UNAUTHENTICATED" } }, 401);
     const claims = await deps.jwt.verify(auth.slice("Bearer ".length).trim());
-    // Verify the session is still valid + not revoked.
     const session = await deps.db
       .select()
       .from(schema.merchantSessions)
@@ -72,13 +85,12 @@ export function authRoutes(deps: AuthDeps): Hono {
     if (!session[0] || session[0].expiresAt < deps.clock.now()) {
       return c.json({ error: { code: "UNAUTHENTICATED", message: "Session expired" } }, 401);
     }
-    // Issue a fresh JWT with a new jti (rotate).
     const newJti = randomBytes(32).toString("hex");
-    const expiresAt = new Date(deps.clock.nowMs() + 60 * 60 * 1000);
+    const expiresAt = new Date(deps.clock.nowMs() + COOKIE_TTL_SECONDS * 1000);
     await deps.db.insert(schema.merchantSessions).values({
       jti: newJti,
       merchantId: claims.sub,
-      expiresAt
+      expiresAt,
     });
     await deps.db
       .update(schema.merchantSessions)
@@ -88,23 +100,34 @@ export function authRoutes(deps: AuthDeps): Hono {
       jti: newJti,
       sub: claims.sub,
       tenant: claims.tenant,
-      roles: claims.roles
+      roles: claims.roles,
     });
+
+    setCookie(c, COOKIE_NAME, token, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "Lax",
+      maxAge: COOKIE_TTL_SECONDS,
+      secure: deps.cookieSecure,
+    });
+
     return c.json({ data: { token, expiresAt: expiresAt.toISOString() } });
   });
 
   app.post("/logout", async (c) => {
     const auth = c.req.header("authorization");
-    if (!auth?.startsWith("Bearer ")) return c.json({ data: { ok: true } });
-    try {
-      const claims = await deps.jwt.verify(auth.slice("Bearer ".length).trim());
-      await deps.db
-        .update(schema.merchantSessions)
-        .set({ revokedAt: deps.clock.now() })
-        .where(eq(schema.merchantSessions.jti, claims.jti));
-    } catch {
-      // already invalid — logout is idempotent
+    if (auth?.startsWith("Bearer ")) {
+      try {
+        const claims = await deps.jwt.verify(auth.slice("Bearer ".length).trim());
+        await deps.db
+          .update(schema.merchantSessions)
+          .set({ revokedAt: deps.clock.now() })
+          .where(eq(schema.merchantSessions.jti, claims.jti));
+      } catch {
+        // already invalid — logout is idempotent
+      }
     }
+    deleteCookie(c, COOKIE_NAME, { path: "/" });
     return c.json({ data: { ok: true } });
   });
 
