@@ -24,7 +24,7 @@ export type GatewayErrorKind = (typeof GATEWAY_ERROR_KINDS)[number];
 
 export class GatewayError extends Error {
   readonly kind: GatewayErrorKind;
-  readonly cause?: unknown;
+  override readonly cause?: unknown;
   readonly retryAfterMs?: number;
   readonly providerStatus?: number;
 

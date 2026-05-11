@@ -23,6 +23,8 @@ import { errorHandler } from "./middleware/error.js";
 import { loggerMiddleware } from "./middleware/logger.js";
 import { requestIdMiddleware } from "./middleware/request-id.js";
 import { authRoutes } from "./routes/auth.js";
+import { signupRoutes } from "./routes/signup.js";
+import { googleAuthRoutes } from "./routes/google-auth.js";
 import { connectionsRoutes } from "./routes/connections.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { syncRoutes } from "./routes/sync.js";
@@ -34,12 +36,11 @@ export interface ApiContainer {
   shutdown: () => Promise<void>;
 }
 
-/** Trivial bcrypt-style verifier. Replaced with @node-rs/bcrypt or argon2 in prod. */
-async function defaultVerifyPassword(plain: string, hashed: string): Promise<boolean> {
-  // Phase 1 placeholder. The bcrypt/argon2 impl plugs in here without
-  // touching auth.ts. KEEP this swappable — it's dependency-injected.
-  return plain.length > 0 && hashed.length > 0 && plain === hashed;
-}
+const hashPassword = (plain: string) =>
+  Bun.password.hash(plain, { algorithm: "argon2id" });
+
+const verifyPassword = (plain: string, hashed: string) =>
+  Bun.password.verify(plain, hashed);
 
 export function buildContainer(env: Env): ApiContainer {
   const logger = pino({
@@ -78,7 +79,9 @@ export function buildContainer(env: Env): ApiContainer {
   app.use(
     "*",
     cors({
-      origin: env.NODE_ENV === "production" ? [] : "http://localhost:3000",
+      origin: env.NODE_ENV === "production"
+        ? []
+        : (origin) => (origin?.startsWith("http://localhost:") ? origin : null),
       credentials: true,
       allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
@@ -96,10 +99,39 @@ export function buildContainer(env: Env): ApiContainer {
       db: db.client,
       jwt,
       clock: SystemClock,
-      verifyPassword: defaultVerifyPassword,
+      verifyPassword,
       cookieSecure: env.NODE_ENV === "production",
     })
   );
+  app.route(
+    "/api/auth",
+    signupRoutes({
+      db: db.client,
+      jwt,
+      clock: SystemClock,
+      hashPassword,
+      cookieSecure: env.NODE_ENV === "production",
+    })
+  );
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REDIRECT_URI) {
+    app.route(
+      "/api/auth",
+      googleAuthRoutes({
+        db: db.client,
+        jwt,
+        clock: SystemClock,
+        googleConfig: {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+          redirectUri: env.GOOGLE_REDIRECT_URI,
+        },
+        pendingSecret: env.JWT_SECRET,
+        cookieSecure: env.NODE_ENV === "production",
+        frontendUrl: env.FRONTEND_URL,
+      })
+    );
+  }
+
   // Webhooks — public but HMAC-protected, NOT JWT-protected.
   app.route(
     "/webhooks",

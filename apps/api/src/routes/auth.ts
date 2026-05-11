@@ -3,7 +3,7 @@
 // LLD §4 surface 1.
 
 import { Hono } from "hono";
-import { setCookie, deleteCookie } from "hono/cookie";
+import { setCookie, deleteCookie, getCookie } from "hono/cookie";
 import { z } from "zod";
 import { and, eq, isNull } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
@@ -112,6 +112,55 @@ export function authRoutes(deps: AuthDeps): Hono {
     });
 
     return c.json({ data: { token, expiresAt: expiresAt.toISOString() } });
+  });
+
+  app.get("/me", async (c) => {
+    // Accept Bearer token OR httpOnly cookie so both email-login and
+    // Google OAuth flows (which only set a cookie) work without extra steps.
+    const auth = c.req.header("authorization");
+    let token: string | undefined;
+    if (auth?.startsWith("Bearer ")) {
+      token = auth.slice("Bearer ".length).trim();
+    } else {
+      token = getCookie(c, COOKIE_NAME);
+    }
+    if (!token) return c.json({ error: { code: "UNAUTHENTICATED", message: "Not authenticated" } }, 401);
+
+    let claims: Awaited<ReturnType<typeof deps.jwt.verify>>;
+    try {
+      claims = await deps.jwt.verify(token);
+    } catch {
+      return c.json({ error: { code: "UNAUTHENTICATED", message: "Invalid or expired token" } }, 401);
+    }
+
+    const [merchantRow] = await deps.db
+      .select({
+        id: schema.merchants.id,
+        email: schema.merchants.email,
+        displayName: schema.merchants.displayName,
+        tenantId: schema.merchants.tenantId,
+      })
+      .from(schema.merchants)
+      .where(eq(schema.merchants.id, claims.sub))
+      .limit(1);
+
+    if (!merchantRow) return c.json({ error: { code: "NOT_FOUND", message: "Merchant not found" } }, 404);
+
+    const [tenantRow] = await deps.db
+      .select({ name: schema.tenants.name })
+      .from(schema.tenants)
+      .where(eq(schema.tenants.id, merchantRow.tenantId))
+      .limit(1);
+
+    return c.json({
+      data: {
+        id: merchantRow.id,
+        email: merchantRow.email,
+        displayName: merchantRow.displayName,
+        role: claims.roles[0] ?? "member",
+        tenantName: tenantRow?.name ?? "",
+      },
+    });
   });
 
   app.post("/logout", async (c) => {

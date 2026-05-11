@@ -23,14 +23,15 @@
     "db:studio": "bun --bun --cwd packages/db drizzle-kit studio"
   },
   "devDependencies": {
-    "turbo": "^2.3.0",
-    "typescript": "^5.7.2",
     "@types/node": "^22.10.0",
-    "eslint": "^9.16.0",
-    "@typescript-eslint/parser": "^8.18.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "bun-types": "^1.3.13",
     "dependency-cruiser": "^16.6.0",
-    "prettier": "^3.4.2"
+    "eslint": "^9.16.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.2"
   },
   "packageManager": "bun@1.1.38",
   "engines": {

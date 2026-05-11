@@ -21,6 +21,14 @@ export const EnvSchema = z.object({
   // JWT — HS256, ≥32 bytes
   JWT_SECRET: z.string().min(32),
 
+  // Google OAuth — optional; server starts without them, but /api/auth/google routes won't be mounted
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional(),
+
+  // Frontend origin — used by Google OAuth callback redirect
+  FRONTEND_URL: z.string().url().default("http://localhost:3000"),
+
   // Observability
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.preprocess(
