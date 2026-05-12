@@ -8,4 +8,4 @@ export { ShopifyAdapter } from "./adapters/shopify/adapter.js";
 export type { ConnectionContext, ProviderProduct, ListProductsInput } from "./adapters/shopify/adapter.js";
 export { ConnectorGateway } from "./gateway.js";
 export type { ConnectorGatewayDeps } from "./gateway.js";
-export { encryptToken, decryptToken } from "./crypto.js";
+export { PostgresConnectionRegistry } from "./infra/postgres-registry.js";

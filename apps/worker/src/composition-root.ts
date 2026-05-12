@@ -5,12 +5,11 @@ import { Worker, Queue } from "bullmq";
 import IORedis from "ioredis";
 import pino from "pino";
 import { createDb } from "@aonex/db";
-import { buildGateway, ShopifyAdapter, ConnectorGateway, NangoConnectorAdapter } from "@aonex/connector-gateway";
+import { buildGateway, PostgresConnectionRegistry } from "@aonex/connector-gateway";
 import { createNangoClient } from "@aonex/connector-gateway/adapters/nango";
 import { SyncService } from "./services/sync-service.js";
 import { PostgresAuditEmitter } from "@aonex/audit";
 import { parseEnv, QUEUE, type Env } from "@aonex/types";
-import { PostgresConnectionRegistry } from "../../api/src/services/connection-registry.js";
 
 import { makeNangoAuthProcessor } from "./processors/nango-auth.processor.js";
 import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
@@ -32,18 +31,6 @@ export function buildContainer(env: Env): WorkerContainer {
   const lookup = new PostgresConnectionRegistry(db.client);
   const gateway = buildGateway({ env, lookup });
   const audit = new PostgresAuditEmitter(db.client);
-  const shopifyAdapter = new ShopifyAdapter({
-    nangoConnectBaseUrl: env.NANGO_CONNECT_BASE_URL,
-    nangoHost: env.NANGO_HOST,
-    nangoSecretKey: env.NANGO_SECRET_KEY
-  });
-  const connectorGateway = new ConnectorGateway({
-    db: db.client,
-    tokenKey: env.TOKEN_ENCRYPTION_KEY,
-    nango: gateway as NangoConnectorAdapter,
-    shopify: shopifyAdapter
-  });
-
   const drainQueue = new Queue(QUEUE.NANGO_DRAIN, { connection: redis });
   const triggerQueue = new Queue(QUEUE.NANGO_TRIGGER, { connection: redis });
   const extractQueue = new Queue(QUEUE.INGESTION_EXTRACT, { connection: redis });
@@ -54,12 +41,7 @@ export function buildContainer(env: Env): WorkerContainer {
 
   const authWorker = new Worker(
     QUEUE.NANGO_AUTH,
-    makeNangoAuthProcessor({
-      db: db.client,
-      audit,
-      triggerQueue,
-      tokenVault: { fetchAndStoreToken: (input) => connectorGateway.fetchAndStoreToken(input) }
-    }),
+    makeNangoAuthProcessor({ db: db.client, audit, triggerQueue }),
     { connection: redis, concurrency: WORKER_DEFAULTS.concurrency }
   );
 

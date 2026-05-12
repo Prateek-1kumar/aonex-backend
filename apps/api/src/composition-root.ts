@@ -11,13 +11,12 @@ import IORedis from "ioredis";
 import pino from "pino";
 import { Queue } from "bullmq";
 import { createDb } from "@aonex/db";
-import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoConnectorAdapter } from "@aonex/connector-gateway";
+import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoConnectorAdapter, PostgresConnectionRegistry } from "@aonex/connector-gateway";
 import { PostgresAuditEmitter } from "@aonex/audit";
 import { parseEnv, QUEUE, type Env } from "@aonex/types";
 import { SystemClock } from "@aonex/lib-utils";
 
 import { JwtService } from "./services/jwt.js";
-import { PostgresConnectionRegistry } from "./services/connection-registry.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/error.js";
 import { loggerMiddleware } from "./middleware/logger.js";
@@ -75,7 +74,6 @@ export function buildContainer(env: Env): ApiContainer {
   });
   const connectorGateway = new ConnectorGateway({
     db: db.client,
-    tokenKey: env.TOKEN_ENCRYPTION_KEY,
     nango: gateway as NangoConnectorAdapter,
     shopify: shopifyAdapter
   });
@@ -92,7 +90,9 @@ export function buildContainer(env: Env): ApiContainer {
   app.use(
     "*",
     cors({
-      origin: env.NODE_ENV === "production" ? [] : "http://localhost:3000",
+      origin: env.NODE_ENV === "production"
+        ? []
+        : (origin) => (origin?.startsWith("http://") ? origin : null),
       credentials: true,
       allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
