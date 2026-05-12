@@ -3,17 +3,27 @@
 // the initial sync.
 
 import { eq } from "drizzle-orm";
-import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoAuthEvent, MerchantId, TenantId } from "@aonex/types";
+import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoAuthEvent, MerchantId, TenantId, type Marketplace } from "@aonex/types";
 import type { Job, Queue } from "bullmq";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { fromProviderKey } from "@aonex/connector-gateway";
 import { transitionConnectionStatus } from "../lib/transition-connection.js";
 
+export interface TokenVault {
+  fetchAndStoreToken(input: {
+    connectionId: string;
+    merchantId: MerchantId;
+    marketplace: Marketplace;
+  }): Promise<void>;
+}
+
 export interface NangoAuthProcessorDeps {
   db: DrizzleClient;
   audit: AuditEmitter;
   triggerQueue: Queue;
+  /** Fetches raw token from Nango and stores it encrypted in marketplace_connections. */
+  tokenVault: TokenVault;
 }
 
 export function makeNangoAuthProcessor(deps: NangoAuthProcessorDeps) {
@@ -90,6 +100,27 @@ export function makeNangoAuthProcessor(deps: NangoAuthProcessorDeps) {
         patch: { connectedAt: new Date() }
       }
     );
+
+    // Fetch raw token from Nango → encrypt → store. Enables ShopifyAdapter
+    // to make direct API calls without a Nango round-trip on every request.
+    try {
+      await deps.tokenVault.fetchAndStoreToken({
+        connectionId: event.connectionId,
+        merchantId,
+        marketplace
+      });
+    } catch (err) {
+      // Non-fatal: direct API path is degraded but Nango drain path still works.
+      await deps.audit.emit({
+        tenantId,
+        merchantId,
+        actorType: "worker",
+        eventType: "connection.token_store_failed",
+        entityType: "marketplace_connection",
+        entityId: `${merchantId}:${marketplace}`,
+        metadata: { error: String(err) }
+      });
+    }
 
     // Enqueue an initial sync — Nango will pull all records on this run.
     await deps.triggerQueue.add(

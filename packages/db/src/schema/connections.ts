@@ -38,6 +38,10 @@ export const marketplaceConnections = pgTable(
     lastRefreshAttempt: timestamp("last_refresh_attempt", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     lastError: text("last_error"),
+    /** AES-256-GCM encrypted Shopify access token. Null until auth webhook fires. */
+    encryptedAccessToken: text("encrypted_access_token"),
+    /** e.g. my-store.myshopify.com — populated from Nango connection_config on auth webhook. */
+    shopDomain: varchar("shop_domain", { length: 200 }),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()

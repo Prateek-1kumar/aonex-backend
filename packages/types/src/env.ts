@@ -18,6 +18,13 @@ export const EnvSchema = z.object({
   // Cloud unless overridden — the self-host exit ramp is one env var.
   NANGO_HOST: z.string().url().default("https://api.nango.dev"),
 
+  // Token encryption — 64-char hex = 32 bytes AES-256-GCM key
+  // Generate with: openssl rand -hex 32
+  TOKEN_ENCRYPTION_KEY: z.string().length(64).regex(/^[0-9a-f]+$/, 'must be lowercase hex'),
+
+  // Nango Connect UI base URL — where merchants land to connect their store
+  NANGO_CONNECT_BASE_URL: z.string().url().default('https://connect.nango.dev'),
+
   // JWT — HS256, ≥32 bytes
   JWT_SECRET: z.string().min(32),
 

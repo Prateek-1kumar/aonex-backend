@@ -11,7 +11,7 @@ import IORedis from "ioredis";
 import pino from "pino";
 import { Queue } from "bullmq";
 import { createDb } from "@aonex/db";
-import { buildGateway, type ConnectorAdapterPhase1 } from "@aonex/connector-gateway";
+import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoConnectorAdapter } from "@aonex/connector-gateway";
 import { PostgresAuditEmitter } from "@aonex/audit";
 import { parseEnv, QUEUE, type Env } from "@aonex/types";
 import { SystemClock } from "@aonex/lib-utils";
@@ -29,6 +29,8 @@ import { connectionsRoutes } from "./routes/connections.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { syncRoutes } from "./routes/sync.js";
 import { healthRoutes } from "./routes/health.js";
+import { shopifyRoutes } from "./routes/shopify.js";
+import { swaggerRoutes } from "./routes/swagger.js";
 
 export interface ApiContainer {
   app: Hono;
@@ -66,6 +68,17 @@ export function buildContainer(env: Env): ApiContainer {
 
   const connectionRegistry = new PostgresConnectionRegistry(db.client);
   const gateway: ConnectorAdapterPhase1 = buildGateway({ env, lookup: connectionRegistry });
+  const shopifyAdapter = new ShopifyAdapter({
+    nangoConnectBaseUrl: env.NANGO_CONNECT_BASE_URL,
+    nangoHost: env.NANGO_HOST,
+    nangoSecretKey: env.NANGO_SECRET_KEY
+  });
+  const connectorGateway = new ConnectorGateway({
+    db: db.client,
+    tokenKey: env.TOKEN_ENCRYPTION_KEY,
+    nango: gateway as NangoConnectorAdapter,
+    shopify: shopifyAdapter
+  });
   const audit = new PostgresAuditEmitter(db.client);
   const jwt = new JwtService({ secret: env.JWT_SECRET, clock: SystemClock });
 
@@ -79,9 +92,7 @@ export function buildContainer(env: Env): ApiContainer {
   app.use(
     "*",
     cors({
-      origin: env.NODE_ENV === "production"
-        ? []
-        : (origin) => (origin?.startsWith("http://localhost:") ? origin : null),
+      origin: env.NODE_ENV === "production" ? [] : "http://localhost:3000",
       credentials: true,
       allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
@@ -93,6 +104,7 @@ export function buildContainer(env: Env): ApiContainer {
 
   // Public
   app.route("/", healthRoutes({ pool: db.pool, redis }));
+  app.route("/ui", swaggerRoutes());
   app.route(
     "/api/auth",
     authRoutes({
@@ -152,6 +164,14 @@ export function buildContainer(env: Env): ApiContainer {
   protectedApp.route(
     "/sync",
     syncRoutes({ queues: { [QUEUE.NANGO_TRIGGER]: nangoTriggerQueue }, audit })
+  );
+  protectedApp.route(
+    "/marketplaces/shopify",
+    shopifyRoutes({
+      gateway: connectorGateway,
+      audit,
+      queues: { [QUEUE.NANGO_TRIGGER]: nangoTriggerQueue }
+    })
   );
   app.route("/api", protectedApp);
 
