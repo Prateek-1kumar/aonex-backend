@@ -18,7 +18,11 @@ import type {
   SyncStatus,
   TokenHealthResult,
   VerifyAndParseInput,
-  VerifyAndParseResult
+  VerifyAndParseResult,
+  OAuthUrlResult,
+  CreateOAuthUrlInput,
+  GetInventoryInput,
+  InventoryRecord
 } from "../../contract/index.js";
 import type {
   ConnectionId,
@@ -26,7 +30,7 @@ import type {
   MerchantId,
   TenantId
 } from "@aonex/types";
-import { ConnectionId as ConnectionIdParse, GatewayError, MerchantId as MerchantIdParse } from "@aonex/types";
+import { GatewayError } from "@aonex/types";
 
 import type { NangoClient } from "./client.js";
 import { mapNangoError } from "./error-map.js";
@@ -51,8 +55,52 @@ export interface NangoConnectorAdapterDeps {
   nowMs?: () => number;
 }
 
+// Captures only the Nango SDK methods we actually invoke.
+// The single cast happens here so every call-site stays clean.
+interface NangoClientCompat {
+  createConnectSession(args: {
+    end_user: { id: string };
+    allowed_integrations: string[];
+  }): Promise<{ data: { token: string; expires_at: string } }>;
+
+  listRecords(args: {
+    providerConfigKey: string;
+    connectionId: string;
+    model: string;
+    modifiedAfter?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<{ records: Array<Record<string, unknown>>; next_cursor?: string }>;
+
+  getSyncStatus(args: {
+    providerConfigKey: string;
+    connectionId: string;
+    syncs: string[];
+  }): Promise<{
+    syncs: Array<{
+      latest_sync?: {
+        result?: { added: number; updated: number; deleted: number };
+        updated_at?: string;
+      };
+      sync_type?: "INITIAL" | "INCREMENTAL" | "FULL";
+    }>;
+  }>;
+
+  deleteConnection(args: { providerConfigKey: string; connectionId: string }): Promise<void>;
+
+  getConnection(args: { providerConfigKey: string; connectionId: string }): Promise<{
+    credentials?: { expires_at?: string };
+    updated_at?: string;
+    last_error?: string;
+  }>;
+}
+
 export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
-  constructor(private readonly deps: NangoConnectorAdapterDeps) {}
+  private readonly client: NangoClientCompat;
+
+  constructor(private readonly deps: NangoConnectorAdapterDeps) {
+    this.client = deps.client as unknown as NangoClientCompat;
+  }
 
   // -------- Read --------------------------------------------------
 
@@ -63,7 +111,6 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
     return {
       marketplace: input.marketplace,
       syncs: SYNC_NAMES[input.marketplace],
-      // Phase 1: no marketplace is write-enabled. HLD §28 open question.
       canPublish: false
     };
   }
@@ -76,17 +123,7 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
       throw new GatewayError("validation_failed", `No sync model for ${input.marketplace}`);
     }
     try {
-      const c = this.deps.client as unknown as {
-        listRecords: (args: {
-          providerConfigKey: string;
-          connectionId: string;
-          model: string;
-          modifiedAfter?: string;
-          cursor?: string;
-          limit?: number;
-        }) => Promise<{ records: Array<Record<string, unknown>>; next_cursor?: string }>;
-      };
-      const res = await c.listRecords({
+      const res = await this.client.listRecords({
         providerConfigKey: provider,
         connectionId: conn.connectionId,
         model,
@@ -107,8 +144,6 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
   }
 
   async fetchRecord(input: FetchRecordInput): Promise<CanonicalProductRecord> {
-    // Phase 1 doesn't need single-record fetches — drain owns the path.
-    // Implemented for HLD §17 surface compliance; Phase 2 wires it.
     throw new GatewayError("validation_failed", "fetchRecord not implemented in Phase 1");
   }
 
@@ -139,20 +174,8 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
   }): Promise<SyncStatus> {
     const conn = await this.requireConnection(input.merchantId, input.marketplace);
     try {
-      const c = this.deps.client as unknown as {
-        getSyncStatus: (args: {
-          providerConfigKey: string;
-          connectionId: string;
-          syncs: string[];
-        }) => Promise<{
-          syncs: Array<{
-            latest_sync?: { result?: { added: number; updated: number; deleted: number }; updated_at?: string };
-            sync_type?: "INITIAL" | "INCREMENTAL" | "FULL";
-          }>;
-        }>;
-      };
       const provider = toProviderKey(input.marketplace);
-      const status = await c.getSyncStatus({
+      const status = await this.client.getSyncStatus({
         providerConfigKey: provider,
         connectionId: conn.connectionId,
         syncs: SYNC_NAMES[input.marketplace] as string[]
@@ -180,13 +203,7 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
 
   async createConnectSession(input: CreateConnectSessionInput): Promise<ConnectSessionToken> {
     try {
-      const c = this.deps.client as unknown as {
-        createConnectSession: (args: {
-          end_user: { id: string };
-          allowed_integrations: string[];
-        }) => Promise<{ data: { token: string; expires_at: string } }>;
-      };
-      const res = await c.createConnectSession({
+      const res = await this.client.createConnectSession({
         end_user: { id: input.merchantId },
         allowed_integrations: input.marketplaces.map(toProviderKey)
       });
@@ -213,13 +230,7 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
   async revoke(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<void> {
     const conn = await this.requireConnection(input.merchantId, input.marketplace);
     try {
-      const c = this.deps.client as unknown as {
-        deleteConnection: (args: {
-          providerConfigKey: string;
-          connectionId: string;
-        }) => Promise<void>;
-      };
-      await c.deleteConnection({
+      await this.client.deleteConnection({
         providerConfigKey: toProviderKey(input.marketplace),
         connectionId: conn.connectionId
       });
@@ -233,17 +244,7 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
     marketplace: Marketplace;
   }): Promise<TokenHealthResult> {
     try {
-      const c = this.deps.client as unknown as {
-        getConnection: (args: {
-          providerConfigKey: string;
-          connectionId: string;
-        }) => Promise<{
-          credentials?: { expires_at?: string };
-          updated_at?: string;
-          last_error?: string;
-        }>;
-      };
-      const conn = await c.getConnection({
+      const conn = await this.client.getConnection({
         providerConfigKey: toProviderKey(input.marketplace),
         connectionId: input.connectionId
       });
@@ -258,6 +259,42 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
         result.lastError = conn.last_error;
       }
       return result;
+    } catch (err) {
+      throw mapNangoError(err);
+    }
+  }
+
+  // -------- Inventory --------------------------------------------
+
+  async getInventory(input: GetInventoryInput): Promise<readonly InventoryRecord[]> {
+    const conn = await this.requireConnection(input.merchantId, input.marketplace);
+    const provider = toProviderKey(input.marketplace);
+    const model = SYNC_NAMES[input.marketplace][0];
+    if (!model) return [];
+    try {
+      let cursor: string | undefined;
+      do {
+        const res = await this.client.listRecords({
+          providerConfigKey: provider,
+          connectionId: conn.connectionId,
+          model,
+          limit: 100,
+          ...(cursor ? { cursor } : {})
+        });
+        const match = res.records.find(
+          (r) => String((r as Record<string, unknown>)['id'] ?? '') === input.externalProductId ||
+                 String((r as Record<string, unknown>)['externalId'] ?? '') === input.externalProductId
+        );
+        if (match) {
+          const variants = ((match as Record<string, unknown>)['variants'] ?? []) as Array<{ id: string | number; inventoryQuantity?: number }>;
+          return variants.map((v) => ({
+            locationId: String(v.id),
+            available: v.inventoryQuantity ?? 0
+          }));
+        }
+        cursor = res.next_cursor;
+      } while (cursor);
+      return [];
     } catch (err) {
       throw mapNangoError(err);
     }

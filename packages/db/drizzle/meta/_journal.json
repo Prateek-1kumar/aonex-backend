@@ -8,6 +8,13 @@
       "when": 1778359065913,
       "tag": "0000_misty_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1747043400000,
+      "tag": "0001_add_shopify_token_columns",
+      "breakpoints": true
     }
   ]
 }

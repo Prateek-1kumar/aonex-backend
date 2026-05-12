@@ -33,7 +33,11 @@ import type {
   SyncStatus,
   TokenHealthResult,
   VerifyAndParseInput,
-  VerifyAndParseResult
+  VerifyAndParseResult,
+  OAuthUrlResult,
+  CreateOAuthUrlInput,
+  GetInventoryInput,
+  InventoryRecord
 } from "../../contract/index.js";
 
 interface SeededRecord {
@@ -206,6 +210,18 @@ export class MockConnectorAdapter implements ConnectorAdapterPhase1 {
 
   async refreshTokenHealth(): Promise<TokenHealthResult> {
     return { healthy: true };
+  }
+
+  async createOAuthUrl(_input: CreateOAuthUrlInput): Promise<OAuthUrlResult> {
+    return { url: 'https://connect.nango.dev?token=mock', expiresAt: new Date(Date.now() + 600_000) };
+  }
+
+  async healthCheck(_input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<boolean> {
+    return true;
+  }
+
+  async getInventory(_input: GetInventoryInput): Promise<readonly InventoryRecord[]> {
+    return [];
   }
 
   // -------- Webhook ----------------------------------------------

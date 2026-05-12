@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Shopify | Aonex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@nangohq/frontend/dist/index.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            if (typeof Nango === 'undefined') {
+                console.error('Nango SDK failed to load from CDN');
+                document.getElementById('status').innerHTML = '❌ Error: Nango SDK failed to load. Check your internet or ad-blocker.';
+            }
+        });
+    </script>
+    <style>
+        :root {
+            --primary: #96f2d7;
+            --primary-hover: #63e6be;
+            --bg: #0b0e14;
+            --card-bg: #161b22;
+            --text: #f0f6fc;
+            --text-dim: #8b949e;
+            --error: #ff6b6b;
+            --success: #63e6be;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), #38d9a9);
+            border-radius: 16px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            font-size: 2rem;
+            color: var(--bg);
+        }
+
+        h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+        p { color: var(--text-dim); line-height: 1.6; margin-bottom: 2.5rem; }
+
+        .btn {
+            display: block;
+            width: 100%;
+            background-color: var(--primary);
+            color: var(--bg);
+            padding: 1.25rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover { background-color: var(--primary-hover); transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        #status {
+            margin-top: 1.5rem;
+            font-weight: 500;
+        }
+
+        .success-msg { color: var(--success); }
+        .error-msg { color: var(--error); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">A</div>
+        <h1>Connect Shopify</h1>
+        <p>Authorize Aonex to sync your products and orders.</p>
+        
+        <button id="connect-btn" class="btn">Connect Store</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // YOUR NANGO PUBLIC KEY (Find in Dashboard > Settings)
+        // Note: Using a public key here is standard for Nango Frontend SDK
+        const NANGO_PUBLIC_KEY = "3884c553-61ce-4277-aa98-e3745ea98d70"; 
+        
+        const nango = new Nango({ publicKey: NANGO_PUBLIC_KEY });
+        const btn = document.getElementById('connect-btn');
+        const status = document.getElementById('status');
+
+        btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            status.innerHTML = 'Opening secure connection...';
+            status.className = '';
+
+            try {
+                // This will open the Nango Popup directly
+                // It's more reliable than the redirect flow for local dev
+                await nango.auth('shopify', 'test_dhruv_patel');
+                
+                status.innerHTML = '✅ Successfully Connected!';
+                status.className = 'success-msg';
+                
+                console.log('Connection successful!');
+                alert('Connection Successful! Now we can fetch products.');
+            } catch (err) {
+                console.error(err);
+                status.innerHTML = '❌ Error: ' + err.message;
+                status.className = 'error-msg';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

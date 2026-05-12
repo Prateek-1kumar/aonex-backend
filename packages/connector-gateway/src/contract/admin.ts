@@ -18,6 +18,18 @@ export interface CreateConnectSessionInput {
   redirectUrl?: string;
 }
 
+export interface OAuthUrlResult {
+  /** URL the frontend should redirect the merchant to (or open as popup). */
+  url: string;
+  expiresAt: Date;
+}
+
+export interface CreateOAuthUrlInput {
+  merchantId: MerchantId;
+  /** Pre-created connect session token (created by caller before invoking this). */
+  sessionToken: string;
+}
+
 export interface IConnectorAdmin {
   /**
    * Mint an opaque session token for the Nango Connect UI.
@@ -47,4 +59,5 @@ export interface IConnectorAdmin {
     connectionId: ConnectionId;
     marketplace: Marketplace;
   }): Promise<TokenHealthResult>;
+
 }

@@ -5,19 +5,17 @@
 // Phase 2 Field Extractor is enqueued only for newly-inserted rows.
 
 import { eq } from "drizzle-orm";
-import type { Job, Queue } from "bullmq";
+import type { Job } from "bullmq";
 import {
-  JOB_KIND,
   QUEUE,
-  STANDARD_RETRY,
   TenantId,
   MerchantId,
   type Marketplace
 } from "@aonex/types";
-import { canonicalStringify, sha256Hex } from "@aonex/lib-utils";
 import type { ConnectorAdapterPhase1 } from "@aonex/connector-gateway";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
+import { SyncService } from "../services/sync-service.js";
 
 export interface DrainJobData {
   merchantId: MerchantId;
@@ -31,7 +29,7 @@ export interface DrainProcessorDeps {
   db: DrizzleClient;
   audit: AuditEmitter;
   gateway: ConnectorAdapterPhase1;
-  extractQueue: Queue;
+  syncService: SyncService;
 }
 
 export function makeDrainProcessor(deps: DrainProcessorDeps) {
@@ -48,43 +46,20 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
       // Extend lock per page (long drains).
       await job.extendLock(job.token!, 60_000);
 
-      for (const record of page) {
-        totalSeen += 1;
-        const checksum = sha256Hex(canonicalStringify(record.raw));
-        const inserted = await deps.db
-          .insert(schema.sourceArtifacts)
-          .values({
-            tenantId,
-            merchantId,
-            sourceType: "marketplace_connector",
-            sourceMarketplace: marketplace,
-            sourceExternalId: record.externalId,
-            rawData: record.raw,
-            checksum,
-            status: "pending",
-            syncJobRunId,
-            ...(record.modifiedAt ? { modifiedAt: record.modifiedAt } : {})
-          })
-          .onConflictDoNothing({
-            target: [
-              schema.sourceArtifacts.merchantId,
-              schema.sourceArtifacts.sourceMarketplace,
-              schema.sourceArtifacts.sourceExternalId,
-              schema.sourceArtifacts.checksum
-            ]
-          })
-          .returning({ id: schema.sourceArtifacts.id });
+      const { inserted } = await deps.syncService.persistArtifacts({
+        tenantId,
+        merchantId,
+        marketplace,
+        syncJobRunId,
+        records: page.map((r) => ({
+          externalId: r.externalId,
+          raw: r.raw,
+          ...(r.modifiedAt ? { modifiedAt: r.modifiedAt } : {})
+        }))
+      });
 
-        if (inserted.length > 0) {
-          totalInserted += 1;
-          // Phase 2 hook — enqueue extraction for genuinely new artifacts.
-          await deps.extractQueue.add(
-            JOB_KIND.EXTRACT,
-            { artifactId: inserted[0]!.id },
-            { jobId: `extract:${inserted[0]!.id}`, ...STANDARD_RETRY }
-          );
-        }
-      }
+      totalSeen += page.length;
+      totalInserted += inserted;
     }
 
     await deps.db

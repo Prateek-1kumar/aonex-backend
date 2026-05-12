@@ -3,7 +3,7 @@
 // the initial sync.
 
 import { eq } from "drizzle-orm";
-import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoAuthEvent, MerchantId, TenantId } from "@aonex/types";
+import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoAuthEvent, MerchantId, TenantId, type Marketplace } from "@aonex/types";
 import type { Job, Queue } from "bullmq";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
@@ -21,7 +21,6 @@ export function makeNangoAuthProcessor(deps: NangoAuthProcessorDeps) {
     const event = job.data;
     const marketplace = fromProviderKey(event.providerConfigKey);
     if (!marketplace) {
-      // Unknown marketplace — drop with audit, do not retry.
       await deps.audit.emit({
         tenantId: TenantId.unsafeFrom("00000000-0000-0000-0000-000000000000"),
         actorType: "nango",
@@ -31,15 +30,11 @@ export function makeNangoAuthProcessor(deps: NangoAuthProcessorDeps) {
       return;
     }
 
-    // Find the merchant from the connection record. The endUserId
-    // sent on the Nango webhook is our merchantId (we set it when
-    // calling createConnectSession).
     const merchantId = MerchantId.unsafeFrom(
       "endUser" in event && event.endUser?.endUserId ? event.endUser.endUserId : ""
     );
 
     if (!event.success) {
-      // auth failed — record for telemetry, don't retry.
       await deps.audit.emit({
         actorType: "nango",
         tenantId: TenantId.unsafeFrom("00000000-0000-0000-0000-000000000000"),
@@ -52,7 +47,6 @@ export function makeNangoAuthProcessor(deps: NangoAuthProcessorDeps) {
       return;
     }
 
-    // Upsert the marketplace_connection. We look up tenantId via merchants.
     const merchant = (
       await deps.db.select().from(schema.merchants).where(eq(schema.merchants.id, merchantId)).limit(1)
     )[0];
@@ -91,7 +85,6 @@ export function makeNangoAuthProcessor(deps: NangoAuthProcessorDeps) {
       }
     );
 
-    // Enqueue an initial sync — Nango will pull all records on this run.
     await deps.triggerQueue.add(
       JOB_KIND.INITIAL_SYNC,
       { merchantId, marketplace, tenantId },

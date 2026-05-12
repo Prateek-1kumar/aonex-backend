@@ -11,13 +11,12 @@ import IORedis from "ioredis";
 import pino from "pino";
 import { Queue } from "bullmq";
 import { createDb } from "@aonex/db";
-import { buildGateway, type ConnectorAdapterPhase1 } from "@aonex/connector-gateway";
+import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoConnectorAdapter, PostgresConnectionRegistry } from "@aonex/connector-gateway";
 import { PostgresAuditEmitter } from "@aonex/audit";
 import { parseEnv, QUEUE, type Env } from "@aonex/types";
 import { SystemClock } from "@aonex/lib-utils";
 
 import { JwtService } from "./services/jwt.js";
-import { PostgresConnectionRegistry } from "./services/connection-registry.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/error.js";
 import { loggerMiddleware } from "./middleware/logger.js";
@@ -29,6 +28,11 @@ import { connectionsRoutes } from "./routes/connections.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { syncRoutes } from "./routes/sync.js";
 import { healthRoutes } from "./routes/health.js";
+import { shopifyRoutes } from "./routes/shopify.js";
+import { swaggerRoutes } from "./routes/swagger.js";
+import { ingestionsRoutes } from "./routes/ingestions.js";
+import { fetchLink } from "@aonex/ingestion-link-fetcher";
+import { LLMProductExtractor, createModelProvider } from "@aonex/ingestion-llm-extractor";
 
 export interface ApiContainer {
   app: Hono;
@@ -66,6 +70,16 @@ export function buildContainer(env: Env): ApiContainer {
 
   const connectionRegistry = new PostgresConnectionRegistry(db.client);
   const gateway: ConnectorAdapterPhase1 = buildGateway({ env, lookup: connectionRegistry });
+  const shopifyAdapter = new ShopifyAdapter({
+    nangoConnectBaseUrl: env.NANGO_CONNECT_BASE_URL,
+    nangoHost: env.NANGO_HOST,
+    nangoSecretKey: env.NANGO_SECRET_KEY
+  });
+  const connectorGateway = new ConnectorGateway({
+    db: db.client,
+    nango: gateway as NangoConnectorAdapter,
+    shopify: shopifyAdapter
+  });
   const audit = new PostgresAuditEmitter(db.client);
   const jwt = new JwtService({ secret: env.JWT_SECRET, clock: SystemClock });
 
@@ -73,6 +87,7 @@ export function buildContainer(env: Env): ApiContainer {
   const nangoAuthQueue = new Queue(QUEUE.NANGO_AUTH, { connection: redis });
   const nangoSyncQueue = new Queue(QUEUE.NANGO_SYNC, { connection: redis });
   const nangoTriggerQueue = new Queue(QUEUE.NANGO_TRIGGER, { connection: redis });
+  const linkExtractQueue = new Queue(QUEUE.LINK_EXTRACT, { connection: redis });
 
   // ---- Hono app -------------------------------------------------
   const app = new Hono();
@@ -81,7 +96,7 @@ export function buildContainer(env: Env): ApiContainer {
     cors({
       origin: env.NODE_ENV === "production"
         ? []
-        : (origin) => (origin?.startsWith("http://localhost:") ? origin : null),
+        : (origin) => (origin?.startsWith("http://") ? origin : null),
       credentials: true,
       allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
@@ -93,6 +108,7 @@ export function buildContainer(env: Env): ApiContainer {
 
   // Public
   app.route("/", healthRoutes({ pool: db.pool, redis }));
+  app.route("/ui", swaggerRoutes());
   app.route(
     "/api/auth",
     authRoutes({
@@ -145,6 +161,40 @@ export function buildContainer(env: Env): ApiContainer {
     })
   );
 
+  // Unauthenticated dev endpoint to test Groq LLM extraction via Postman
+  app.get("/test-llm", async (c) => {
+    const url = c.req.query("url");
+    if (!url) return c.json({ success: false, error: "Missing ?url= parameter" }, 400);
+
+    try {
+      const html = await fetchLink(url);
+      const provider = createModelProvider({
+        provider: "openai",
+        config: {
+          apiKey: process.env.OPENAI_API_KEY ?? "",
+          ...(process.env.OPENAI_BASE_URL ? { baseUrl: process.env.OPENAI_BASE_URL } : {}),
+        },
+      });
+      const extractor = new LLMProductExtractor(provider);
+      const result = await extractor.extractFactSet(html.cleanedText, url, "test" as any);
+
+      return c.json({
+        success: true,
+        data: {
+          url,
+          extracted_facts: result.factSet.facts.map(f => ({
+            key: f.rawKey,
+            value: f.normalizedValue,
+            confidence: f.confidence
+          })),
+          metadata: result.meta
+        }
+      });
+    } catch (err) {
+      return c.json({ success: false, error: err instanceof Error ? err.message : String(err) }, 500);
+    }
+  });
+
   // Authenticated
   const protectedApp = new Hono();
   protectedApp.use("*", authMiddleware(jwt));
@@ -152,6 +202,21 @@ export function buildContainer(env: Env): ApiContainer {
   protectedApp.route(
     "/sync",
     syncRoutes({ queues: { [QUEUE.NANGO_TRIGGER]: nangoTriggerQueue }, audit })
+  );
+  protectedApp.route(
+    "/marketplaces/shopify",
+    shopifyRoutes({
+      gateway: connectorGateway,
+      audit,
+      queues: { [QUEUE.NANGO_TRIGGER]: nangoTriggerQueue }
+    })
+  );
+  protectedApp.route(
+    "/ingestions",
+    ingestionsRoutes({
+      queues: { [QUEUE.LINK_EXTRACT]: linkExtractQueue },
+      audit,
+    })
   );
   app.route("/api", protectedApp);
 
@@ -162,7 +227,8 @@ export function buildContainer(env: Env): ApiContainer {
       await Promise.all([
         nangoAuthQueue.close(),
         nangoSyncQueue.close(),
-        nangoTriggerQueue.close()
+        nangoTriggerQueue.close(),
+        linkExtractQueue.close()
       ]);
       await redis.quit();
       await db.close();

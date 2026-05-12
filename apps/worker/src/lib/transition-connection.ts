@@ -14,7 +14,7 @@ type Status = "pending" | "pending_failed" | "active" | "refresh_failing" | "rev
 const LEGAL_TRANSITIONS: Record<Status, readonly Status[]> = {
   pending: ["active", "pending_failed"],
   pending_failed: ["pending", "deleted"],
-  active: ["refresh_failing", "revoked"],
+  active: ["active", "refresh_failing", "revoked"],
   refresh_failing: ["active", "revoked"],
   revoked: ["deleted"],
   deleted: []

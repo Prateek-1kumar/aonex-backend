@@ -17,6 +17,8 @@ export const QUEUE = {
   INGESTION_EXTRACT: "ingestion.extract",
   /** Phase 3 — parse uploaded CSV file into row-level source_artifacts */
   CSV_PARSE: "csv.parse",
+  /** Link/URL ingestion — fetch HTML, LLM extraction, produce extracted facts */
+  LINK_EXTRACT: "ingestion.link_extract",
   /** Audit emitter fallback queue (HLD §23: must not drop) */
   AUDIT_FALLBACK: "audit.fallback"
 } as const;
@@ -31,7 +33,8 @@ export const JOB_KIND = {
   DRAIN: "drain",
   SWEEP_REFRESH_FAILING: "sweep-refresh-failing",
   EXTRACT: "extract",
-  CSV_PARSE: "csv-parse"
+  CSV_PARSE: "csv-parse",
+  LINK_EXTRACT: "link-extract"
 } as const;
 
 export type JobKind = (typeof JOB_KIND)[keyof typeof JOB_KIND];

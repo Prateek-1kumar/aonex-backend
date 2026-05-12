@@ -1,3 +1,4 @@
+.worktrees/
 node_modules/
 dist/
 .turbo/
@@ -33,3 +34,4 @@ packages/db/drizzle/.snapshots/
 # nango
 apps/nango/.nango/
 docs
+!docs/superpowers/

@@ -7,6 +7,8 @@
     { "path": "../../packages/lib-utils" },
     { "path": "../../packages/db" },
     { "path": "../../packages/connector-gateway" },
-    { "path": "../../packages/audit" }
+    { "path": "../../packages/audit" },
+    { "path": "../../packages/ingestion/link-fetcher" },
+    { "path": "../../packages/ingestion/llm-extractor" }
   ]
 }
