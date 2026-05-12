@@ -2,7 +2,7 @@
 // Spawns a drain job per page rather than draining inline (the drain
 // can take minutes; we want BullMQ retries at the page level).
 
-import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoSyncEvent, MerchantId } from "@aonex/types";
+import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoSyncEvent, MerchantId, TenantId } from "@aonex/types";
 import type { Job, Queue } from "bullmq";
 import { fromProviderKey } from "@aonex/connector-gateway";
 import type { AuditEmitter } from "@aonex/audit";
@@ -33,7 +33,7 @@ export function makeNangoSyncProcessor(deps: NangoSyncProcessorDeps) {
       // Connection not found — webhook for revoked? Audit + drop.
       await deps.audit.emit({
         actorType: "nango",
-        tenantId: conn?.tenantId ?? "00000000-0000-0000-0000-000000000000",
+        tenantId: TenantId.unsafeFrom("00000000-0000-0000-0000-000000000000"),
         eventType: "sync.unknown_connection",
         metadata: { connectionId: event.connectionId, providerConfigKey: event.providerConfigKey }
       });

@@ -16,6 +16,8 @@
     "@aonex/audit": "workspace:*",
     "@aonex/connector-gateway": "workspace:*",
     "@aonex/db": "workspace:*",
+    "@aonex/ingestion-link-fetcher": "workspace:*",
+    "@aonex/ingestion-llm-extractor": "workspace:*",
     "@aonex/lib-utils": "workspace:*",
     "@aonex/types": "workspace:*",
     "@hono/swagger-ui": "^0.6.1",

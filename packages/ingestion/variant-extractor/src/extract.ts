@@ -85,7 +85,7 @@ function buildVariantKey(axes: Record<string, string>): string {
   const sorted = Object.fromEntries(
     Object.entries(axes)
       .map(([k, v]) => [k.toLowerCase().trim(), v.toLowerCase().trim()])
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => a!.localeCompare(b!))
   );
   return sha256Hex(canonicalStringify(sorted)).slice(0, 16);
 }

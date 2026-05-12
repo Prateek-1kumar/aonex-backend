@@ -15,6 +15,8 @@ import { makeNangoAuthProcessor } from "./processors/nango-auth.processor.js";
 import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
 import { makeDrainProcessor } from "./processors/drain.processor.js";
 import { makeTriggerSyncProcessor } from "./processors/trigger-sync.processor.js";
+import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js";
+import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 
 export interface WorkerContainer {
@@ -34,6 +36,7 @@ export function buildContainer(env: Env): WorkerContainer {
   const drainQueue = new Queue(QUEUE.NANGO_DRAIN, { connection: redis });
   const triggerQueue = new Queue(QUEUE.NANGO_TRIGGER, { connection: redis });
   const extractQueue = new Queue(QUEUE.INGESTION_EXTRACT, { connection: redis });
+  const linkExtractQueue = new Queue(QUEUE.LINK_EXTRACT, { connection: redis });
   const syncService = new SyncService({ db: db.client, extractQueue });
 
   // Direct Nango client for trigger-sync (no surface in gateway for triggerSync today).
@@ -74,7 +77,30 @@ export function buildContainer(env: Env): WorkerContainer {
     { connection: redis, concurrency: WORKER_DEFAULTS.concurrency }
   );
 
-  const workers = [authWorker, syncWorker, drainWorker, triggerWorker];
+  // LLM-based link extraction worker.
+  // Requires OPENAI_API_KEY env var. Falls back to a no-op if missing.
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  let linkExtractWorker: Worker | undefined;
+  if (openaiApiKey) {
+    const providerConfig = openaiApiKey
+      ? { apiKey: openaiApiKey, ...(process.env.OPENAI_BASE_URL ? { baseUrl: process.env.OPENAI_BASE_URL } : {}) }
+      : { apiKey: "" };
+    const modelProvider = createModelProvider({
+      provider: "openai",
+      config: providerConfig,
+    });
+    const extractor = new LLMProductExtractor(modelProvider);
+
+    linkExtractWorker = new Worker(
+      QUEUE.LINK_EXTRACT,
+      makeLinkExtractProcessor({ db: db.client, audit, extractor }),
+      { connection: redis, concurrency: 5 }
+    );
+  } else {
+    logger.warn("OPENAI_API_KEY not set — link extraction worker disabled");
+  }
+
+  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : [])];
   for (const w of workers) {
     w.on("completed", (job) => logger.info({ jobId: job.id, queue: w.name }, "job.completed"));
     w.on("failed", (job, err) =>
@@ -93,9 +119,10 @@ export function buildContainer(env: Env): WorkerContainer {
         authWorker.close(true),
         syncWorker.close(true),
         drainWorker.close(true),
-        triggerWorker.close(true)
+        triggerWorker.close(true),
+        ...(linkExtractWorker ? [linkExtractWorker.close(true)] : [])
       ]);
-      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close()]);
+      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close()]);
       await redis.quit();
       await db.close();
     }

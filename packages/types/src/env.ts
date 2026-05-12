@@ -41,7 +41,12 @@ export const EnvSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.string().url().optional()
-  )
+  ),
+
+  // LLM Provider Config (supports OpenAI, OpenRouter, Groq, etc.)
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_BASE_URL: z.string().url().optional(),
+  OPENAI_MODEL: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
