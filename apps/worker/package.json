@@ -17,6 +17,8 @@
     "@aonex/db": "workspace:*",
     "@aonex/connector-gateway": "workspace:*",
     "@aonex/audit": "workspace:*",
+    "@aonex/ingestion-link-fetcher": "workspace:*",
+    "@aonex/ingestion-llm-extractor": "workspace:*",
     "bullmq": "^5.34.5",
     "ioredis": "^5.4.2",
     "drizzle-orm": "^0.36.4",

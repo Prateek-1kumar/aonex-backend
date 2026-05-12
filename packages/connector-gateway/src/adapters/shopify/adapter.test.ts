@@ -1,0 +1,96 @@
+import { describe, it, expect, spyOn } from 'bun:test';
+import { ShopifyAdapter } from './adapter.js';
+import type { ConnectionContext } from './adapter.js';
+
+const NANGO_HOST = 'https://api.nango.dev';
+const adapter = new ShopifyAdapter({
+  nangoConnectBaseUrl: 'https://connect.nango.dev',
+  nangoHost: NANGO_HOST,
+  nangoSecretKey: 'test-secret-key'
+});
+
+const conn: ConnectionContext = {
+  tenantId: 'tenant-1',
+  merchantId: 'merchant-1' as any,
+  marketplace: 'shopify',
+  connectionId: 'conn-merchant-1-shopify'
+};
+
+describe('ShopifyAdapter.createOAuthUrl', () => {
+  it('returns a Nango Connect URL containing the session token', async () => {
+    const result = await adapter.createOAuthUrl({ merchantId: 'merchant-1' as any, sessionToken: 'sess_abc' });
+    expect(result.url).toContain('connect.nango.dev');
+    expect(result.url).toContain('session_token=sess_abc');
+    expect(result.expiresAt).toBeInstanceOf(Date);
+  });
+});
+
+describe('ShopifyAdapter.healthCheck', () => {
+  it('returns true when Shopify shop.json responds 200', async () => {
+    const spy = spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ shop: { id: 1 } }), { status: 200 })
+    );
+    const result = await adapter.healthCheck({ connection: conn });
+    expect(result).toBe(true);
+    expect(spy).toHaveBeenCalledWith(
+      `${NANGO_HOST}/proxy/admin/api/2025-01/shop.json`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'Authorization': 'Bearer test-secret-key',
+          'Connection-Id': conn.connectionId,
+          'Provider-Config-Key': 'shopify'
+        })
+      })
+    );
+    spy.mockRestore();
+  });
+
+  it('returns false when Shopify responds non-200', async () => {
+    const spy = spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }));
+    const result = await adapter.healthCheck({ connection: conn });
+    expect(result).toBe(false);
+    spy.mockRestore();
+  });
+});
+
+describe('ShopifyAdapter.listProducts', () => {
+  it('returns ProviderProduct[] with externalId and raw', async () => {
+    const mockProducts = [
+      { id: 12345, title: 'Test Product', handle: 'test-product' }
+    ];
+    const spy = spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ products: mockProducts }), { status: 200 })
+    );
+    const result = await adapter.listProducts({ connection: conn });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.externalId).toBe('12345');
+    expect(result[0]!.raw).toEqual(mockProducts[0]);
+    spy.mockRestore();
+  });
+
+  it('throws SHOPIFY_PRODUCTS_FETCH_FAILED on non-200', async () => {
+    const spy = spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('', { status: 500 }));
+    await expect(adapter.listProducts({ connection: conn })).rejects.toThrow('SHOPIFY_PRODUCTS_FETCH_FAILED');
+    spy.mockRestore();
+  });
+});
+
+describe('ShopifyAdapter.getInventory', () => {
+  it('extracts inventoryQuantity from product variants', async () => {
+    const mockProduct = {
+      id: 12345,
+      variants: [
+        { id: 1, inventoryQuantity: 10 },
+        { id: 2, inventoryQuantity: 5 }
+      ]
+    };
+    const spy = spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ product: mockProduct }), { status: 200 })
+    );
+    const result = await adapter.getInventory({ connection: conn, externalProductId: '12345' });
+    expect(result).toHaveLength(2);
+    expect(result[0]!.available).toBe(10);
+    expect(result[1]!.available).toBe(5);
+    spy.mockRestore();
+  });
+});

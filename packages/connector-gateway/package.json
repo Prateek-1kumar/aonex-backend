@@ -20,6 +20,7 @@
   "dependencies": {
     "@aonex/types": "workspace:*",
     "@aonex/lib-utils": "workspace:*",
+    "@aonex/db": "workspace:*",
     "@nangohq/node": "^0.46.0",
     "zod": "^3.24.1"
   }

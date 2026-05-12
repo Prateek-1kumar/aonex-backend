@@ -2,15 +2,16 @@
 // JWT (NEVER from the request body — Appendix B security).
 
 import type { MiddlewareHandler } from "hono";
+import { getCookie } from "hono/cookie";
 import type { JwtService } from "../services/jwt.js";
 
 export function authMiddleware(jwt: JwtService): MiddlewareHandler {
   return async (c, next) => {
     const auth = c.req.header("authorization");
-    if (!auth?.startsWith("Bearer ")) {
+    const token = auth?.startsWith("Bearer ") ? auth.slice("Bearer ".length).trim() : getCookie(c, "aonex_token");
+    if (!token) {
       return c.json({ error: { code: "UNAUTHENTICATED", message: "Missing bearer token" } }, 401);
     }
-    const token = auth.slice("Bearer ".length).trim();
     try {
       const claims = await jwt.verify(token);
       c.set("merchantId", claims.sub);

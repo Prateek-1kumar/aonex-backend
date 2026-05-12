@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "building-nango-functions-locally": {
+      "source": "NangoHQ/skills",
+      "sourceType": "github",
+      "skillPath": "skills/building-nango-functions-locally/SKILL.md",
+      "computedHash": "929bf4d3458e05432cde9b6d2af647071580f31ba3a79c87c4bd047e8ff297fc"
+    }
+  }
+}

@@ -18,6 +18,13 @@ export const EnvSchema = z.object({
   // Cloud unless overridden — the self-host exit ramp is one env var.
   NANGO_HOST: z.string().url().default("https://api.nango.dev"),
 
+  // Token encryption — 64-char hex = 32 bytes AES-256-GCM key
+  // Generate with: openssl rand -hex 32
+  TOKEN_ENCRYPTION_KEY: z.string().length(64).regex(/^[0-9a-f]+$/, 'must be lowercase hex'),
+
+  // Nango Connect UI base URL — where merchants land to connect their store
+  NANGO_CONNECT_BASE_URL: z.string().url().default('https://connect.nango.dev'),
+
   // JWT — HS256, ≥32 bytes
   JWT_SECRET: z.string().min(32),
 
@@ -34,7 +41,12 @@ export const EnvSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.string().url().optional()
-  )
+  ),
+
+  // LLM Provider Config (supports OpenAI, OpenRouter, Groq, etc.)
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_BASE_URL: z.string().url().optional(),
+  OPENAI_MODEL: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
