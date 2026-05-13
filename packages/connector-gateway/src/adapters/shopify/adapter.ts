@@ -7,7 +7,7 @@
 // happens here without touching any business code.
 
 import type { OAuthUrlResult, CreateOAuthUrlInput, InventoryRecord } from '../../contract/index.js';
-import type { Marketplace, MerchantId } from '@aonex/types';
+import { GatewayError, type GatewayErrorKind, type Marketplace, type MerchantId } from '@aonex/types';
 
 const SHOPIFY_API_VERSION = '2025-01';
 
@@ -27,6 +27,7 @@ export interface ProviderProduct {
 export interface ListProductsInput {
   connection: ConnectionContext;
   limit?: number;
+  maxPages?: number;
 }
 
 export interface GetInventoryByConnectionInput {
@@ -103,16 +104,29 @@ export class ShopifyAdapter implements MarketplaceLiveAdapter {
 
   async listProducts(input: ListProductsInput): Promise<ProviderProduct[]> {
     const limit = input.limit ?? 50;
-    const res = await this.config.transport.request(
-      input.connection,
-      `/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=${limit}`
-    );
-    if (!res.ok) throw new Error('SHOPIFY_PRODUCTS_FETCH_FAILED');
-    const data = await res.json() as { products: Array<{ id: number | string; [k: string]: unknown }> };
-    return data.products.map((product) => ({
-      externalId: String(product.id),
-      raw: product
-    }));
+    const maxPages = input.maxPages ?? 25;
+    const products: ProviderProduct[] = [];
+    let pageInfo: string | undefined;
+    let page = 0;
+
+    do {
+      page += 1;
+      const path = pageInfo
+        ? `/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=${limit}&page_info=${encodeURIComponent(pageInfo)}`
+        : `/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=${limit}`;
+      const res = await this.config.transport.request(input.connection, path);
+      await assertOk(res, 'listProducts');
+      const data = await res.json() as { products?: Array<{ id: number | string; [k: string]: unknown }> };
+      for (const product of data.products ?? []) {
+        products.push({
+          externalId: String(product.id),
+          raw: product
+        });
+      }
+      pageInfo = nextPageInfo(res.headers.get('link'));
+    } while (pageInfo && page < maxPages);
+
+    return products;
   }
 
   async getInventory(input: GetInventoryByConnectionInput): Promise<readonly InventoryRecord[]> {
@@ -120,13 +134,14 @@ export class ShopifyAdapter implements MarketplaceLiveAdapter {
       input.connection,
       `/admin/api/${SHOPIFY_API_VERSION}/products/${input.externalProductId}.json`
     );
-    if (!res.ok) return [];
+    if (res.status === 404) return [];
+    await assertOk(res, 'getInventory');
     const data = await res.json() as {
-      product: { variants: Array<{ id: number; inventoryQuantity: number }> }
+      product: { variants: Array<{ id: number; inventoryQuantity?: number; inventory_quantity?: number }> }
     };
     return (data.product.variants ?? []).map((v) => ({
       locationId: String(v.id),
-      available: v.inventoryQuantity ?? 0
+      available: v.inventoryQuantity ?? v.inventory_quantity ?? 0
     }));
   }
 
@@ -138,8 +153,64 @@ export class ShopifyAdapter implements MarketplaceLiveAdapter {
       `/admin/api/${SHOPIFY_API_VERSION}/products.json`,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input.payload) }
     );
-    if (!res.ok) throw new Error('SHOPIFY_PUBLISH_FAILED');
+    await assertOk(res, 'publishListing');
     const data = await res.json() as { product: { id: number } };
     return { success: true, externalListingId: String(data.product.id) };
   }
+}
+
+async function assertOk(res: Response, operation: string): Promise<void> {
+  if (res.ok) return;
+  const body = await safeErrorBody(res);
+  const retryAfter = retryAfterMs(res.headers.get('retry-after'));
+  const opts: { providerStatus: number; retryAfterMs?: number; cause?: unknown } = {
+    providerStatus: res.status
+  };
+  if (retryAfter !== undefined) opts.retryAfterMs = retryAfter;
+  if (body !== undefined) opts.cause = body;
+  throw new GatewayError(kindForStatus(res.status), `Shopify ${operation} failed with HTTP ${res.status}`, opts);
+}
+
+function kindForStatus(status: number): GatewayErrorKind {
+  if (status === 401 || status === 403) return 'auth_failed';
+  if (status === 429) return 'rate_limited';
+  if (status >= 500) return 'provider_5xx';
+  if (status >= 400) return 'provider_4xx';
+  return 'internal';
+}
+
+async function safeErrorBody(res: Response): Promise<string | undefined> {
+  try {
+    const text = await res.text();
+    return text || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function retryAfterMs(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return seconds * 1000;
+  const dateMs = Date.parse(value);
+  if (!Number.isFinite(dateMs)) return undefined;
+  return Math.max(0, dateMs - Date.now());
+}
+
+function nextPageInfo(linkHeader: string | null): string | undefined {
+  if (!linkHeader) return undefined;
+  for (const part of linkHeader.split(',')) {
+    const [urlPart, ...params] = part.split(';').map((s) => s.trim());
+    if (!params.some((p) => p === 'rel="next"')) continue;
+    const match = /^<(.+)>$/.exec(urlPart ?? '');
+    if (!match) continue;
+    try {
+      const url = match[1];
+      if (!url) continue;
+      return new URL(url).searchParams.get('page_info') ?? undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
 }

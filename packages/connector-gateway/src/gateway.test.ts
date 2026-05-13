@@ -2,23 +2,7 @@ import { describe, it, expect, spyOn } from 'bun:test';
 import { ConnectorGateway } from './gateway.js';
 import { NangoProxyShopifyTransport, ShopifyAdapter } from './adapters/shopify/adapter.js';
 import type { MarketplaceLiveAdapter } from './adapters/shopify/adapter.js';
-
-function makeMockDb(row: Record<string, unknown> | null) {
-  return {
-    select: () => ({
-      from: () => ({
-        where: () => ({
-          limit: () => Promise.resolve(row ? [row] : [])
-        })
-      })
-    }),
-    update: () => ({
-      set: () => ({
-        where: () => Promise.resolve()
-      })
-    })
-  };
-}
+import { ConnectionId } from '@aonex/types';
 
 function makeShopifyAdapter() {
   return new ShopifyAdapter({
@@ -28,6 +12,18 @@ function makeShopifyAdapter() {
       nangoSecretKey: 'test-secret'
     })
   });
+}
+
+function makeLookup(row: { tenantId: string; connectionId: string } | null) {
+  return {
+    byMerchantMarketplace: async () =>
+      row
+        ? {
+            tenantId: row.tenantId as any,
+            connectionId: ConnectionId.unsafeFrom(row.connectionId)
+          }
+        : null
+  };
 }
 
 const mockNango = {
@@ -42,37 +38,31 @@ const mockNango = {
 } as any;
 
 describe('ConnectorGateway.loadConnection', () => {
-  it('returns ConnectionContext with connectionId', async () => {
-    const db = makeMockDb({
-      tenantId: 'tenant-1',
-      merchantId: 'merchant-1',
-      marketplace: 'shopify',
-      providerConnectionId: 'nango-conn-abc',
-      status: 'active'
-    }) as any;
-
-    const gateway = new ConnectorGateway({ db, nango: mockNango, marketplaceAdapters: { shopify: makeShopifyAdapter() } });
+  it('returns ConnectionContext from the connection lookup port', async () => {
+    const gateway = new ConnectorGateway({
+      lookup: makeLookup({ tenantId: 'tenant-1', connectionId: 'nango-conn-abc' }),
+      nango: mockNango,
+      marketplaceAdapters: { shopify: makeShopifyAdapter() }
+    });
     const ctx = await gateway.loadConnection('merchant-1' as any, 'shopify');
     expect(ctx.connectionId).toBe('nango-conn-abc');
     expect(ctx.tenantId).toBe('tenant-1');
+    expect(String(ctx.merchantId)).toBe('merchant-1');
+    expect(ctx.marketplace).toBe('shopify');
   });
 
-  it('throws when connection not found', async () => {
-    const db = makeMockDb(null) as any;
-    const gateway = new ConnectorGateway({ db, nango: mockNango, marketplaceAdapters: { shopify: makeShopifyAdapter() } });
+  it('throws when lookup returns no active connection', async () => {
+    const gateway = new ConnectorGateway({
+      lookup: makeLookup(null),
+      nango: mockNango,
+      marketplaceAdapters: { shopify: makeShopifyAdapter() }
+    });
     await expect(gateway.loadConnection('merchant-x' as any, 'shopify')).rejects.toThrow();
   });
 });
 
 describe('ConnectorGateway.listProducts', () => {
   it('depends on a marketplace adapter interface, not the concrete ShopifyAdapter class', async () => {
-    const db = makeMockDb({
-      tenantId: 'tenant-1',
-      merchantId: 'merchant-1',
-      marketplace: 'shopify',
-      providerConnectionId: 'nango-conn-abc',
-      status: 'active'
-    }) as any;
     const liveAdapter: MarketplaceLiveAdapter = {
       createOAuthUrl: async () => ({ url: 'https://connect.example', expiresAt: new Date() }),
       healthCheck: async () => true,
@@ -81,7 +71,7 @@ describe('ConnectorGateway.listProducts', () => {
     };
 
     const gateway = new ConnectorGateway({
-      db,
+      lookup: makeLookup({ tenantId: 'tenant-1', connectionId: 'nango-conn-abc' }),
       nango: mockNango,
       marketplaceAdapters: { shopify: liveAdapter }
     });
@@ -92,20 +82,16 @@ describe('ConnectorGateway.listProducts', () => {
   });
 
   it('routes to ShopifyAdapter and returns products', async () => {
-    const db = makeMockDb({
-      tenantId: 'tenant-1',
-      merchantId: 'merchant-1',
-      marketplace: 'shopify',
-      providerConnectionId: 'nango-conn-abc',
-      status: 'active'
-    }) as any;
-
     const shopify = makeShopifyAdapter();
     const spy = spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ products: [{ id: 1, title: 'Test' }] }), { status: 200 })
     );
 
-    const gateway = new ConnectorGateway({ db, nango: mockNango, marketplaceAdapters: { shopify } });
+    const gateway = new ConnectorGateway({
+      lookup: makeLookup({ tenantId: 'tenant-1', connectionId: 'nango-conn-abc' }),
+      nango: mockNango,
+      marketplaceAdapters: { shopify }
+    });
     const products = await gateway.listProducts('merchant-1' as any, 'shopify');
     expect(products).toHaveLength(1);
     expect(products[0]!.externalId).toBe('1');
@@ -113,11 +99,11 @@ describe('ConnectorGateway.listProducts', () => {
   });
 
   it('throws UNSUPPORTED_MARKETPLACE for unknown marketplace', async () => {
-    const db = makeMockDb({
-      tenantId: 'tenant-1', merchantId: 'merchant-1',
-      marketplace: 'amazon', providerConnectionId: 'conn-1', status: 'active'
-    }) as any;
-    const gateway = new ConnectorGateway({ db, nango: mockNango, marketplaceAdapters: { shopify: makeShopifyAdapter() } });
+    const gateway = new ConnectorGateway({
+      lookup: makeLookup({ tenantId: 'tenant-1', connectionId: 'conn-1' }),
+      nango: mockNango,
+      marketplaceAdapters: { shopify: makeShopifyAdapter() }
+    });
     await expect(gateway.listProducts('merchant-1' as any, 'amazon' as any)).rejects.toThrow('UNSUPPORTED_MARKETPLACE');
   });
 });

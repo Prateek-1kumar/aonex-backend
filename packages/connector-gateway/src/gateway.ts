@@ -5,11 +5,8 @@
 // right adapter. Callers never see adapters, tokens, or Nango internals.
 //
 // Swapping Nango for custom OAuth = change the nango dep only.
-// Adding Amazon = add AmazonAdapter + one case in getAdapter().
+// Adding Amazon = register AmazonAdapter in marketplaceAdapters.
 
-import { and, eq } from 'drizzle-orm';
-import { schema } from '@aonex/db';
-import type { DrizzleClient } from '@aonex/db';
 import { GatewayError, type MerchantId, type Marketplace, type TenantId, type ConnectionId } from '@aonex/types';
 import type { ConnectionContext, MarketplaceLiveAdapter, ProviderProduct } from './adapters/shopify/adapter.js';
 import type {
@@ -40,8 +37,15 @@ export interface ConnectionLifecycleAdapter {
   getSyncStatus(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<SyncStatus>;
 }
 
+export interface ConnectionLookupAdapter {
+  byMerchantMarketplace(input: {
+    merchantId: MerchantId;
+    marketplace: Marketplace;
+  }): Promise<{ tenantId: TenantId; connectionId: ConnectionId } | null>;
+}
+
 export interface ConnectorGatewayDeps {
-  db: DrizzleClient;
+  lookup: ConnectionLookupAdapter;
   /** Nango-backed adapter for session creation, drain, webhook verification */
   nango: ConnectionLifecycleAdapter;
   marketplaceAdapters: Partial<Record<Marketplace, MarketplaceLiveAdapter>>;
@@ -63,27 +67,16 @@ export class ConnectorGateway {
   // ── Connection context ────────────────────────────────────────────────
 
   async loadConnection(merchantId: MerchantId, marketplace: Marketplace): Promise<ConnectionContext> {
-    const rows = await this.deps.db
-      .select()
-      .from(schema.marketplaceConnections)
-      .where(
-        and(
-          eq(schema.marketplaceConnections.merchantId, merchantId),
-          eq(schema.marketplaceConnections.marketplace, marketplace)
-        )
-      )
-      .limit(1);
-
-    const row = rows[0];
-    if (!row) {
+    const connection = await this.deps.lookup.byMerchantMarketplace({ merchantId, marketplace });
+    if (!connection) {
       throw new GatewayError('connection_not_found', `No connection for merchant=${merchantId} marketplace=${marketplace}`);
     }
 
     return {
-      tenantId: row.tenantId,
-      merchantId: row.merchantId as MerchantId,
-      marketplace: row.marketplace,
-      connectionId: row.providerConnectionId
+      tenantId: connection.tenantId,
+      merchantId,
+      marketplace,
+      connectionId: connection.connectionId
     };
   }
 

@@ -78,7 +78,7 @@ export function buildContainer(env: Env): ApiContainer {
     })
   });
   const connectorGateway = new ConnectorGateway({
-    db: db.client,
+    lookup: connectionRegistry,
     nango: gateway,
     marketplaceAdapters: { shopify: shopifyAdapter }
   });

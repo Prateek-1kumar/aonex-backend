@@ -7,5 +7,5 @@ export { fromProviderKey, toProviderKey, SYNC_NAMES } from "./adapters/nango/pro
 export { NangoProxyShopifyTransport, ShopifyAdapter } from "./adapters/shopify/adapter.js";
 export type { ConnectionContext, MarketplaceLiveAdapter, ProviderProduct, ListProductsInput, ShopifyTransport } from "./adapters/shopify/adapter.js";
 export { ConnectorGateway } from "./gateway.js";
-export type { ConnectionLifecycleAdapter, ConnectorGatewayDeps } from "./gateway.js";
+export type { ConnectionLifecycleAdapter, ConnectionLookupAdapter, ConnectorGatewayDeps } from "./gateway.js";
 export { PostgresConnectionRegistry } from "./infra/postgres-registry.js";
