@@ -37,28 +37,45 @@ export interface GetInventoryByConnectionInput {
 export interface ShopifyAdapterConfig {
   /** Nango Connect UI base URL — where merchants land to connect their store. */
   nangoConnectBaseUrl: string;
+  transport: ShopifyTransport;
+}
+
+export interface MarketplaceLiveAdapter {
+  createOAuthUrl(input: CreateOAuthUrlInput): Promise<OAuthUrlResult>;
+  healthCheck(input: { connection: ConnectionContext }): Promise<boolean>;
+  listProducts(input: ListProductsInput): Promise<ProviderProduct[]>;
+  getInventory(input: GetInventoryByConnectionInput): Promise<readonly InventoryRecord[]>;
+}
+
+export interface ShopifyTransport {
+  request(connection: ConnectionContext, path: string, init?: RequestInit): Promise<Response>;
+}
+
+export interface NangoProxyShopifyTransportConfig {
   /** Nango API host, e.g. https://api.nango.dev (from NANGO_HOST env). */
   nangoHost: string;
   /** Nango secret key for proxy Authorization header (from NANGO_SECRET_KEY env). */
   nangoSecretKey: string;
 }
 
-export class ShopifyAdapter {
-  constructor(private readonly config: ShopifyAdapterConfig) {}
+export class NangoProxyShopifyTransport implements ShopifyTransport {
+  constructor(private readonly config: NangoProxyShopifyTransportConfig) {}
 
-  // ── Proxy helper ──────────────────────────────────────────────────────
-
-  private proxyFetch(connectionId: string, path: string, init?: RequestInit): Promise<Response> {
+  request(connection: ConnectionContext, path: string, init?: RequestInit): Promise<Response> {
     return fetch(`${this.config.nangoHost}/proxy${path}`, {
       ...init,
       headers: {
         'Authorization': `Bearer ${this.config.nangoSecretKey}`,
-        'Connection-Id': connectionId,
+        'Connection-Id': connection.connectionId,
         'Provider-Config-Key': 'shopify',
         ...(init?.headers as Record<string, string> ?? {})
       }
     });
   }
+}
+
+export class ShopifyAdapter implements MarketplaceLiveAdapter {
+  constructor(private readonly config: ShopifyAdapterConfig) {}
 
   // ── OAuth ─────────────────────────────────────────────────────────────
 
@@ -75,8 +92,8 @@ export class ShopifyAdapter {
   // ── Health ────────────────────────────────────────────────────────────
 
   async healthCheck(input: { connection: ConnectionContext }): Promise<boolean> {
-    const res = await this.proxyFetch(
-      input.connection.connectionId,
+    const res = await this.config.transport.request(
+      input.connection,
       `/admin/api/${SHOPIFY_API_VERSION}/shop.json`
     );
     return res.ok;
@@ -86,8 +103,8 @@ export class ShopifyAdapter {
 
   async listProducts(input: ListProductsInput): Promise<ProviderProduct[]> {
     const limit = input.limit ?? 50;
-    const res = await this.proxyFetch(
-      input.connection.connectionId,
+    const res = await this.config.transport.request(
+      input.connection,
       `/admin/api/${SHOPIFY_API_VERSION}/products.json?limit=${limit}`
     );
     if (!res.ok) throw new Error('SHOPIFY_PRODUCTS_FETCH_FAILED');
@@ -99,8 +116,8 @@ export class ShopifyAdapter {
   }
 
   async getInventory(input: GetInventoryByConnectionInput): Promise<readonly InventoryRecord[]> {
-    const res = await this.proxyFetch(
-      input.connection.connectionId,
+    const res = await this.config.transport.request(
+      input.connection,
       `/admin/api/${SHOPIFY_API_VERSION}/products/${input.externalProductId}.json`
     );
     if (!res.ok) return [];
@@ -116,8 +133,8 @@ export class ShopifyAdapter {
   // ── Distribution ──────────────────────────────────────────────────────
 
   async publishListing(input: { connection: ConnectionContext; payload: unknown }): Promise<{ success: boolean; externalListingId?: string }> {
-    const res = await this.proxyFetch(
-      input.connection.connectionId,
+    const res = await this.config.transport.request(
+      input.connection,
       `/admin/api/${SHOPIFY_API_VERSION}/products.json`,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input.payload) }
     );

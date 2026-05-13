@@ -1,12 +1,14 @@
 import { describe, it, expect, spyOn } from 'bun:test';
-import { ShopifyAdapter } from './adapter.js';
+import { NangoProxyShopifyTransport, ShopifyAdapter, type ShopifyTransport } from './adapter.js';
 import type { ConnectionContext } from './adapter.js';
 
 const NANGO_HOST = 'https://api.nango.dev';
 const adapter = new ShopifyAdapter({
   nangoConnectBaseUrl: 'https://connect.nango.dev',
-  nangoHost: NANGO_HOST,
-  nangoSecretKey: 'test-secret-key'
+  transport: new NangoProxyShopifyTransport({
+    nangoHost: NANGO_HOST,
+    nangoSecretKey: 'test-secret-key'
+  })
 });
 
 const conn: ConnectionContext = {
@@ -26,6 +28,34 @@ describe('ShopifyAdapter.createOAuthUrl', () => {
 });
 
 describe('ShopifyAdapter.healthCheck', () => {
+  it('delegates provider requests to the injected transport', async () => {
+    const calls: Array<{ connection: ConnectionContext; path: string; init?: RequestInit }> = [];
+    const transport: ShopifyTransport = {
+      request: async (connection, path, init) => {
+        calls.push({
+          connection,
+          path,
+          ...(init ? { init } : {})
+        });
+        return new Response(JSON.stringify({ shop: { id: 1 } }), { status: 200 });
+      }
+    };
+    const localAdapter = new ShopifyAdapter({
+      nangoConnectBaseUrl: 'https://connect.nango.dev',
+      transport
+    });
+
+    const result = await localAdapter.healthCheck({ connection: conn });
+
+    expect(result).toBe(true);
+    expect(calls).toEqual([
+      {
+        connection: conn,
+        path: '/admin/api/2025-01/shop.json'
+      }
+    ]);
+  });
+
   it('returns true when Shopify shop.json responds 200', async () => {
     const spy = spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ shop: { id: 1 } }), { status: 200 })

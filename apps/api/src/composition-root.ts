@@ -11,7 +11,7 @@ import IORedis from "ioredis";
 import pino from "pino";
 import { Queue } from "bullmq";
 import { createDb } from "@aonex/db";
-import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoConnectorAdapter, PostgresConnectionRegistry } from "@aonex/connector-gateway";
+import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoProxyShopifyTransport, PostgresConnectionRegistry } from "@aonex/connector-gateway";
 import { PostgresAuditEmitter } from "@aonex/audit";
 import { parseEnv, QUEUE, type Env } from "@aonex/types";
 import { SystemClock } from "@aonex/lib-utils";
@@ -72,13 +72,15 @@ export function buildContainer(env: Env): ApiContainer {
   const gateway: ConnectorAdapterPhase1 = buildGateway({ env, lookup: connectionRegistry });
   const shopifyAdapter = new ShopifyAdapter({
     nangoConnectBaseUrl: env.NANGO_CONNECT_BASE_URL,
-    nangoHost: env.NANGO_HOST,
-    nangoSecretKey: env.NANGO_SECRET_KEY
+    transport: new NangoProxyShopifyTransport({
+      nangoHost: env.NANGO_HOST,
+      nangoSecretKey: env.NANGO_SECRET_KEY
+    })
   });
   const connectorGateway = new ConnectorGateway({
     db: db.client,
-    nango: gateway as NangoConnectorAdapter,
-    shopify: shopifyAdapter
+    nango: gateway,
+    marketplaceAdapters: { shopify: shopifyAdapter }
   });
   const audit = new PostgresAuditEmitter(db.client);
   const jwt = new JwtService({ secret: env.JWT_SECRET, clock: SystemClock });
@@ -96,7 +98,12 @@ export function buildContainer(env: Env): ApiContainer {
     cors({
       origin: env.NODE_ENV === "production"
         ? []
-        : (origin) => (origin?.startsWith("http://") ? origin : null),
+        // Dev: allow http://, and null (file:// pages send Origin: null)
+        : (origin) => {
+          if (!origin || origin === "null") return "*";
+          if (origin.startsWith("http://")) return origin;
+          return null;
+        },
       credentials: true,
       allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
@@ -109,6 +116,19 @@ export function buildContainer(env: Env): ApiContainer {
   // Public
   app.route("/", healthRoutes({ pool: db.pool, redis }));
   app.route("/ui", swaggerRoutes());
+  // Dev demo page — served at /demo (avoids CORS since same origin)
+  if (env.NODE_ENV !== "production") {
+    app.get("/demo", async (c) => {
+      const path = await import("node:path");
+      const fs = await import("node:fs");
+      const demoPath = path.resolve(import.meta.dirname, "../../../../scratch/demo.html");
+      if (fs.existsSync(demoPath)) {
+        const html = fs.readFileSync(demoPath, "utf-8");
+        return c.html(html);
+      }
+      return c.text("Demo file not found", 404);
+    });
+  }
   app.route(
     "/api/auth",
     authRoutes({

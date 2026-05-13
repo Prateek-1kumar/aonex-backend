@@ -11,8 +11,7 @@ import { and, eq } from 'drizzle-orm';
 import { schema } from '@aonex/db';
 import type { DrizzleClient } from '@aonex/db';
 import { GatewayError, type MerchantId, type Marketplace, type TenantId, type ConnectionId } from '@aonex/types';
-import type { NangoConnectorAdapter } from './adapters/nango/adapter.js';
-import { ShopifyAdapter, type ConnectionContext, type ProviderProduct } from './adapters/shopify/adapter.js';
+import type { ConnectionContext, MarketplaceLiveAdapter, ProviderProduct } from './adapters/shopify/adapter.js';
 import type {
   InventoryRecord,
   OAuthUrlResult,
@@ -27,11 +26,25 @@ import type {
   TokenHealthResult
 } from './contract/index.js';
 
+export interface ConnectionLifecycleAdapter {
+  createConnectSession(input: CreateConnectSessionInput): Promise<ConnectSessionToken>;
+  getConnection(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<ConnectionDescriptor | null>;
+  listConnections(input: { merchantId: MerchantId }): Promise<readonly ConnectionDescriptor[]>;
+  revoke(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<void>;
+  refreshTokenHealth(input: { connectionId: ConnectionId; marketplace: Marketplace }): Promise<TokenHealthResult>;
+  verifyAndParseWebhook(input: VerifyAndParseInput): Promise<VerifyAndParseResult>;
+  drainProducts(
+    input: { merchantId: MerchantId; marketplace: Marketplace },
+    opts?: DrainOptions
+  ): AsyncIterable<CanonicalProductRecord[]>;
+  getSyncStatus(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<SyncStatus>;
+}
+
 export interface ConnectorGatewayDeps {
   db: DrizzleClient;
   /** Nango-backed adapter for session creation, drain, webhook verification */
-  nango: Pick<NangoConnectorAdapter, 'createConnectSession' | 'getConnection' | 'listConnections' | 'revoke' | 'refreshTokenHealth' | 'verifyAndParseWebhook' | 'drainProducts' | 'getSyncStatus'>;
-  shopify: ShopifyAdapter;
+  nango: ConnectionLifecycleAdapter;
+  marketplaceAdapters: Partial<Record<Marketplace, MarketplaceLiveAdapter>>;
 }
 
 export class ConnectorGateway {
@@ -39,13 +52,12 @@ export class ConnectorGateway {
 
   // ── Adapter resolution (internal only) ────────────────────────────────
 
-  private getAdapter(marketplace: Marketplace): ShopifyAdapter {
-    switch (marketplace) {
-      case 'shopify':
-        return this.deps.shopify;
-      default:
-        throw new GatewayError('validation_failed', 'UNSUPPORTED_MARKETPLACE');
+  private getAdapter(marketplace: Marketplace): MarketplaceLiveAdapter {
+    const adapter = this.deps.marketplaceAdapters[marketplace];
+    if (!adapter) {
+      throw new GatewayError('validation_failed', 'UNSUPPORTED_MARKETPLACE');
     }
+    return adapter;
   }
 
   // ── Connection context ────────────────────────────────────────────────
