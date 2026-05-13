@@ -226,9 +226,9 @@
           <input type="text" id="categoryHint" placeholder="e.g. snowboard, electronics, clothing" />
         </div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-orange" style="flex:1;" onclick="testParse()">
+          <button class="btn btn-orange" style="flex:1;" onclick="submitParse()">
             <span class="spinner" id="parseSpinner"></span>
-            <span id="parseText">🔍 Extract Now (Sync)</span>
+            <span id="parseText">📤 Import Link</span>
           </button>
           <button class="btn btn-outline" style="flex:1;" onclick="submitParse()">
             <span class="spinner" id="submitSpinner"></span>
@@ -395,37 +395,6 @@ async function getProducts() {
 }
 
 // ── LINK PARSER ───────────────────────────────────────────────────────────
-async function testParse() {
-  if (!token) { showAlert('parseError', 'Please login first'); return; }
-  const url = document.getElementById('parseUrl').value;
-  if (!url) { showAlert('parseError', 'Enter a URL first'); return; }
-  setLoading('parse', true);
-  document.getElementById('parseText').textContent = 'Extracting…';
-  document.getElementById('factsSection').style.display = 'none';
-  try {
-    const data = await api(`/api/ingestions/link/test?url=${encodeURIComponent(url)}`);
-    const facts = data.data?.extracted_facts ?? [];
-    const card = document.getElementById('factsCard');
-    card.innerHTML = facts.length === 0
-      ? '<div style="color:var(--muted);font-size:13px;">No facts extracted</div>'
-      : facts.map(f => `
-        <div class="fact-row">
-          <span class="fact-key">${f.key}</span>
-          <span style="display:flex;align-items:center;gap:8px;">
-            <span class="fact-val">${f.value ?? '—'}</span>
-            <span class="conf-bar"><span class="conf-fill" style="width:${(f.confidence * 100).toFixed(0)}%"></span></span>
-            <span class="fact-conf">${(f.confidence * 100).toFixed(0)}%</span>
-          </span>
-        </div>`).join('');
-    document.getElementById('factsSection').style.display = 'block';
-  } catch (e) {
-    showAlert('parseError', e.message);
-  } finally {
-    setLoading('parse', false);
-    document.getElementById('parseText').textContent = '🔍 Extract Now (Sync)';
-  }
-}
-
 async function submitParse() {
   if (!token) { showAlert('parseError', 'Please login first'); return; }
   const url = document.getElementById('parseUrl').value;

@@ -4,6 +4,12 @@
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": { ".": "./src/index.ts" },
-  "scripts": { "build": "tsc -b", "typecheck": "tsc --noEmit", "lint": "eslint src/" }
+  "scripts": { "build": "tsc -b", "typecheck": "tsc --noEmit", "lint": "eslint src/" },
+  "dependencies": {
+    "@aonex/db": "workspace:*",
+    "@aonex/lib-utils": "workspace:*",
+    "drizzle-orm": "^0.36.4"
+  }
 }

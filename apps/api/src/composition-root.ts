@@ -31,8 +31,8 @@ import { healthRoutes } from "./routes/health.js";
 import { shopifyRoutes } from "./routes/shopify.js";
 import { swaggerRoutes } from "./routes/swagger.js";
 import { ingestionsRoutes } from "./routes/ingestions.js";
-import { fetchLink } from "@aonex/ingestion-link-fetcher";
-import { LLMProductExtractor, createModelProvider } from "@aonex/ingestion-llm-extractor";
+import { reviewRoutes } from "./routes/review.js";
+import { catalogRoutes } from "./routes/catalog.js";
 
 export interface ApiContainer {
   app: Hono;
@@ -105,7 +105,7 @@ export function buildContainer(env: Env): ApiContainer {
           return null;
         },
       credentials: true,
-      allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+      allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization"],
     })
   );
@@ -181,40 +181,6 @@ export function buildContainer(env: Env): ApiContainer {
     })
   );
 
-  // Unauthenticated dev endpoint to test Groq LLM extraction via Postman
-  app.get("/test-llm", async (c) => {
-    const url = c.req.query("url");
-    if (!url) return c.json({ success: false, error: "Missing ?url= parameter" }, 400);
-
-    try {
-      const html = await fetchLink(url);
-      const provider = createModelProvider({
-        provider: "openai",
-        config: {
-          apiKey: process.env.OPENAI_API_KEY ?? "",
-          ...(process.env.OPENAI_BASE_URL ? { baseUrl: process.env.OPENAI_BASE_URL } : {}),
-        },
-      });
-      const extractor = new LLMProductExtractor(provider);
-      const result = await extractor.extractFactSet(html.cleanedText, url, "test" as any);
-
-      return c.json({
-        success: true,
-        data: {
-          url,
-          extracted_facts: result.factSet.facts.map(f => ({
-            key: f.rawKey,
-            value: f.normalizedValue,
-            confidence: f.confidence
-          })),
-          metadata: result.meta
-        }
-      });
-    } catch (err) {
-      return c.json({ success: false, error: err instanceof Error ? err.message : String(err) }, 500);
-    }
-  });
-
   // Authenticated
   const protectedApp = new Hono();
   protectedApp.use("*", authMiddleware(jwt));
@@ -238,6 +204,8 @@ export function buildContainer(env: Env): ApiContainer {
       audit,
     })
   );
+  protectedApp.route("/review", reviewRoutes({ db: db.client, audit }));
+  protectedApp.route("/catalog", catalogRoutes({ db: db.client }));
   app.route("/api", protectedApp);
 
   return {

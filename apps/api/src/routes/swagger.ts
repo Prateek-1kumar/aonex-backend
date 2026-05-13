@@ -442,9 +442,8 @@ One in-flight sync per (merchant, marketplace) — duplicates are deduped by job
       '/api/ingestions/link': {
         post: {
           summary: 'Submit a product URL for LLM-based extraction (async)',
-          description: `Fetches the URL, runs LLM extraction to pull product facts, and ingests into the catalog.
-Returns 202 immediately — extraction happens asynchronously via BullMQ.
-Use \`GET /api/ingestions/link/test?url=...\` to test synchronously.`,
+          description: `Fetches the URL, runs extraction to pull product facts, maps them to Aonex canonical schema, then creates either an approved catalog version or an Anomaly Lab review task.
+Returns 202 immediately — extraction happens asynchronously via BullMQ.`,
           tags: ['Ingestions'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -552,47 +551,6 @@ Use \`GET /api/ingestions/link/test?url=...\` to test synchronously.`,
             },
             400: { description: 'Validation error (invalid URL, more than 20 items, etc.)' },
             401: { description: 'Unauthenticated' },
-          },
-        },
-      },
-
-      '/api/ingestions/link/test': {
-        get: {
-          summary: 'Synchronous LLM extraction test — for development only',
-          description: 'Fetches + extracts a URL synchronously and returns the raw facts. Use this to test without waiting for the queue.',
-          tags: ['Ingestions'],
-          security: [{ bearerAuth: [] }],
-          parameters: [
-            {
-              name: 'url',
-              in: 'query',
-              required: true,
-              description: 'Product page URL to extract',
-              schema: { type: 'string', format: 'uri', example: 'https://www.example.com/products/snowboard' },
-            },
-          ],
-          responses: {
-            200: {
-              description: 'Extracted product facts',
-              content: {
-                'application/json': {
-                  example: {
-                    success: true,
-                    data: {
-                      url: 'https://...',
-                      extracted_facts: [
-                        { key: 'title', value: 'Pro Snowboard', confidence: 0.97 },
-                        { key: 'price', value: '699.95', confidence: 0.95 },
-                      ],
-                      metadata: { model: 'gpt-4o-mini', tokens: 1200 },
-                    },
-                  },
-                },
-              },
-            },
-            400: { description: 'Missing ?url= parameter' },
-            401: { description: 'Unauthenticated' },
-            500: { description: 'Fetch or LLM extraction failed' },
           },
         },
       },

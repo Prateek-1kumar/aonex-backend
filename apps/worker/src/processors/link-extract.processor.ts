@@ -16,6 +16,7 @@ import { sha256Hex } from "@aonex/lib-utils";
 import { fetchLink, type LinkFetchResult, LinkFetchError } from "@aonex/ingestion-link-fetcher";
 import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
 import type { ArtifactId } from "@aonex/types";
+import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
 
 export interface LinkExtractJobData {
   tenantId: TenantId;
@@ -180,17 +181,28 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       return;
     }
 
-    // ── Step 4: Persist extraction results ───────────────────────────
-    // Create extraction_run
-    // Note: policy_version FK is required — using a placeholder for now
-    // until the policy engine is fully wired up in Phase 2.
-    // For link ingestion MVP, we skip extraction_runs table and go
-    // directly to updating the artifact status + emitting audit events.
+    // ── Step 4: Persist canonical proposal / catalog version ─────────
+    const catalogResult = await persistLinkCatalogPipeline({
+      db: deps.db,
+      tenantId,
+      merchantId,
+      artifactId,
+      sourceUrl: fetchResult.finalUrl,
+      factSet,
+      suggestedCategory: meta.suggestedCategory,
+      categoryConfidence: meta.categoryConfidence,
+      extractorMeta: {
+        modelName: meta.modelName,
+        promptTokens: meta.promptTokens,
+        completionTokens: meta.completionTokens,
+        estimatedCostUsd: meta.estimatedCostUsd,
+      },
+    });
 
-    // Mark artifact as completed
+    // Mark artifact as completed or review-gated after facts/diff persistence.
     await deps.db
       .update(schema.sourceArtifacts)
-      .set({ status: "completed" })
+      .set({ status: catalogResult.route === "review" ? "needs_review" : "completed" })
       .where(eq(schema.sourceArtifacts.id, artifactId));
 
     // ── Step 5: Audit trail ─────────────────────────────────────────
@@ -212,6 +224,13 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         completionTokens: meta.completionTokens,
         estimatedCostUsd: meta.estimatedCostUsd,
         extractorVersion: LLM_EXTRACTOR_VERSION,
+        extractionRunId: catalogResult.extractionRunId,
+        factSetId: catalogResult.factSetId,
+        proposedDiffId: catalogResult.proposedDiffId,
+        route: catalogResult.route,
+        confidenceScore: catalogResult.confidenceScore,
+        productId: catalogResult.productId,
+        productVersionId: catalogResult.productVersionId,
       },
     });
 
@@ -222,6 +241,11 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       suggestedCategory: meta.suggestedCategory,
       categoryConfidence: meta.categoryConfidence,
       estimatedCostUsd: meta.estimatedCostUsd,
+      route: catalogResult.route,
+      confidenceScore: catalogResult.confidenceScore,
+      proposedDiffId: catalogResult.proposedDiffId,
+      productId: catalogResult.productId,
+      productVersionId: catalogResult.productVersionId,
     };
   };
 }
