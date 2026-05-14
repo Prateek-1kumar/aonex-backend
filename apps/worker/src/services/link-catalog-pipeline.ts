@@ -4,6 +4,7 @@ import { map, MAPPER_VERSION } from "@aonex/ingestion-semantic-mapper";
 import { route, clusterKey } from "@aonex/ingestion-policy-engine";
 import type { PolicyInputs, RouterInput } from "@aonex/ingestion-policy-engine";
 import { domainOf } from "@aonex/lib-utils";
+import { normalizeAxisName, normalizeAxisValue, checkVariantMatrix } from "@aonex/ingestion-variant-extractor";
 import { applyApprovedDiff, type CanonicalProductPayload } from "@aonex/catalog-service";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId, MerchantId, TenantId } from "@aonex/types";
@@ -126,13 +127,32 @@ async function buildRouterInput(args: {
     }
   }
 
-  // variantAxes — group variants by optionValues keys, dedup values
+  // Normalize axis names + values so detectors see consistent shape.
+  const normalizedVariants: Array<{ optionValues: Record<string, string> }> = [];
   const variantAxes: Record<string, string[]> = {};
   for (const v of args.payload.variants) {
+    const normalizedOV: Record<string, string> = {};
     for (const [axis, value] of Object.entries(v.optionValues ?? {})) {
-      const set = (variantAxes[axis] ??= []);
-      if (typeof value === "string" && !set.includes(value)) set.push(value);
+      if (typeof value !== "string") continue;
+      const normAxis = normalizeAxisName(axis);
+      const normValue = normalizeAxisValue(normAxis, value);
+      if (!normValue) continue;
+      normalizedOV[normAxis] = normValue;
+      const set = (variantAxes[normAxis] ??= []);
+      if (!set.includes(normValue)) set.push(normValue);
     }
+    normalizedVariants.push({ optionValues: normalizedOV });
+  }
+
+  // Sanity check the matrix (exposed via console / future telemetry, not currently in RouterInput).
+  const matrix = checkVariantMatrix({ variants: normalizedVariants, axes: variantAxes });
+  if (!matrix.complete && matrix.expected > 0) {
+    // The variant_incomplete detector independently catches this with the same logic.
+    // Logging here helps with operational visibility.
+    console.debug(
+      `[router-input] variant matrix incomplete: ${matrix.actual}/${matrix.expected}`,
+      { domain: args.domain, axes: variantAxes }
+    );
   }
 
   return {
