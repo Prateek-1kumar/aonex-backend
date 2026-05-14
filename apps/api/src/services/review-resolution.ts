@@ -272,10 +272,37 @@ export async function mergeWithExisting(
 }
 
 export async function resolveCluster(
-  _ctx: ResolutionContext,
-  _clusterKey: string,
-  _action: "approve_all" | "reject_all",
-  _bulkEdit?: { fieldName: string; newValue: unknown }
+  ctx: ResolutionContext,
+  clusterKey: string,
+  action: "approve_all" | "reject_all",
+  bulkEdit?: { fieldName: string; newValue: unknown }
 ): Promise<{ resolvedCount: number; overridesCreated: number }> {
-  throw new Error("not implemented — Plan B Task 19");
+  const tasks = await ctx.db.query.reviewTasks.findMany({
+    where: (t, { and, eq }) =>
+      and(eq(t.tenantId, ctx.tenantId), eq(t.clusterKey, clusterKey), eq(t.status, "open")),
+  });
+
+  let overridesCreated = 0;
+  let resolvedCount = 0;
+
+  for (const task of tasks) {
+    try {
+      if (action === "approve_all" && bulkEdit) {
+        const result = await editAndApprove(ctx, task.id, {
+          fieldName: bulkEdit.fieldName,
+          newCanonicalPath: null,
+          newNormalizedValue: bulkEdit.newValue,
+          reason: `cluster bulk approve ${clusterKey}`,
+        });
+        if (result.overrideId) overridesCreated++;
+      } else if (action === "reject_all") {
+        await rejectTask(ctx, task.id, "wrong_value", `cluster bulk reject ${clusterKey}`);
+      }
+      resolvedCount++;
+    } catch (err) {
+      console.error("cluster resolve task failed", task.id, err);
+    }
+  }
+
+  return { resolvedCount, overridesCreated };
 }

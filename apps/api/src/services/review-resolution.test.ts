@@ -21,3 +21,9 @@ describe("mergeWithExisting", () => {
   it.todo("is idempotent: re-merging the same URL into the same product is a no-op");
   it.todo("flips proposed_diff.status to rejected (merge = no new product_version)");
 });
+
+describe("resolveCluster", () => {
+  it.todo("approve_all with bulkEdit calls editAndApprove for each task in cluster");
+  it.todo("reject_all calls rejectTask with reason=wrong_value for each task");
+  it.todo("partial failures: a single failing task does not stop the bulk operation");
+});
