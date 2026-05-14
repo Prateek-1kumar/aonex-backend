@@ -99,17 +99,22 @@ export async function editAndApprove(
     }
   }
 
-  // 5. Patch proposed_diff payload with the reviewer's edited value (before applying)
-  const diff = await ctx.db.query.proposedDiffs.findFirst({
-    where: (d, { eq }) => eq(d.id, task.proposedDiffId),
-  });
-  if (diff) {
-    const payload = (diff.diffPayload as Record<string, unknown>) ?? {};
-    payload[edit.fieldName] = edit.newNormalizedValue;
-    await ctx.db
-      .update(schema.proposedDiffs)
-      .set({ diffPayload: payload })
-      .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
+  // 5. Patch proposed_diff payload with the reviewer's edited value (before applying).
+  //    Guard against undefined: a client that sends `newNormalizedValue: undefined`
+  //    would otherwise silently drop the existing field during JSON serialization,
+  //    blanking out (e.g.) the title and breaking applyApprovedDiff downstream.
+  if (edit.newNormalizedValue !== undefined) {
+    const diff = await ctx.db.query.proposedDiffs.findFirst({
+      where: (d, { eq }) => eq(d.id, task.proposedDiffId),
+    });
+    if (diff) {
+      const payload = (diff.diffPayload as Record<string, unknown>) ?? {};
+      payload[edit.fieldName] = edit.newNormalizedValue;
+      await ctx.db
+        .update(schema.proposedDiffs)
+        .set({ diffPayload: payload })
+        .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
+    }
   }
 
   // 6. Apply the approved diff to the catalog — flips proposed_diff.status,
