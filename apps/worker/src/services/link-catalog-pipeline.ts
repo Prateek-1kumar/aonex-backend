@@ -1,8 +1,9 @@
 import { eq, desc } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { map, MAPPER_VERSION } from "@aonex/ingestion-semantic-mapper";
-import { score } from "@aonex/ingestion-policy-engine";
+import { route, clusterKey } from "@aonex/ingestion-policy-engine";
 import type { PolicyInputs, RouterInput } from "@aonex/ingestion-policy-engine";
+import { domainOf } from "@aonex/lib-utils";
 import { applyApprovedDiff, type CanonicalProductPayload } from "@aonex/catalog-service";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId, MerchantId, TenantId } from "@aonex/types";
@@ -185,45 +186,30 @@ export async function persistLinkCatalogPipeline(
     extractorMeta: input.extractorMeta,
   });
 
-  const policyScore = score(
-    {
-      extractedFactCount: canonicalFacts.length,
-      mappedFactCount: canonicalFacts.filter((f) => f.canonicalPath).length,
-      requiredAttributeKeys: await loadRequiredAttributeKeys(input.db, input.suggestedCategory),
-      mappedCanonicalPaths: canonicalFacts.flatMap((f) => (f.canonicalPath ? [f.canonicalPath] : [])),
-      hasGtin: Boolean(canonicalPayload.gtin),
-      hasBrand: Boolean(canonicalPayload.brand),
-      hasMpn: Boolean(canonicalPayload.modelNumber),
-      categoryDetected: Boolean(input.suggestedCategory),
-      categoryConfidence: input.categoryConfidence,
-      variantCount: canonicalPayload.variants.length,
-      imageCount: canonicalPayload.images.length,
-      dedupeDecision: input.dedupeDecision,
-      sourceReliability: input.sourceReliability,
-      unconvertibleUnits: [],
-      enumViolations: [],
-      variantInconsistencies: [],
-      llmOnlyCategory: input.extractorMeta.modelName !== null,
-    },
-    {
-      autoApproveThreshold: Number(policy.autoApproveThreshold),
-      anomalyThreshold: Number(policy.anomalyThreshold),
-      rejectThreshold: Number(policy.rejectThreshold),
-    }
-  );
+  const routerInput = await buildRouterInput({
+    db: input.db,
+    tenantId: input.tenantId,
+    facts: canonicalFacts,
+    payload: canonicalPayload,
+    domain: domainOf(input.sourceUrl),
+    category: { path: input.suggestedCategory, confidence: input.categoryConfidence },
+    categoryRequiredAttributes: await loadRequiredAttributeKeys(input.db, input.suggestedCategory),
+  });
 
-  const shouldAutoApprove = policyScore.route === "auto_approve" && Boolean(canonicalPayload.title);
+  const decision = route(routerInput);
+
+  const shouldAutoApprove = decision.route === "auto_approve" && Boolean(canonicalPayload.title);
   const proposedDiff = await createProposedDiff({
     db: input.db,
     tenantId: input.tenantId,
     merchantId: input.merchantId,
     factSetId,
     policyVersionId: policy.id,
-    confidenceScore: policyScore.score,
+    confidenceScore: decision.score,
     status: shouldAutoApprove ? "auto_approved" : "open",
     payload: {
       ...canonicalPayload,
-      policyEvidence: policyScore.evidence,
+      policyEvidence: decision.evidence,
     },
   });
 
@@ -233,7 +219,7 @@ export async function persistLinkCatalogPipeline(
       factSetId,
       proposedDiffId: proposedDiff.id,
       route: shouldAutoApprove ? "auto_approve" : "review",
-      confidenceScore: policyScore.score,
+      confidenceScore: decision.score,
     };
   }
 
@@ -255,28 +241,34 @@ export async function persistLinkCatalogPipeline(
       factSetId,
       proposedDiffId: proposedDiff.id,
       route: "auto_approve",
-      confidenceScore: policyScore.score,
+      confidenceScore: decision.score,
       productId: applied.productId,
       productVersionId: applied.productVersionId,
     };
   }
 
-  await input.db.insert(schema.reviewTasks).values({
-    tenantId: input.tenantId,
-    merchantId: input.merchantId,
-    proposedDiffId: proposedDiff.id,
-    artifactId: input.artifactId,
-    taskType: taskTypeFor(canonicalPayload, policyScore.score),
-    severity: severityFor(policyScore.score),
-    policyVersionId: policy.id,
-  });
+  for (const signal of decision.reviewTasks) {
+    await input.db.insert(schema.reviewTasks).values({
+      tenantId: input.tenantId,
+      merchantId: input.merchantId,
+      proposedDiffId: proposedDiff.id,
+      artifactId: input.artifactId,
+      taskType: signal.signalKind,           // dual-write to legacy column
+      signalKind: signal.signalKind,
+      signalPayload: signal.payload as Record<string, unknown>,
+      clusterKey: clusterKey(signal),
+      fieldName: signal.fieldName ?? null,
+      severity: signal.severity,
+      policyVersionId: policy.id,
+    });
+  }
 
   return {
     extractionRunId,
     factSetId,
     proposedDiffId: proposedDiff.id,
     route: "review",
-    confidenceScore: policyScore.score,
+    confidenceScore: decision.score,
   };
 }
 
@@ -653,19 +645,6 @@ function numberFromUnknown(value: unknown): number | null {
   return null;
 }
 
-function severityFor(scoreValue: number): "low" | "medium" | "high" | "critical" {
-  if (scoreValue < 0.35) return "critical";
-  if (scoreValue < 0.55) return "high";
-  if (scoreValue < 0.75) return "medium";
-  return "low";
-}
-
-function taskTypeFor(payload: CanonicalProductPayload, scoreValue: number): string {
-  if (!payload.title) return "missing_required";
-  if (!payload.canonicalCategory) return "category_unmatched";
-  if (scoreValue < 0.55) return "low_confidence";
-  return "schema_review";
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
