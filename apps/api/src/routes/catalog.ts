@@ -46,5 +46,30 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
     return c.json({ data: { products: hydrated } });
   });
 
+  // Archive a catalog product (soft-delete). Preserves history; flips status
+  // so the product disappears from the active list.
+  app.delete("/products/:id", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+    const id = c.req.param("id");
+
+    const result = await deps.db
+      .update(schema.products)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.products.id, id),
+          eq(schema.products.tenantId, tenantId),
+          eq(schema.products.merchantId, merchantId)
+        )
+      )
+      .returning({ id: schema.products.id });
+
+    if (result.length === 0) {
+      return c.json({ error: { code: "NOT_FOUND", message: "Product not found" } }, 404);
+    }
+    return c.json({ data: { id: result[0]!.id, status: "archived" } });
+  });
+
   return app;
 }
