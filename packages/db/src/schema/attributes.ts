@@ -129,11 +129,19 @@ export const mappingOverrides = pgTable(
     sourceKey: varchar("source_key", { length: 200 }).notNull(),
     canonicalKey: varchar("canonical_key", { length: 200 }).notNull(),
     priority: integer("priority").notNull().default(100),
+    domainPattern: varchar("domain_pattern", { length: 200 }),
+    normalizationRule: jsonb("normalization_rule").$type<Record<string, unknown>>(),
+    usageCount: integer("usage_count").notNull().default(0),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    promoteEligibleAt: timestamp("promote_eligible_at", { withTimezone: true }),
+    createdBy: uuid("created_by"),
+    sourceReviewTaskId: uuid("source_review_task_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
-    tenantIdx: index("idx_mapping_overrides_tenant").on(t.tenantId, t.sourceKey)
+    tenantSourceIdx: index("idx_mapping_overrides_tenant_source").on(t.tenantId, t.sourceKey),
+    scopeIdx: index("idx_mapping_overrides_scope").on(t.tenantId, t.domainPattern, t.sourceKey)
   })
 );
 
