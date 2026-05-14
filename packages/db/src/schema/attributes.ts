@@ -60,6 +60,9 @@ export const attributeSynonyms = pgTable(
     /** The raw marketplace field name, e.g. "Marque" for French Shopify stores */
     synonym: varchar("synonym", { length: 200 }).notNull(),
     sourceMarketplace: varchar("source_marketplace", { length: 50 }),
+    source: varchar("source", { length: 20 }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    approvedBy: uuid("approved_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
