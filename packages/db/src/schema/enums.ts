@@ -80,7 +80,8 @@ export const proposedDiffStatusEnum = pgEnum("proposed_diff_status", [
 export const extractionMethodEnum = pgEnum("extraction_method", [
   "direct",
   "computed",
-  "inferred"
+  "inferred",
+  "override"
 ]);
 
 /** HLD §15 / §20 — review_tasks.severity */
