@@ -122,3 +122,14 @@ export const extractionRunStatusEnum = pgEnum("extraction_run_status", [
   "succeeded",
   "failed"
 ]);
+
+export const extractionFailureReasonEnum = pgEnum("extraction_failure_reason", [
+  "fetch_blocked",
+  "captcha_wall",
+  "no_product_found",
+  "parse_failed",
+  "llm_extraction_failed",
+  "wrong_value",
+  "missing_field",
+  "wrong_category",
+]);
