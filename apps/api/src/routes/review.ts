@@ -5,7 +5,7 @@ import { schema, type DrizzleClient } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
 import type { AuditEmitter } from "@aonex/audit";
 import { applyApprovedDiff } from "@aonex/catalog-service";
-import { editAndApprove, resolveCluster } from "../services/review-resolution.js";
+import { editAndApprove, resolveCluster, rejectTask, mergeWithExisting } from "../services/review-resolution.js";
 
 const ReviewActionSchema = z.object({
   action: z.enum(["save", "approve", "reject", "dismiss"]),
@@ -300,6 +300,52 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
         status: parsed.data.action === "dismiss" ? "dismissed" : "resolved",
       },
     });
+  });
+
+  const RejectSchema = z.object({
+    reason: z.enum(["wrong_value", "missing_field", "wrong_category", "no_product_found"]),
+    note: z.string().optional(),
+  });
+
+  app.post("/tasks/:id/reject", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+    const reviewerId = (c.get("userId" as never) as string | undefined) ?? merchantId;
+    const id = c.req.param("id");
+
+    const parsed = RejectSchema.safeParse(await c.req.json());
+    if (!parsed.success) {
+      return c.json({ success: false, error: parsed.error.format() }, 400);
+    }
+
+    const result = await rejectTask(
+      { db: deps.db, tenantId, merchantId, reviewerId },
+      id,
+      parsed.data.reason,
+      parsed.data.note
+    );
+    return c.json({ success: true, data: result });
+  });
+
+  const MergeSchema = z.object({ existingProductId: z.string().uuid() });
+
+  app.post("/tasks/:id/merge", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+    const reviewerId = (c.get("userId" as never) as string | undefined) ?? merchantId;
+    const id = c.req.param("id");
+
+    const parsed = MergeSchema.safeParse(await c.req.json());
+    if (!parsed.success) {
+      return c.json({ success: false, error: parsed.error.format() }, 400);
+    }
+
+    const result = await mergeWithExisting(
+      { db: deps.db, tenantId, merchantId, reviewerId },
+      id,
+      parsed.data.existingProductId
+    );
+    return c.json({ success: true, data: result });
   });
 
   return app;
