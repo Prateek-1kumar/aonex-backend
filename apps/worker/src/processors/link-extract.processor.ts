@@ -9,8 +9,9 @@
 
 import type { Job } from "bullmq";
 import { eq, desc } from "drizzle-orm";
-import type { TenantId, MerchantId } from "@aonex/types";
+import type { TenantId, MerchantId, ProductId } from "@aonex/types";
 import { QUEUE } from "@aonex/types";
+import type { DedupeDecision } from "@aonex/ingestion-deduplicator";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { sha256Hex, domainOf } from "@aonex/lib-utils";
@@ -264,6 +265,17 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         ? Math.max(0, Math.min(1, Number(profile.avgConfidence)))
         : 0.65; // fallback when no profile exists yet
 
+    const canonicalGtin = findFactValue(factSet.facts, "gtin");
+    const canonicalMpn =
+      findFactValue(factSet.facts, "mpn") ??
+      findFactValue(factSet.facts, "model_number");
+    const dedupeDecision = await resolveDedupe({
+      db: deps.db,
+      tenantId,
+      gtin: canonicalGtin,
+      mpn: canonicalMpn,
+    });
+
     const catalogResult = await persistLinkCatalogPipeline({
       db: deps.db,
       tenantId,
@@ -274,7 +286,7 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       suggestedCategory: structuredResult.structured.category.path,
       categoryConfidence: structuredResult.structured.category.confidence,
       extractorMeta: llmMeta,
-      dedupeDecision: { kind: "new" }, // Phase-1 stub; Plan B real dedup
+      dedupeDecision,
       sourceReliability,
     });
 
@@ -335,6 +347,49 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
 export const PROCESSOR_QUEUE = QUEUE.LINK_EXTRACT;
 
 // ── Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Resolve dedup decision by checking GTIN and MPN against product_identities.
+ * Returns "merge" with the existing product ID if a match is found, else "new".
+ */
+async function resolveDedupe(args: {
+  db: DrizzleClient;
+  tenantId: TenantId;
+  gtin: string | null;
+  mpn: string | null;
+}): Promise<DedupeDecision> {
+  const checks: { type: "gtin" | "mpn"; value: string }[] = [];
+  if (args.gtin) checks.push({ type: "gtin", value: args.gtin });
+  if (args.mpn) checks.push({ type: "mpn", value: args.mpn });
+  for (const c of checks) {
+    const row = await args.db.query.productIdentities.findFirst({
+      where: (i, { and, eq }) =>
+        and(
+          eq(i.tenantId, args.tenantId),
+          eq(i.identityType, c.type),
+          eq(i.identityValue, c.value)
+        ),
+    });
+    if (row) {
+      return {
+        kind: "merge",
+        productId: row.productId as ProductId,
+        reason: c.type === "gtin" ? "gtin_match" : "mpn_match",
+      };
+    }
+  }
+  return { kind: "new" };
+}
+
+/**
+ * Extract the canonical string value for a raw key from an ExtractedFact array.
+ * Prefers normalizedValue over extractedValue.
+ */
+function findFactValue(facts: ExtractedFact[], rawKey: string): string | null {
+  const f = facts.find((x) => x.rawKey === rawKey);
+  const v = f?.normalizedValue ?? f?.extractedValue;
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
 
 /**
  * Load required attribute keys for the given category path from

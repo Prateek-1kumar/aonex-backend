@@ -55,6 +55,7 @@
         "@aonex/catalog-service": "workspace:*",
         "@aonex/connector-gateway": "workspace:*",
         "@aonex/db": "workspace:*",
+        "@aonex/ingestion-deduplicator": "workspace:*",
         "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/ingestion-link-fetcher": "workspace:*",
         "@aonex/ingestion-llm-extractor": "workspace:*",
@@ -185,6 +186,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/ingestion-deduplicator": "workspace:*",
+        "@aonex/ingestion-field-extractor": "workspace:*",
       },
     },
     "packages/ingestion/semantic-mapper": {
