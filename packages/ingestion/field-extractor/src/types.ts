@@ -18,7 +18,7 @@ export interface ExtractedFact {
   /** 0..1 — how confident we are the value is correct */
   confidence: number;
   mappingMethod: string | null;
-  mappingCandidates: Array<{ key: string; score: number }> | null;
+  mappingCandidates: Array<{ key: string; score: number; reason?: string }> | null;
   approved: boolean;
 }
 
