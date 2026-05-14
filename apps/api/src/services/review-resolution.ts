@@ -100,10 +100,17 @@ export async function editAndApprove(
   }
 
   // 5. Patch proposed_diff payload with the reviewer's edited value (before applying).
-  //    Guard against undefined: a client that sends `newNormalizedValue: undefined`
-  //    would otherwise silently drop the existing field during JSON serialization,
-  //    blanking out (e.g.) the title and breaking applyApprovedDiff downstream.
-  if (edit.newNormalizedValue !== undefined) {
+  //    Skip the write when the new value is "effectively empty" (undefined, null,
+  //    or whitespace-only string). A reviewer clicking Edit & Approve without
+  //    typing anything must NOT clobber the extracted value — otherwise we lose
+  //    title/brand/etc. and applyApprovedDiff later throws on the missing field.
+  const v = edit.newNormalizedValue;
+  const isEffectivelyEmpty =
+    v === undefined ||
+    v === null ||
+    (typeof v === "string" && v.trim() === "");
+
+  if (!isEffectivelyEmpty) {
     const diff = await ctx.db.query.proposedDiffs.findFirst({
       where: (d, { eq }) => eq(d.id, task.proposedDiffId),
     });
