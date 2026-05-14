@@ -56,6 +56,7 @@ export interface LLMRawProductOutput {
     option_values?: Record<string, string>;
     inventory_quantity?: number;
   }>;
+  _field_confidence?: Record<string, number>;
 }
 
 /** Extractor version identifier — bump when prompt or parsing logic changes. */
