@@ -56,8 +56,21 @@ export class LinkFetchError extends Error {
 
 export const DEFAULT_FETCH_OPTIONS: Required<LinkFetchOptions> = {
   timeoutMs: 15_000,
-  maxBodyBytes: 5 * 1024 * 1024, // 5 MB
+  maxBodyBytes: 500_000, // 500 KB
   userAgent: "AonexBot/1.0 (+https://aonex.io/bot)",
   followRedirects: true,
   maxRedirects: 5,
 };
+
+export interface StructuredBlocks {
+  jsonLd: Record<string, unknown>[];
+  nextData: Record<string, unknown> | null;
+  apolloState: Record<string, unknown> | null;
+  initialState: Record<string, unknown> | null;
+}
+
+export interface CleanResult {
+  structuredBlocks: StructuredBlocks;
+  cleanedText: string;
+  captchaSignal: boolean;
+}
