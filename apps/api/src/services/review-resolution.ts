@@ -125,12 +125,87 @@ export async function editAndApprove(
 }
 
 export async function rejectTask(
-  _ctx: ResolutionContext,
-  _taskId: string,
-  _reason: "wrong_value" | "missing_field" | "wrong_category" | "no_product_found",
-  _note?: string
+  ctx: ResolutionContext,
+  taskId: string,
+  reason: "wrong_value" | "missing_field" | "wrong_category" | "no_product_found",
+  note?: string
 ): Promise<{ failureId: string }> {
-  throw new Error("not implemented — Plan B Task 17");
+  const task = await ctx.db.query.reviewTasks.findFirst({
+    where: (t, { eq }) => eq(t.id, taskId),
+  });
+  if (!task) throw new Error(`review_task ${taskId} not found`);
+  if (task.tenantId !== ctx.tenantId) throw new Error("forbidden");
+
+  // Walk the chain manually (no relations() in this codebase) to find the source URL.
+  let sourceUrl = "";
+  if (task.proposedDiffId) {
+    const diff = await ctx.db.query.proposedDiffs.findFirst({
+      where: (d, { eq }) => eq(d.id, task.proposedDiffId!),
+    });
+    if (diff?.sourceFactSetId) {
+      const factSet = await ctx.db.query.extractedFactSets.findFirst({
+        where: (f, { eq }) => eq(f.id, diff.sourceFactSetId),
+      });
+      if (factSet?.artifactId) {
+        const artifact = await ctx.db.query.sourceArtifacts.findFirst({
+          where: (a, { eq }) => eq(a.id, factSet.artifactId),
+        });
+        sourceUrl = (artifact?.sourceExternalId as string | undefined) ?? "";
+      }
+    }
+  }
+
+  const domain = domainOf(sourceUrl) || "unknown";
+
+  // Upsert by (tenant, domain, reason) — increment occurrence_count if a row already exists.
+  const existing = await ctx.db.query.extractionFailures.findFirst({
+    where: (f, { and, eq }) =>
+      and(eq(f.tenantId, ctx.tenantId), eq(f.domainPattern, domain), eq(f.reason, reason)),
+  });
+
+  let failureId: string;
+  if (existing) {
+    await ctx.db
+      .update(schema.extractionFailures)
+      .set({
+        occurrenceCount: existing.occurrenceCount + 1,
+        lastSeenAt: new Date(),
+        reviewerNote: note ?? existing.reviewerNote,
+      })
+      .where(eq(schema.extractionFailures.id, existing.id));
+    failureId = existing.id;
+  } else {
+    const evidence = (task.signalPayload as Record<string, unknown> | null)?.evidence;
+    const sourcePointer = evidence ? JSON.stringify(evidence) : null;
+
+    const [row] = await ctx.db
+      .insert(schema.extractionFailures)
+      .values({
+        tenantId: ctx.tenantId,
+        domainPattern: domain,
+        rawKey: task.fieldName,
+        sourcePointer,
+        reason,
+        reviewerNote: note ?? null,
+        reviewTaskId: taskId,
+      })
+      .returning({ id: schema.extractionFailures.id });
+    failureId = row!.id;
+  }
+
+  if (task.proposedDiffId) {
+    await ctx.db
+      .update(schema.proposedDiffs)
+      .set({ status: "rejected" })
+      .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
+  }
+
+  await ctx.db
+    .update(schema.reviewTasks)
+    .set({ status: "resolved", resolutionNotes: note ?? null, updatedAt: new Date() })
+    .where(eq(schema.reviewTasks.id, taskId));
+
+  return { failureId };
 }
 
 export async function mergeWithExisting(

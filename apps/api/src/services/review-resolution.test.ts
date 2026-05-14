@@ -9,3 +9,9 @@ describe("editAndApprove", () => {
   it.todo("creates an attribute_synonyms candidate when raw_key is renamed to a known canonical");
   it.todo("does NOT create an override when only the value (not the mapping) is changed");
 });
+
+describe("rejectTask", () => {
+  it.todo("inserts a new extraction_failures row when none exists for (tenant, domain, reason)");
+  it.todo("increments occurrence_count when a matching extraction_failures row already exists");
+  it.todo("flips proposed_diff.status to rejected and review_task.status to resolved");
+});
