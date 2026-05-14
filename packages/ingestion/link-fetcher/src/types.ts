@@ -28,6 +28,10 @@ export interface LinkFetchResult {
   rawHtml: string;
   /** Cleaned text with scripts/styles/nav stripped — ready for LLM. */
   cleanedText: string;
+  /** Structured data blocks extracted from the page (JSON-LD, __NEXT_DATA__, etc.). */
+  structuredBlocks: StructuredBlocks;
+  /** True when the page exhibits CAPTCHA / bot-wall signals. */
+  captchaSignal: boolean;
   /** Timestamp when the fetch completed. */
   fetchedAt: Date;
   /** SHA-256 hex digest of rawHtml — for source_artifact.checksum. */
