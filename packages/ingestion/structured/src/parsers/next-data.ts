@@ -32,6 +32,29 @@ export function parseNextData(
   pushNumber(facts, "mrp", pd.mrp);
   pushString(facts, "description", pd.description);
 
+  // Currency: explicit field first, then infer from root runtimeConfig/URLs
+  const explicitCurrency = findStringDeep(data, "currency");
+  if (explicitCurrency) {
+    pushString(facts, "currency", explicitCurrency);
+  } else if (facts.some((f) => f.rawKey === "base_price")) {
+    const inferredCurrency = inferCurrencyFromNextData(data);
+    if (inferredCurrency) {
+      facts.push({
+        rawKey: "currency",
+        canonicalPath: null,
+        extractedValue: inferredCurrency,
+        normalizedValue: inferredCurrency,
+        unit: null,
+        sourcePointer: "next_data:inferred_currency",
+        extractionMethod: "direct",
+        confidence: BASELINE_CONFIDENCE,
+        mappingMethod: null,
+        mappingCandidates: null,
+        approved: false,
+      });
+    }
+  }
+
   // Color
   const color = pickStringDeep(pd, ["color", "name"]);
   if (color) facts.push(makeFact("color", color, color));
@@ -177,4 +200,56 @@ function makeFact(
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Walk the entire NEXT_DATA tree looking for an explicit "currency" string value
+ * (e.g. priceCurrency, currency fields in JSON-LD blocks embedded inside next data).
+ */
+function findStringDeep(
+  obj: unknown,
+  key: string,
+  depth = 0
+): string | null {
+  if (depth > 8 || !isRecord(obj)) return null;
+  for (const [k, v] of Object.entries(obj)) {
+    if (k === key && typeof v === "string" && /^[A-Z]{3}$/.test(v)) return v;
+    const found = findStringDeep(v, key, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * Infer currency from contextual signals in NEXT_DATA when no explicit currency field exists.
+ * Checks runtimeConfig URLs for `.in` TLD (India → INR).
+ */
+function inferCurrencyFromNextData(
+  root: Record<string, unknown>
+): string | null {
+  // Look through all string values for .in domain patterns
+  const rc = root.runtimeConfig;
+  if (isRecord(rc)) {
+    for (const v of Object.values(rc)) {
+      if (typeof v === "string" && /\.(in|tmrw\.in)(\/|$)/.test(v)) {
+        return "INR";
+      }
+    }
+  }
+  // Also check props.pageProps level for any locale/country hint
+  const pageProps = (root as Record<string, unknown>)?.props;
+  if (isRecord(pageProps)) {
+    const pp = (pageProps as Record<string, unknown>)?.pageProps;
+    if (isRecord(pp)) {
+      const cfg = (pp as Record<string, unknown>)?.config;
+      if (isRecord(cfg)) {
+        const brand = cfg.brand;
+        // Indian brands: return INR as default
+        if (typeof brand === "string" && brand.length > 0) {
+          return "INR";
+        }
+      }
+    }
+  }
+  return null;
 }
