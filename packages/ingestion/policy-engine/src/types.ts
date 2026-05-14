@@ -2,30 +2,6 @@
 
 import type { DedupeDecision } from "@aonex/ingestion-deduplicator";
 
-export type PolicyRoute = "auto_approve" | "review" | "reject";
-
-export interface PolicyScore {
-  score: number;
-  route: PolicyRoute;
-  /** Per-component breakdown for audit trail */
-  evidence: {
-    identityScore: number;
-    categoryScore: number;
-    fieldMappingScore: number;
-    variantScore: number;
-    schemaScore: number;
-    mediaScore: number;
-    sourceReliability: number;
-    penalties: PenaltyRecord[];
-    finalScore: number;
-  };
-}
-
-export interface PenaltyRecord {
-  reason: string;
-  amount: number;
-}
-
 /** Inputs the worker reads from DB and passes as pure data */
 export interface PolicyInputs {
   extractedFactCount: number;
@@ -48,16 +24,8 @@ export interface PolicyInputs {
   llmOnlyCategory: boolean;
 }
 
-/** Policy thresholds read from policy_versions row */
-export interface PolicyThresholds {
-  autoApproveThreshold: number; // default 0.90
-  anomalyThreshold: number;     // default 0.55
-  rejectThreshold: number;      // default 0.55
-}
-
 // ───────────────────────────────────────────────────────────────────────
-// Plan B — multi-signal router types. The legacy single-score `score()`
-// in formula.ts is kept until Plan B Task 14 deletes it.
+// Plan B — multi-signal router types (canonical going forward).
 // ───────────────────────────────────────────────────────────────────────
 
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
