@@ -348,6 +348,49 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
     return c.json({ success: true, data: result });
   });
 
+  app.get("/tasks/:id/evidence", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const id = c.req.param("id");
+
+    const task = await deps.db.query.reviewTasks.findFirst({
+      where: (t, { and, eq }) => and(eq(t.tenantId, tenantId), eq(t.id, id)),
+    });
+    if (!task) return c.json({ success: false, error: "not found" }, 404);
+
+    let sourceUrl: string | null = null;
+    let htmlSnippet: unknown = null;
+
+    if (task.proposedDiffId) {
+      const diff = await deps.db.query.proposedDiffs.findFirst({
+        where: (d, { eq }) => eq(d.id, task.proposedDiffId!),
+      });
+      if (diff?.sourceFactSetId) {
+        const factSet = await deps.db.query.extractedFactSets.findFirst({
+          where: (f, { eq }) => eq(f.id, diff.sourceFactSetId),
+        });
+        if (factSet?.artifactId) {
+          const artifact = await deps.db.query.sourceArtifacts.findFirst({
+            where: (a, { eq }) => eq(a.id, factSet.artifactId),
+          });
+          sourceUrl = (artifact?.sourceExternalId as string | undefined) ?? null;
+          const rawData = (artifact?.rawData as Record<string, unknown> | null) ?? null;
+          htmlSnippet = rawData?.htmlSnippet ?? null;
+        }
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        sourceUrl,
+        htmlSnippet,
+        signalPayload: task.signalPayload,
+        fieldName: task.fieldName,
+        signalKind: task.signalKind,
+      },
+    });
+  });
+
   return app;
 }
 
