@@ -69,6 +69,15 @@ export const DEFAULT_LLM_OPTIONS: Required<LLMExtractionOptions> = {
   categoryHint: "",
 };
 
+export interface LLMGapFillOptions extends LLMExtractionOptions {
+  /** The rawKeys that are missing and need to be filled by the LLM. */
+  gaps: string[];
+  /** Already-extracted structured facts to anchor the LLM on. */
+  structuredFacts: { rawKey: string; value: unknown; source: string }[];
+  /** Optional category candidates for prompting context. */
+  categoryCandidates?: string[];
+}
+
 export interface PromptBuildParams {
   cleanedText: string;
   url: string;

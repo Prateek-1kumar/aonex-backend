@@ -16,6 +16,7 @@ import { parseLLMResponse, convertToExtractedFacts } from "./response-parser.js"
 import {
   type LLMExtractionOptions,
   type LLMExtractionResult,
+  type LLMGapFillOptions,
   type PromptBuildParams,
   LLM_EXTRACTOR_VERSION,
   DEFAULT_LLM_OPTIONS,
@@ -85,6 +86,69 @@ export class LLMProductExtractor {
       facts,
       suggestedCategory: parsed.category_path ?? null,
       categoryConfidence: parsed.category_confidence ?? 0.5,
+      modelName: completion.model,
+      modelVersion: LLM_EXTRACTOR_VERSION,
+      promptTokens: completion.usage.promptTokens,
+      completionTokens: completion.usage.completionTokens,
+      estimatedCostUsd: this.provider.estimateCost(opts.model, completion.usage),
+    };
+  }
+
+  /**
+   * Gap-fill extraction: fills only the missing fields listed in `options.gaps`,
+   * anchored on the already-extracted `options.structuredFacts`.
+   *
+   * Called by the orchestrator when the structured-first stage has partial coverage.
+   * The returned facts are filtered to ONLY the requested gap fields.
+   */
+  async extractGapFill(
+    cleanedText: string,
+    url: string,
+    artifactId: ArtifactId,
+    options: LLMGapFillOptions
+  ): Promise<LLMExtractionResult> {
+    const opts = { ...DEFAULT_LLM_OPTIONS, ...options };
+
+    const promptParams: PromptBuildParams = {
+      cleanedText,
+      url,
+      gaps: options.gaps,
+      structuredFacts: options.structuredFacts,
+      categoryCandidates: options.categoryCandidates ?? [],
+      ...(opts.categoryHint ? { categoryHint: opts.categoryHint } : {}),
+    };
+    const messages = buildExtractionPrompt(promptParams);
+
+    const completion = await this.provider.chatCompletion({
+      model: opts.model,
+      messages,
+      maxTokens: opts.maxTokens,
+      temperature: opts.temperature,
+      jsonMode: true,
+    });
+
+    const parsed = parseLLMResponse(completion.content);
+    if (!parsed) {
+      return {
+        facts: [],
+        suggestedCategory: null,
+        categoryConfidence: 0,
+        modelName: completion.model,
+        modelVersion: LLM_EXTRACTOR_VERSION,
+        promptTokens: completion.usage.promptTokens,
+        completionTokens: completion.usage.completionTokens,
+        estimatedCostUsd: this.provider.estimateCost(opts.model, completion.usage),
+      };
+    }
+
+    // Filter to only the requested gap fields
+    const allFacts = convertToExtractedFacts(parsed, url);
+    const facts = allFacts.filter((f) => options.gaps.includes(f.rawKey));
+
+    return {
+      facts,
+      suggestedCategory: parsed.category_path ?? null,
+      categoryConfidence: parsed.category_confidence ?? 0,
       modelName: completion.model,
       modelVersion: LLM_EXTRACTOR_VERSION,
       promptTokens: completion.usage.promptTokens,
