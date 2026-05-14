@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { domainOf } from "@aonex/lib-utils";
+import { applyApprovedDiff } from "@aonex/catalog-service";
 import type { TenantId, MerchantId } from "@aonex/types";
 
 /**
@@ -98,7 +99,7 @@ export async function editAndApprove(
     }
   }
 
-  // 5. Patch proposed_diff payload with new value and flip status to approved
+  // 5. Patch proposed_diff payload with the reviewer's edited value (before applying)
   const diff = await ctx.db.query.proposedDiffs.findFirst({
     where: (d, { eq }) => eq(d.id, task.proposedDiffId),
   });
@@ -107,11 +108,23 @@ export async function editAndApprove(
     payload[edit.fieldName] = edit.newNormalizedValue;
     await ctx.db
       .update(schema.proposedDiffs)
-      .set({ status: "approved", diffPayload: payload })
+      .set({ diffPayload: payload })
       .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
   }
 
-  // 6. Mark review task resolved
+  // 6. Apply the approved diff to the catalog — flips proposed_diff.status,
+  //    creates the product_version + variant_versions rows, sets reviewedAt.
+  //    Without this step the edit shows "approved" but never lands in the catalog.
+  if (task.proposedDiffId) {
+    await applyApprovedDiff({
+      db: ctx.db,
+      diffId: task.proposedDiffId,
+      actorId: ctx.reviewerId,
+      approvalStatus: "approved",
+    });
+  }
+
+  // 7. Mark review task resolved
   await ctx.db
     .update(schema.reviewTasks)
     .set({
