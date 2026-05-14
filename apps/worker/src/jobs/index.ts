@@ -1,5 +1,6 @@
 import type { DrizzleClient } from "@aonex/db";
 import { priceClusterRebuild } from "./price-cluster-rebuild.js";
+import { overridePromotionScan } from "./override-promotion-scan.js";
 
 export interface JobContext {
   db: DrizzleClient;
@@ -18,4 +19,4 @@ export interface CronJob {
  * Registered cron jobs. Individual job files import this and push themselves
  * onto the array as they're added in subsequent tasks (10-13).
  */
-export const CRON_JOBS: CronJob[] = [priceClusterRebuild];
+export const CRON_JOBS: CronJob[] = [priceClusterRebuild, overridePromotionScan];
