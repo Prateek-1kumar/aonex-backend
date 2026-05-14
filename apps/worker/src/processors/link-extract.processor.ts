@@ -1,5 +1,6 @@
 // ingestion.link_extract queue processor — fetches a URL, runs
-// LLM extraction, and persists source_artifact + extracted facts.
+// structured-first extraction with LLM gap-fill, and persists
+// source_artifact + extracted facts.
 //
 // HLD §11.4: "Static URL ingestion — Fetcher, robots/compliance
 // review, HTML snapshot storage, DOM provenance."
@@ -7,15 +8,17 @@
 // HLD §22.3: "Model output becomes extracted facts, never direct writes."
 
 import type { Job } from "bullmq";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import type { TenantId, MerchantId } from "@aonex/types";
 import { QUEUE } from "@aonex/types";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
-import { sha256Hex } from "@aonex/lib-utils";
+import { sha256Hex, domainOf } from "@aonex/lib-utils";
 import { fetchLink, type LinkFetchResult, LinkFetchError } from "@aonex/ingestion-link-fetcher";
 import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
+import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId } from "@aonex/types";
+import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
 import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
 
 export interface LinkExtractJobData {
@@ -124,42 +127,112 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       metadata: { url: fetchResult.finalUrl, sourceType: "link_url" },
     });
 
-    // ── Step 3: LLM extraction ──────────────────────────────────────
-    let extractionResult;
-    try {
-      extractionResult = await deps.extractor.extractFactSet(
-        fetchResult.cleanedText,
-        fetchResult.finalUrl,
-        artifactId,
-        categoryHint ? { categoryHint } : undefined
-      );
-    } catch (err) {
-      const errorMessage = `LLM extraction failed: ${err instanceof Error ? err.message : String(err)}`;
+    // ── Step 3: Structured-first extraction ────────────────────────
+    const structuredResult = await extractStructured({
+      pageUrl: fetchResult.finalUrl,
+      rawHtml: fetchResult.rawHtml,
+      structuredBlocks: fetchResult.structuredBlocks,
+      categoryRequiredAttributes: [],
+    });
 
-      // Mark artifact as failed but preserve the raw evidence
+    // 3a. Captcha wall → fail-fast
+    if (structuredResult.captchaSignal) {
       await deps.db
         .update(schema.sourceArtifacts)
         .set({
           status: "failed",
-          processingErrors: [{ step: "llm_extraction", error: errorMessage }],
+          processingErrors: [{ step: "structured", error: "captcha_wall" }],
         })
         .where(eq(schema.sourceArtifacts.id, artifactId));
+
+      await deps.db.insert(schema.extractionFailures).values({
+        tenantId,
+        domainPattern: domainOf(fetchResult.finalUrl),
+        reason: "captcha_wall",
+        sourcePointer: `body ${fetchResult.rawHtml.length} bytes; captcha keywords matched`,
+      });
 
       await deps.audit.emit({
         tenantId,
         merchantId,
         actorType: "worker",
-        eventType: "ingestion.extraction_failed",
+        eventType: "ingestion.captcha_wall",
         entityType: "source_artifact",
         entityId: artifactId,
         requestId,
-        metadata: { url, error: errorMessage },
+        metadata: { url: fetchResult.finalUrl },
       });
-
-      throw new Error(errorMessage);
+      return;
     }
 
-    const { factSet, meta } = extractionResult;
+    // 3b. Load required attributes for the detected category and re-check coverage
+    const categoryRequired = structuredResult.structured.category.path
+      ? await loadCategoryRequiredAttributes(deps.db, structuredResult.structured.category.path)
+      : [];
+
+    const coverage = checkCoverage(structuredResult.structured.facts, categoryRequired);
+
+    // 3c. LLM gap-fill (only when coverage is incomplete)
+    let llmFacts: ExtractedFact[] = [];
+    let llmMeta = {
+      modelName: null as string | null,
+      promptTokens: 0,
+      completionTokens: 0,
+      estimatedCostUsd: 0,
+    };
+
+    if (!coverage.complete) {
+      if (structuredResult.structured.facts.length === 0) {
+        // Zero coverage → full LLM extraction
+        const result = await deps.extractor.extract(
+          fetchResult.cleanedText,
+          fetchResult.finalUrl,
+          artifactId,
+          categoryHint ? { categoryHint } : undefined
+        );
+        llmFacts = result.facts;
+        llmMeta = {
+          modelName: result.modelName,
+          promptTokens: result.promptTokens,
+          completionTokens: result.completionTokens,
+          estimatedCostUsd: result.estimatedCostUsd,
+        };
+      } else {
+        // Partial coverage → gap-fill only the missing fields
+        const gapResult = await deps.extractor.extractGapFill(
+          fetchResult.cleanedText,
+          fetchResult.finalUrl,
+          artifactId,
+          {
+            gaps: coverage.gaps,
+            structuredFacts: structuredResult.structured.facts.map((f) => ({
+              rawKey: f.rawKey,
+              value: f.extractedValue,
+              source: f.sourcePointer,
+            })),
+            categoryCandidates: structuredResult.structured.category.path
+              ? [structuredResult.structured.category.path]
+              : [],
+          }
+        );
+        llmFacts = gapResult.facts;
+        llmMeta = {
+          modelName: gapResult.modelName,
+          promptTokens: gapResult.promptTokens,
+          completionTokens: gapResult.completionTokens,
+          estimatedCostUsd: gapResult.estimatedCostUsd,
+        };
+      }
+    }
+
+    // 3d. Combine structured + LLM facts
+    const factSet: ExtractedFactSet = {
+      artifactId,
+      marketplace: "link_url",
+      extractorVersion: LLM_EXTRACTOR_VERSION,
+      facts: [...structuredResult.structured.facts, ...llmFacts],
+      extractedAt: new Date(),
+    };
 
     if (factSet.facts.length === 0) {
       // No product data extracted — mark as needs_review
@@ -176,7 +249,7 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         entityType: "source_artifact",
         entityId: artifactId,
         requestId,
-        metadata: { url, model: meta.modelName, cost: meta.estimatedCostUsd },
+        metadata: { url, model: llmMeta.modelName, cost: llmMeta.estimatedCostUsd },
       });
       return;
     }
@@ -189,14 +262,11 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       artifactId,
       sourceUrl: fetchResult.finalUrl,
       factSet,
-      suggestedCategory: meta.suggestedCategory,
-      categoryConfidence: meta.categoryConfidence,
-      extractorMeta: {
-        modelName: meta.modelName,
-        promptTokens: meta.promptTokens,
-        completionTokens: meta.completionTokens,
-        estimatedCostUsd: meta.estimatedCostUsd,
-      },
+      suggestedCategory: structuredResult.structured.category.path,
+      categoryConfidence: structuredResult.structured.category.confidence,
+      extractorMeta: llmMeta,
+      dedupeDecision: { kind: "new" }, // Phase-1 stub; Plan B real dedup
+      sourceReliability: 0.65,          // Phase-1 stub; Plan D real domain_profiles
     });
 
     // Mark artifact as completed or review-gated after facts/diff persistence.
@@ -217,12 +287,15 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       metadata: {
         url: fetchResult.finalUrl,
         factsCount: factSet.facts.length,
-        suggestedCategory: meta.suggestedCategory,
-        categoryConfidence: meta.categoryConfidence,
-        model: meta.modelName,
-        promptTokens: meta.promptTokens,
-        completionTokens: meta.completionTokens,
-        estimatedCostUsd: meta.estimatedCostUsd,
+        structuredFactsCount: structuredResult.structured.facts.length,
+        llmFactsCount: llmFacts.length,
+        coverageComplete: coverage.complete,
+        suggestedCategory: structuredResult.structured.category.path,
+        categoryConfidence: structuredResult.structured.category.confidence,
+        model: llmMeta.modelName,
+        promptTokens: llmMeta.promptTokens,
+        completionTokens: llmMeta.completionTokens,
+        estimatedCostUsd: llmMeta.estimatedCostUsd,
         extractorVersion: LLM_EXTRACTOR_VERSION,
         extractionRunId: catalogResult.extractionRunId,
         factSetId: catalogResult.factSetId,
@@ -238,9 +311,9 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     return {
       artifactId,
       factsCount: factSet.facts.length,
-      suggestedCategory: meta.suggestedCategory,
-      categoryConfidence: meta.categoryConfidence,
-      estimatedCostUsd: meta.estimatedCostUsd,
+      suggestedCategory: structuredResult.structured.category.path,
+      categoryConfidence: structuredResult.structured.category.confidence,
+      estimatedCostUsd: llmMeta.estimatedCostUsd,
       route: catalogResult.route,
       confidenceScore: catalogResult.confidenceScore,
       proposedDiffId: catalogResult.proposedDiffId,
@@ -251,3 +324,20 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
 }
 
 export const PROCESSOR_QUEUE = QUEUE.LINK_EXTRACT;
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Load required attribute keys for the given category path from
+ * category_schemas. Returns an empty array when no schema exists.
+ */
+async function loadCategoryRequiredAttributes(
+  db: DrizzleClient,
+  categoryPath: string
+): Promise<string[]> {
+  const row = await db.query.categorySchemas.findFirst({
+    where: (c, { eq }) => eq(c.categoryPath, categoryPath),
+    orderBy: (c, { desc }) => [desc(c.schemaVersion)],
+  });
+  return row?.requiredAttributes ?? [];
+}
