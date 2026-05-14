@@ -6,6 +6,7 @@ import { parseOpenGraph } from "./parsers/opengraph.js";
 import { mergeParserOutputs } from "./merge.js";
 import { checkCoverage, type CoverageResult } from "./coverage.js";
 import { isCaptchaWall } from "./captcha-detect.js";
+import { inferCurrency } from "./currency-inference.js";
 import type { StructuredBlocks } from "@aonex/ingestion-link-fetcher";
 import type { StructuredResult } from "./types.js";
 
@@ -57,6 +58,12 @@ export async function extractStructured(
   ];
 
   const structured = mergeParserOutputs(outputs);
+
+  const inferredCurrency = inferCurrency(input.pageUrl, structured.facts);
+  if (inferredCurrency) {
+    structured.facts.push(inferredCurrency);
+  }
+
   const coverage = checkCoverage(
     structured.facts,
     input.categoryRequiredAttributes ?? []

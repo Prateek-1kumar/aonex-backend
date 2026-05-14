@@ -38,7 +38,7 @@ describe("extractStructured (integration)", () => {
   it("Bewakoof → full core coverage from NEXT_DATA, gaps for category-required attrs", async () => {
     const { structuredBlocks } = cleanHtml(bewakoof);
     const out = await extractStructured({
-      pageUrl: "https://www.bewakoof.com/p/foo",
+      pageUrl: "https://www.bewakoof.com.in/p/foo",
       rawHtml: bewakoof,
       structuredBlocks,
       categoryRequiredAttributes: ["material", "fit"],
