@@ -200,8 +200,8 @@ async function rehydrateFromExtractedFacts(
       const coerced = fb.coerce(value);
       if (coerced == null) continue;
       if (typeof coerced === "string" && coerced.trim() === "") continue;
-      // Assign with a type-safe cast: each fb.key maps to a compatible coerce output.
-      (next as Record<string, unknown>)[fb.key as string] = coerced;
+      // Each fb.key maps to a compatible coerce output by construction.
+      (next as unknown as Record<string, unknown>)[fb.key as string] = coerced;
       break;
     }
   }
