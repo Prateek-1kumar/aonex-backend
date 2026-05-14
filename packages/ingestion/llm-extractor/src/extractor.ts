@@ -16,6 +16,7 @@ import { parseLLMResponse, convertToExtractedFacts } from "./response-parser.js"
 import {
   type LLMExtractionOptions,
   type LLMExtractionResult,
+  type PromptBuildParams,
   LLM_EXTRACTOR_VERSION,
   DEFAULT_LLM_OPTIONS,
 } from "./types.js";
@@ -46,13 +47,11 @@ export class LLMProductExtractor {
     const opts = { ...DEFAULT_LLM_OPTIONS, ...options };
 
     // Build the prompt messages
-    const promptParams: { cleanedText: string; url: string; categoryHint?: string } = {
+    const promptParams: PromptBuildParams = {
       cleanedText,
       url,
+      ...(opts.categoryHint ? { categoryHint: opts.categoryHint } : {}),
     };
-    if (opts.categoryHint) {
-      promptParams.categoryHint = opts.categoryHint;
-    }
     const messages = buildExtractionPrompt(promptParams);
 
     // Call the LLM

@@ -67,3 +67,17 @@ export const DEFAULT_LLM_OPTIONS: Required<LLMExtractionOptions> = {
   temperature: 0.1,
   categoryHint: "",
 };
+
+export interface PromptBuildParams {
+  cleanedText: string;
+  url: string;
+  /** Pre-extracted facts to anchor the LLM on. LLM must not override these unless flagged. */
+  structuredFacts?: { rawKey: string; value: unknown; source: string }[];
+  /** When set, LLM fills ONLY these field rawKeys. */
+  gaps?: string[];
+  /** Categories from category_schemas (replaces hardcoded LAUNCH_CATEGORIES). */
+  categoryCandidates?: string[];
+  /** Category-required attributes for the (suspected) category, for prompting context. */
+  categoryRequiredAttributes?: string[];
+  categoryHint?: string;
+}
