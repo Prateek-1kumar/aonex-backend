@@ -104,6 +104,25 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
     return c.json({ success: true, data: { clusters: rows } });
   });
 
+  app.get("/clusters/:cluster_key/items", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const clusterKey = c.req.param("cluster_key");
+
+    const items = await deps.db
+      .select()
+      .from(schema.reviewTasks)
+      .where(
+        and(
+          eq(schema.reviewTasks.tenantId, tenantId),
+          eq(schema.reviewTasks.clusterKey, clusterKey),
+          eq(schema.reviewTasks.status, normalizeStatus("open"))
+        )
+      )
+      .orderBy(desc(schema.reviewTasks.createdAt));
+
+    return c.json({ success: true, data: { items } });
+  });
+
   app.patch("/tasks/:id", async (c) => {
     const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
     const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
