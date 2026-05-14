@@ -2,6 +2,7 @@ import { eq, desc } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { map, MAPPER_VERSION } from "@aonex/ingestion-semantic-mapper";
 import { score } from "@aonex/ingestion-policy-engine";
+import type { PolicyInputs } from "@aonex/ingestion-policy-engine";
 import { applyApprovedDiff, type CanonicalProductPayload } from "@aonex/catalog-service";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId, MerchantId, TenantId } from "@aonex/types";
@@ -36,11 +37,15 @@ export interface PersistLinkCatalogInput {
   suggestedCategory: string | null;
   categoryConfidence: number;
   extractorMeta: {
-    modelName: string;
+    modelName: string | null;
     promptTokens: number;
     completionTokens: number;
     estimatedCostUsd: number;
   };
+  /** Real dedup decision (no longer hardcoded). */
+  dedupeDecision: PolicyInputs["dedupeDecision"];
+  /** Per-domain reliability from domain_profiles (no longer hardcoded 0.65). */
+  sourceReliability: number;
 }
 
 export interface PersistLinkCatalogResult {
@@ -89,12 +94,12 @@ export async function persistLinkCatalogPipeline(
       categoryConfidence: input.categoryConfidence,
       variantCount: canonicalPayload.variants.length,
       imageCount: canonicalPayload.images.length,
-      dedupeDecision: { kind: "new" },
-      sourceReliability: 0.65,
+      dedupeDecision: input.dedupeDecision,
+      sourceReliability: input.sourceReliability,
       unconvertibleUnits: [],
       enumViolations: [],
       variantInconsistencies: [],
-      llmOnlyCategory: true,
+      llmOnlyCategory: input.extractorMeta.modelName !== null,
     },
     {
       autoApproveThreshold: Number(policy.autoApproveThreshold),
