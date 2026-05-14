@@ -62,7 +62,13 @@ export async function applyApprovedDiff(
     throw new Error(`proposed_diff ${input.diffId} not found`);
   }
 
-  const payload = parseCanonicalPayload(diff.diffPayload);
+  const rawPayload = parseCanonicalPayload(diff.diffPayload);
+  // Self-heal: when the reviewer or a frontend bug blanks a core field, fall
+  // back to whatever the original extraction produced. extracted_facts is the
+  // source of truth for what we actually parsed; the diff payload is just the
+  // canonical projection of it. We should never refuse to materialize a product
+  // when the underlying extraction had the data.
+  const payload = await rehydrateFromExtractedFacts(input.db, diff.sourceFactSetId, rawPayload);
   if (!payload.title) {
     throw new Error("Cannot apply catalog version without canonical title");
   }
@@ -146,6 +152,72 @@ export async function applyApprovedDiff(
   await persistVariants(input.db, diff.tenantId, productId, version.id, payload);
 
   return { productId, productVersionId: version.id, createdVersion: true };
+}
+
+/**
+ * Defensive: when the diff payload is missing a core field, look it up from
+ * extracted_facts. This makes the system robust against reviewer/frontend bugs
+ * that accidentally blank fields during edit-and-approve flows. extracted_facts
+ * is immutable, so this is always safe — we're only filling holes, never
+ * overriding a value the reviewer actually set.
+ */
+async function rehydrateFromExtractedFacts(
+  db: DrizzleClient,
+  sourceFactSetId: string,
+  payload: CanonicalProductPayload
+): Promise<CanonicalProductPayload> {
+  // Map: payload field name → extracted_facts raw_key candidates (first match wins).
+  const FIELD_FALLBACKS: Array<{ key: keyof CanonicalProductPayload; rawKeys: string[]; coerce: (v: unknown) => unknown }> = [
+    { key: "title",             rawKeys: ["title"],                              coerce: toStr },
+    { key: "brand",             rawKeys: ["brand", "vendor"],                    coerce: toStr },
+    { key: "gtin",              rawKeys: ["gtin", "barcode"],                    coerce: toStr },
+    { key: "modelNumber",       rawKeys: ["modelNumber", "model_number", "mpn"], coerce: toStr },
+    { key: "description",       rawKeys: ["description"],                        coerce: toStr },
+    { key: "basePrice",         rawKeys: ["basePrice", "base_price", "price"],   coerce: toNum },
+    { key: "currency",          rawKeys: ["currency"],                           coerce: (v) => (typeof v === "string" ? v.toUpperCase() : null) },
+    { key: "canonicalCategory", rawKeys: ["canonicalCategory", "productType", "category_path"], coerce: toStr },
+  ];
+
+  // Identify which fields need a fallback (current value is null/empty).
+  const needed = FIELD_FALLBACKS.filter((f) => {
+    const current = payload[f.key];
+    return current == null || (typeof current === "string" && current.trim() === "");
+  });
+  if (needed.length === 0) return payload;
+
+  const wantedRawKeys = new Set(needed.flatMap((f) => f.rawKeys));
+  const facts = await db.query.extractedFacts.findMany({
+    where: (ef, { eq }) => eq(ef.factSetId, sourceFactSetId),
+  });
+
+  const next: CanonicalProductPayload = { ...payload };
+  for (const fb of needed) {
+    for (const rawKey of fb.rawKeys) {
+      if (!wantedRawKeys.has(rawKey)) continue;
+      const hit = facts.find((f) => f.rawKey === rawKey);
+      if (!hit) continue;
+      const value = hit.normalizedValue ?? hit.extractedValue;
+      const coerced = fb.coerce(value);
+      if (coerced == null) continue;
+      if (typeof coerced === "string" && coerced.trim() === "") continue;
+      // Assign with a type-safe cast: each fb.key maps to a compatible coerce output.
+      (next as Record<string, unknown>)[fb.key as string] = coerced;
+      break;
+    }
+  }
+  return next;
+}
+
+function toStr(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s ? s : null;
+}
+
+function toNum(v: unknown): number | null {
+  if (v == null) return null;
+  const n = typeof v === "number" ? v : Number(String(v));
+  return Number.isFinite(n) ? n : null;
 }
 
 async function resolveExistingProductId(
