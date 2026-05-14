@@ -56,7 +56,7 @@ export class LinkFetchError extends Error {
 
 export const DEFAULT_FETCH_OPTIONS: Required<LinkFetchOptions> = {
   timeoutMs: 15_000,
-  maxBodyBytes: 500_000, // 500 KB
+  maxBodyBytes: 4 * 1024 * 1024, // 4 MB
   userAgent: "AonexBot/1.0 (+https://aonex.io/bot)",
   followRedirects: true,
   maxRedirects: 5,
