@@ -35,9 +35,6 @@ CREATE TABLE "price_clusters" (
 );
 --> statement-breakpoint
 DROP INDEX "idx_mapping_overrides_tenant";--> statement-breakpoint
-ALTER TABLE "deletion_requests" ALTER COLUMN "sla_deadline" SET DEFAULT now() + INTERVAL '30 days';--> statement-breakpoint
-ALTER TABLE "deletion_requests" ALTER COLUMN "sla_deadline" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "deletion_requests" ALTER COLUMN "sla_deadline" DROP EXPRESSION;--> statement-breakpoint
 ALTER TABLE "attribute_synonyms" ADD COLUMN "source" varchar(20);--> statement-breakpoint
 ALTER TABLE "attribute_synonyms" ADD COLUMN "approved_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "attribute_synonyms" ADD COLUMN "approved_by" uuid;--> statement-breakpoint
