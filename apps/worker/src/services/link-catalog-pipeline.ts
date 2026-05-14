@@ -2,7 +2,7 @@ import { eq, desc } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { map, MAPPER_VERSION } from "@aonex/ingestion-semantic-mapper";
 import { score } from "@aonex/ingestion-policy-engine";
-import type { PolicyInputs } from "@aonex/ingestion-policy-engine";
+import type { PolicyInputs, RouterInput } from "@aonex/ingestion-policy-engine";
 import { applyApprovedDiff, type CanonicalProductPayload } from "@aonex/catalog-service";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId, MerchantId, TenantId } from "@aonex/types";
@@ -56,6 +56,110 @@ export interface PersistLinkCatalogResult {
   confidenceScore: number;
   productId?: string;
   productVersionId?: string;
+}
+
+async function buildRouterInput(args: {
+  db: DrizzleClient;
+  tenantId: TenantId;
+  facts: ExtractedFact[];
+  payload: CanonicalProductPayload;
+  domain: string;
+  category: { path: string | null; confidence: number };
+  categoryRequiredAttributes: string[];
+}): Promise<RouterInput> {
+  const identityIndex: RouterInput["identityIndex"] = {};
+
+  // Helper: look up an identity row + its product's latest version
+  async function lookupIdentity(
+    identityType: "gtin" | "mpn",
+    identityValue: string
+  ): Promise<RouterInput["identityIndex"]["gtin"] | undefined> {
+    const row = await args.db.query.productIdentities.findFirst({
+      where: (i, { and, eq }) =>
+        and(
+          eq(i.tenantId, args.tenantId),
+          eq(i.identityType, identityType),
+          eq(i.identityValue, identityValue)
+        ),
+    });
+    if (!row) return undefined;
+    const pv = await args.db.query.productVersions.findFirst({
+      where: (v, { eq }) => eq(v.productId, row.productId),
+      orderBy: (v, { desc }) => [desc(v.createdAt)],
+    });
+    return {
+      productId: row.productId,
+      brand: pv?.brand ?? null,
+      // product_versions uses `canonicalCategory` column
+      canonicalCategory: pv?.canonicalCategory ?? null,
+    };
+  }
+
+  if (args.payload.gtin) {
+    const gtinHit = await lookupIdentity("gtin", args.payload.gtin);
+    if (gtinHit) identityIndex.gtin = gtinHit;
+  }
+  // CanonicalProductPayload uses `modelNumber` (mapped from mpn/model_number)
+  if (args.payload.modelNumber) {
+    const mpnHit = await lookupIdentity("mpn", args.payload.modelNumber);
+    if (mpnHit) identityIndex.mpn = mpnHit;
+  }
+
+  // priceCluster
+  let priceCluster: RouterInput["priceCluster"] = null;
+  if (args.payload.brand && args.payload.canonicalCategory && args.payload.currency) {
+    const cluster = await args.db.query.priceClusters.findFirst({
+      where: (c, { and, eq }) =>
+        and(
+          eq(c.tenantId, args.tenantId),
+          eq(c.brand, args.payload.brand!),
+          eq(c.canonicalCategory, args.payload.canonicalCategory!),
+          eq(c.currency, args.payload.currency!)
+        ),
+    });
+    if (cluster) {
+      priceCluster = {
+        medianPrice: Number(cluster.medianPrice),
+        sampleCount: cluster.sampleCount,
+      };
+    }
+  }
+
+  // variantAxes — group variants by optionValues keys, dedup values
+  const variantAxes: Record<string, string[]> = {};
+  for (const v of args.payload.variants) {
+    for (const [axis, value] of Object.entries(v.optionValues ?? {})) {
+      const set = (variantAxes[axis] ??= []);
+      if (typeof value === "string" && !set.includes(value)) set.push(value);
+    }
+  }
+
+  return {
+    facts: args.facts,
+    payload: {
+      title: args.payload.title,
+      brand: args.payload.brand,
+      gtin: args.payload.gtin,
+      // CanonicalProductPayload uses `modelNumber` (not `mpn`)
+      modelNumber: args.payload.modelNumber,
+      // CanonicalProductPayload uses `basePrice` (not `price`)
+      basePrice: args.payload.basePrice,
+      currency: args.payload.currency,
+      canonicalCategory: args.payload.canonicalCategory,
+      // variants have `optionValues` (Record<string,string>), `sku`, `price`
+      variants: args.payload.variants.map((v) => ({
+        optionValues: v.optionValues ?? {},
+        sku: v.sku ?? null,
+        price: v.price ?? null,
+      })),
+    },
+    domain: args.domain,
+    category: args.category,
+    categoryRequiredAttributes: args.categoryRequiredAttributes,
+    identityIndex,
+    priceCluster,
+    variantAxes,
+  };
 }
 
 export async function persistLinkCatalogPipeline(
