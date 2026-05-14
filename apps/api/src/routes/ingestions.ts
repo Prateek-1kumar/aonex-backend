@@ -79,7 +79,7 @@ export function ingestionsRoutes(deps: IngestionsRouteDeps) {
         traceId,
       },
       {
-        jobId: `link-extract:${tenantId}:${url}`,
+        jobId: `link-extract-${tenantId}-${traceId}`,
         removeOnComplete: 1000,
         removeOnFail: 5000,
         attempts: 3,
@@ -153,7 +153,7 @@ export function ingestionsRoutes(deps: IngestionsRouteDeps) {
             traceId,
           },
           {
-            jobId: `link-extract:${tenantId}:${url}`,
+            jobId: `link-extract-${tenantId}-${traceId}`,
             removeOnComplete: 1000,
             removeOnFail: 5000,
             attempts: 3,
