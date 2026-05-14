@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
@@ -72,6 +72,36 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
     );
 
     return c.json({ data: { tasks: hydrated } });
+  });
+
+  app.get("/clusters", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const status = c.req.query("status") ?? "open";
+
+    const rows = await deps.db
+      .select({
+        clusterKey: schema.reviewTasks.clusterKey,
+        signalKind: schema.reviewTasks.signalKind,
+        severity: schema.reviewTasks.severity,
+        itemCount: sql<number>`count(*)::int`,
+        lastUpdated: sql<Date>`max(${schema.reviewTasks.updatedAt})`,
+      })
+      .from(schema.reviewTasks)
+      .where(
+        and(
+          eq(schema.reviewTasks.tenantId, tenantId),
+          eq(schema.reviewTasks.status, normalizeStatus(status)),
+          sql`${schema.reviewTasks.clusterKey} IS NOT NULL`
+        )
+      )
+      .groupBy(
+        schema.reviewTasks.clusterKey,
+        schema.reviewTasks.signalKind,
+        schema.reviewTasks.severity
+      )
+      .orderBy(desc(sql`max(${schema.reviewTasks.updatedAt})`));
+
+    return c.json({ success: true, data: { clusters: rows } });
   });
 
   app.patch("/tasks/:id", async (c) => {
