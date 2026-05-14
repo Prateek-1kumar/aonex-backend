@@ -8,6 +8,7 @@ import {
   varchar,
   text,
   timestamp,
+  jsonb,
   index
 } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants.js";
@@ -35,6 +36,10 @@ export const reviewTasks = pgTable(
      * Corresponds to the policy evidence fields.
      */
     taskType: varchar("task_type", { length: 50 }).notNull(),
+    signalKind: varchar("signal_kind", { length: 50 }),
+    signalPayload: jsonb("signal_payload").$type<Record<string, unknown>>(),
+    clusterKey: varchar("cluster_key", { length: 64 }),
+    fieldName: varchar("field_name", { length: 100 }),
     severity: reviewTaskSeverityEnum("severity").notNull(),
     status: reviewTaskStatusEnum("status").notNull().default("open"),
     assignedTo: uuid("assigned_to"),
@@ -47,7 +52,8 @@ export const reviewTasks = pgTable(
   },
   (t) => ({
     tenantStatusIdx: index("idx_review_tasks_tenant_status").on(t.tenantId, t.status),
-    diffIdx: index("idx_review_tasks_diff").on(t.proposedDiffId)
+    diffIdx: index("idx_review_tasks_diff").on(t.proposedDiffId),
+    clusterIdx: index("idx_review_tasks_cluster").on(t.tenantId, t.clusterKey, t.status)
   })
 );
 
