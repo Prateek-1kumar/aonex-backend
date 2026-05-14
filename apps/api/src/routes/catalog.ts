@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
 
@@ -17,7 +17,13 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
     const products = await deps.db
       .select()
       .from(schema.products)
-      .where(and(eq(schema.products.tenantId, tenantId), eq(schema.products.merchantId, merchantId)))
+      .where(
+        and(
+          eq(schema.products.tenantId, tenantId),
+          eq(schema.products.merchantId, merchantId),
+          ne(schema.products.status, "deleted")
+        )
+      )
       .orderBy(desc(schema.products.updatedAt));
 
     const hydrated = await Promise.all(
@@ -46,8 +52,10 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
     return c.json({ data: { products: hydrated } });
   });
 
-  // Archive a catalog product (soft-delete). Preserves history; flips status
-  // so the product disappears from the active list.
+  // Delete a catalog product. Soft-delete: status flips to 'deleted' so
+  // the row drops out of the list (hard delete would fail because
+  // product_versions / variants reference it ON DELETE RESTRICT). The row
+  // stays in the DB for audit + foreign-key integrity.
   app.delete("/products/:id", async (c) => {
     const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
     const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
@@ -55,7 +63,7 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
 
     const result = await deps.db
       .update(schema.products)
-      .set({ status: "archived", updatedAt: new Date() })
+      .set({ status: "deleted", updatedAt: new Date() })
       .where(
         and(
           eq(schema.products.id, id),
@@ -68,7 +76,7 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
     if (result.length === 0) {
       return c.json({ error: { code: "NOT_FOUND", message: "Product not found" } }, 404);
     }
-    return c.json({ data: { id: result[0]!.id, status: "archived" } });
+    return c.json({ data: { id: result[0]!.id, status: "deleted" } });
   });
 
   return app;
