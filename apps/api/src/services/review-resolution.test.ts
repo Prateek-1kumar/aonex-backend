@@ -15,3 +15,9 @@ describe("rejectTask", () => {
   it.todo("increments occurrence_count when a matching extraction_failures row already exists");
   it.todo("flips proposed_diff.status to rejected and review_task.status to resolved");
 });
+
+describe("mergeWithExisting", () => {
+  it.todo("inserts a product_identities row with identityType='url'");
+  it.todo("is idempotent: re-merging the same URL into the same product is a no-op");
+  it.todo("flips proposed_diff.status to rejected (merge = no new product_version)");
+});

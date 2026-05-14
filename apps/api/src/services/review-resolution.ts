@@ -209,11 +209,66 @@ export async function rejectTask(
 }
 
 export async function mergeWithExisting(
-  _ctx: ResolutionContext,
-  _taskId: string,
-  _existingProductId: string
+  ctx: ResolutionContext,
+  taskId: string,
+  existingProductId: string
 ): Promise<{ aliasId: string }> {
-  throw new Error("not implemented — Plan B Task 18");
+  const task = await ctx.db.query.reviewTasks.findFirst({
+    where: (t, { eq }) => eq(t.id, taskId),
+  });
+  if (!task) throw new Error(`review_task ${taskId} not found`);
+  if (task.tenantId !== ctx.tenantId) throw new Error("forbidden");
+
+  // Walk the chain manually (Task 16 pattern)
+  let sourceUrl = "";
+  if (task.proposedDiffId) {
+    const diff = await ctx.db.query.proposedDiffs.findFirst({
+      where: (d, { eq }) => eq(d.id, task.proposedDiffId!),
+    });
+    if (diff?.sourceFactSetId) {
+      const factSet = await ctx.db.query.extractedFactSets.findFirst({
+        where: (f, { eq }) => eq(f.id, diff.sourceFactSetId),
+      });
+      if (factSet?.artifactId) {
+        const artifact = await ctx.db.query.sourceArtifacts.findFirst({
+          where: (a, { eq }) => eq(a.id, factSet.artifactId),
+        });
+        sourceUrl = (artifact?.sourceExternalId as string | undefined) ?? "";
+      }
+    }
+  }
+
+  if (!sourceUrl) throw new Error(`cannot derive sourceUrl for task ${taskId}`);
+
+  const [alias] = await ctx.db
+    .insert(schema.productIdentities)
+    .values({
+      productId: existingProductId,
+      tenantId: ctx.tenantId,
+      identityType: "url",
+      identityValue: sourceUrl,
+    })
+    .onConflictDoNothing()
+    .returning({ id: schema.productIdentities.id });
+
+  // Merge → no new product_version, reject the proposed diff
+  if (task.proposedDiffId) {
+    await ctx.db
+      .update(schema.proposedDiffs)
+      .set({ status: "rejected" })
+      .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
+  }
+
+  await ctx.db
+    .update(schema.reviewTasks)
+    .set({
+      status: "resolved",
+      resolutionNotes: `merged into ${existingProductId}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.reviewTasks.id, taskId));
+
+  return { aliasId: alias?.id ?? "" };
 }
 
 export async function resolveCluster(
