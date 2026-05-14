@@ -255,6 +255,15 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     }
 
     // ── Step 4: Persist canonical proposal / catalog version ─────────
+    // Plan D Task 16: real source reliability from domain_profiles.
+    const profile = await deps.db.query.domainProfiles.findFirst({
+      where: (p, { eq }) => eq(p.domainPattern, domainOf(fetchResult.finalUrl)),
+    });
+    const sourceReliability =
+      profile?.avgConfidence != null
+        ? Math.max(0, Math.min(1, Number(profile.avgConfidence)))
+        : 0.65; // fallback when no profile exists yet
+
     const catalogResult = await persistLinkCatalogPipeline({
       db: deps.db,
       tenantId,
@@ -266,7 +275,7 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       categoryConfidence: structuredResult.structured.category.confidence,
       extractorMeta: llmMeta,
       dedupeDecision: { kind: "new" }, // Phase-1 stub; Plan B real dedup
-      sourceReliability: 0.65,          // Phase-1 stub; Plan D real domain_profiles
+      sourceReliability,
     });
 
     // Mark artifact as completed or review-gated after facts/diff persistence.
