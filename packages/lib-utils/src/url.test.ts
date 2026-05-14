@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { canonicalizeUrl } from "./url.js";
+import { canonicalizeUrl, domainOf } from "./url.js";
 
 describe("canonicalizeUrl", () => {
   it("strips utm_* params", () => {
@@ -48,5 +48,24 @@ describe("canonicalizeUrl", () => {
 
   it("returns input unchanged if not a valid URL", () => {
     expect(canonicalizeUrl("not a url")).toBe("not a url");
+  });
+});
+
+describe("domainOf", () => {
+  it("returns hostname without www", () => {
+    expect(domainOf("https://www.bewakoof.com/p/foo")).toBe("bewakoof.com");
+  });
+
+  it("lowercases hostname", () => {
+    expect(domainOf("https://WWW.Example.COM/x")).toBe("example.com");
+  });
+
+  it("returns subdomains intact except www", () => {
+    expect(domainOf("https://shop.brand.com/p")).toBe("shop.brand.com");
+    expect(domainOf("https://www.amazon.in/dp/x")).toBe("amazon.in");
+  });
+
+  it("returns empty string on invalid input", () => {
+    expect(domainOf("not a url")).toBe("");
   });
 });
