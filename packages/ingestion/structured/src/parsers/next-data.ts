@@ -100,21 +100,24 @@ function findProductDetails(
   root: Record<string, unknown>,
   maxDepth = 6
 ): Record<string, unknown> | null {
-  let best: { obj: Record<string, unknown>; score: number } | null = null;
+  type Candidate = { obj: Record<string, unknown>; score: number };
+  let best: Candidate | null = null;
   function walk(obj: unknown, depth: number) {
     if (depth > maxDepth || !isRecord(obj)) return;
     const score = Object.keys(obj).filter((k) =>
       PRODUCT_FIELD_KEYS.has(k)
     ).length;
     if (score >= 4) {
-      if (!best || score > best.score) best = { obj, score };
+      const current: Candidate | null = best;
+      if (!current || score > current.score) best = { obj, score };
     }
     for (const v of Object.values(obj)) {
       if (isRecord(v)) walk(v, depth + 1);
     }
   }
   walk(root, 0);
-  return best ? best.obj : null;
+  const result: Candidate | null = best;
+  return result ? result.obj : null;
 }
 
 function pickFirst(obj: Record<string, unknown>, keys: string[]): unknown {
