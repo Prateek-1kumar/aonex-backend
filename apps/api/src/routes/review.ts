@@ -5,7 +5,7 @@ import { schema, type DrizzleClient } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
 import type { AuditEmitter } from "@aonex/audit";
 import { applyApprovedDiff } from "@aonex/catalog-service";
-import { resolveCluster } from "../services/review-resolution.js";
+import { editAndApprove, resolveCluster } from "../services/review-resolution.js";
 
 const ReviewActionSchema = z.object({
   action: z.enum(["save", "approve", "reject", "dismiss"]),
@@ -150,6 +150,41 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
       clusterKey,
       parsed.data.action,
       parsed.data.bulkEdit
+    );
+    return c.json({ success: true, data: result });
+  });
+
+  const EditApproveSchema = z.object({
+    fieldName: z.string(),
+    newCanonicalPath: z.string().nullable(),
+    newNormalizedValue: z.unknown(),
+    pickedCandidateSource: z.string().optional(),
+    reason: z.string().optional(),
+  });
+
+  app.post("/tasks/:id/edit-and-approve", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+    const reviewerId = (c.get("userId" as never) as string | undefined) ?? merchantId;
+    const id = c.req.param("id");
+
+    const parsed = EditApproveSchema.safeParse(await c.req.json());
+    if (!parsed.success) {
+      return c.json({ success: false, error: parsed.error.format() }, 400);
+    }
+
+    const { fieldName, newCanonicalPath, newNormalizedValue, pickedCandidateSource, reason } = parsed.data;
+    const edit: Parameters<typeof editAndApprove>[2] = {
+      fieldName,
+      newCanonicalPath,
+      newNormalizedValue,
+      ...(pickedCandidateSource !== undefined ? { pickedCandidateSource } : {}),
+      ...(reason !== undefined ? { reason } : {}),
+    };
+    const result = await editAndApprove(
+      { db: deps.db, tenantId, merchantId, reviewerId },
+      id,
+      edit
     );
     return c.json({ success: true, data: result });
   });
