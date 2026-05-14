@@ -5,6 +5,7 @@ import { schema, type DrizzleClient } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
 import type { AuditEmitter } from "@aonex/audit";
 import { applyApprovedDiff } from "@aonex/catalog-service";
+import { resolveCluster } from "../services/review-resolution.js";
 
 const ReviewActionSchema = z.object({
   action: z.enum(["save", "approve", "reject", "dismiss"]),
@@ -121,6 +122,36 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
       .orderBy(desc(schema.reviewTasks.createdAt));
 
     return c.json({ success: true, data: { items } });
+  });
+
+  const ClusterResolveSchema = z.object({
+    action: z.enum(["approve_all", "reject_all"]),
+    bulkEdit: z.object({
+      fieldName: z.string(),
+      newValue: z.unknown(),
+    }).optional(),
+  });
+
+  app.post("/clusters/:cluster_key/resolve", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+    // NOTE: JWT middleware sets "merchantId", "tenantId", "jti", "roles" — no "userId".
+    // Using merchantId as a pragmatic stand-in; long-term JWT should carry a reviewer ID.
+    const reviewerId = (c.get("userId" as never) as string | undefined) ?? merchantId;
+    const clusterKey = c.req.param("cluster_key");
+
+    const parsed = ClusterResolveSchema.safeParse(await c.req.json());
+    if (!parsed.success) {
+      return c.json({ success: false, error: parsed.error.format() }, 400);
+    }
+
+    const result = await resolveCluster(
+      { db: deps.db, tenantId, merchantId, reviewerId },
+      clusterKey,
+      parsed.data.action,
+      parsed.data.bulkEdit
+    );
+    return c.json({ success: true, data: result });
   });
 
   app.patch("/tasks/:id", async (c) => {
