@@ -18,7 +18,19 @@ export interface ExtractedFact {
   /** 0..1 — how confident we are the value is correct */
   confidence: number;
   mappingMethod: string | null;
+  /**
+   * Top-N canonical-path candidates from the Semantic Mapper.
+   * `key` is a canonical attribute key, `score` is the mapping confidence
+   * (independent of `confidence`, which scores the value itself).
+   */
   mappingCandidates: Array<{ key: string; score: number; reason?: string }> | null;
+  /**
+   * Alternative sources from the structured-merge phase: when multiple
+   * parsers extract the same rawKey, the loser facts are preserved here
+   * with their real values and source pointers so downstream detectors
+   * can compare values across sources. Null when there are no alts.
+   */
+  sourceAlternatives: Array<{ value: unknown; sourcePointer: string; confidence: number }> | null;
   approved: boolean;
 }
 

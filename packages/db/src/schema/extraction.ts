@@ -105,9 +105,16 @@ export const extractedFacts = pgTable(
     extractionMethod: extractionMethodEnum("extraction_method").notNull(),
     confidence: numeric("confidence", { precision: 5, scale: 4 }).notNull(),
     mappingMethod: varchar("mapping_method", { length: 50 }),
-    /** Top-3 mapping candidates with scores — HLD §10 */
+    /** Top-3 canonical-path candidates from semantic-mapper — HLD §10 */
     mappingCandidates: jsonb("mapping_candidates")
       .$type<Array<{ key: string; score: number }>>(),
+    /**
+     * Per-fact alternative sources (losers from structured-merge) preserved
+     * through the pipeline so cross-source-conflict can compare real values,
+     * not pointer strings. See Bug #1 fix.
+     */
+    sourceAlternatives: jsonb("source_alternatives")
+      .$type<Array<{ value: unknown; sourcePointer: string; confidence: number }>>(),
     approved: boolean("approved").notNull().default(false)
   },
   (t) => ({

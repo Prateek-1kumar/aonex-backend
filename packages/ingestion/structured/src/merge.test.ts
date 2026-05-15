@@ -17,6 +17,7 @@ function mk(kind: ParserOutput["kind"], rawKey: string, value: unknown, confiden
         confidence,
         mappingMethod: null,
         mappingCandidates: null,
+        sourceAlternatives: null,
         approved: false,
       },
     ],
@@ -34,13 +35,21 @@ describe("mergeParserOutputs", () => {
     expect(title?.confidence).toBeCloseTo(0.95);
   });
 
-  it("retains conflicting facts via mappingCandidates when source classes differ", () => {
+  it("preserves losing values + sources in sourceAlternatives", () => {
     const ld = mk("json_ld", "title", "Ekiden One", 0.95);
     const og = mk("opengraph", "title", "Kalenji Run 100", 0.65);
     const merged = mergeParserOutputs([ld, og]);
     const title = merged.facts.find((f) => f.rawKey === "title")!;
-    expect(title.mappingCandidates).toEqual([
-      { key: "opengraph:title", score: 0.65, reason: "alternative source" },
+    expect(title.sourceAlternatives).toEqual([
+      { value: "Kalenji Run 100", sourcePointer: "opengraph:title", confidence: 0.65 },
     ]);
+  });
+
+  it("drops alts whose value matches the winner (no false conflict)", () => {
+    const ld = mk("json_ld", "title", "Ekiden One", 0.95);
+    const og = mk("opengraph", "title", "ekiden one", 0.65); // same, different case
+    const merged = mergeParserOutputs([ld, og]);
+    const title = merged.facts.find((f) => f.rawKey === "title")!;
+    expect(title.sourceAlternatives).toBeNull();
   });
 });
