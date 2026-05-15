@@ -45,6 +45,7 @@ export async function editAndApprove(
     // instead of dereferencing a null FK below.
     throw new Error(`review_task ${taskId} has no proposed_diff to edit`);
   }
+  const proposedDiffId: string = task.proposedDiffId;
 
   let overrideId: string | null = null;
 
@@ -55,7 +56,7 @@ export async function editAndApprove(
     let sourceExternalId = "";
 
     const diff = await ctx.db.query.proposedDiffs.findFirst({
-      where: (d, { eq }) => eq(d.id, task.proposedDiffId),
+      where: (d, { eq }) => eq(d.id, proposedDiffId),
     });
 
     if (diff?.sourceFactSetId) {
@@ -119,7 +120,7 @@ export async function editAndApprove(
 
   if (!isEffectivelyEmpty) {
     const diff = await ctx.db.query.proposedDiffs.findFirst({
-      where: (d, { eq }) => eq(d.id, task.proposedDiffId),
+      where: (d, { eq }) => eq(d.id, proposedDiffId),
     });
     if (diff) {
       const payload = (diff.diffPayload as Record<string, unknown>) ?? {};
@@ -127,7 +128,7 @@ export async function editAndApprove(
       await ctx.db
         .update(schema.proposedDiffs)
         .set({ diffPayload: payload })
-        .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
+        .where(eq(schema.proposedDiffs.id, proposedDiffId));
     }
   }
 
@@ -140,14 +141,14 @@ export async function editAndApprove(
   //    This prevents 500s when a sibling task rejected the diff first, and
   //    avoids the previous bug where the first task's call would materialize
   //    a partially-edited diff and subsequent edits would be silently lost.
-  if (task.proposedDiffId) {
+  {
     const diffNow = await ctx.db.query.proposedDiffs.findFirst({
-      where: (d, { eq }) => eq(d.id, task.proposedDiffId),
+      where: (d, { eq }) => eq(d.id, proposedDiffId),
     });
     const otherOpen = await ctx.db.query.reviewTasks.findMany({
       where: (t, { and, eq, ne }) =>
         and(
-          eq(t.proposedDiffId, task.proposedDiffId),
+          eq(t.proposedDiffId, proposedDiffId),
           eq(t.status, "open"),
           ne(t.id, taskId)
         ),
@@ -157,7 +158,7 @@ export async function editAndApprove(
     if (isApprovable && otherOpen.length === 0) {
       await applyApprovedDiff({
         db: ctx.db,
-        diffId: task.proposedDiffId,
+        diffId: proposedDiffId,
         actorId: ctx.reviewerId,
         approvalStatus: "approved",
       });
@@ -264,13 +265,14 @@ export async function rejectTask(
   // approvable, materialize now — same logic as editAndApprove. Rehydrate
   // fallback covers any field this signal would have populated.
   if (task.proposedDiffId) {
+    const taskDiffId: string = task.proposedDiffId;
     const diffNow = await ctx.db.query.proposedDiffs.findFirst({
-      where: (d, { eq }) => eq(d.id, task.proposedDiffId),
+      where: (d, { eq }) => eq(d.id, taskDiffId),
     });
     const otherOpen = await ctx.db.query.reviewTasks.findMany({
       where: (t, { and, eq, ne }) =>
         and(
-          eq(t.proposedDiffId, task.proposedDiffId),
+          eq(t.proposedDiffId, taskDiffId),
           eq(t.status, "open"),
           ne(t.id, taskId)
         ),
@@ -281,7 +283,7 @@ export async function rejectTask(
       try {
         await applyApprovedDiff({
           db: ctx.db,
-          diffId: task.proposedDiffId,
+          diffId: taskDiffId,
           actorId: ctx.reviewerId,
           approvalStatus: "approved",
         });

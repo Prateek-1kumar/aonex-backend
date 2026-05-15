@@ -62,23 +62,23 @@ function mapFact(
     return { ...fact, mappingMethod: null, mappingCandidates: null };
   }
 
-  const candidates: Array<{ key: string; score: number }> = [];
-
-  // Step 1: tenant override (highest priority, tenantCorrection weight = 1.0 component)
+  // Step 1: tenant override — short-circuits the pipeline.
+  // Overrides are explicit user choices (HLD §10 step 1); they are ground truth,
+  // not a candidate to be scored against the others. Confidence stays at the
+  // extractor's confidence (the value is what's uncertain, not the mapping).
   const overrideKey = overrideIndex.get(fact.rawKey);
   if (overrideKey) {
-    const score = computeScore({
-      key: overrideKey,
-      channelMapping: 0,
-      synonym: 0,
-      embedding: 0,
-      typeCompat: 1.0,
-      unitCompat: 1.0,
-      categoryCompat: 1.0,
-      tenantCorrection: 1.0
-    });
-    candidates.push({ key: overrideKey, score: score.total });
+    return {
+      ...fact,
+      canonicalPath: overrideKey,
+      mappingMethod: "override",
+      mappingCandidates: [{ key: overrideKey, score: 1.0 }],
+      approved: true,
+      confidence: fact.confidence
+    };
   }
+
+  const candidates: Array<{ key: string; score: number }> = [];
 
   // Step 2: Deterministic channel mapping (HLD §10 step 1)
   const channelKey = channelMappingIndex.get(fact.rawKey) ?? channelMappingIndex.get(fact.sourcePointer);

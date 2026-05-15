@@ -39,18 +39,28 @@ export function computeScore(components: Omit<CandidateScore, "total">): Candida
 
 /**
  * HLD §10.4 — decision thresholds for mapping approval.
- * ≥ 0.92 → auto-approved, mapping_method='auto'
- * 0.80 – 0.92 → approved with warning flag
- * 0.60 – 0.80 → suggestion (top-3 candidates in mapping_candidates)
- * < 0.60 → unmapped → merchant_extensions_json or review queue
+ *
+ * Phase 2 thresholds (embedding component is stubbed — see map.ts step 4).
+ * The HLD-spec threshold is 0.92 for warning-free, but with embedding=0 the
+ * maximum attainable score from channel+synonym+all-compat is 0.85. Until
+ * pgvector lands the warning-free band would be empty.
+ *
+ *   ≥ 0.85 → auto-approved, mapping_method='auto'                (Phase 3: restore to 0.92)
+ *   0.78 – 0.85 → approved with warning flag                     (Phase 3: 0.80 – 0.92)
+ *   0.60 – 0.78 → suggestion (top-3 candidates in mapping_candidates)
+ *   < 0.60 → unmapped → merchant_extensions_json or review queue
  */
+const NO_WARNING_THRESHOLD = 0.85;
+const WARNING_THRESHOLD = 0.78;
+const SUGGESTION_THRESHOLD = 0.60;
+
 export function resolveApproval(score: number): {
   approved: boolean;
   mappingMethod: string;
   warning: boolean;
 } {
-  if (score >= 0.92) return { approved: true, mappingMethod: "auto", warning: false };
-  if (score >= 0.80) return { approved: true, mappingMethod: "auto", warning: true };
-  if (score >= 0.60) return { approved: false, mappingMethod: "suggestion", warning: false };
+  if (score >= NO_WARNING_THRESHOLD) return { approved: true, mappingMethod: "auto", warning: false };
+  if (score >= WARNING_THRESHOLD) return { approved: true, mappingMethod: "auto", warning: true };
+  if (score >= SUGGESTION_THRESHOLD) return { approved: false, mappingMethod: "suggestion", warning: false };
   return { approved: false, mappingMethod: "unmapped", warning: false };
 }
