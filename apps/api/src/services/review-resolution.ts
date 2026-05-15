@@ -124,16 +124,37 @@ export async function editAndApprove(
     }
   }
 
-  // 6. Apply the approved diff to the catalog — flips proposed_diff.status,
-  //    creates the product_version + variant_versions rows, sets reviewedAt.
-  //    Without this step the edit shows "approved" but never lands in the catalog.
+  // 6. Decide whether to materialize. Only call applyApprovedDiff when:
+  //    (a) the diff is in an approvable state (still open/pending, not already
+  //        rejected or materialized), AND
+  //    (b) this is the LAST open task for the diff — otherwise the materialized
+  //        version would miss edits from sibling tasks that haven't fired yet.
+  //
+  //    This prevents 500s when a sibling task rejected the diff first, and
+  //    avoids the previous bug where the first task's call would materialize
+  //    a partially-edited diff and subsequent edits would be silently lost.
   if (task.proposedDiffId) {
-    await applyApprovedDiff({
-      db: ctx.db,
-      diffId: task.proposedDiffId,
-      actorId: ctx.reviewerId,
-      approvalStatus: "approved",
+    const diffNow = await ctx.db.query.proposedDiffs.findFirst({
+      where: (d, { eq }) => eq(d.id, task.proposedDiffId),
     });
+    const otherOpen = await ctx.db.query.reviewTasks.findMany({
+      where: (t, { and, eq, ne }) =>
+        and(
+          eq(t.proposedDiffId, task.proposedDiffId),
+          eq(t.status, "open"),
+          ne(t.id, taskId)
+        ),
+    });
+    const isApprovable =
+      diffNow && (diffNow.status === "open" || diffNow.status === "pending");
+    if (isApprovable && otherOpen.length === 0) {
+      await applyApprovedDiff({
+        db: ctx.db,
+        diffId: task.proposedDiffId,
+        actorId: ctx.reviewerId,
+        approvalStatus: "approved",
+      });
+    }
   }
 
   // 7. Mark review task resolved
