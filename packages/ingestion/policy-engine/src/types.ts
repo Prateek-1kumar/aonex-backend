@@ -39,6 +39,7 @@ export type SignalKind =
   | "category_ambiguous"
   | "variant_incomplete"
   | "price_anomaly"
+  | "value_contradiction"
   // Ingestion-failure signals emitted by the worker (not the detector pipeline).
   // These surface dropped URLs in the Anomaly Lab instead of failing silently.
   | "fetch_failed"

@@ -50,7 +50,7 @@ export async function extractStructured(
   ]);
 
   const outputs = [
-    parseJsonLd(input.structuredBlocks.jsonLd),
+    parseJsonLd(input.structuredBlocks.jsonLd, { pageUrl: input.pageUrl }),
     shopify,
     parseNextData(input.structuredBlocks.nextData),
     parseMicrodata(input.rawHtml),

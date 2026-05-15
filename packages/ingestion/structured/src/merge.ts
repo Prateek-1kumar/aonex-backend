@@ -1,36 +1,93 @@
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput, StructuredResult } from "./types.js";
 
+type ParserKind = ParserOutput["kind"];
+type FieldFamily =
+  | "identifier"
+  | "price"
+  | "inventory"
+  | "variants"
+  | "attribute"
+  | "category"
+  | "text";
+
+// Field-level precedence ranks: higher = more authoritative for that field
+// family. Ranks (not raw confidences) are used to pick a winner across parsers
+// — this prevents JSON-LD's blanket 0.95 baseline from beating NEXT_DATA on
+// fields where NEXT_DATA is more trustworthy (inventory, category) while
+// preserving JSON-LD's win on canonical attributes (material, title).
+const PRECEDENCE: Record<FieldFamily, Partial<Record<ParserKind, number>>> = {
+  identifier: { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, opengraph: 1 },
+  price:      { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, opengraph: 2 },
+  inventory:  { shopify_probe: 5, next_data: 5, json_ld: 1, microdata: 1, opengraph: 0 },
+  variants:   { shopify_probe: 5, next_data: 5, json_ld: 4, microdata: 2, opengraph: 0 },
+  attribute:  { json_ld: 5, microdata: 3, next_data: 3, shopify_probe: 2, opengraph: 1 },
+  category:   { next_data: 5, microdata: 3, json_ld: 3, shopify_probe: 2, opengraph: 1 },
+  text:       { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, opengraph: 2 },
+};
+
+const CORE_IDENTIFIER_KEYS = new Set(["gtin", "sku", "mpn", "model_number", "barcode"]);
+const CORE_PRICE_KEYS = new Set(["base_price", "currency", "mrp"]);
+const CORE_TEXT_KEYS = new Set(["title", "description", "brand", "images"]);
+
+function fieldFamily(rawKey: string): FieldFamily {
+  if (/^variants\[\d+\]\.inventory_quantity$/.test(rawKey)) return "inventory";
+  if (/^variants\[\d+\]\.price$/.test(rawKey)) return "price";
+  if (/^variants\[\d+\]/.test(rawKey)) return "variants";
+  if (CORE_IDENTIFIER_KEYS.has(rawKey)) return "identifier";
+  if (CORE_PRICE_KEYS.has(rawKey)) return "price";
+  if (rawKey === "productType") return "category";
+  if (CORE_TEXT_KEYS.has(rawKey)) return "text";
+  // Everything else (color, material, weight, gender, rating, additionalProperty slugs)
+  return "attribute";
+}
+
+function rank(kind: ParserKind, rawKey: string): number {
+  const family = fieldFamily(rawKey);
+  return PRECEDENCE[family]?.[kind] ?? 0;
+}
+
+type Candidate = { fact: ExtractedFact; kind: ParserKind };
+
 export function mergeParserOutputs(outputs: ParserOutput[]): StructuredResult {
-  const byKey = new Map<string, { winner: ExtractedFact; alts: ExtractedFact[] }>();
+  const byKey = new Map<string, { winner: Candidate; alts: Candidate[] }>();
   for (const out of outputs) {
     for (const fact of out.facts) {
+      const candidate: Candidate = { fact, kind: out.kind };
       const slot = byKey.get(fact.rawKey);
       if (!slot) {
-        byKey.set(fact.rawKey, { winner: fact, alts: [] });
-      } else if (fact.confidence > slot.winner.confidence) {
+        byKey.set(fact.rawKey, { winner: candidate, alts: [] });
+        continue;
+      }
+      const winnerRank = rank(slot.winner.kind, fact.rawKey);
+      const candidateRank = rank(candidate.kind, fact.rawKey);
+      if (candidateRank > winnerRank) {
         slot.alts.push(slot.winner);
-        slot.winner = fact;
+        slot.winner = candidate;
+      } else if (
+        candidateRank === winnerRank &&
+        fact.confidence > slot.winner.fact.confidence
+      ) {
+        // Same field-level rank — fall back to raw confidence.
+        slot.alts.push(slot.winner);
+        slot.winner = candidate;
       } else {
-        slot.alts.push(fact);
+        slot.alts.push(candidate);
       }
     }
   }
 
   const facts: ExtractedFact[] = [];
   for (const { winner, alts } of byKey.values()) {
-    // Preserve full {value, sourcePointer, confidence} for each loser so the
-    // cross-source-conflict detector can compare real values across sources.
-    // Drop alts whose value matches the winner — those aren't conflicts.
     const sourceAlternatives = alts
-      .filter((f) => !sameValue(f.extractedValue, winner.extractedValue))
-      .map((f) => ({
-        value: f.extractedValue,
-        sourcePointer: f.sourcePointer,
-        confidence: f.confidence,
+      .filter((c) => !sameValue(c.fact.extractedValue, winner.fact.extractedValue))
+      .map((c) => ({
+        value: c.fact.extractedValue,
+        sourcePointer: c.fact.sourcePointer,
+        confidence: c.fact.confidence,
       }));
     facts.push({
-      ...winner,
+      ...winner.fact,
       sourceAlternatives: sourceAlternatives.length > 0 ? sourceAlternatives : null,
     });
   }
