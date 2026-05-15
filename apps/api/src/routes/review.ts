@@ -41,13 +41,17 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
     const hydrated = await Promise.all(
       tasks.map(async (task) => {
         const [diff, fields, artifact] = await Promise.all([
-          deps.db.query.proposedDiffs.findFirst({
-            where: (d, { eq }) => eq(d.id, task.proposedDiffId),
-          }),
-          deps.db
-            .select()
-            .from(schema.proposedDiffFields)
-            .where(eq(schema.proposedDiffFields.diffId, task.proposedDiffId)),
+          task.proposedDiffId
+            ? deps.db.query.proposedDiffs.findFirst({
+                where: (d, { eq }) => eq(d.id, task.proposedDiffId as string),
+              })
+            : null,
+          task.proposedDiffId
+            ? deps.db
+                .select()
+                .from(schema.proposedDiffFields)
+                .where(eq(schema.proposedDiffFields.diffId, task.proposedDiffId as string))
+            : [],
           task.artifactId
             ? deps.db.query.sourceArtifacts.findFirst({
                 where: (a, { eq }) => eq(a.id, task.artifactId as string),
@@ -377,6 +381,20 @@ export function reviewRoutes(deps: ReviewRouteDeps): Hono {
           htmlSnippet = rawData?.htmlSnippet ?? null;
         }
       }
+    }
+
+    // Failure tasks (fetch_failed, captcha_wall, etc.) have no proposed_diff.
+    // Pull the URL from artifact or signal_payload so the lab shows what failed.
+    if (!sourceUrl && task.artifactId) {
+      const artifact = await deps.db.query.sourceArtifacts.findFirst({
+        where: (a, { eq }) => eq(a.id, task.artifactId as string),
+      });
+      sourceUrl = (artifact?.sourceExternalId as string | undefined) ?? null;
+    }
+    if (!sourceUrl) {
+      const payload = task.signalPayload as Record<string, unknown> | null;
+      const payloadUrl = payload?.url;
+      if (typeof payloadUrl === "string") sourceUrl = payloadUrl;
     }
 
     return c.json({

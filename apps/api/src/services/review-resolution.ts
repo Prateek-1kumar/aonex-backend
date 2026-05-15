@@ -38,6 +38,13 @@ export async function editAndApprove(
   });
   if (!task) throw new Error(`review_task ${taskId} not found`);
   if (task.tenantId !== ctx.tenantId) throw new Error("forbidden");
+  if (!task.proposedDiffId) {
+    // Failure tasks (fetch_failed, captcha_wall, etc.) carry no proposed_diff —
+    // there is no extracted value to override or approve. Callers shouldn't
+    // hit this path through the UI, but guard so a stray request returns 400
+    // instead of dereferencing a null FK below.
+    throw new Error(`review_task ${taskId} has no proposed_diff to edit`);
+  }
 
   let overrideId: string | null = null;
 
