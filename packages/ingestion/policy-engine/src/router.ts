@@ -8,6 +8,7 @@ import { detectIdentityConflict } from "./detectors/identity-conflict.js";
 import { detectCategoryAmbiguous } from "./detectors/category-ambiguous.js";
 import { detectVariantIncomplete } from "./detectors/variant-incomplete.js";
 import { detectPriceAnomaly } from "./detectors/price-anomaly.js";
+import { detectValueContradiction } from "./detectors/value-contradiction.js";
 
 const DETECTORS: { kind: SignalKind; fn: Detector }[] = [
   { kind: "low_confidence_mapping", fn: detectLowFieldConfidence },
@@ -18,6 +19,7 @@ const DETECTORS: { kind: SignalKind; fn: Detector }[] = [
   { kind: "category_ambiguous", fn: detectCategoryAmbiguous },
   { kind: "variant_incomplete", fn: detectVariantIncomplete },
   { kind: "price_anomaly", fn: detectPriceAnomaly },
+  { kind: "value_contradiction", fn: detectValueContradiction },
 ];
 
 const SEV_WEIGHTS: Record<DetectorSeverity, number> = {
