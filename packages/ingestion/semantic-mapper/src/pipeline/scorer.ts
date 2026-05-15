@@ -40,19 +40,24 @@ export function computeScore(components: Omit<CandidateScore, "total">): Candida
 /**
  * HLD §10.4 — decision thresholds for mapping approval.
  *
- * Phase 2 thresholds (embedding component is stubbed — see map.ts step 4).
- * The HLD-spec threshold is 0.92 for warning-free, but with embedding=0 the
- * maximum attainable score from channel+synonym+all-compat is 0.85. Until
- * pgvector lands the warning-free band would be empty.
+ * Thresholds are calibrated against the actual reachable score ranges given
+ * the Phase-2 weights above (embedding = 0, tenantCorrection often 0). With
+ * those weights, max achievable score by signal type:
  *
- *   ≥ 0.85 → auto-approved, mapping_method='auto'                (Phase 3: restore to 0.92)
- *   0.78 – 0.85 → approved with warning flag                     (Phase 3: 0.80 – 0.92)
- *   0.60 – 0.78 → suggestion (top-3 candidates in mapping_candidates)
- *   < 0.60 → unmapped → merchant_extensions_json or review queue
+ *   channel-mapping winner + perfect compats : 0.40 + 0.10 + 0.07 + 0.06 = 0.63
+ *   synonym winner + perfect compats         : 0.18 + 0.10 + 0.07 + 0.06 = 0.41
+ *   synonym winner + weak compats (no attr)  : 0.18 + 0.05 + 0.035 + 0.03 ≈ 0.30
+ *
+ *   ≥ 0.55 → auto-approved, mapping_method='auto'        (channel-mapping wins cleanly)
+ *   0.40 – 0.55 → suggestion (synonym wins with good compats — needs human OK)
+ *   0.25 – 0.40 → suggestion (synonym wins with weak compats — review)
+ *   < 0.25 → unmapped → merchant_extensions_json or review queue
+ *
+ * Phase 3 (pgvector embedding live) will reintroduce higher thresholds.
  */
-const NO_WARNING_THRESHOLD = 0.85;
-const WARNING_THRESHOLD = 0.78;
-const SUGGESTION_THRESHOLD = 0.60;
+const NO_WARNING_THRESHOLD = 0.55;
+const WARNING_THRESHOLD = 0.45;
+export const SUGGESTION_THRESHOLD = 0.25;
 
 export function resolveApproval(score: number): {
   approved: boolean;

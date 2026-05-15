@@ -15,16 +15,28 @@ const UNIT_AWARE_FIELDS: Record<string, Dimension> = {
 export const detectCrossSourceConflict: Detector = (input: RouterInput): ReviewTaskSignal | null => {
   for (const f of input.facts) {
     if (!CONFLICT_FIELDS.includes(f.rawKey)) continue;
-    if (!f.mappingCandidates || f.mappingCandidates.length === 0) continue;
+    if (!f.sourceAlternatives || f.sourceAlternatives.length === 0) continue;
 
-    // Unit-aware skip: if this fact is a unit-aware measurement with a known canonical
-    // unit, we treat alternative sources as compatible rather than firing a false conflict.
-    // Reason: merge.ts currently stores only source pointers (not alt values) in
-    // mappingCandidates, so we cannot prove the alt value is genuinely different.
+    // Drop alts whose value equals the winner — different sources reporting
+    // the same answer aren't a conflict. (merge.ts already does this; this is
+    // a belt-and-braces guard for sources we'll add later that may not.)
+    const realAlts = f.sourceAlternatives.filter((alt) => !sameValue(alt.value, f.extractedValue));
+    if (realAlts.length === 0) continue;
+
+    // Unit-aware skip: if this fact is a unit-aware measurement with a known
+    // canonical unit and alts that convert to the same value, treat alternative
+    // sources as compatible rather than firing a false conflict.
     const dim = UNIT_AWARE_FIELDS[f.rawKey];
     if (dim && typeof f.extractedValue === "number" && f.unit) {
-      const canonical = convertToCanonical(f.extractedValue, f.unit, dim);
-      if (canonical) continue; // skip firing — we have a convertible value
+      const winnerCanonical = convertToCanonical(f.extractedValue, f.unit, dim);
+      if (winnerCanonical) {
+        const allCompatible = realAlts.every((alt) => {
+          if (typeof alt.value !== "number") return false;
+          const altCanonical = convertToCanonical(alt.value, f.unit ?? "", dim);
+          return !!altCanonical && Math.abs(altCanonical.value - winnerCanonical.value) < 1e-6;
+        });
+        if (allCompatible) continue;
+      }
     }
 
     return {
@@ -38,10 +50,29 @@ export const detectCrossSourceConflict: Detector = (input: RouterInput): ReviewT
         affectedFields: [f.rawKey],
         candidates: [
           { value: f.extractedValue, source: f.sourcePointer, confidence: f.confidence },
-          ...f.mappingCandidates.map((c) => ({ value: c.key, source: c.key, confidence: c.score })),
+          ...realAlts.map((alt) => ({
+            value: alt.value,
+            source: alt.sourcePointer,
+            confidence: alt.confidence,
+          })),
         ],
       },
     };
   }
   return null;
 };
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a === "string" && typeof b === "string") {
+    return a.trim().toLowerCase() === b.trim().toLowerCase();
+  }
+  if (typeof a === "number" && typeof b === "number") {
+    return Math.abs(a - b) < 1e-6;
+  }
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}

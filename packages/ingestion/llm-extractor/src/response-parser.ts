@@ -213,6 +213,7 @@ function makeFact(
     confidence,
     mappingMethod: null,
     mappingCandidates: null,
+    sourceAlternatives: null,
     approved: false,
   };
 }

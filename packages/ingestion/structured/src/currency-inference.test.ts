@@ -35,6 +35,7 @@ describe("inferCurrency", () => {
       confidence: 0.95,
       mappingMethod: null,
       mappingCandidates: null,
+      sourceAlternatives: null,
       approved: false,
     };
     expect(inferCurrency("https://www.example.in/p", [existing])).toBeNull();

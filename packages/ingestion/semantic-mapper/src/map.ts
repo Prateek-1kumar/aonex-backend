@@ -7,7 +7,7 @@ import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { AttributeDefinition, AttributeMapping, AttributeSynonym, MappingOverride } from "@aonex/db";
 import type { MappedFact, MappedFactSet, MapperCorpus } from "./types.js";
 import type { ExtractedFactSet } from "@aonex/ingestion-field-extractor";
-import { computeScore, resolveApproval } from "./pipeline/scorer.js";
+import { computeScore, resolveApproval, SUGGESTION_THRESHOLD } from "./pipeline/scorer.js";
 
 export const MAPPER_VERSION = "deterministic-synonym@1.0.0";
 
@@ -129,8 +129,13 @@ function mapFact(
 
   const best = dedupedCandidates[0];
 
-  if (!best || best.score < 0.60) {
-    // Unmapped — goes into merchant_extensions_json or review queue
+  if (!best || best.score < SUGGESTION_THRESHOLD) {
+    // Unmapped — goes into merchant_extensions_json or review queue.
+    // IMPORTANT: extraction confidence is left untouched. The value is still
+    // the value the extractor pulled — it's the *routing* that's uncertain,
+    // not the value itself. Mapping uncertainty is conveyed via
+    // mappingMethod="unmapped" and mappingCandidates[0].score, not by
+    // attenuating fact.confidence (Bug #2 fix).
     return {
       ...fact,
       canonicalPath: null,
@@ -139,20 +144,19 @@ function mapFact(
         ? dedupedCandidates.slice(0, 3)
         : null,
       approved: false,
-      confidence: fact.confidence * (best?.score ?? 0)
     };
   }
 
   const { approved, mappingMethod } = resolveApproval(best.score);
 
+  // confidence stays at fact.confidence — see comment above. Mapping confidence
+  // is mappingCandidates[0].score and approval state lives in mappingMethod.
   return {
     ...fact,
     canonicalPath: best.key,
     mappingMethod,
     mappingCandidates: dedupedCandidates.slice(0, 3),
     approved,
-    // Combined confidence: extraction confidence × mapping confidence
-    confidence: Math.min(1.0, fact.confidence * best.score)
   };
 }
 

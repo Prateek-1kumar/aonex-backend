@@ -85,6 +85,7 @@ function mk(rawKey: string, v: unknown): ExtractedFact {
     confidence: BASELINE_CONFIDENCE,
     mappingMethod: null,
     mappingCandidates: null,
+    sourceAlternatives: null,
     approved: false,
   };
 }
