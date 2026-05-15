@@ -28,6 +28,10 @@ export interface LinkFetchResult {
   rawHtml: string;
   /** Cleaned text with scripts/styles/nav stripped — ready for LLM. */
   cleanedText: string;
+  /** Structured data blocks extracted from the page (JSON-LD, __NEXT_DATA__, etc.). */
+  structuredBlocks: StructuredBlocks;
+  /** True when the page exhibits CAPTCHA / bot-wall signals. */
+  captchaSignal: boolean;
   /** Timestamp when the fetch completed. */
   fetchedAt: Date;
   /** SHA-256 hex digest of rawHtml — for source_artifact.checksum. */
@@ -56,8 +60,21 @@ export class LinkFetchError extends Error {
 
 export const DEFAULT_FETCH_OPTIONS: Required<LinkFetchOptions> = {
   timeoutMs: 15_000,
-  maxBodyBytes: 5 * 1024 * 1024, // 5 MB
+  maxBodyBytes: 4 * 1024 * 1024, // 4 MB
   userAgent: "AonexBot/1.0 (+https://aonex.io/bot)",
   followRedirects: true,
   maxRedirects: 5,
 };
+
+export interface StructuredBlocks {
+  jsonLd: Record<string, unknown>[];
+  nextData: Record<string, unknown> | null;
+  apolloState: Record<string, unknown> | null;
+  initialState: Record<string, unknown> | null;
+}
+
+export interface CleanResult {
+  structuredBlocks: StructuredBlocks;
+  cleanedText: string;
+  captchaSignal: boolean;
+}

@@ -37,6 +37,7 @@ const LLMOutputSchema = z.object({
   attributes: z.record(z.unknown()).optional().default({}),
   variants: z.array(VariantSchema).optional().default([]),
   error: z.string().nullable().optional(),
+  _field_confidence: z.record(z.number().min(0).max(1)).optional(),
 });
 
 /**
@@ -66,6 +67,16 @@ export function parseLLMResponse(raw: string): LLMRawProductOutput | null {
 }
 
 /**
+ * Returns the LLM self-reported confidence for a field, capped at 0.85 (HLD §14.2).
+ * Falls back to 0.5 when the field is absent from _field_confidence.
+ */
+function confidenceFor(key: string, out: LLMRawProductOutput): number {
+  const fc = (out as { _field_confidence?: Record<string, number> })._field_confidence;
+  const v = fc?.[key];
+  return Math.min(0.85, typeof v === "number" ? v : 0.5);
+}
+
+/**
  * Convert the validated LLM output into ExtractedFact[] compatible
  * with the existing field-extractor and semantic-mapper pipeline.
  *
@@ -74,7 +85,7 @@ export function parseLLMResponse(raw: string): LLMRawProductOutput | null {
  *   - extractedValue / normalizedValue: the raw and cleaned values
  *   - sourcePointer: description of where the LLM found this
  *   - extractionMethod: "inferred" (LLM extraction is never "direct")
- *   - confidence: LLM-assigned confidence (capped per HLD §14.2)
+ *   - confidence: LLM self-reported confidence (capped per HLD §14.2)
  */
 export function convertToExtractedFacts(
   output: LLMRawProductOutput,
@@ -84,45 +95,45 @@ export function convertToExtractedFacts(
 
   // Core product fields
   if (output.title) {
-    facts.push(makeFact("title", output.title, output.title, `LLM extracted from ${sourceUrl}`, 0.90));
+    facts.push(makeFact("title", output.title, output.title, `LLM extracted from ${sourceUrl}`, confidenceFor("title", output)));
   }
 
   if (output.brand) {
-    facts.push(makeFact("vendor", output.brand, output.brand, `LLM extracted brand from ${sourceUrl}`, 0.85));
+    facts.push(makeFact("brand", output.brand, output.brand, `LLM extracted brand from ${sourceUrl}`, confidenceFor("brand", output)));
   }
 
   if (output.gtin) {
-    facts.push(makeFact("gtin", output.gtin, output.gtin.trim(), `LLM extracted GTIN from ${sourceUrl}`, 0.80));
+    facts.push(makeFact("gtin", output.gtin, output.gtin.trim(), `LLM extracted GTIN from ${sourceUrl}`, confidenceFor("gtin", output)));
   }
 
   if (output.model_number) {
     facts.push(
-      makeFact("model_number", output.model_number, output.model_number.trim(), `LLM extracted model from ${sourceUrl}`, 0.75)
+      makeFact("model_number", output.model_number, output.model_number.trim(), `LLM extracted model from ${sourceUrl}`, confidenceFor("model_number", output))
     );
   }
 
   if (output.description) {
     facts.push(
-      makeFact("description", output.description, output.description, `LLM extracted description from ${sourceUrl}`, 0.85)
+      makeFact("description", output.description, output.description, `LLM extracted description from ${sourceUrl}`, confidenceFor("description", output))
     );
   }
 
   if (output.base_price != null) {
     facts.push(
-      makeFact("base_price", output.base_price, output.base_price, `LLM extracted price from ${sourceUrl}`, 0.85, output.currency ? "currency" : null)
+      makeFact("base_price", output.base_price, output.base_price, `LLM extracted price from ${sourceUrl}`, confidenceFor("base_price", output), output.currency ? "currency" : null)
     );
   }
 
   if (output.currency) {
     facts.push(
-      makeFact("currency", output.currency, output.currency.toUpperCase(), `LLM extracted currency from ${sourceUrl}`, 0.90)
+      makeFact("currency", output.currency, output.currency.toUpperCase(), `LLM extracted currency from ${sourceUrl}`, confidenceFor("currency", output))
     );
   }
 
   // Category as a fact (for category detector to process)
   if (output.category_path) {
     facts.push(
-      makeFact("productType", output.category_path, output.category_path, `LLM classified category from ${sourceUrl}`, output.category_confidence ?? 0.70)
+      makeFact("productType", output.category_path, output.category_path, `LLM classified category from ${sourceUrl}`, confidenceFor("category_path", output))
     );
   }
 
@@ -135,7 +146,7 @@ export function convertToExtractedFacts(
         altText: img.alt_text ?? null,
       }));
       facts.push(
-        makeFact("images", output.images, normalized, `LLM extracted ${validImages.length} images from ${sourceUrl}`, 0.80)
+        makeFact("images", output.images, normalized, `LLM extracted ${validImages.length} images from ${sourceUrl}`, confidenceFor("images", output))
       );
     }
   }
@@ -145,34 +156,35 @@ export function convertToExtractedFacts(
     for (const [key, value] of Object.entries(output.attributes)) {
       if (value != null && value !== "") {
         facts.push(
-          makeFact(key, value, value, `LLM extracted attribute '${key}' from ${sourceUrl}`, 0.70)
+          makeFact(key, value, value, `LLM extracted attribute '${key}' from ${sourceUrl}`, confidenceFor(key, output))
         );
       }
     }
   }
 
-  // Variants
+  // Variants — use a single "variants" key for all variant-level confidence
   if (output.variants && output.variants.length > 0) {
+    const variantConf = confidenceFor("variants", output);
     output.variants.forEach((variant, i) => {
       if (variant.sku) {
         facts.push(
-          makeFact(`variants[${i}].sku`, variant.sku, variant.sku.trim(), `LLM extracted variant SKU from ${sourceUrl}`, 0.80)
+          makeFact(`variants[${i}].sku`, variant.sku, variant.sku.trim(), `LLM extracted variant SKU from ${sourceUrl}`, variantConf)
         );
       }
       if (variant.barcode) {
         facts.push(
-          makeFact(`variants[${i}].barcode`, variant.barcode, variant.barcode.trim(), `LLM extracted variant barcode from ${sourceUrl}`, 0.75)
+          makeFact(`variants[${i}].barcode`, variant.barcode, variant.barcode.trim(), `LLM extracted variant barcode from ${sourceUrl}`, variantConf)
         );
       }
       if (variant.price != null) {
         facts.push(
-          makeFact(`variants[${i}].price`, variant.price, variant.price, `LLM extracted variant price from ${sourceUrl}`, 0.80)
+          makeFact(`variants[${i}].price`, variant.price, variant.price, `LLM extracted variant price from ${sourceUrl}`, variantConf)
         );
       }
       if (variant.option_values) {
         for (const [optName, optValue] of Object.entries(variant.option_values)) {
           facts.push(
-            makeFact(`variants[${i}].option.${optName}`, optValue, optValue, `LLM extracted variant option from ${sourceUrl}`, 0.80)
+            makeFact(`variants[${i}].option.${optName}`, optValue, optValue, `LLM extracted variant option from ${sourceUrl}`, variantConf)
           );
         }
       }

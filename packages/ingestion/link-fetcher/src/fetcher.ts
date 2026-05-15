@@ -5,7 +5,7 @@
 // Uses the native `fetch` API (available in Bun and Node 18+).
 // No external HTTP client dependency needed.
 
-import { sha256Hex } from "@aonex/lib-utils";
+import { sha256Hex, canonicalizeUrl } from "@aonex/lib-utils";
 import { cleanHtml } from "./html-cleaner.js";
 import {
   type LinkFetchOptions,
@@ -26,10 +26,13 @@ export async function fetchLink(
 ): Promise<LinkFetchResult> {
   const opts = { ...DEFAULT_FETCH_OPTIONS, ...options };
 
+  // Canonicalize URL before processing (original `url` kept for error reporting)
+  const canonical = canonicalizeUrl(url);
+
   // Validate URL
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(url);
+    parsedUrl = new URL(canonical);
   } catch {
     throw new LinkFetchError("Invalid URL", url);
   }
@@ -47,7 +50,7 @@ export async function fetchLink(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetch(canonical, {
       signal: controller.signal,
       headers: {
         "User-Agent": opts.userAgent,
@@ -89,16 +92,18 @@ export async function fetchLink(
     // The LLM extractor will handle non-HTML gracefully.
   }
 
-  const cleanedText = cleanHtml(rawHtml);
+  const cleanResult = cleanHtml(rawHtml);
   const contentChecksum = sha256Hex(rawHtml);
 
   return {
-    url,
-    finalUrl: response.url || url,
+    url: canonical,
+    finalUrl: response.url || canonical,
     statusCode: response.status,
     contentType,
     rawHtml,
-    cleanedText,
+    cleanedText: cleanResult.cleanedText,
+    structuredBlocks: cleanResult.structuredBlocks,
+    captchaSignal: cleanResult.captchaSignal,
     fetchedAt: new Date(),
     contentChecksum,
   };

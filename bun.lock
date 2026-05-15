@@ -21,6 +21,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/audit": "workspace:*",
+        "@aonex/catalog-service": "workspace:*",
         "@aonex/connector-gateway": "workspace:*",
         "@aonex/db": "workspace:*",
         "@aonex/ingestion-link-fetcher": "workspace:*",
@@ -51,10 +52,16 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/audit": "workspace:*",
+        "@aonex/catalog-service": "workspace:*",
         "@aonex/connector-gateway": "workspace:*",
         "@aonex/db": "workspace:*",
+        "@aonex/ingestion-deduplicator": "workspace:*",
+        "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/ingestion-link-fetcher": "workspace:*",
         "@aonex/ingestion-llm-extractor": "workspace:*",
+        "@aonex/ingestion-policy-engine": "workspace:*",
+        "@aonex/ingestion-semantic-mapper": "workspace:*",
+        "@aonex/ingestion-structured": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
         "@aonex/types": "workspace:*",
         "bullmq": "^5.34.5",
@@ -87,6 +94,11 @@
     "packages/catalog/catalog-service": {
       "name": "@aonex/catalog-service",
       "version": "0.0.0",
+      "dependencies": {
+        "@aonex/db": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
+        "drizzle-orm": "^0.36.4",
+      },
     },
     "packages/catalog/product-versions": {
       "name": "@aonex/catalog-product-versions",
@@ -174,6 +186,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/ingestion-deduplicator": "workspace:*",
+        "@aonex/ingestion-field-extractor": "workspace:*",
       },
     },
     "packages/ingestion/semantic-mapper": {
@@ -187,6 +200,14 @@
     "packages/ingestion/source-classifier": {
       "name": "@aonex/ingestion-source-classifier",
       "version": "0.0.0",
+    },
+    "packages/ingestion/structured": {
+      "name": "@aonex/ingestion-structured",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/ingestion-field-extractor": "workspace:*",
+        "@aonex/types": "workspace:*",
+      },
     },
     "packages/ingestion/variant-extractor": {
       "name": "@aonex/ingestion-variant-extractor",
@@ -256,6 +277,8 @@
     "@aonex/ingestion-semantic-mapper": ["@aonex/ingestion-semantic-mapper@workspace:packages/ingestion/semantic-mapper"],
 
     "@aonex/ingestion-source-classifier": ["@aonex/ingestion-source-classifier@workspace:packages/ingestion/source-classifier"],
+
+    "@aonex/ingestion-structured": ["@aonex/ingestion-structured@workspace:packages/ingestion/structured"],
 
     "@aonex/ingestion-variant-extractor": ["@aonex/ingestion-variant-extractor@workspace:packages/ingestion/variant-extractor"],
 

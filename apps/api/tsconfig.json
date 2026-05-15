@@ -9,6 +9,7 @@
     { "path": "../../packages/connector-gateway" },
     { "path": "../../packages/audit" },
     { "path": "../../packages/ingestion/link-fetcher" },
-    { "path": "../../packages/ingestion/llm-extractor" }
+    { "path": "../../packages/ingestion/llm-extractor" },
+    { "path": "../../packages/catalog/catalog-service" }
   ]
 }

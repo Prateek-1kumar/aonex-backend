@@ -18,6 +18,7 @@ import { makeTriggerSyncProcessor } from "./processors/trigger-sync.processor.js
 import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js";
 import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
+import { CRON_JOBS } from "./jobs/index.js";
 
 export interface WorkerContainer {
   env: Env;
@@ -100,7 +101,35 @@ export function buildContainer(env: Env): WorkerContainer {
     logger.warn("OPENAI_API_KEY not set — link extraction worker disabled");
   }
 
-  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : [])];
+  // Cron queue: schedules and dispatches periodic maintenance jobs.
+  const cronQueue = new Queue("aonex.cron", { connection: redis });
+
+  void Promise.all(
+    CRON_JOBS.map((job) =>
+      cronQueue.add(
+        job.name,
+        {},
+        {
+          repeat: { pattern: job.cronSchedule },
+          jobId: `cron-${job.name}`,
+          removeOnComplete: 50,
+          removeOnFail: 100,
+        }
+      )
+    )
+  );
+
+  const cronWorker = new Worker(
+    "aonex.cron",
+    async (job) => {
+      const cron = CRON_JOBS.find((c) => c.name === job.name);
+      if (!cron) return;
+      await cron.process({ db: db.client });
+    },
+    { connection: redis, concurrency: 1 }
+  );
+
+  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), cronWorker];
   for (const w of workers) {
     w.on("completed", (job) => logger.info({ jobId: job.id, queue: w.name }, "job.completed"));
     w.on("failed", (job, err) =>
@@ -120,9 +149,10 @@ export function buildContainer(env: Env): WorkerContainer {
         syncWorker.close(true),
         drainWorker.close(true),
         triggerWorker.close(true),
+        cronWorker.close(true),
         ...(linkExtractWorker ? [linkExtractWorker.close(true)] : [])
       ]);
-      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close()]);
+      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), cronQueue.close()]);
       await redis.quit();
       await db.close();
     }

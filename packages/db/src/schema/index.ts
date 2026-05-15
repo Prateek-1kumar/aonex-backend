@@ -17,3 +17,6 @@ export * from "./extraction.js";
 export * from "./proposed-diffs.js";
 export * from "./products.js";
 export * from "./review.js";
+export * from "./extraction-failures.js";
+export * from "./price-clusters.js";
+export * from "./domain-profiles.js";

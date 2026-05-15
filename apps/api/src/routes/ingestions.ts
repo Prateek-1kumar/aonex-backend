@@ -10,8 +10,6 @@ import type { Queue } from "bullmq";
 import type { AuditEmitter } from "@aonex/audit";
 import { QUEUE, TenantId, MerchantId } from "@aonex/types";
 import { randomUUID } from "node:crypto";
-import { fetchLink } from "@aonex/ingestion-link-fetcher";
-import { LLMProductExtractor, createModelProvider } from "@aonex/ingestion-llm-extractor";
 
 const LinkIngestionBodySchema = z.object({
   /** The URL to extract product data from. Must be HTTP or HTTPS. */
@@ -42,50 +40,6 @@ export interface IngestionsRouteDeps {
 
 export function ingestionsRoutes(deps: IngestionsRouteDeps) {
   const app = new Hono();
-
-  /**
-   * GET /link/test — Synchronous testing endpoint for developers.
-   * Runs the fetch & extract immediately so you can see the result in Postman.
-   */
-  app.get("/link/test", async (c) => {
-    const url = c.req.query("url");
-    if (!url) {
-      return c.json({ success: false, error: "Missing ?url= parameter" }, 400);
-    }
-
-    try {
-      // 1. Fetch HTML
-      const html = await fetchLink(url);
-
-      // 2. Initialize Extractor
-      const provider = createModelProvider({
-        provider: "openai",
-        config: {
-          apiKey: process.env.OPENAI_API_KEY ?? "",
-          baseUrl: process.env.OPENAI_BASE_URL,
-        },
-      });
-      const extractor = new LLMProductExtractor(provider);
-
-      // 3. Extract Facts
-      const result = await extractor.extractFactSet(html.cleanedText, url, "test-artifact" as any);
-
-      return c.json({
-        success: true,
-        data: {
-          url,
-          extracted_facts: result.factSet.facts.map(f => ({
-            key: f.rawKey,
-            value: f.normalizedValue,
-            confidence: f.confidence
-          })),
-          metadata: result.meta
-        }
-      });
-    } catch (err) {
-      return c.json({ success: false, error: err instanceof Error ? err.message : String(err) }, 500);
-    }
-  });
 
   /**
    * POST /link — Submit a single URL for product extraction.
@@ -125,7 +79,7 @@ export function ingestionsRoutes(deps: IngestionsRouteDeps) {
         traceId,
       },
       {
-        jobId: `link-extract:${tenantId}:${url}`,
+        jobId: `link-extract-${tenantId}-${traceId}`,
         removeOnComplete: 1000,
         removeOnFail: 5000,
         attempts: 3,
@@ -199,7 +153,7 @@ export function ingestionsRoutes(deps: IngestionsRouteDeps) {
             traceId,
           },
           {
-            jobId: `link-extract:${tenantId}:${url}`,
+            jobId: `link-extract-${tenantId}-${traceId}`,
             removeOnComplete: 1000,
             removeOnFail: 5000,
             attempts: 3,

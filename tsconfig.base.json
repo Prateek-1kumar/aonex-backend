@@ -30,7 +30,10 @@
     ],
     "paths": {
       "@aonex/ingestion-link-fetcher": ["./packages/ingestion/link-fetcher/src/index.ts"],
-      "@aonex/ingestion-llm-extractor": ["./packages/ingestion/llm-extractor/src/index.ts"]
+      "@aonex/ingestion-llm-extractor": ["./packages/ingestion/llm-extractor/src/index.ts"],
+      "@aonex/ingestion-semantic-mapper": ["./packages/ingestion/semantic-mapper/src/index.ts"],
+      "@aonex/ingestion-policy-engine": ["./packages/ingestion/policy-engine/src/index.ts"],
+      "@aonex/catalog-service": ["./packages/catalog/catalog-service/src/index.ts"]
     }
   },
   "exclude": [

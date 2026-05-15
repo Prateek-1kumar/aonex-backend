@@ -1,0 +1,10 @@
+.env
+node_modules
+.turbo
+dist
+build
+*.log
+apps/*/node_modules
+packages/*/node_modules
+scratch/
+test-connect.html

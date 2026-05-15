@@ -1,52 +1,35 @@
-// HTML cleaning — strips irrelevant content and extracts the main
-// textual content suitable for LLM consumption.
-//
-// Design: intentionally simple regex/string-based approach.
-// We avoid heavy DOM parsers (cheerio/jsdom) to keep the package
-// lightweight. If more precision is needed later, swap this module
-// without changing the interface.
+import type { CleanResult, StructuredBlocks } from "./types.js";
 
-/** Maximum characters of cleaned text to send to the LLM. */
-const MAX_CLEANED_TEXT_LENGTH = 50_000;
+const MAX_CLEANED_TEXT_LENGTH = 200_000;
+const CAPTCHA_KEYWORDS = /captcha|robot check|are you human|access denied/i;
+const CAPTCHA_SIZE_THRESHOLD = 10_000;
 
-/**
- * Remove HTML elements that add noise but no product information.
- * Returns a cleaned text string ready for LLM extraction.
- */
-export function cleanHtml(rawHtml: string): string {
+export function cleanHtml(rawHtml: string): CleanResult {
+  const structuredBlocks = extractStructuredBlocks(rawHtml);
+  const captchaSignal =
+    rawHtml.length < CAPTCHA_SIZE_THRESHOLD && CAPTCHA_KEYWORDS.test(rawHtml);
+
   let text = rawHtml;
 
-  // 1. Remove script and style tags and their content
+  // Remove script/style/svg/nav/footer
   text = text.replace(/<script[\s\S]*?<\/script>/gi, " ");
   text = text.replace(/<style[\s\S]*?<\/style>/gi, " ");
   text = text.replace(/<noscript[\s\S]*?<\/noscript>/gi, " ");
-
-  // 2. Remove HTML comments
   text = text.replace(/<!--[\s\S]*?-->/g, " ");
-
-  // 3. Remove SVG blocks (icons, decorative graphics)
   text = text.replace(/<svg[\s\S]*?<\/svg>/gi, " ");
-
-  // 4. Remove common navigation/footer/header/sidebar patterns
   text = text.replace(/<nav[\s\S]*?<\/nav>/gi, " ");
   text = text.replace(/<footer[\s\S]*?<\/footer>/gi, " ");
-
-  // 5. Extract alt text from images before stripping tags
   text = text.replace(/<img[^>]*alt=["']([^"']*)["'][^>]*>/gi, " $1 ");
-
-  // 6. Preserve href values from links (may contain product URLs)
-  text = text.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, " $2 ($1) ");
-
-  // 7. Convert common block elements to newlines for readability
-  text = text.replace(/<\/?(div|p|br|h[1-6]|li|tr|td|th|section|article|main|aside|blockquote)[^>]*>/gi, "\n");
-
-  // 8. Strip all remaining HTML tags
+  text = text.replace(
+    /<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
+    " $2 ($1) "
+  );
+  text = text.replace(
+    /<\/?(div|p|br|h[1-6]|li|tr|td|th|section|article|main|aside|blockquote)[^>]*>/gi,
+    "\n"
+  );
   text = text.replace(/<[^>]+>/g, " ");
-
-  // 9. Decode common HTML entities
   text = decodeHtmlEntities(text);
-
-  // 10. Normalize whitespace
   text = text.replace(/\t/g, " ");
   text = text.replace(/ {2,}/g, " ");
   text = text.replace(/\n{3,}/g, "\n\n");
@@ -56,12 +39,83 @@ export function cleanHtml(rawHtml: string): string {
     .filter((line) => line.length > 0)
     .join("\n");
 
-  // 11. Truncate to max length for LLM context window
-  if (text.length > MAX_CLEANED_TEXT_LENGTH) {
-    text = text.substring(0, MAX_CLEANED_TEXT_LENGTH) + "\n[...truncated]";
+  text = truncateCenterPreserving(text, MAX_CLEANED_TEXT_LENGTH);
+
+  return { structuredBlocks, cleanedText: text, captchaSignal };
+}
+
+function extractStructuredBlocks(html: string): StructuredBlocks {
+  const jsonLd: Record<string, unknown>[] = [];
+  for (const m of html.matchAll(
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  )) {
+    try {
+      const parsed = JSON.parse(m[1]!.trim());
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) if (isRecord(item)) jsonLd.push(item);
+      } else if (isRecord(parsed)) {
+        jsonLd.push(parsed);
+      }
+    } catch {
+      /* malformed block — skip */
+    }
   }
 
-  return text;
+  const nextData = parseInlineScriptById(html, "__NEXT_DATA__");
+  const apolloState = parseWindowAssignment(html, "__APOLLO_STATE__");
+  const initialState = parseWindowAssignment(html, "__INITIAL_STATE__");
+
+  return { jsonLd, nextData, apolloState, initialState };
+}
+
+function parseInlineScriptById(
+  html: string,
+  id: string
+): Record<string, unknown> | null {
+  const re = new RegExp(
+    `<script[^>]*id=["']${id}["'][^>]*>([\\s\\S]*?)</script>`,
+    "i"
+  );
+  const m = html.match(re);
+  if (!m) return null;
+  try {
+    const v = JSON.parse(m[1]!.trim());
+    return isRecord(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseWindowAssignment(
+  html: string,
+  name: string
+): Record<string, unknown> | null {
+  const re = new RegExp(
+    `window\\.${name}\\s*=\\s*(\\{[\\s\\S]*?\\});?\\s*(?:<\\/script>|window\\.)`,
+    "i"
+  );
+  const m = html.match(re);
+  if (!m) return null;
+  try {
+    const v = JSON.parse(m[1]!);
+    return isRecord(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function truncateCenterPreserving(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const half = Math.floor((max - 30) / 2);
+  return (
+    text.substring(0, half) +
+    "\n[...middle truncated]\n" +
+    text.substring(text.length - half)
+  );
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 function decodeHtmlEntities(text: string): string {
@@ -75,10 +129,10 @@ function decodeHtmlEntities(text: string): string {
     "&nbsp;": " ",
     "&ndash;": "–",
     "&mdash;": "—",
-    "&lsquo;": "'",
-    "&rsquo;": "'",
-    "&ldquo;": "\u201C",
-    "&rdquo;": "\u201D",
+    "&lsquo;": "‘",
+    "&rsquo;": "’",
+    "&ldquo;": "“",
+    "&rdquo;": "”",
     "&trade;": "™",
     "&reg;": "®",
     "&copy;": "©",
@@ -91,19 +145,13 @@ function decodeHtmlEntities(text: string): string {
     "&hellip;": "…",
     "&bull;": "•",
   };
-
   let result = text;
-  for (const [entity, char] of Object.entries(entities)) {
-    result = result.replaceAll(entity, char);
-  }
-
-  // Decode numeric entities (&#123; and &#x1A;)
+  for (const [e, c] of Object.entries(entities)) result = result.replaceAll(e, c);
   result = result.replace(/&#(\d+);/g, (_, dec) =>
     String.fromCharCode(parseInt(dec, 10))
   );
   result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
     String.fromCharCode(parseInt(hex, 16))
   );
-
   return result;
 }

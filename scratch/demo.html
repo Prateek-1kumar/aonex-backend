@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aonex — Platform Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#0a0b0f;--surface:#12141a;--card:#1a1d27;--border:#2a2d3a;
+    --accent:#6c63ff;--accent2:#a78bfa;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;
+    --text:#e2e8f0;--muted:#64748b;--white:#fff;
+  }
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* NAV */
+  nav{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);background:rgba(10,11,15,0.8);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;}
+  .logo{font-size:22px;font-weight:700;background:linear-gradient(135deg,#6c63ff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .badge{font-size:11px;background:rgba(108,99,255,0.15);color:var(--accent2);border:1px solid rgba(108,99,255,0.3);padding:3px 10px;border-radius:20px;font-weight:500;}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+
+  /* LAYOUT */
+  .container{max-width:1100px;margin:0 auto;padding:40px 24px;}
+  .hero{text-align:center;padding:60px 0 40px;}
+  .hero h1{font-size:48px;font-weight:700;line-height:1.15;margin-bottom:14px;background:linear-gradient(135deg,#fff 40%,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .hero p{color:var(--muted);font-size:17px;max-width:500px;margin:0 auto;}
+
+  /* GRID */
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:24px;margin-top:40px;}
+  @media(max-width:768px){.grid{grid-template-columns:1fr;}}
+  .right-col{display:flex;flex-direction:column;gap:24px;}
+
+  /* CARD */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;transition:border-color .2s;}
+  .card:hover{border-color:rgba(108,99,255,0.4);}
+  .card-header{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+  .card-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .card-title{font-size:15px;font-weight:600;}
+  .card-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+
+  /* FORM */
+  label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+  input,textarea{width:100%;background:#0f1117;border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;font-family:inherit;transition:border-color .2s;outline:none;}
+  input:focus,textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:70px;}
+  .form-group{margin-bottom:16px;}
+
+  /* BUTTONS */
+  .btn{width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;}
+  .btn-primary:hover{opacity:0.9;transform:translateY(-1px);}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent2);}
+  .btn-green{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green);}
+  .btn-green:hover{background:rgba(34,197,94,0.2);}
+  .btn-orange{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--orange);}
+  .btn-orange:hover{background:rgba(245,158,11,0.2);}
+
+  /* TOKEN DISPLAY */
+  .token-box{background:#0f1117;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11px;font-family:'Courier New',monospace;color:var(--accent2);word-break:break-all;margin-top:16px;display:none;}
+  .token-label{font-size:11px;color:var(--green);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+
+  /* RESPONSE */
+  .response-box{background:#0a0b0f;border:1px solid var(--border);border-radius:10px;padding:16px;font-size:12px;font-family:'Courier New',monospace;color:#a3e635;max-height:320px;overflow-y:auto;display:none;margin-top:16px;white-space:pre-wrap;line-height:1.6;}
+  .response-box.error{color:var(--red);}
+
+  /* PRODUCT GRID */
+  .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:16px;}
+  .product-card{background:#0f1117;border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s;}
+  .product-card:hover{border-color:rgba(108,99,255,0.4);}
+  .product-img{width:100%;height:120px;object-fit:cover;background:var(--border);}
+  .product-img-placeholder{width:100%;height:120px;background:linear-gradient(135deg,#1a1d27,#2a2d3a);display:flex;align-items:center;justify-content:center;font-size:32px;}
+  .product-info{padding:10px;}
+  .product-name{font-size:12px;font-weight:600;margin-bottom:4px;line-height:1.3;}
+  .product-price{font-size:13px;color:var(--accent2);font-weight:700;}
+  .product-status{font-size:10px;padding:2px 7px;border-radius:20px;display:inline-block;margin-top:4px;}
+  .status-active{background:rgba(34,197,94,0.1);color:var(--green);}
+  .status-archived{background:rgba(100,116,139,0.1);color:var(--muted);}
+  .status-draft{background:rgba(245,158,11,0.1);color:var(--orange);}
+
+  /* OAUTH URL */
+  .oauth-url{background:#0f1117;border:1px solid rgba(108,99,255,0.3);border-radius:10px;padding:12px;font-size:11px;word-break:break-all;color:var(--accent2);margin-top:12px;display:none;}
+  .oauth-actions{display:flex;gap:8px;margin-top:10px;}
+  .oauth-actions .btn{flex:1;padding:9px;font-size:12px;}
+
+  /* TAGS */
+  .tag{display:inline-flex;align-items:center;gap:4px;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.2);color:var(--accent2);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:500;}
+
+  /* SPINNER */
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* DIVIDER */
+  .divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+
+  /* ALERT */
+  .alert{padding:10px 14px;border-radius:10px;font-size:13px;margin-top:12px;display:none;}
+  .alert-success{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green);}
+  .alert-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--red);}
+
+  /* FACT CARD */
+  .fact-card{background:#0f1117;border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px;}
+  .fact-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);}
+  .fact-row:last-child{border-bottom:none;}
+  .fact-key{font-size:12px;color:var(--muted);font-weight:500;}
+  .fact-val{font-size:12px;color:var(--text);font-weight:600;text-align:right;max-width:60%;}
+  .fact-conf{font-size:10px;color:var(--accent2);margin-left:8px;}
+  .conf-bar{height:4px;border-radius:2px;background:rgba(108,99,255,0.2);width:60px;display:inline-block;vertical-align:middle;overflow:hidden;}
+  .conf-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Aonex</div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <span id="navStatus" style="font-size:13px;color:var(--muted);"><span class="status-dot" style="background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>Not connected</span>
+    <span class="badge">Platform Demo</span>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <h1>Aonex Platform</h1>
+    <p>Connect your Shopify store, sync products, and extract product data from any URL using AI.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT: LOGIN -->
+    <div>
+      <div class="card" id="loginCard">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(108,99,255,0.15);">🔐</div>
+          <div><div class="card-title">Merchant Login</div><div class="card-sub">Enter your credentials to get started</div></div>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" value="dev@example.com" placeholder="dev@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" value="dev@123" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary" id="loginBtn" onclick="login()">
+          <span class="spinner" id="loginSpinner"></span>
+          <span id="loginText">Login</span>
+        </button>
+        <div class="alert alert-error" id="loginError"></div>
+        <div class="token-box" id="tokenBox">
+          <div class="token-label">✅ JWT Token</div>
+          <span id="tokenDisplay"></span>
+        </div>
+      </div>
+
+      <!-- MERCHANT INFO -->
+      <div class="card" id="merchantCard" style="margin-top:20px;display:none;">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(34,197,94,0.15);">👤</div>
+          <div><div class="card-title" id="merchantName">—</div><div class="card-sub" id="merchantEmail">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
+          <div><div style="color:var(--muted);font-size:11px;margin-bottom:3px;">TENANT</div><span class="tag" id="merchantTenant">—</span></div>
+          <div><div style="color:var(--muted);font-size:11px;margin-bottom:3px;">ROLE</div><span class="tag" id="merchantRole">—</span></div>
+        </div>
+        <hr class="divider" />
+        <button class="btn btn-outline" onclick="logout()" style="font-size:13px;padding:9px;">Logout</button>
+      </div>
+    </div>
+
+    <!-- RIGHT COL -->
+    <div class="right-col">
+
+      <!-- SHOPIFY CONNECT -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(34,197,94,0.15);">🛍️</div>
+          <div><div class="card-title">Shopify Connector</div><div class="card-sub">Connect your store and fetch live products</div></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-green" style="flex:1;min-width:140px;" onclick="connectShopify()">
+            <span class="spinner" id="connectSpinner"></span>
+            <span id="connectText">⚡ Get OAuth URL</span>
+          </button>
+          <button class="btn btn-primary" style="flex:1;min-width:140px;" onclick="getProducts()">
+            <span class="spinner" id="productsSpinner"></span>
+            <span id="productsText">📦 Get Products</span>
+          </button>
+        </div>
+
+        <!-- OAUTH URL -->
+        <div class="oauth-url" id="oauthUrl"></div>
+        <div class="oauth-actions" id="oauthActions" style="display:none;">
+          <button class="btn btn-primary" onclick="openOAuth()">🔗 Open in Browser</button>
+          <button class="btn btn-outline" onclick="copyOAuth()">📋 Copy URL</button>
+        </div>
+
+        <div class="alert alert-error" id="shopifyError"></div>
+
+        <!-- PRODUCTS -->
+        <div id="productsSection" style="display:none;">
+          <hr class="divider" />
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:13px;font-weight:600;">Live Products</span>
+            <span class="tag" id="productCount">0 products</span>
+          </div>
+          <div class="product-grid" id="productGrid"></div>
+        </div>
+      </div>
+
+      <!-- LINK PARSER -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(245,158,11,0.15);">🤖</div>
+          <div><div class="card-title">AI Link Parser</div><div class="card-sub">Extract product data from any URL using LLM</div></div>
+        </div>
+        <div class="form-group">
+          <label>Product URL</label>
+          <input type="url" id="parseUrl" placeholder="https://www.yourstore.com/products/some-product" />
+        </div>
+        <div class="form-group">
+          <label>Category Hint (optional)</label>
+          <input type="text" id="categoryHint" placeholder="e.g. snowboard, electronics, clothing" />
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-orange" style="flex:1;" onclick="submitParse()">
+            <span class="spinner" id="parseSpinner"></span>
+            <span id="parseText">📤 Import Link</span>
+          </button>
+          <button class="btn btn-outline" style="flex:1;" onclick="submitParse()">
+            <span class="spinner" id="submitSpinner"></span>
+            <span id="submitText">📤 Queue (Async)</span>
+          </button>
+        </div>
+        <div class="alert alert-error" id="parseError"></div>
+        <div class="alert alert-success" id="parseSuccess"></div>
+
+        <!-- EXTRACTED FACTS -->
+        <div id="factsSection" style="display:none;margin-top:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Extracted Facts</div>
+          <div class="fact-card" id="factsCard"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// Empty string = same origin (works when served from /demo on the server)
+// Falls back to localhost:8787 if opened as file://
+const BASE = window.location.protocol === 'file:' ? 'http://localhost:8787' : '';
+let token = null;
+let oauthUrlValue = null;
+
+// ── UTILS ────────────────────────────────────────────────────────────────
+function setLoading(id, loading) {
+  document.getElementById(id + 'Spinner').style.display = loading ? 'inline-block' : 'none';
+}
+function showAlert(id, msg, type = 'error') {
+  const el = document.getElementById(id);
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 5000);
+}
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts.headers };
+  const res = await fetch(BASE + path, { ...opts, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || data?.error?.code || 'Request failed');
+  return data;
+}
+function updateNav(loggedIn, name) {
+  const el = document.getElementById('navStatus');
+  if (loggedIn) {
+    el.innerHTML = `<span class="status-dot"></span>${name}`;
+  } else {
+    el.innerHTML = `<span class="status-dot" style="background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>Not connected`;
+  }
+}
+
+// ── AUTH ─────────────────────────────────────────────────────────────────
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  setLoading('login', true);
+  document.getElementById('loginText').textContent = 'Logging in…';
+  document.getElementById('loginBtn').disabled = true;
+  try {
+    const data = await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    token = data.data.token;
+    document.getElementById('tokenDisplay').textContent = token;
+    document.getElementById('tokenBox').style.display = 'block';
+
+    // Load profile
+    const me = await api('/api/auth/me');
+    const m = me.data;
+    document.getElementById('merchantName').textContent = m.displayName;
+    document.getElementById('merchantEmail').textContent = m.email;
+    document.getElementById('merchantTenant').textContent = m.tenantName;
+    document.getElementById('merchantRole').textContent = m.role;
+    document.getElementById('merchantCard').style.display = 'block';
+    updateNav(true, m.displayName);
+  } catch (e) {
+    showAlert('loginError', e.message);
+  } finally {
+    setLoading('login', false);
+    document.getElementById('loginText').textContent = 'Login';
+    document.getElementById('loginBtn').disabled = false;
+  }
+}
+
+async function logout() {
+  try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
+  token = null;
+  document.getElementById('tokenBox').style.display = 'none';
+  document.getElementById('merchantCard').style.display = 'none';
+  document.getElementById('productsSection').style.display = 'none';
+  document.getElementById('oauthUrl').style.display = 'none';
+  document.getElementById('oauthActions').style.display = 'none';
+  updateNav(false);
+}
+
+// ── SHOPIFY ───────────────────────────────────────────────────────────────
+async function connectShopify() {
+  if (!token) { showAlert('shopifyError', 'Please login first'); return; }
+  setLoading('connect', true);
+  document.getElementById('connectText').textContent = 'Getting URL…';
+  try {
+    const data = await api('/api/marketplaces/shopify/connect', { method: 'POST' });
+    oauthUrlValue = data.data.url;
+    const urlEl = document.getElementById('oauthUrl');
+    urlEl.textContent = oauthUrlValue;
+    urlEl.style.display = 'block';
+    document.getElementById('oauthActions').style.display = 'flex';
+  } catch (e) {
+    showAlert('shopifyError', e.message);
+  } finally {
+    setLoading('connect', false);
+    document.getElementById('connectText').textContent = '⚡ Get OAuth URL';
+  }
+}
+
+function openOAuth() { if (oauthUrlValue) window.open(oauthUrlValue, '_blank'); }
+function copyOAuth() {
+  if (oauthUrlValue) {
+    navigator.clipboard.writeText(oauthUrlValue);
+    document.getElementById('connectText').textContent = '✅ Copied!';
+    setTimeout(() => document.getElementById('connectText').textContent = '⚡ Get OAuth URL', 2000);
+  }
+}
+
+async function getProducts() {
+  if (!token) { showAlert('shopifyError', 'Please login first'); return; }
+  setLoading('products', true);
+  document.getElementById('productsText').textContent = 'Fetching…';
+  try {
+    const data = await api('/api/marketplaces/shopify/products');
+    const products = data.data;
+    document.getElementById('productCount').textContent = `${products.length} products`;
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = products.map(p => {
+      const raw = p.raw;
+      const price = raw.variants?.[0]?.price ?? '—';
+      const inv = raw.variants?.[0]?.inventory_quantity ?? 0;
+      const imgSrc = raw.image?.src;
+      const statusClass = raw.status === 'active' ? 'status-active' : raw.status === 'draft' ? 'status-draft' : 'status-archived';
+      return `
+        <div class="product-card">
+          ${imgSrc
+            ? `<img class="product-img" src="${imgSrc}" alt="${raw.title}" onerror="this.style.display='none'" />`
+            : `<div class="product-img-placeholder">📦</div>`}
+          <div class="product-info">
+            <div class="product-name">${raw.title}</div>
+            <div class="product-price">$${price}</div>
+            <span class="product-status ${statusClass}">${raw.status}</span>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;">Stock: ${inv}</div>
+          </div>
+        </div>`;
+    }).join('');
+    document.getElementById('productsSection').style.display = 'block';
+  } catch (e) {
+    showAlert('shopifyError', e.message);
+  } finally {
+    setLoading('products', false);
+    document.getElementById('productsText').textContent = '📦 Get Products';
+  }
+}
+
+// ── LINK PARSER ───────────────────────────────────────────────────────────
+async function submitParse() {
+  if (!token) { showAlert('parseError', 'Please login first'); return; }
+  const url = document.getElementById('parseUrl').value;
+  const hint = document.getElementById('categoryHint').value;
+  if (!url) { showAlert('parseError', 'Enter a URL first'); return; }
+  setLoading('submit', true);
+  document.getElementById('submitText').textContent = 'Queueing…';
+  try {
+    const body = { url };
+    if (hint) body.category_hint = hint;
+    const data = await api('/api/ingestions/link', { method: 'POST', body: JSON.stringify(body) });
+    showAlert('parseSuccess', `✅ Queued! Job ID: ${data.data?.ingestion_id ?? 'unknown'}`, 'success');
+  } catch (e) {
+    showAlert('parseError', e.message);
+  } finally {
+    setLoading('submit', false);
+    document.getElementById('submitText').textContent = '📤 Queue (Async)';
+  }
+}
+
+// Auto-login on Enter
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && !token) login(); });
+</script>
+</body>
+</html>

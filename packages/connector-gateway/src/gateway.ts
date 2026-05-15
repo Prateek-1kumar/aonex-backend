@@ -5,14 +5,10 @@
 // right adapter. Callers never see adapters, tokens, or Nango internals.
 //
 // Swapping Nango for custom OAuth = change the nango dep only.
-// Adding Amazon = add AmazonAdapter + one case in getAdapter().
+// Adding Amazon = register AmazonAdapter in marketplaceAdapters.
 
-import { and, eq } from 'drizzle-orm';
-import { schema } from '@aonex/db';
-import type { DrizzleClient } from '@aonex/db';
 import { GatewayError, type MerchantId, type Marketplace, type TenantId, type ConnectionId } from '@aonex/types';
-import type { NangoConnectorAdapter } from './adapters/nango/adapter.js';
-import { ShopifyAdapter, type ConnectionContext, type ProviderProduct } from './adapters/shopify/adapter.js';
+import type { ConnectionContext, MarketplaceLiveAdapter, ProviderProduct } from './adapters/shopify/adapter.js';
 import type {
   InventoryRecord,
   OAuthUrlResult,
@@ -27,11 +23,32 @@ import type {
   TokenHealthResult
 } from './contract/index.js';
 
+export interface ConnectionLifecycleAdapter {
+  createConnectSession(input: CreateConnectSessionInput): Promise<ConnectSessionToken>;
+  getConnection(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<ConnectionDescriptor | null>;
+  listConnections(input: { merchantId: MerchantId }): Promise<readonly ConnectionDescriptor[]>;
+  revoke(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<void>;
+  refreshTokenHealth(input: { connectionId: ConnectionId; marketplace: Marketplace }): Promise<TokenHealthResult>;
+  verifyAndParseWebhook(input: VerifyAndParseInput): Promise<VerifyAndParseResult>;
+  drainProducts(
+    input: { merchantId: MerchantId; marketplace: Marketplace },
+    opts?: DrainOptions
+  ): AsyncIterable<CanonicalProductRecord[]>;
+  getSyncStatus(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<SyncStatus>;
+}
+
+export interface ConnectionLookupAdapter {
+  byMerchantMarketplace(input: {
+    merchantId: MerchantId;
+    marketplace: Marketplace;
+  }): Promise<{ tenantId: TenantId; connectionId: ConnectionId } | null>;
+}
+
 export interface ConnectorGatewayDeps {
-  db: DrizzleClient;
+  lookup: ConnectionLookupAdapter;
   /** Nango-backed adapter for session creation, drain, webhook verification */
-  nango: Pick<NangoConnectorAdapter, 'createConnectSession' | 'getConnection' | 'listConnections' | 'revoke' | 'refreshTokenHealth' | 'verifyAndParseWebhook' | 'drainProducts' | 'getSyncStatus'>;
-  shopify: ShopifyAdapter;
+  nango: ConnectionLifecycleAdapter;
+  marketplaceAdapters: Partial<Record<Marketplace, MarketplaceLiveAdapter>>;
 }
 
 export class ConnectorGateway {
@@ -39,39 +56,27 @@ export class ConnectorGateway {
 
   // ── Adapter resolution (internal only) ────────────────────────────────
 
-  private getAdapter(marketplace: Marketplace): ShopifyAdapter {
-    switch (marketplace) {
-      case 'shopify':
-        return this.deps.shopify;
-      default:
-        throw new GatewayError('validation_failed', 'UNSUPPORTED_MARKETPLACE');
+  private getAdapter(marketplace: Marketplace): MarketplaceLiveAdapter {
+    const adapter = this.deps.marketplaceAdapters[marketplace];
+    if (!adapter) {
+      throw new GatewayError('validation_failed', 'UNSUPPORTED_MARKETPLACE');
     }
+    return adapter;
   }
 
   // ── Connection context ────────────────────────────────────────────────
 
   async loadConnection(merchantId: MerchantId, marketplace: Marketplace): Promise<ConnectionContext> {
-    const rows = await this.deps.db
-      .select()
-      .from(schema.marketplaceConnections)
-      .where(
-        and(
-          eq(schema.marketplaceConnections.merchantId, merchantId),
-          eq(schema.marketplaceConnections.marketplace, marketplace)
-        )
-      )
-      .limit(1);
-
-    const row = rows[0];
-    if (!row) {
+    const connection = await this.deps.lookup.byMerchantMarketplace({ merchantId, marketplace });
+    if (!connection) {
       throw new GatewayError('connection_not_found', `No connection for merchant=${merchantId} marketplace=${marketplace}`);
     }
 
     return {
-      tenantId: row.tenantId,
-      merchantId: row.merchantId as MerchantId,
-      marketplace: row.marketplace,
-      connectionId: row.providerConnectionId
+      tenantId: connection.tenantId,
+      merchantId,
+      marketplace,
+      connectionId: connection.connectionId
     };
   }
 
