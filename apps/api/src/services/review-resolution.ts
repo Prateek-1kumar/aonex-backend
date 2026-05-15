@@ -239,17 +239,53 @@ export async function rejectTask(
     failureId = row!.id;
   }
 
-  if (task.proposedDiffId) {
-    await ctx.db
-      .update(schema.proposedDiffs)
-      .set({ status: "rejected" })
-      .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
-  }
-
+  // Mark task resolved. Note: we DON'T flip the diff to 'rejected' here —
+  // per-task reject is task-scoped (dismiss this signal, log for learning),
+  // not product-scoped (kill the entire diff). Killing the diff is an
+  // explicit action via cluster-level reject_all.
+  //
+  // Why this matters: real ingestions typically produce 4-5 review tasks;
+  // at least one is usually a "this looks wrong, dismiss it" signal. Without
+  // this decoupling, a single per-task reject in any pane stops the product
+  // from ever reaching the catalog, even when the user fixed everything else.
   await ctx.db
     .update(schema.reviewTasks)
     .set({ status: "resolved", resolutionNotes: note ?? null, updatedAt: new Date() })
     .where(eq(schema.reviewTasks.id, taskId));
+
+  // If this was the LAST open task on the diff and the diff is still
+  // approvable, materialize now — same logic as editAndApprove. Rehydrate
+  // fallback covers any field this signal would have populated.
+  if (task.proposedDiffId) {
+    const diffNow = await ctx.db.query.proposedDiffs.findFirst({
+      where: (d, { eq }) => eq(d.id, task.proposedDiffId),
+    });
+    const otherOpen = await ctx.db.query.reviewTasks.findMany({
+      where: (t, { and, eq, ne }) =>
+        and(
+          eq(t.proposedDiffId, task.proposedDiffId),
+          eq(t.status, "open"),
+          ne(t.id, taskId)
+        ),
+    });
+    const isApprovable =
+      diffNow && (diffNow.status === "open" || diffNow.status === "pending");
+    if (isApprovable && otherOpen.length === 0) {
+      try {
+        await applyApprovedDiff({
+          db: ctx.db,
+          diffId: task.proposedDiffId,
+          actorId: ctx.reviewerId,
+          approvalStatus: "approved",
+        });
+      } catch {
+        // applyApprovedDiff throws when critical fields are missing AND
+        // not recoverable from extracted_facts. Leave the diff as-is so an
+        // admin can investigate; the failure row above already logged the
+        // signal, so the learning loop still benefits.
+      }
+    }
+  }
 
   return { failureId };
 }
