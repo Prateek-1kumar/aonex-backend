@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@aonex/audit": "workspace:*",
+    "@aonex/catalog-service": "workspace:*",
     "@aonex/connector-gateway": "workspace:*",
     "@aonex/db": "workspace:*",
     "@aonex/ingestion-link-fetcher": "workspace:*",

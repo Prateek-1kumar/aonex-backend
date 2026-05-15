@@ -1,0 +1,13 @@
+{
+  "name": "@aonex/ingestion-structured",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc -b", "typecheck": "tsc --noEmit", "lint": "eslint src/" },
+  "dependencies": {
+    "@aonex/types": "workspace:*",
+    "@aonex/ingestion-field-extractor": "workspace:*"
+  }
+}

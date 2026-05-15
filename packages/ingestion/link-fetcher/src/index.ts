@@ -4,6 +4,8 @@ export { cleanHtml } from "./html-cleaner.js";
 export {
   type LinkFetchOptions,
   type LinkFetchResult,
+  type StructuredBlocks,
+  type CleanResult,
   LinkFetchError,
   DEFAULT_FETCH_OPTIONS,
 } from "./types.js";

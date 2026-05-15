@@ -1,0 +1,52 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [main, feature/connector]
+
+env:
+  REGISTRY: ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io
+  IMAGE_NAME: aonex-api
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} .
+          docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroup: aonex-rg
+          containerAppName: aonex-api
+          imageToDeploy: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          environmentVariables: |
+            NODE_ENV=production
+            PORT=8787
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            NANGO_SECRET_KEY=${{ secrets.NANGO_SECRET_KEY }}
+            NANGO_HOST=https://api.nango.dev
+            NANGO_CONNECT_BASE_URL=https://connect.nango.dev
+            NANGO_WEBHOOK_SECRET=${{ secrets.NANGO_WEBHOOK_SECRET }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            TOKEN_ENCRYPTION_KEY=${{ secrets.TOKEN_ENCRYPTION_KEY }}

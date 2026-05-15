@@ -56,6 +56,7 @@ export interface LLMRawProductOutput {
     option_values?: Record<string, string>;
     inventory_quantity?: number;
   }>;
+  _field_confidence?: Record<string, number>;
 }
 
 /** Extractor version identifier — bump when prompt or parsing logic changes. */
@@ -67,3 +68,26 @@ export const DEFAULT_LLM_OPTIONS: Required<LLMExtractionOptions> = {
   temperature: 0.1,
   categoryHint: "",
 };
+
+export interface LLMGapFillOptions extends LLMExtractionOptions {
+  /** The rawKeys that are missing and need to be filled by the LLM. */
+  gaps: string[];
+  /** Already-extracted structured facts to anchor the LLM on. */
+  structuredFacts: { rawKey: string; value: unknown; source: string }[];
+  /** Optional category candidates for prompting context. */
+  categoryCandidates?: string[];
+}
+
+export interface PromptBuildParams {
+  cleanedText: string;
+  url: string;
+  /** Pre-extracted facts to anchor the LLM on. LLM must not override these unless flagged. */
+  structuredFacts?: { rawKey: string; value: unknown; source: string }[];
+  /** When set, LLM fills ONLY these field rawKeys. */
+  gaps?: string[];
+  /** Categories from category_schemas (replaces hardcoded LAUNCH_CATEGORIES). */
+  categoryCandidates?: string[];
+  /** Category-required attributes for the (suspected) category, for prompting context. */
+  categoryRequiredAttributes?: string[];
+  categoryHint?: string;
+}
