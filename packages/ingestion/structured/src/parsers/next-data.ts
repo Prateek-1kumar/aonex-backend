@@ -174,6 +174,7 @@ function makeFact(
     confidence: BASELINE_CONFIDENCE,
     mappingMethod: null,
     mappingCandidates: null,
+    sourceAlternatives: null,
     approved: false,
   };
 }

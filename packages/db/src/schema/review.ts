@@ -27,9 +27,11 @@ export const reviewTasks = pgTable(
     merchantId: uuid("merchant_id")
       .notNull()
       .references(() => merchants.id, { onDelete: "restrict" }),
-    proposedDiffId: uuid("proposed_diff_id")
-      .notNull()
-      .references(() => proposedDiffs.id, { onDelete: "cascade" }),
+    // Nullable: failure review_tasks (fetch_failed, captcha_wall, etc.) exist
+    // before any proposed_diff is created. Only present for content-route tasks.
+    proposedDiffId: uuid("proposed_diff_id").references(() => proposedDiffs.id, {
+      onDelete: "cascade"
+    }),
     artifactId: uuid("artifact_id"),
     /**
      * "category_unmatched" | "low_confidence" | "dedupe_conflict" | "schema_violation"

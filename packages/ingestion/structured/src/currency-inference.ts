@@ -58,6 +58,7 @@ export function inferCurrency(
     confidence: INFERENCE_CONFIDENCE,
     mappingMethod: null,
     mappingCandidates: null,
+    sourceAlternatives: null,
     approved: false,
   };
 }

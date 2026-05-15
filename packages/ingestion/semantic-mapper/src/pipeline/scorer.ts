@@ -39,18 +39,33 @@ export function computeScore(components: Omit<CandidateScore, "total">): Candida
 
 /**
  * HLD §10.4 — decision thresholds for mapping approval.
- * ≥ 0.92 → auto-approved, mapping_method='auto'
- * 0.80 – 0.92 → approved with warning flag
- * 0.60 – 0.80 → suggestion (top-3 candidates in mapping_candidates)
- * < 0.60 → unmapped → merchant_extensions_json or review queue
+ *
+ * Thresholds are calibrated against the actual reachable score ranges given
+ * the Phase-2 weights above (embedding = 0, tenantCorrection often 0). With
+ * those weights, max achievable score by signal type:
+ *
+ *   channel-mapping winner + perfect compats : 0.40 + 0.10 + 0.07 + 0.06 = 0.63
+ *   synonym winner + perfect compats         : 0.18 + 0.10 + 0.07 + 0.06 = 0.41
+ *   synonym winner + weak compats (no attr)  : 0.18 + 0.05 + 0.035 + 0.03 ≈ 0.30
+ *
+ *   ≥ 0.55 → auto-approved, mapping_method='auto'        (channel-mapping wins cleanly)
+ *   0.40 – 0.55 → suggestion (synonym wins with good compats — needs human OK)
+ *   0.25 – 0.40 → suggestion (synonym wins with weak compats — review)
+ *   < 0.25 → unmapped → merchant_extensions_json or review queue
+ *
+ * Phase 3 (pgvector embedding live) will reintroduce higher thresholds.
  */
+const NO_WARNING_THRESHOLD = 0.55;
+const WARNING_THRESHOLD = 0.45;
+export const SUGGESTION_THRESHOLD = 0.25;
+
 export function resolveApproval(score: number): {
   approved: boolean;
   mappingMethod: string;
   warning: boolean;
 } {
-  if (score >= 0.92) return { approved: true, mappingMethod: "auto", warning: false };
-  if (score >= 0.80) return { approved: true, mappingMethod: "auto", warning: true };
-  if (score >= 0.60) return { approved: false, mappingMethod: "suggestion", warning: false };
+  if (score >= NO_WARNING_THRESHOLD) return { approved: true, mappingMethod: "auto", warning: false };
+  if (score >= WARNING_THRESHOLD) return { approved: true, mappingMethod: "auto", warning: true };
+  if (score >= SUGGESTION_THRESHOLD) return { approved: false, mappingMethod: "suggestion", warning: false };
   return { approved: false, mappingMethod: "unmapped", warning: false };
 }

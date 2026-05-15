@@ -34,6 +34,7 @@ export function parseMicrodata(html: string): ParserOutput {
       confidence: BASELINE_CONFIDENCE,
       mappingMethod: null,
       mappingCandidates: null,
+      sourceAlternatives: null,
       approved: false,
     });
   };

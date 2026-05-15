@@ -21,6 +21,7 @@ import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-ext
 import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
 import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
+import { emitFailureReviewTask } from "../services/emit-failure-review-task.js";
 
 export interface LinkExtractJobData {
   tenantId: TenantId;
@@ -49,9 +50,10 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       const errorMessage = err instanceof Error
         ? err.message
         : `Fetch failed: ${String(err)}`;
+      const statusCode = err instanceof LinkFetchError ? err.statusCode ?? null : null;
 
       // Persist a failed source_artifact for audit trail
-      await deps.db.insert(schema.sourceArtifacts).values({
+      const [failedArtifact] = await deps.db.insert(schema.sourceArtifacts).values({
         tenantId,
         merchantId,
         sourceType: "link_url",
@@ -60,7 +62,9 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         checksum: sha256Hex(url + errorMessage),
         status: "failed",
         processingErrors: [{ step: "fetch", error: errorMessage }],
-      }).onConflictDoNothing();
+      })
+        .onConflictDoNothing()
+        .returning({ id: schema.sourceArtifacts.id });
 
       await deps.audit.emit({
         tenantId,
@@ -70,10 +74,24 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         entityType: "source_artifact",
         entityId: url,
         requestId,
-        metadata: { url, error: errorMessage },
+        metadata: { url, error: errorMessage, statusCode },
       });
 
-      throw new Error(errorMessage);
+      // Surface in Anomaly Lab so the user sees blocked URLs instead of silence.
+      await emitFailureReviewTask({
+        db: deps.db,
+        tenantId,
+        merchantId,
+        artifactId: (failedArtifact?.id as ArtifactId | undefined) ?? null,
+        signalKind: "fetch_failed",
+        url,
+        reasonText: errorMessage,
+        evidence: { statusCode, errorMessage },
+      });
+
+      // BullMQ retries on throw. Once a review task is logged, we don't want
+      // to re-attempt indefinitely — exit cleanly so the failure stays visible.
+      return;
     }
 
     // ── Step 2: Persist source_artifact (evidence first) ────────────
@@ -111,6 +129,17 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         entityId: url,
         requestId,
         metadata: { url, checksum: fetchResult.contentChecksum },
+      });
+
+      await emitFailureReviewTask({
+        db: deps.db,
+        tenantId,
+        merchantId,
+        artifactId: null,
+        signalKind: "artifact_duplicate",
+        url: fetchResult.finalUrl,
+        reasonText: "URL already ingested with identical content checksum",
+        evidence: { checksum: fetchResult.contentChecksum, finalUrl: fetchResult.finalUrl },
       });
       return;
     }
@@ -162,6 +191,20 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         entityId: artifactId,
         requestId,
         metadata: { url: fetchResult.finalUrl },
+      });
+
+      await emitFailureReviewTask({
+        db: deps.db,
+        tenantId,
+        merchantId,
+        artifactId,
+        signalKind: "captcha_wall",
+        url: fetchResult.finalUrl,
+        reasonText: "Page served a CAPTCHA / bot-wall instead of product data",
+        evidence: {
+          bodyLength: fetchResult.rawHtml.length,
+          statusCode: fetchResult.statusCode,
+        },
       });
       return;
     }
@@ -251,6 +294,21 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         entityId: artifactId,
         requestId,
         metadata: { url, model: llmMeta.modelName, cost: llmMeta.estimatedCostUsd },
+      });
+
+      await emitFailureReviewTask({
+        db: deps.db,
+        tenantId,
+        merchantId,
+        artifactId,
+        signalKind: "no_data_extracted",
+        url: fetchResult.finalUrl,
+        reasonText: "Parsers and LLM both returned zero product facts",
+        evidence: {
+          model: llmMeta.modelName,
+          estimatedCostUsd: llmMeta.estimatedCostUsd,
+          structuredFactsCount: 0,
+        },
       });
       return;
     }

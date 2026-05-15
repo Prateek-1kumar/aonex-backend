@@ -40,6 +40,7 @@ export function parseOpenGraph(html: string): ParserOutput {
       confidence: BASELINE_CONFIDENCE,
       mappingMethod: null,
       mappingCandidates: null,
+      sourceAlternatives: null,
       approved: false,
     });
   }

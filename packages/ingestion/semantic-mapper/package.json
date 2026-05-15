@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": { ".": "./src/index.ts" },
-  "scripts": { "build": "tsc -b", "typecheck": "tsc --noEmit", "lint": "eslint src/" },
+  "scripts": { "build": "tsc -b", "typecheck": "tsc --noEmit", "test": "bun test", "lint": "eslint src/" },
   "dependencies": {
     "@aonex/db": "workspace:*",
     "@aonex/ingestion-field-extractor": "workspace:*"

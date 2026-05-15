@@ -439,6 +439,7 @@ async function persistFacts(
       confidence: String(Math.max(0, Math.min(1, fact.confidence))),
       mappingMethod: fact.mappingMethod,
       mappingCandidates: fact.mappingCandidates,
+      sourceAlternatives: fact.sourceAlternatives,
       approved: fact.approved,
     }))
   );
