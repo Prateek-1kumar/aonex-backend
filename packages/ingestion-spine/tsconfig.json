@@ -3,6 +3,8 @@
   "compilerOptions": { "outDir": "dist", "rootDir": "src" },
   "include": ["src/**/*"],
   "references": [
-    { "path": "../ingestion/semantic-mapper" }
+    { "path": "../ingestion/semantic-mapper" },
+    { "path": "../ingestion/policy-engine" },
+    { "path": "../catalog/catalog-service" }
   ]
 }

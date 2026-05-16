@@ -35,14 +35,26 @@ function makeFactSet(): ExtractedFactSet {
 function makeMockDb(
   overrides: Array<{ tenantId: string; merchantId: string | null; sourceKey: string; canonicalKey: string; priority: number }> = []
 ) {
+  // Each call to select() returns a builder. The builder's from() method:
+  //   - for mapping_overrides: returns an object with a where() that resolves to the overrides list
+  //   - for other tables: resolves directly to []
+  // The real drizzle chain is: db.select().from(table) → then optionally .where(cond) → Promise
+  // We handle both with and without .where() chaining.
+  const makeFromResult = (rows: Array<unknown>) => {
+    const thenable = Object.assign(Promise.resolve(rows), {
+      where: (_condition: unknown) => Promise.resolve(rows)
+    });
+    return thenable;
+  };
+
   return {
     select: () => ({
       from: (table: unknown) => {
-        // Return override rows for mappingOverrides, empty for others
-        if (table && (table as { _: { name: string } })?._?.name === "mapping_overrides") {
-          return { where: (_condition: unknown) => Promise.resolve(overrides) };
+        const tableName = (table as { _?: { name?: string } } | undefined)?._?.name ?? "";
+        if (tableName === "mapping_overrides") {
+          return makeFromResult(overrides);
         }
-        return Promise.resolve([]);
+        return makeFromResult([]);
       }
     })
   };
