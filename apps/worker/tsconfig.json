@@ -13,6 +13,8 @@
     { "path": "../../packages/ingestion/llm-extractor" },
     { "path": "../../packages/ingestion/semantic-mapper" },
     { "path": "../../packages/ingestion/policy-engine" },
-    { "path": "../../packages/catalog/catalog-service" }
+    { "path": "../../packages/catalog/catalog-service" },
+    { "path": "../../packages/ingestion-spine" },
+    { "path": "../../packages/link-adapter" }
   ]
 }
