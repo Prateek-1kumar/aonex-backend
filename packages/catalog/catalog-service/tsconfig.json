@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
   "references": [
     { "path": "../../db" },
-    { "path": "../../lib-utils" }
+    { "path": "../../lib-utils" },
+    { "path": "../../schema-validator" }
   ]
 }
