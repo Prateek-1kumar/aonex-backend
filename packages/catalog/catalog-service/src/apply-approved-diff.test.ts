@@ -300,5 +300,7 @@ describe("applyApprovedDiff — Phase 1 canonical schema", () => {
     expect(result.productVersionId).toBe("ver-existing");
     expect(result.createdVersion).toBe(false);
     expect(db._insertedVersions).toHaveLength(0);
+    expect(db._diffUpdates).toHaveLength(0);
+    expect(db._insertedReviewTasks).toHaveLength(0);
   });
 });
