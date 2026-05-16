@@ -97,6 +97,7 @@
       "dependencies": {
         "@aonex/db": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
+        "@aonex/schema-validator": "workspace:*",
         "drizzle-orm": "^0.36.4",
       },
     },
