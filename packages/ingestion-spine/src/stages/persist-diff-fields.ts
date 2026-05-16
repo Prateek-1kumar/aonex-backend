@@ -9,6 +9,13 @@ export interface PersistDiffFieldsInput {
 }
 
 /**
+ * When the canonical payload has a field but no mapped fact provides
+ * a confidence for it, we use 0.6 — high enough to display but well
+ * below the 0.9 auto-approve threshold. Matches legacy link-catalog-pipeline.
+ */
+const FIELD_CONFIDENCE_FALLBACK = 0.6;
+
+/**
  * The set of canonical fields the reviewer UI surfaces per-diff. Matches the
  * keys legacy persistProposedDiffFields() in link-catalog-pipeline.ts wrote
  * out. Anything outside this list is ignored (variant sub-facts, evidence
@@ -56,7 +63,7 @@ export async function persistDiffFields(input: PersistDiffFieldsInput): Promise<
   for (const fieldName of KNOWN_FIELD_KEYS) {
     const newValue = input.payload[fieldName];
     if (newValue == null) continue;
-    const confidence = factConfidence.get(fieldName) ?? 0.6;
+    const confidence = factConfidence.get(fieldName) ?? FIELD_CONFIDENCE_FALLBACK;
     rows.push({
       diffId: input.diffId,
       fieldName,

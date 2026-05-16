@@ -117,24 +117,17 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     };
   }
 
-  // 5. score — also need active policy + domain profile for downstream
-  // detectors and the audit trail.
+  // 5. score — also need active policy for downstream detectors.
   const policyRow = await ensureActivePolicy(input.db);
-  const profile = await input.db.query.domainProfiles.findFirst({
-    where: (p, { eq }) => eq(p.domainPattern, domainOf(input.envelope.sourceExternalId))
-  });
-  const sourceReliability =
-    profile?.avgConfidence != null
-      ? Math.max(0, Math.min(1, Number(profile.avgConfidence)))
-      : 0.65;
-  // Preserved for the audit trail; future detectors will consume it.
-  void sourceReliability;
+  // TODO(phase-3): load domain_profiles row and pass sourceReliability to runScore.
+  // The detector that consumes it (source-reliability) isn't wired yet.
 
   const decision = await runScore({
     db: input.db,
     tenantId: input.tenantId,
     mappedFactSet: mapped,
     attributes: validateResult.attributes,
+    // TODO(phase-3): wire categoryConfidence from category-detector — currently 0.0 hardcoded
     categoryConfidence: 0.0,
     domain: domainOf(input.envelope.sourceExternalId),
     categoryRequiredAttributes: validateResult.requiredAttributes
@@ -151,7 +144,8 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
   meta.factSetId = await persistFactSet(input, persisted.artifactId, meta.extractionRunId);
   await persistFacts(input, meta.factSetId, mapped.facts);
 
-  // Title-presence gate (legacy parity — no title → never auto-approve)
+  // Auto-approve requires a title — applyApprovedDiff throws on missing title,
+  // so auto-approving without one would crash the worker (legacy parity).
   const titlePresent = Boolean(validateResult.attributes.title);
   const shouldAutoApprove = decision.route === "auto_approve" && titlePresent;
 
@@ -169,6 +163,7 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
       attributes: validateResult.attributes,
       canonicalCategory: mapped.categoryPath,
       categorySchemaVersion: validateResult.categorySchemaVersion,
+      // TODO(phase-3): wire categoryConfidence from category-detector — currently 0.0 hardcoded
       categoryConfidence: 0.0,
       evidence: decision.evidence
     }
@@ -176,20 +171,45 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
   meta.proposedDiffId = diff.diffId;
   await emitStageAudit(input.audit, "diff", meta, { created: diff.created });
 
-  // Per-field detail — only when this diff was newly created (idempotency:
-  // a retry hitting the unique index must not double-write field rows).
-  if (diff.created) {
-    await persistDiffFields({
-      db: input.db,
-      diffId: diff.diffId,
-      payload: {
-        ...validateResult.attributes,
-        canonicalCategory: mapped.categoryPath,
-        attributes: validateResult.attributes
-      },
-      facts: mapped.facts
-    });
+  // Idempotency: the diff already existed (retry path). Skip re-inserting
+  // per-field rows and review_tasks (they were written on the first run).
+  // We still call runApprove on the auto-approve branch to fetch the
+  // product/version IDs the legacy callers depend on — it's a cheap lookup
+  // thanks to applyApprovedDiff's existingVersion early-return.
+  if (!diff.created) {
+    if (shouldAutoApprove) {
+      const approved = await runApprove({ db: input.db, diffId: diff.diffId });
+      meta.productId = approved.productId;
+      meta.productVersionId = approved.productVersionId;
+      await emitStageAudit(input.audit, "approve", meta, { idempotent: true });
+      return {
+        status: "approved",
+        productId: approved.productId,
+        productVersionId: approved.productVersionId,
+        confidenceScore: decision.score
+      };
+    }
+    return {
+      status: "review",
+      proposedDiffId: diff.diffId,
+      reasons: decision.reviewTasks.map((t) => t.signalKind),
+      confidenceScore: decision.score
+    };
   }
+
+  // After this point we know diff was newly created.
+
+  // Per-field detail rows for the reviewer UI.
+  await persistDiffFields({
+    db: input.db,
+    diffId: diff.diffId,
+    payload: {
+      ...validateResult.attributes,
+      canonicalCategory: mapped.categoryPath,
+      attributes: validateResult.attributes
+    },
+    facts: mapped.facts
+  });
 
   // 7. approve OR review
   if (shouldAutoApprove) {
@@ -206,23 +226,22 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
   }
 
   // Review path — write review_tasks rows for each detector signal (legacy
-  // parity). Only on first insert so retries don't duplicate the cluster.
-  if (diff.created) {
-    for (const signal of decision.reviewTasks) {
-      await input.db.insert(schema.reviewTasks).values({
-        tenantId: input.tenantId,
-        merchantId: input.merchantId,
-        proposedDiffId: diff.diffId,
-        artifactId: persisted.artifactId,
-        taskType: signal.signalKind, // dual-write to legacy column
-        signalKind: signal.signalKind,
-        signalPayload: signal.payload as Record<string, unknown>,
-        clusterKey: clusterKey(signal),
-        fieldName: signal.fieldName ?? null,
-        severity: signal.severity,
-        policyVersionId: policyRow.id
-      });
-    }
+  // parity). Guarded by the early-return above, so these are always new rows.
+  for (const signal of decision.reviewTasks) {
+    await input.db.insert(schema.reviewTasks).values({
+      tenantId: input.tenantId,
+      merchantId: input.merchantId,
+      proposedDiffId: diff.diffId,
+      artifactId: persisted.artifactId,
+      // TODO(phase-3): drop taskType once readers migrate to signal_kind
+      taskType: signal.signalKind,            // dual-write
+      signalKind: signal.signalKind,
+      signalPayload: signal.payload as Record<string, unknown>,
+      clusterKey: clusterKey(signal),
+      fieldName: signal.fieldName ?? null,
+      severity: signal.severity,
+      policyVersionId: policyRow.id
+    });
   }
 
   return {
