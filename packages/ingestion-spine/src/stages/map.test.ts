@@ -79,8 +79,12 @@ describe("runMap", () => {
     expect(result.original).toBe(factSet);
   });
 
-  it("excludes override rows whose merchantId does not match input merchantId", async () => {
-    // Include one matching and one non-matching override
+  it("loads corpus from DB and runs semanticMap without error when overrides are filtered (smoke)", async () => {
+    // Include one matching and one non-matching override to exercise the
+    // merchantId filter in loadMapperCorpus.
+    // The merchantId filter (o.merchantId === merchantId) is exercised here; to
+    // assert the exclusion directly would require intercepting semanticMap or
+    // refactoring runMap to expose the corpus. Keeping as a smoke test for now.
     const db = makeMockDb([
       {
         tenantId: "tenant-1",
@@ -100,11 +104,6 @@ describe("runMap", () => {
 
     const factSet = makeFactSet();
 
-    // The filter logic in loadMapperCorpus excludes rows with a merchantId that
-    // doesn't match the input merchantId.  We can verify this indirectly by
-    // inspecting the result — with an empty attr corpus both override rows would
-    // be unmapped anyway, but the important thing is that runMap completes
-    // without error (the corpus is well-formed).
     const result = await runMap({
       db: db as never,
       tenantId: "tenant-1" as never,

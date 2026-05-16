@@ -34,6 +34,10 @@ export async function runDiff(input: RunDiffInput): Promise<{ diffId: string; cr
   const existing = await input.db.query.proposedDiffs.findFirst({
     where: (d, { and, eq }) => and(eq(d.sourceFactSetId, input.factSetId), eq(d.diffType, "create"))
   });
-  if (!existing) throw new Error("Failed to persist proposed diff");
+  if (!existing) {
+    throw new Error(
+      `Failed to persist proposed diff for factSetId=${input.factSetId}: insert conflicted but no existing row found (check uq_proposed_diffs_idempotency)`
+    );
+  }
   return { diffId: existing.id, created: false };
 }
