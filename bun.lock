@@ -133,6 +133,22 @@
         "drizzle-kit": "^0.30.0",
       },
     },
+    "packages/ingestion-spine": {
+      "name": "@aonex/ingestion-spine",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/audit": "workspace:*",
+        "@aonex/catalog-service": "workspace:*",
+        "@aonex/db": "workspace:*",
+        "@aonex/ingestion-field-extractor": "workspace:*",
+        "@aonex/ingestion-policy-engine": "workspace:*",
+        "@aonex/ingestion-semantic-mapper": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
+        "@aonex/schema-validator": "workspace:*",
+        "@aonex/types": "workspace:*",
+        "drizzle-orm": "^0.36.4",
+      },
+    },
     "packages/ingestion/category-detector": {
       "name": "@aonex/ingestion-category-detector",
       "version": "0.1.0",
@@ -286,6 +302,8 @@
     "@aonex/ingestion-semantic-mapper": ["@aonex/ingestion-semantic-mapper@workspace:packages/ingestion/semantic-mapper"],
 
     "@aonex/ingestion-source-classifier": ["@aonex/ingestion-source-classifier@workspace:packages/ingestion/source-classifier"],
+
+    "@aonex/ingestion-spine": ["@aonex/ingestion-spine@workspace:packages/ingestion-spine"],
 
     "@aonex/ingestion-structured": ["@aonex/ingestion-structured@workspace:packages/ingestion/structured"],
 
