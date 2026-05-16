@@ -7,7 +7,13 @@ function makeMockDb(categorySchema: Record<string, unknown> | null) {
     query: {
       categorySchemas: {
         findFirst: async () => categorySchema
-          ? { categoryPath: "outdoor/camping/tents", schemaVersion: 1, tier: "authoritative", jsonSchema: categorySchema }
+          ? {
+              categoryPath: "outdoor/camping/tents",
+              schemaVersion: 1,
+              tier: "authoritative",
+              jsonSchema: categorySchema,
+              requiredAttributes: ["capacity_persons", "season_rating"]
+            }
           : null
       }
     }
@@ -61,6 +67,7 @@ describe("runValidate — Tier 1 strict", () => {
     expect(result.valid).toBe(true);
     expect(result.missingRequired).toEqual([]);
     expect(result.tier).toBe("authoritative");
+    expect(result.requiredAttributes).toEqual(["capacity_persons", "season_rating"]);
   });
 
   it("returns missingRequired when required absent", async () => {
@@ -83,5 +90,6 @@ describe("runValidate — Tier 2 / no schema", () => {
     });
     expect(result.valid).toBe(true);
     expect(result.tier).toBe("inferred");
+    expect(result.requiredAttributes).toEqual([]);
   });
 });
