@@ -156,7 +156,13 @@ export async function applyApprovedDiff(
     .set({ productId })
     .where(eq(schema.proposedDiffs.id, input.diffId));
 
-  const isAuthoritative = categorySchemaRow?.tier === "authoritative";
+  // Only stamp categorySchemaVersion when the schema actually exists and is Tier 1.
+  // A row with tier="authoritative" but jsonSchema=null skipped validation above —
+  // we should not pretend the version was validated against a schema that wasn't loaded.
+  const stampSchemaVersion =
+    categorySchemaRow != null &&
+    categorySchemaRow.tier === "authoritative" &&
+    categorySchemaRow.jsonSchema != null;
 
   const [version] = await input.db
     .insert(schema.productVersions)
@@ -179,7 +185,7 @@ export async function applyApprovedDiff(
       description: payload.description,
       canonicalCategory: payload.canonicalCategory,
       categorySchemaVersion:
-        isAuthoritative && categorySchemaRow
+        stampSchemaVersion && categorySchemaRow
           ? `${categorySchemaRow.categoryPath}/v${categorySchemaRow.schemaVersion}`
           : null,
       categoryConfidence:
