@@ -8,6 +8,10 @@ function makeMockDb(rows: Array<{
   merchantExtensionsJson: { attributes?: Record<string, unknown>; evidence?: Record<string, unknown> } | null;
   attributesJson: Record<string, unknown> | null;
 }>) {
+  // Queue of remaining rows the SELECT can return. Updated/skipped rows are processed
+  // exactly once and then dequeued by the keyset cursor — the mock simulates this by
+  // popping `.limit(n)` rows off the front of the queue per page.
+  const queue = [...rows];
   const updates: Array<{ id: string; attributesJson: Record<string, unknown>; evidenceSummary: Record<string, unknown> | null }> = [];
   let lastSetValues: { attributesJson: Record<string, unknown>; evidenceSummary?: Record<string, unknown> | null } | null = null;
 
@@ -15,8 +19,8 @@ function makeMockDb(rows: Array<{
     select: () => ({
       from: () => ({
         where: () => ({
-          limit: (n: number) => ({
-            offset: (o: number) => Promise.resolve(rows.slice(o, o + n))
+          orderBy: () => ({
+            limit: (n: number) => Promise.resolve(queue.splice(0, n))
           })
         })
       })
@@ -26,9 +30,6 @@ function makeMockDb(rows: Array<{
         lastSetValues = v;
         return {
           where: (_clause: unknown) => {
-            // The implementation MUST call .where(eq(productVersions.id, row.id)).
-            // To match each update to a row id, the impl will produce one .where(...) per .set(...).
-            // Capture the last set values keyed by an out-of-band marker (the row pos).
             if (lastSetValues) {
               updates.push({
                 id: `row-${updates.length}`,
@@ -162,5 +163,32 @@ describe("backfillAttributesJson", () => {
     expect(result.examined).toBe(25);
     expect(result.wouldUpdate).toBe(25);
     expect(result.updated).toBe(25);
+  });
+
+  it("walks past skipped rows when interleaved with updatable rows across pages", async () => {
+    // Mix: every other row is skippable (no attributes to migrate). With chunkSize=2,
+    // this exercises the keyset cursor advancing past skipped rows that still match
+    // the WHERE clause — the case offset-pagination silently mishandles.
+    const rows = [
+      { id: "v1", merchantExtensionsJson: { evidence: { x: 1 } } as { evidence: Record<string, unknown> } | null, attributesJson: null }, // skip
+      { id: "v2", merchantExtensionsJson: { attributes: { a: 1 } }, attributesJson: null }, // update
+      { id: "v3", merchantExtensionsJson: null, attributesJson: null }, // skip
+      { id: "v4", merchantExtensionsJson: { attributes: { b: 2 } }, attributesJson: null }, // update
+      { id: "v5", merchantExtensionsJson: { evidence: {} } as { evidence: Record<string, unknown> } | null, attributesJson: null } // skip
+    ];
+    const db = makeMockDb(rows);
+
+    const result = await backfillAttributesJson({
+      db: db as never,
+      dryRun: false,
+      chunkSize: 2
+    });
+
+    expect(result.examined).toBe(5);
+    expect(result.wouldUpdate).toBe(2);
+    expect(result.updated).toBe(2);
+    expect(db._updates).toHaveLength(2);
+    expect(db._updates[0]!.attributesJson).toEqual({ a: 1 });
+    expect(db._updates[1]!.attributesJson).toEqual({ b: 2 });
   });
 });
