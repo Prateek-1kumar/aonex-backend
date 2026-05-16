@@ -6,7 +6,7 @@
 // One-shot — not registered as a cron job.
 
 import { schema, type DrizzleClient } from "@aonex/db";
-import { eq, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, or, sql, type SQL } from "drizzle-orm";
 
 export interface BackfillResult {
   examined: number;
@@ -29,8 +29,21 @@ export async function backfillAttributesJson(opts: BackfillOptions): Promise<Bac
     errors: []
   };
 
-  let offset = 0;
+  let lastId: string | null = null;
   while (true) {
+    // Keyset pagination on id. Correct under self-mutating WHERE because:
+    //  - Updated rows leave the eligible set, but their ids are <= lastId; cursor moved past.
+    //  - Skipped rows (continue branches) stay in the set but their ids are also <= lastId
+    //    after we process the chunk; cursor passes them by design (we examined them once).
+    // Offset-based pagination is unsafe here — it skips rows when the result set shrinks.
+    const baseFilter: SQL = or(
+      isNull(schema.productVersions.attributesJson),
+      sql`${schema.productVersions.attributesJson} = '{}'::jsonb`
+    )!;
+    const whereClause: SQL = lastId
+      ? and(baseFilter, gt(schema.productVersions.id, lastId))!
+      : baseFilter;
+
     const rows = await opts.db
       .select({
         id: schema.productVersions.id,
@@ -38,15 +51,9 @@ export async function backfillAttributesJson(opts: BackfillOptions): Promise<Bac
         attributesJson: schema.productVersions.attributesJson
       })
       .from(schema.productVersions)
-      .where(
-        or(
-          isNull(schema.productVersions.attributesJson),
-          // Postgres jsonb '{}' equality requires the cast.
-          sql`${schema.productVersions.attributesJson} = '{}'::jsonb`
-        )
-      )
-      .limit(opts.chunkSize)
-      .offset(offset);
+      .where(whereClause)
+      .orderBy(asc(schema.productVersions.id))
+      .limit(opts.chunkSize);
 
     if (rows.length === 0) break;
 
@@ -59,9 +66,7 @@ export async function backfillAttributesJson(opts: BackfillOptions): Promise<Bac
       const attrs = ext?.attributes;
       const existingAttrs = row.attributesJson as Record<string, unknown> | null;
 
-      // Skip rows that already have a populated attributes_json
       if (existingAttrs && Object.keys(existingAttrs).length > 0) continue;
-      // Skip rows whose merchant_extensions_json has nothing to migrate
       if (!attrs || typeof attrs !== "object" || Object.keys(attrs).length === 0) continue;
 
       result.wouldUpdate++;
@@ -84,7 +89,7 @@ export async function backfillAttributesJson(opts: BackfillOptions): Promise<Bac
       }
     }
 
-    offset += rows.length;
+    lastId = rows[rows.length - 1]!.id;
     if (rows.length < opts.chunkSize) break;
   }
 
