@@ -21,3 +21,4 @@ export * from "./extraction-failures.js";
 export * from "./price-clusters.js";
 export * from "./domain-profiles.js";
 export * from "./category-labels.js";
+export * from "./tenant-category-overlays.js";
