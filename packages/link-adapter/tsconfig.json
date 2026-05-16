@@ -1,5 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "outDir": "dist", "rootDir": "src" },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../ingestion-spine" },
+    { "path": "../ingestion/link-fetcher" },
+    { "path": "../ingestion/structured" },
+    { "path": "../ingestion/llm-extractor" },
+    { "path": "../ingestion/field-extractor" }
+  ]
 }
