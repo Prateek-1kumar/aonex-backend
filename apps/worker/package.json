@@ -25,6 +25,8 @@
     "@aonex/ingestion-policy-engine": "workspace:*",
     "@aonex/ingestion-structured": "workspace:*",
     "@aonex/ingestion-deduplicator": "workspace:*",
+    "@aonex/ingestion-spine": "workspace:*",
+    "@aonex/link-adapter": "workspace:*",
     "bullmq": "^5.34.5",
     "ioredis": "^5.4.2",
     "drizzle-orm": "^0.36.4",

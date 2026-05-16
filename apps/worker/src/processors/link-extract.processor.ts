@@ -22,6 +22,7 @@ import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
 import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
 import { emitFailureReviewTask } from "../services/emit-failure-review-task.js";
+import { runSpineLink } from "./ingestion-spine.processor.js";
 
 export interface LinkExtractJobData {
   tenantId: TenantId;
@@ -40,6 +41,26 @@ export interface LinkExtractProcessorDeps {
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
   return async (job: Job<LinkExtractJobData>) => {
+    // PHASE 2: feature-flag dispatch to the unified ingestion spine.
+    // When INGESTION_SPINE_ENABLED=true, route this job through runSpineLink
+    // instead of the legacy code path below. Both paths are idempotent so
+    // a flag flip mid-flight is safe.
+    if (process.env.INGESTION_SPINE_ENABLED === "true") {
+      return runSpineLink(
+        { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor },
+        {
+          tenantId: job.data.tenantId,
+          merchantId: job.data.merchantId,
+          lane: "link",
+          sourceRef: job.data.url,
+          ...(job.data.categoryHint !== undefined ? { categoryHint: job.data.categoryHint } : {}),
+          requestId: job.data.requestId,
+          traceId: job.data.traceId
+        }
+      );
+    }
+
+    // Legacy path follows below — unchanged.
     const { tenantId, merchantId, url, categoryHint, requestId, traceId } = job.data;
 
     // ── Step 1: Fetch HTML ──────────────────────────────────────────
