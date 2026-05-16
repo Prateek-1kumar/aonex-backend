@@ -14,6 +14,13 @@ export interface ValidateStageResult extends ValidationOutcome {
   categorySchemaVersion: string | null;
   /** Echoed for downstream stages */
   categoryPath: string | null;
+  /**
+   * Keys required by the resolved category schema (empty array when no
+   * category path or no schema row). Threaded into the policy router via
+   * `categoryRequiredAttributes` so the missing-required-attribute detector
+   * fires without a second DB round-trip.
+   */
+  requiredAttributes: string[];
 }
 
 export async function runValidate(input: RunValidateInput): Promise<ValidateStageResult> {
@@ -35,7 +42,8 @@ export async function runValidate(input: RunValidateInput): Promise<ValidateStag
       tier: "inferred",
       attributes,
       categorySchemaVersion: null,
-      categoryPath: null
+      categoryPath: null,
+      requiredAttributes: []
     };
   }
 
@@ -52,9 +60,12 @@ export async function runValidate(input: RunValidateInput): Promise<ValidateStag
       tier: "inferred",
       attributes,
       categorySchemaVersion: null,
-      categoryPath
+      categoryPath,
+      requiredAttributes: []
     };
   }
+
+  const requiredAttributes = schemaRow.requiredAttributes ?? [];
 
   // Tier 2 inferred categories: permissive — pass without validation.
   if (schemaRow.tier !== "authoritative") {
@@ -65,7 +76,8 @@ export async function runValidate(input: RunValidateInput): Promise<ValidateStag
       tier: schemaRow.tier as "inferred" | "promoted_draft",
       attributes,
       categorySchemaVersion: `${categoryPath}/v${schemaRow.schemaVersion}`,
-      categoryPath
+      categoryPath,
+      requiredAttributes
     };
   }
 
@@ -75,6 +87,7 @@ export async function runValidate(input: RunValidateInput): Promise<ValidateStag
     ...outcome,
     attributes,
     categorySchemaVersion: `${categoryPath}/v${schemaRow.schemaVersion}`,
-    categoryPath
+    categoryPath,
+    requiredAttributes
   };
 }
