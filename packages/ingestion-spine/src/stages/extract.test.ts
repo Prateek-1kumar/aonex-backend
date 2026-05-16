@@ -65,7 +65,7 @@ describe("runExtract", () => {
     });
 
     expect(result.facts).toHaveLength(1);
-    expect(result.facts[0].rawKey).toBe("title");
+    expect(result.facts[0]!.rawKey).toBe("title");
     expect(result.extractorVersion).toBe("test-1");
   });
 });

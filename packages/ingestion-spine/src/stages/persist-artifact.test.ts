@@ -37,9 +37,9 @@ describe("persistArtifact", () => {
       envelope
     });
 
-    expect(result.artifactId).toBe("art-1");
+    expect(result.artifactId).toBe("art-1" as never);
     expect(result.duplicateOfChecksum).toBe(null);
-    const row = db._inserts[0];
+    const row = db._inserts[0]!;
     expect(row.sourceType).toBe("link_url");
     expect(row.sourceExternalId).toBe("https://example.com/p/1");
     expect(row.checksum).toBe("abc123");
