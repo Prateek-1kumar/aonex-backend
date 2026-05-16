@@ -10,10 +10,17 @@ import type {
 
 /** Approximate pricing per 1M tokens (USD) — updated periodically. */
 const PRICING: Record<string, { input: number; output: number }> = {
+  // OpenAI
   "gpt-4o-mini": { input: 0.15, output: 0.60 },
   "gpt-4o": { input: 2.50, output: 10.0 },
   "gpt-4-turbo": { input: 10.0, output: 30.0 },
   "gpt-3.5-turbo": { input: 0.50, output: 1.50 },
+  // Groq (via baseUrl https://api.groq.com/openai/v1)
+  "llama-3.3-70b-versatile": { input: 0.59, output: 0.79 },
+  "llama-3.1-70b-versatile": { input: 0.59, output: 0.79 },
+  "llama-3.1-8b-instant": { input: 0.05, output: 0.08 },
+  "llama-3.2-90b-vision-preview": { input: 0.90, output: 0.90 },
+  "llama-3.2-11b-vision-preview": { input: 0.18, output: 0.18 }
 };
 
 const DEFAULT_PRICING = { input: 1.0, output: 3.0 };
