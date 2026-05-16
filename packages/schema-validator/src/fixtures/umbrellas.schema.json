@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/luggage_bags_umbrellas/v0_inferred",
+  "type": "object",
+  "tier": "inferred",
+  "required": [],
+  "properties": {},
+  "additionalProperties": true
+}
