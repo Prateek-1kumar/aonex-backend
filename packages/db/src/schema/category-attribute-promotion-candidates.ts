@@ -21,7 +21,11 @@ export const categoryAttributePromotionCandidates = pgTable(
     productsWithKey: integer("products_with_key").notNull().default(0),
     totalProducts: integer("total_products").notNull().default(0),
     consistencyRatio: numeric("consistency_ratio", { precision: 5, scale: 4 }).notNull().default("0"),
-    status: varchar("status", { length: 20 }).notNull().default("candidate"),
+    /** "candidate" | "proposed" | "approved" | "rejected" */
+    status: varchar("status", { length: 20 })
+      .$type<"candidate" | "proposed" | "approved" | "rejected">()
+      .notNull()
+      .default("candidate"),
     firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow()
   },
