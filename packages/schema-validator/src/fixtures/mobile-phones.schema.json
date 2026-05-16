@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_mobile_phones/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "ram_gb",
+    "storage_gb",
+    "screen_size_inches",
+    "os",
+    "battery_mah",
+    "network_type"
+  ],
+  "properties": {
+    "ram_gb": { "type": "integer", "minimum": 1 },
+    "storage_gb": { "type": "integer", "minimum": 1 },
+    "screen_size_inches": { "type": "number", "minimum": 1, "maximum": 20 },
+    "os": { "type": "string" },
+    "battery_mah": { "type": "integer", "minimum": 0 },
+    "network_type": { "type": "string", "enum": ["3G", "4G", "5G"] },
+    "camera_megapixels": { "type": "integer", "minimum": 0 },
+    "ip_rating": { "type": "string" },
+    "ports": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}
