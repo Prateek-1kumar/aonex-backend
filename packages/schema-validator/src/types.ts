@@ -7,7 +7,7 @@ export interface CategorySchemaInput {
   tier?: "authoritative" | "inferred" | "promoted_draft";
   required?: string[];
   properties?: Record<string, unknown>;
-  additionalProperties?: boolean;
+  additionalProperties?: boolean | Record<string, unknown>;
   /** Aonex custom keyword: per-attribute confidence threshold for auto-approval */
   confidence_required?: Record<string, number>;
   [k: string]: unknown;

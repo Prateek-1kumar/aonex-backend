@@ -20,6 +20,10 @@ registerAonexKeywords(ajv);
 
 /**
  * Validate an attributes_json object against a category JSON Schema 2019-09.
+ *
+ * Schemas are cached by `$id` inside the module-level Ajv instance — pass a
+ * stable schema object per `$id`. Mutating a schema between calls without
+ * changing its `$id` will return the cached (stale) validator.
  */
 export function validate(
   schema: CategorySchemaInput,
