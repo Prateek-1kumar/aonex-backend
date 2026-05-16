@@ -239,6 +239,19 @@
       "name": "@aonex/lib-utils",
       "version": "0.1.0",
     },
+    "packages/link-adapter": {
+      "name": "@aonex/link-adapter",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/ingestion-field-extractor": "workspace:*",
+        "@aonex/ingestion-link-fetcher": "workspace:*",
+        "@aonex/ingestion-llm-extractor": "workspace:*",
+        "@aonex/ingestion-spine": "workspace:*",
+        "@aonex/ingestion-structured": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
+        "@aonex/types": "workspace:*",
+      },
+    },
     "packages/schema-validator": {
       "name": "@aonex/schema-validator",
       "version": "0.0.0",
@@ -310,6 +323,8 @@
     "@aonex/ingestion-variant-extractor": ["@aonex/ingestion-variant-extractor@workspace:packages/ingestion/variant-extractor"],
 
     "@aonex/lib-utils": ["@aonex/lib-utils@workspace:packages/lib-utils"],
+
+    "@aonex/link-adapter": ["@aonex/link-adapter@workspace:packages/link-adapter"],
 
     "@aonex/schema-validator": ["@aonex/schema-validator@workspace:packages/schema-validator"],
 
