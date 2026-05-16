@@ -38,16 +38,17 @@ describe("runApprove", () => {
     expect(result.productVersionId).toBe("pv-xyz");
   });
 
-  it("forwards diffId to applyApprovedDiff with approvalStatus: auto_approved", async () => {
-    // Track that applyApprovedDiff is called with our diffId.
-    // We do this by injecting a db where productVersions.findFirst rejects with
-    // a sentinel that proves the wrapper called the function with the right id.
-    const sentinelDb = {
+  it("forwards diffId correctly through applyApprovedDiff", async () => {
+    let capturedDiffId: string | null = null;
+    const db = {
       query: {
         productVersions: {
-          findFirst: async () => {
-            // Return an existing version (early-return path) to avoid needing
-            // the full DB setup; we just need to confirm the diffId flows through.
+          findFirst: async (config: { where: (pv: Record<string, unknown>, ops: { eq: (col: unknown, val: unknown) => unknown }) => unknown }) => {
+            // applyApprovedDiff calls findFirst with:
+            //   where: (pv, { eq }) => eq(pv.proposedDiffId, input.diffId)
+            // Intercept the eq() call to capture the diffId value.
+            const fakeEq = (_col: unknown, val: unknown) => { capturedDiffId = val as string; return null; };
+            config.where({ proposedDiffId: "col" }, { eq: fakeEq });
             return { id: "pv-sentinel", productId: "product-sentinel" };
           }
         }
@@ -55,13 +56,13 @@ describe("runApprove", () => {
     };
 
     const result = await runApprove({
-      db: sentinelDb as never,
-      diffId: "diff-sentinel"
+      db: db as never,
+      diffId: "test-diff-xyz"
     });
 
-    // If runApprove had used a hardcoded diffId the query wouldn't return
-    // the sentinel; any result here means the wrapper forwarded our diffId.
-    expect(result.productId).toBe("product-sentinel");
+    expect(capturedDiffId).not.toBeNull();
+    expect(capturedDiffId!).toBe("test-diff-xyz");
     expect(result.productVersionId).toBe("pv-sentinel");
+    expect(result.productId).toBe("product-sentinel");
   });
 });

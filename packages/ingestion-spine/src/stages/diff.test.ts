@@ -60,18 +60,29 @@ describe("runDiff — success path", () => {
   });
 
   it("uses 'policy' actorType when status is auto_approved", async () => {
-    // We can't easily inspect the values() call without a spy, but we can
-    // verify it runs without error (type-level enforcement catches the wrong enum).
-    const db = makeInsertDb([{ id: "diff-auto-1" }]);
+    let captured: Record<string, unknown> | null = null;
+    const db = {
+      insert: () => ({
+        values: (v: Record<string, unknown>) => {
+          captured = v;
+          return {
+            onConflictDoNothing: () => ({
+              returning: () => Promise.resolve([{ id: "diff-auto-1" }])
+            })
+          };
+        }
+      })
+    };
 
-    const result = await runDiff({
+    await runDiff({
       db: db as never,
       ...baseInput,
       status: "auto_approved"
     });
 
-    expect(result.diffId).toBe("diff-auto-1");
-    expect(result.created).toBe(true);
+    expect(captured).not.toBeNull();
+    expect(captured!.actorType).toBe("policy");
+    expect(captured!.status).toBe("auto_approved");
   });
 });
 
