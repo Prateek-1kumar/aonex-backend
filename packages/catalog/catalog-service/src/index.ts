@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { canonicalStringify, sha256Hex } from "@aonex/lib-utils";
+import { validate, type ValidationOutcome } from "@aonex/schema-validator";
 
 export interface CanonicalVariantPayload {
   sku: string | null;
@@ -15,11 +16,18 @@ export interface CanonicalProductPayload {
   title: string | null;
   brand: string | null;
   gtin: string | null;
+  gtinType: string | null;
   modelNumber: string | null;
+  manufacturerPartNumber: string | null;
   description: string | null;
   basePrice: number | null;
   currency: string | null;
+  weightGrams: number | null;
+  dimensionsCm: { l?: number; w?: number; h?: number } | null;
   canonicalCategory: string | null;
+  /** Pre-mapper hint; final value persisted on product_versions is computed in applyApprovedDiff */
+  categorySchemaVersion: string | null;
+  categoryConfidence: number | null;
   images: Array<{ url: string; altText?: string }>;
   attributes: Record<string, unknown>;
   variants: CanonicalVariantPayload[];
@@ -73,6 +81,44 @@ export async function applyApprovedDiff(
     throw new Error("Cannot apply catalog version without canonical title");
   }
 
+  // Load the latest category_schemas row for this canonical_category so we can:
+  //   (a) validate attributes_json when the schema is authoritative (Tier 1)
+  //   (b) stamp categorySchemaVersion onto the product_version
+  const categorySchemaRow = payload.canonicalCategory
+    ? await input.db.query.categorySchemas.findFirst({
+        where: (c, { eq }) => eq(c.categoryPath, payload.canonicalCategory!),
+        orderBy: (c, { desc }) => [desc(c.schemaVersion)],
+      })
+    : null;
+
+  // Validation gate. Tier-1 (authoritative) failures block the approval entirely
+  // and open a review_task. Tier-2 (inferred) is permissive and never blocks.
+  if (
+    categorySchemaRow?.jsonSchema &&
+    categorySchemaRow.tier === "authoritative"
+  ) {
+    const outcome: ValidationOutcome = validate(
+      categorySchemaRow.jsonSchema as Record<string, unknown>,
+      payload.attributes
+    );
+    if (!outcome.valid) {
+      await emitMissingRequiredReviewTask({
+        db: input.db,
+        diff: { id: diff.id, tenantId: diff.tenantId, merchantId: diff.merchantId },
+        outcome,
+        categorySchemaRow: {
+          categoryPath: categorySchemaRow.categoryPath,
+          schemaVersion: categorySchemaRow.schemaVersion,
+        },
+      });
+      throw new Error(
+        `Validation failed for ${payload.canonicalCategory}: missing required = ${outcome.missingRequired.join(", ")}`
+      );
+    }
+  }
+
+  // The product_versions insert trigger checks that the referencing diff has
+  // status ∈ {approved, auto_approved}, so we must flip status before inserting.
   await input.db
     .update(schema.proposedDiffs)
     .set({
@@ -110,6 +156,8 @@ export async function applyApprovedDiff(
     .set({ productId })
     .where(eq(schema.proposedDiffs.id, input.diffId));
 
+  const isAuthoritative = categorySchemaRow?.tier === "authoritative";
+
   const [version] = await input.db
     .insert(schema.productVersions)
     .values({
@@ -120,17 +168,27 @@ export async function applyApprovedDiff(
       title: payload.title,
       brand: payload.brand,
       gtin: payload.gtin,
+      gtinType: payload.gtinType,
       modelNumber: payload.modelNumber,
+      manufacturerPartNumber: payload.manufacturerPartNumber,
       basePrice: payload.basePrice == null ? null : String(payload.basePrice),
       currency: payload.currency,
+      weightGrams: payload.weightGrams == null ? null : String(payload.weightGrams),
+      dimensionsCm: payload.dimensionsCm,
       images: payload.images,
       description: payload.description,
       canonicalCategory: payload.canonicalCategory,
+      categorySchemaVersion:
+        isAuthoritative && categorySchemaRow
+          ? `${categorySchemaRow.categoryPath}/v${categorySchemaRow.schemaVersion}`
+          : null,
+      categoryConfidence:
+        payload.categoryConfidence == null ? null : String(payload.categoryConfidence),
+      attributesJson: payload.attributes,
       confidenceScore: String(diff.confidenceScore),
-      merchantExtensionsJson: {
-        attributes: payload.attributes,
-        evidence: payload.evidence,
-      },
+      // Legacy slot — its contents now live in attributesJson + evidenceSummary.
+      merchantExtensionsJson: null,
+      evidenceSummary: payload.evidence,
     })
     .returning({ id: schema.productVersions.id });
 
@@ -154,6 +212,33 @@ export async function applyApprovedDiff(
   return { productId, productVersionId: version.id, createdVersion: true };
 }
 
+async function emitMissingRequiredReviewTask(args: {
+  db: DrizzleClient;
+  diff: { id: string; tenantId: string; merchantId: string };
+  outcome: ValidationOutcome;
+  categorySchemaRow: { categoryPath: string; schemaVersion: number };
+}): Promise<void> {
+  await args.db
+    .insert(schema.reviewTasks)
+    .values({
+      tenantId: args.diff.tenantId,
+      merchantId: args.diff.merchantId,
+      proposedDiffId: args.diff.id,
+      taskType: "missing_required_attribute",
+      signalKind: "schema_violation",
+      signalPayload: {
+        categoryPath: args.categorySchemaRow.categoryPath,
+        schemaVersion: args.categorySchemaRow.schemaVersion,
+        missingRequired: args.outcome.missingRequired,
+        validationErrors: args.outcome.errors,
+        reason: `Tier 1 category ${args.categorySchemaRow.categoryPath} requires ${args.outcome.missingRequired.join(", ")} but they were not extracted`,
+      },
+      severity: "medium",
+      policyVersionId: null,
+    })
+    .returning({ id: schema.reviewTasks.id });
+}
+
 /**
  * Defensive: when the diff payload is missing a core field, look it up from
  * extracted_facts. This makes the system robust against reviewer/frontend bugs
@@ -163,9 +248,12 @@ export async function applyApprovedDiff(
  */
 async function rehydrateFromExtractedFacts(
   db: DrizzleClient,
-  sourceFactSetId: string,
+  sourceFactSetId: string | null | undefined,
   payload: CanonicalProductPayload
 ): Promise<CanonicalProductPayload> {
+  // Production: proposed_diffs.source_fact_set_id is NOT NULL via FK. Guarded
+  // here so unit tests (and any edge-case caller without a fact set) skip cleanly.
+  if (!sourceFactSetId) return payload;
   // Map: payload field name → extracted_facts raw_key candidates (first match wins).
   const FIELD_FALLBACKS: Array<{ key: keyof CanonicalProductPayload; rawKeys: string[]; coerce: (v: unknown) => unknown }> = [
     { key: "title",             rawKeys: ["title"],                              coerce: toStr },
@@ -353,16 +441,40 @@ function parseCanonicalPayload(raw: Record<string, unknown>): CanonicalProductPa
     title: stringOrNull(raw.title),
     brand: stringOrNull(raw.brand),
     gtin: stringOrNull(raw.gtin),
+    gtinType: stringOrNull(raw.gtinType ?? raw.gtin_type),
     modelNumber: stringOrNull(raw.modelNumber ?? raw.model_number),
+    manufacturerPartNumber: stringOrNull(
+      raw.manufacturerPartNumber ?? raw.manufacturer_part_number
+    ),
     description: stringOrNull(raw.description),
     basePrice: numberOrNull(raw.basePrice ?? raw.base_price),
     currency: stringOrNull(raw.currency)?.toUpperCase() ?? null,
+    weightGrams: numberOrNull(raw.weightGrams ?? raw.weight_grams),
+    dimensionsCm: parseDimensionsCm(raw.dimensionsCm ?? raw.dimensions_cm),
     canonicalCategory: stringOrNull(raw.canonicalCategory ?? raw.canonical_category),
+    categorySchemaVersion: stringOrNull(
+      raw.categorySchemaVersion ?? raw.category_schema_version
+    ),
+    categoryConfidence: numberOrNull(raw.categoryConfidence ?? raw.category_confidence),
     images: parseImages(raw.images),
     attributes: isRecord(raw.attributes) ? raw.attributes : {},
     variants: Array.isArray(raw.variants) ? raw.variants.map(parseVariant) : [],
     evidence: isRecord(raw.evidence) ? raw.evidence : {},
   };
+}
+
+function parseDimensionsCm(
+  raw: unknown
+): { l?: number; w?: number; h?: number } | null {
+  if (!isRecord(raw)) return null;
+  const out: { l?: number; w?: number; h?: number } = {};
+  const l = numberOrNull(raw.l);
+  const w = numberOrNull(raw.w);
+  const h = numberOrNull(raw.h);
+  if (l != null) out.l = l;
+  if (w != null) out.w = w;
+  if (h != null) out.h = h;
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 function parseVariant(raw: unknown): CanonicalVariantPayload {
