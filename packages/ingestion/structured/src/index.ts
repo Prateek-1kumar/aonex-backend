@@ -8,6 +8,7 @@ import { parseInitialState } from "./parsers/initial-state.js";
 import { parseMagento } from "./parsers/magento-init.js";
 import { parseWoocommerce } from "./parsers/woocommerce.js";
 import { parseAlgolia } from "./parsers/algolia-inline.js";
+import { parseShopifyProductsJson } from "./parsers/shopify-products-json.js";
 import { mergeParserOutputs } from "./merge.js";
 import { checkCoverage, type CoverageResult } from "./coverage.js";
 import { isCaptchaWall } from "./captcha-detect.js";
@@ -47,6 +48,9 @@ export async function extractStructured(
           magento: null,
           woocommerce: null,
           algolia: null,
+          shopify_products_json: null,
+          rdfa: null,
+          breadcrumb_list: null,
         },
         category: { path: null, confidence: 0 },
       },
@@ -55,8 +59,9 @@ export async function extractStructured(
     };
   }
 
-  const [shopify] = await Promise.all([
+  const [shopify, shopifyProductsJson] = await Promise.all([
     parseShopifyProbe(input.pageUrl),
+    parseShopifyProductsJson(input.pageUrl),
   ]);
 
   const outputs = [
@@ -70,6 +75,7 @@ export async function extractStructured(
     parseMagento(input.rawHtml),
     parseWoocommerce(input.rawHtml),
     parseAlgolia(input.rawHtml),
+    shopifyProductsJson,
   ];
 
   const structured = mergeParserOutputs(outputs);
