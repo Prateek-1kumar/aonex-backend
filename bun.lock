@@ -57,9 +57,11 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/audit": "workspace:*",
+        "@aonex/calibration": "workspace:*",
         "@aonex/catalog-service": "workspace:*",
         "@aonex/connector-gateway": "workspace:*",
         "@aonex/db": "workspace:*",
+        "@aonex/drift-detector": "workspace:*",
         "@aonex/ingestion-deduplicator": "workspace:*",
         "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/ingestion-link-fetcher": "workspace:*",
