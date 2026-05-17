@@ -4,23 +4,12 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "description",
-    "price_usd"
+    "size",
+    "color",
+    "material",
+    "fit"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the product"
-    },
-    "description": {
-      "type": "string",
-      "description": "Description of the product"
-    },
-    "price_usd": {
-      "type": "number",
-      "description": "Price of the product in USD"
-    },
     "size": {
       "type": "string",
       "enum": [
@@ -29,34 +18,58 @@
         "m",
         "l",
         "xl",
-        "xxl"
-      ],
-      "description": "Size of the t-shirt"
+        "xxl",
+        "3xl"
+      ]
     },
     "color": {
-      "type": "string",
-      "description": "Color of the t-shirt"
+      "type": "string"
     },
     "material": {
       "type": "string",
       "enum": [
         "cotton",
         "polyester",
-        "blend"
-      ],
-      "description": "Material of the t-shirt"
+        "blend",
+        "bamboo",
+        "modal",
+        "linen"
+      ]
     },
-    "length_inches": {
-      "type": "number",
-      "minimum": 20,
-      "maximum": 30,
-      "description": "Length of the t-shirt in inches"
+    "fit": {
+      "type": "string",
+      "enum": [
+        "regular",
+        "slim",
+        "oversized",
+        "relaxed"
+      ]
     },
-    "chest_circumference_inches": {
-      "type": "number",
-      "minimum": 30,
-      "maximum": 50,
-      "description": "Chest circumference of the t-shirt in inches"
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex",
+        "kids"
+      ]
+    },
+    "sleeve_type": {
+      "type": "string",
+      "enum": [
+        "short_sleeve",
+        "long_sleeve",
+        "sleeveless"
+      ]
+    },
+    "neck_type": {
+      "type": "string",
+      "enum": [
+        "crew",
+        "v_neck",
+        "polo",
+        "scoop"
+      ]
     }
   },
   "additionalProperties": true

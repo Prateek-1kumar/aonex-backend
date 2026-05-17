@@ -4,30 +4,40 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "model_number",
-    "brand_name"
+    "appliance_type",
+    "wattage_w"
   ],
   "properties": {
-    "product_name": {
+    "appliance_type": {
       "type": "string",
-      "description": "Name of the product"
+      "enum": [
+        "refrigerator",
+        "dishwasher",
+        "oven",
+        "microwave",
+        "toaster",
+        "blender",
+        "food_processor",
+        "coffee_maker",
+        "air_fryer",
+        "instant_pot",
+        "stand_mixer",
+        "juicer",
+        "rice_cooker",
+        "slow_cooker",
+        "waffle_maker",
+        "other"
+      ]
     },
-    "model_number": {
-      "type": "string",
-      "description": "Model number of the product"
-    },
-    "brand_name": {
-      "type": "string",
-      "description": "Brand name of the product"
-    },
-    "power_consumption_watts": {
+    "wattage_w": {
       "type": "number",
-      "description": "Power consumption of the appliance in watts"
+      "minimum": 10,
+      "maximum": 10000
     },
-    "weight_lbs": {
+    "capacity_liters": {
       "type": "number",
-      "description": "Weight of the appliance in pounds"
+      "minimum": 0.1,
+      "maximum": 1000
     },
     "color": {
       "type": "string",
@@ -35,17 +45,26 @@
         "black",
         "white",
         "silver",
-        "stainless_steel"
+        "stainless_steel",
+        "red",
+        "other"
       ]
     },
-    "appliance_type": {
-      "type": "string",
-      "enum": [
-        "refrigerator",
-        "dishwasher",
-        "oven",
-        "microwave"
-      ]
+    "voltage_v": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 240
+    },
+    "smart_features": {
+      "type": "boolean"
+    },
+    "energy_star_certified": {
+      "type": "boolean"
+    },
+    "weight_kg": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 200
     }
   },
   "additionalProperties": true

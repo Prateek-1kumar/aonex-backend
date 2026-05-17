@@ -4,33 +4,33 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "tire_size",
-    "load_rating",
-    "speed_rating"
+    "diameter_inches",
+    "width_mm",
+    "aspect_ratio",
+    "load_index",
+    "speed_rating",
+    "season"
   ],
   "properties": {
-    "tire_size": {
-      "type": "string",
-      "description": "Tire size in standard notation (e.g. 225/60R17)"
+    "diameter_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 30
     },
-    "load_rating": {
-      "type": "string",
-      "enum": [
-        "b",
-        "c",
-        "d",
-        "e",
-        "f",
-        "g",
-        "h",
-        "j",
-        "l",
-        "m",
-        "n",
-        "p",
-        "q",
-        "r"
-      ]
+    "width_mm": {
+      "type": "integer",
+      "minimum": 115,
+      "maximum": 385
+    },
+    "aspect_ratio": {
+      "type": "integer",
+      "minimum": 25,
+      "maximum": 80
+    },
+    "load_index": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 130
     },
     "speed_rating": {
       "type": "string",
@@ -47,29 +47,43 @@
         "v",
         "w",
         "y",
-        "zr",
-        "(z)"
+        "zr"
       ]
+    },
+    "season": {
+      "type": "string",
+      "enum": [
+        "summer",
+        "winter",
+        "all_season",
+        "all_terrain"
+      ]
+    },
+    "tire_type": {
+      "type": "string",
+      "enum": [
+        "passenger",
+        "light_truck",
+        "suv",
+        "performance",
+        "run_flat"
+      ]
+    },
+    "tread_pattern": {
+      "type": "string",
+      "enum": [
+        "symmetric",
+        "asymmetric",
+        "directional"
+      ]
+    },
+    "run_flat": {
+      "type": "boolean"
     },
     "tread_depth_mm": {
       "type": "number",
-      "minimum": 0,
+      "minimum": 4,
       "maximum": 20
-    },
-    "tire_diameter_inches": {
-      "type": "number",
-      "minimum": 10,
-      "maximum": 30
-    },
-    "load_capacity_kg": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1500
-    },
-    "inflation_pressure_kpa": {
-      "type": "number",
-      "minimum": 100,
-      "maximum": 900
     }
   },
   "additionalProperties": true

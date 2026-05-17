@@ -4,62 +4,70 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "description",
-    "price_usd"
+    "size",
+    "color",
+    "gender",
+    "upper_material"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the sneaker product"
-    },
-    "description": {
-      "type": "string",
-      "description": "Detailed description of the sneaker product"
-    },
-    "price_usd": {
+    "size": {
       "type": "number",
-      "description": "Price of the sneaker product in USD"
+      "minimum": 3,
+      "maximum": 18
     },
-    "size_options": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "us_6",
-          "us_7",
-          "us_8",
-          "us_9",
-          "us_10",
-          "us_11",
-          "us_12"
-        ]
-      },
-      "description": "Available size options for the sneaker product"
+    "color": {
+      "type": "string"
     },
-    "color_options": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Available color options for the sneaker product"
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex",
+        "kids"
+      ]
     },
-    "material": {
+    "upper_material": {
       "type": "string",
       "enum": [
         "leather",
         "synthetic",
-        "mesh"
-      ],
-      "description": "Material used to make the sneaker product"
+        "mesh",
+        "canvas",
+        "suede",
+        "knit"
+      ]
+    },
+    "sole_material": {
+      "type": "string",
+      "enum": [
+        "rubber",
+        "eva",
+        "tpu",
+        "gum"
+      ]
+    },
+    "closure_type": {
+      "type": "string",
+      "enum": [
+        "lace_up",
+        "slip_on",
+        "velcro",
+        "zipper"
+      ]
     },
     "weight_grams": {
       "type": "number",
-      "description": "Weight of the sneaker product in grams"
+      "minimum": 100,
+      "maximum": 800
     },
-    "heel_to_toe_drop_mm": {
-      "type": "number",
-      "description": "Heel to toe drop of the sneaker product in millimeters"
+    "size_system": {
+      "type": "string",
+      "enum": [
+        "us",
+        "eu",
+        "uk"
+      ]
     }
   },
   "additionalProperties": true

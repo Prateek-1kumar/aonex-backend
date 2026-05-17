@@ -4,24 +4,13 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "description",
-    "price_usd"
+    "size",
+    "frame_material",
+    "length_cm",
+    "width_cm"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the product"
-    },
-    "description": {
-      "type": "string",
-      "description": "Short description of the product"
-    },
-    "price_usd": {
-      "type": "number",
-      "description": "Price of the product in USD"
-    },
-    "bed_size": {
+    "size": {
       "type": "string",
       "enum": [
         "twin",
@@ -32,33 +21,49 @@
         "california_king"
       ]
     },
-    "material": {
+    "frame_material": {
       "type": "string",
       "enum": [
         "wood",
         "metal",
-        "leather",
-        "fabric"
+        "upholstered",
+        "platform",
+        "mixed"
       ]
+    },
+    "length_cm": {
+      "type": "number",
+      "minimum": 150,
+      "maximum": 230
+    },
+    "width_cm": {
+      "type": "number",
+      "minimum": 70,
+      "maximum": 200
+    },
+    "headboard": {
+      "type": "boolean"
+    },
+    "storage_included": {
+      "type": "boolean"
     },
     "color": {
       "type": "string"
     },
-    "weight_lbs": {
+    "max_weight_capacity_kg": {
       "type": "number",
-      "minimum": 0
+      "minimum": 100,
+      "maximum": 1000
     },
-    "length_inches": {
+    "weight_kg": {
       "type": "number",
-      "minimum": 0
+      "minimum": 10,
+      "maximum": 200
     },
-    "width_inches": {
-      "type": "number",
-      "minimum": 0
-    },
-    "height_inches": {
-      "type": "number",
-      "minimum": 0
+    "slat_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 30
     }
   },
   "additionalProperties": true

@@ -4,25 +4,11 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "material",
+    "size",
     "thread_count",
-    "size"
+    "material"
   ],
   "properties": {
-    "material": {
-      "type": "string",
-      "enum": [
-        "cotton",
-        "linen",
-        "polyester",
-        "bamboo"
-      ]
-    },
-    "thread_count": {
-      "type": "integer",
-      "minimum": 100,
-      "maximum": 1000
-    },
     "size": {
       "type": "string",
       "enum": [
@@ -34,8 +20,36 @@
         "california_king"
       ]
     },
+    "thread_count": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1200
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "microfiber",
+        "linen",
+        "bamboo",
+        "silk",
+        "satin",
+        "tencel"
+      ]
+    },
     "color": {
       "type": "string"
+    },
+    "weave_type": {
+      "type": "string",
+      "enum": [
+        "percale",
+        "sateen",
+        "twill",
+        "jersey",
+        "flannel"
+      ]
     },
     "pattern": {
       "type": "string",
@@ -43,16 +57,22 @@
         "solid",
         "striped",
         "floral",
-        "geometric"
+        "geometric",
+        "plaid",
+        "printed"
       ]
     },
-    "care_instructions": {
-      "type": "string"
-    },
-    "fabric_weight_oz": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 20
+    "set_includes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "flat_sheet",
+          "fitted_sheet",
+          "pillowcase",
+          "duvet_cover"
+        ]
+      }
     }
   },
   "additionalProperties": true

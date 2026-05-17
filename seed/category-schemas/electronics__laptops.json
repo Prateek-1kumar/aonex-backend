@@ -4,34 +4,39 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
     "screen_size_inches",
+    "processor",
     "ram_gb",
     "storage_gb",
-    "operating_system"
+    "storage_type"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the laptop"
-    },
     "screen_size_inches": {
       "type": "number",
-      "minimum": 10,
-      "maximum": 17,
-      "description": "Screen size in inches"
+      "minimum": 11,
+      "maximum": 18
+    },
+    "processor": {
+      "type": "string"
     },
     "ram_gb": {
       "type": "integer",
       "minimum": 4,
-      "maximum": 64,
-      "description": "RAM in GB"
+      "maximum": 128
     },
     "storage_gb": {
       "type": "integer",
       "minimum": 128,
-      "maximum": 2048,
-      "description": "Storage in GB"
+      "maximum": 8192
+    },
+    "storage_type": {
+      "type": "string",
+      "enum": [
+        "ssd",
+        "hdd",
+        "emmc",
+        "hybrid"
+      ]
     },
     "operating_system": {
       "type": "string",
@@ -39,27 +44,21 @@
         "windows",
         "macos",
         "linux",
-        "chrome os"
-      ],
-      "description": "Operating system"
+        "chrome_os"
+      ]
     },
-    "processor_speed_ghz": {
+    "gpu": {
+      "type": "string"
+    },
+    "battery_life_hours": {
       "type": "number",
       "minimum": 1,
-      "maximum": 5,
-      "description": "Processor speed in GHz"
+      "maximum": 30
     },
-    "battery_mah": {
-      "type": "integer",
-      "minimum": 2000,
-      "maximum": 10000,
-      "description": "Battery capacity in mAh"
-    },
-    "weight_lbs": {
+    "weight_kg": {
       "type": "number",
-      "minimum": 2,
-      "maximum": 10,
-      "description": "Weight in pounds"
+      "minimum": 0.5,
+      "maximum": 5
     }
   },
   "additionalProperties": true

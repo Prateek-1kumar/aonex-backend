@@ -4,49 +4,73 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand_name",
-    "fragrance_type"
+    "volume_ml",
+    "fragrance_family",
+    "gender"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the perfume"
+    "volume_ml": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 500
     },
-    "brand_name": {
-      "type": "string",
-      "description": "Brand of the perfume"
-    },
-    "fragrance_type": {
+    "fragrance_family": {
       "type": "string",
       "enum": [
-        "citrus",
         "floral",
+        "woody",
         "oriental",
-        "woody"
-      ],
-      "description": "Type of fragrance"
+        "fresh",
+        "citrus",
+        "aquatic",
+        "gourmand",
+        "fougere"
+      ]
     },
-    "size_ml": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Size of the perfume in milliliters"
-    },
-    "concentration_percent": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 100,
-      "description": "Concentration of the fragrance"
-    },
-    "season_rating": {
+    "gender": {
       "type": "string",
       "enum": [
-        "spring",
-        "summer",
-        "autumn",
-        "winter"
-      ],
-      "description": "Seasonal rating of the perfume"
+        "unisex",
+        "feminine",
+        "masculine"
+      ]
+    },
+    "concentration": {
+      "type": "string",
+      "enum": [
+        "parfum",
+        "eau_de_parfum",
+        "eau_de_toilette",
+        "eau_de_cologne",
+        "body_spray"
+      ]
+    },
+    "top_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "middle_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "base_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "longevity": {
+      "type": "string",
+      "enum": [
+        "poor",
+        "moderate",
+        "good",
+        "excellent"
+      ]
     }
   },
   "additionalProperties": true

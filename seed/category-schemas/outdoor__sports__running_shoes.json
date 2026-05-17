@@ -4,53 +4,69 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand",
-    "model_year"
+    "size",
+    "gender",
+    "drop_mm",
+    "weight_grams",
+    "surface"
   ],
   "properties": {
-    "product_name": {
+    "size": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 18
+    },
+    "gender": {
       "type": "string",
-      "description": "Name of the product"
+      "enum": [
+        "men",
+        "women",
+        "unisex"
+      ]
     },
-    "brand": {
-      "type": "string",
-      "description": "Brand of the product"
-    },
-    "model_year": {
-      "type": "integer",
-      "minimum": 1900,
-      "maximum": 2100,
-      "description": "Year the model was released"
-    },
-    "heel_to_toe_drop_mm": {
+    "drop_mm": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 20,
-      "description": "Heel to toe drop in millimeters"
+      "maximum": 14
     },
     "weight_grams": {
       "type": "number",
-      "minimum": 0,
-      "description": "Weight of the shoe in grams"
+      "minimum": 100,
+      "maximum": 500
     },
-    "season_rating": {
-      "type": "string",
-      "enum": [
-        "all-season",
-        "winter",
-        "summer"
-      ],
-      "description": "Season rating of the shoe"
-    },
-    "terrain_type": {
+    "surface": {
       "type": "string",
       "enum": [
         "road",
         "trail",
-        "track"
-      ],
-      "description": "Type of terrain the shoe is designed for"
+        "track",
+        "cross_country"
+      ]
+    },
+    "upper_material": {
+      "type": "string",
+      "enum": [
+        "mesh",
+        "knit",
+        "synthetic",
+        "gore_tex"
+      ]
+    },
+    "stack_height_mm": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 50
+    },
+    "waterproof": {
+      "type": "boolean"
+    },
+    "size_system": {
+      "type": "string",
+      "enum": [
+        "us",
+        "eu",
+        "uk"
+      ]
     }
   },
   "additionalProperties": true

@@ -2,68 +2,66 @@
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "category_schemas/outdoor_camping_sleeping_bags/v1",
   "type": "object",
+  "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand",
-    "season_rating",
-    "temperature_rating_fahrenheit",
-    "fill_power",
-    "weight_lbs"
+    "temperature_rating_celsius",
+    "fill_type",
+    "shape",
+    "packed_weight_grams"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the sleeping bag"
+    "temperature_rating_celsius": {
+      "type": "number",
+      "minimum": -40,
+      "maximum": 25
     },
-    "brand": {
-      "type": "string",
-      "description": "Brand of the sleeping bag"
-    },
-    "season_rating": {
+    "fill_type": {
       "type": "string",
       "enum": [
-        "3-season",
-        "4-season"
-      ],
-      "description": "Season rating of the sleeping bag"
+        "down",
+        "synthetic"
+      ]
     },
-    "temperature_rating_fahrenheit": {
+    "shape": {
+      "type": "string",
+      "enum": [
+        "mummy",
+        "rectangular",
+        "semi_rectangular",
+        "double"
+      ]
+    },
+    "packed_weight_grams": {
       "type": "number",
-      "minimum": -50,
-      "maximum": 50,
-      "description": "Temperature rating of the sleeping bag in Fahrenheit"
+      "minimum": 200,
+      "maximum": 5000
     },
     "fill_power": {
       "type": "integer",
       "minimum": 300,
-      "maximum": 1000,
-      "description": "Fill power of the sleeping bag"
+      "maximum": 1000
     },
-    "weight_lbs": {
+    "length_cm": {
       "type": "number",
-      "minimum": 0.1,
-      "maximum": 10,
-      "description": "Weight of the sleeping bag in pounds"
+      "minimum": 150,
+      "maximum": 230
     },
-    "length_inches": {
-      "type": "number",
-      "minimum": 60,
-      "maximum": 90,
-      "description": "Length of the sleeping bag in inches"
-    },
-    "width_inches": {
-      "type": "number",
-      "minimum": 20,
-      "maximum": 40,
-      "description": "Width of the sleeping bag in inches"
-    },
-    "compressed_size_cubic_inches": {
+    "compressed_volume_liters": {
       "type": "number",
       "minimum": 1,
-      "maximum": 20,
-      "description": "Compressed size of the sleeping bag in cubic inches"
+      "maximum": 20
+    },
+    "water_resistant": {
+      "type": "boolean"
+    },
+    "zipper_side": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "double"
+      ]
     }
   },
-  "additionalProperties": true,
-  "tier": "authoritative"
+  "additionalProperties": true
 }

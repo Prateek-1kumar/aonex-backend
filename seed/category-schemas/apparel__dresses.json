@@ -4,23 +4,12 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "description",
-    "price_usd"
+    "size",
+    "color",
+    "dress_length",
+    "neckline"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the product"
-    },
-    "description": {
-      "type": "string",
-      "description": "Description of the product"
-    },
-    "price_usd": {
-      "type": "number",
-      "description": "Price of the product in USD"
-    },
     "size": {
       "type": "string",
       "enum": [
@@ -29,12 +18,34 @@
         "m",
         "l",
         "xl",
-        "xxl"
+        "xxl",
+        "3xl"
       ]
     },
     "color": {
+      "type": "string"
+    },
+    "dress_length": {
       "type": "string",
-      "description": "Color of the product"
+      "enum": [
+        "mini",
+        "midi",
+        "maxi",
+        "knee_length"
+      ]
+    },
+    "neckline": {
+      "type": "string",
+      "enum": [
+        "v_neck",
+        "crew",
+        "scoop",
+        "square",
+        "halter",
+        "off_shoulder",
+        "strapless",
+        "cowl"
+      ]
     },
     "material": {
       "type": "string",
@@ -42,26 +53,31 @@
         "cotton",
         "polyester",
         "silk",
-        "wool"
+        "satin",
+        "chiffon",
+        "linen",
+        "wool",
+        "blend"
       ]
     },
-    "length_inches": {
-      "type": "number",
-      "minimum": 20,
-      "maximum": 60
-    },
-    "waist_size_inches": {
-      "type": "number",
-      "minimum": 20,
-      "maximum": 40
-    },
-    "season_rating": {
+    "sleeve_type": {
       "type": "string",
       "enum": [
-        "spring",
-        "summer",
-        "autumn",
-        "winter"
+        "sleeveless",
+        "short_sleeve",
+        "long_sleeve",
+        "3_4_sleeve"
+      ]
+    },
+    "occasion": {
+      "type": "string",
+      "enum": [
+        "casual",
+        "formal",
+        "cocktail",
+        "wedding",
+        "beach",
+        "workwear"
       ]
     }
   },

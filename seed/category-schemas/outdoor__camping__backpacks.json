@@ -2,54 +2,65 @@
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "category_schemas/outdoor_camping_backpacks/v1",
   "type": "object",
+  "tier": "authoritative",
   "required": [
-    "brand",
-    "model",
-    "capacity_liters"
+    "capacity_liters",
+    "frame_type",
+    "weight_grams"
   ],
   "properties": {
-    "brand": {
-      "type": "string"
-    },
-    "model": {
-      "type": "string"
-    },
     "capacity_liters": {
       "type": "number",
-      "minimum": 10,
-      "maximum": 100
+      "minimum": 5,
+      "maximum": 120
+    },
+    "frame_type": {
+      "type": "string",
+      "enum": [
+        "internal",
+        "external",
+        "frameless"
+      ]
     },
     "weight_grams": {
       "type": "number",
-      "minimum": 500,
-      "maximum": 3000
-    },
-    "season_rating": {
-      "type": "string",
-      "enum": [
-        "3-season",
-        "4-season"
-      ]
+      "minimum": 200,
+      "maximum": 5000
     },
     "material": {
       "type": "string",
       "enum": [
         "nylon",
         "polyester",
-        "canvas"
+        "dyneema",
+        "canvas",
+        "ripstop_nylon"
       ]
     },
-    "torso_length_inches": {
-      "type": "number",
-      "minimum": 15,
-      "maximum": 24
+    "gender_fit": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex"
+      ]
     },
-    "hip_belt_size_inches": {
+    "torso_length_cm": {
       "type": "number",
-      "minimum": 25,
-      "maximum": 40
+      "minimum": 35,
+      "maximum": 65
+    },
+    "waterproof_rating_mm": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "hip_belt": {
+      "type": "boolean"
+    },
+    "rain_cover_included": {
+      "type": "boolean"
     }
   },
-  "tier": "authoritative",
   "additionalProperties": true
 }

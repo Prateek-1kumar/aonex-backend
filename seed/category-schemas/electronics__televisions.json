@@ -6,27 +6,53 @@
   "required": [
     "screen_size_inches",
     "resolution",
+    "display_type",
     "refresh_rate_hz"
   ],
   "properties": {
     "screen_size_inches": {
       "type": "number",
-      "minimum": 10,
-      "maximum": 100
+      "minimum": 19,
+      "maximum": 110
     },
     "resolution": {
       "type": "string",
       "enum": [
-        "hd",
-        "full_hd",
+        "720p",
+        "1080p",
+        "1440p",
         "4k",
         "8k"
+      ]
+    },
+    "display_type": {
+      "type": "string",
+      "enum": [
+        "led",
+        "oled",
+        "qled",
+        "mini_led",
+        "micro_led"
       ]
     },
     "refresh_rate_hz": {
       "type": "integer",
       "minimum": 60,
       "maximum": 240
+    },
+    "smart_tv": {
+      "type": "boolean"
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "android_tv",
+        "tizen",
+        "webos",
+        "roku",
+        "fire_tv",
+        "proprietary"
+      ]
     },
     "ram_gb": {
       "type": "integer",
@@ -35,23 +61,22 @@
     },
     "storage_gb": {
       "type": "integer",
-      "minimum": 1,
-      "maximum": 1000
+      "minimum": 8,
+      "maximum": 256
     },
-    "packed_weight_grams": {
-      "type": "number",
-      "minimum": 1000,
-      "maximum": 50000
+    "hdmi_ports": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
     },
-    "smart_tv": {
-      "type": "boolean"
-    },
-    "operating_system": {
+    "hdr_support": {
       "type": "string",
       "enum": [
-        "android",
-        "tizen",
-        "webos"
+        "hdr10",
+        "hdr10+",
+        "dolby_vision",
+        "hlg",
+        "none"
       ]
     }
   },

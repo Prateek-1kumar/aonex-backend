@@ -4,33 +4,31 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand_name",
-    "product_description"
+    "volume_ml",
+    "skin_type",
+    "spf"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the product"
-    },
-    "brand_name": {
-      "type": "string",
-      "description": "Name of the brand"
-    },
-    "product_description": {
-      "type": "string",
-      "description": "Short description of the product"
+    "volume_ml": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 500
     },
     "skin_type": {
       "type": "string",
       "enum": [
-        "normal",
-        "dry",
         "oily",
+        "dry",
+        "normal",
         "combination",
-        "sensitive"
-      ],
-      "description": "Suitable skin type"
+        "sensitive",
+        "all"
+      ]
+    },
+    "spf": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
     },
     "moisturizer_type": {
       "type": "string",
@@ -38,18 +36,33 @@
         "day",
         "night",
         "all_day"
-      ],
-      "description": "Type of moisturizer"
+      ]
     },
-    "size_fluid_ounces": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Size of the product in fluid ounces"
+    "formulation": {
+      "type": "string",
+      "enum": [
+        "cream",
+        "lotion",
+        "gel",
+        "serum",
+        "balm",
+        "oil"
+      ]
     },
-    "price_usd": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Price of the product in USD"
+    "fragrance_free": {
+      "type": "boolean"
+    },
+    "hypoallergenic": {
+      "type": "boolean"
+    },
+    "vegan": {
+      "type": "boolean"
+    },
+    "key_ingredients": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "additionalProperties": true

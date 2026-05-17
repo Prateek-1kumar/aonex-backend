@@ -4,48 +4,55 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand_name",
-    "price_usd"
+    "volume_ml",
+    "hair_type",
+    "sulfate_free"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the shampoo product"
-    },
-    "brand_name": {
-      "type": "string",
-      "description": "Name of the shampoo brand"
-    },
-    "price_usd": {
+    "volume_ml": {
       "type": "number",
-      "description": "Price of the shampoo in USD"
-    },
-    "volume_fluid_ounces": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Volume of the shampoo in fluid ounces"
+      "minimum": 50,
+      "maximum": 1000
     },
     "hair_type": {
       "type": "string",
       "enum": [
+        "oily",
         "dry",
         "normal",
-        "oily",
-        "combination"
-      ],
-      "description": "Type of hair the shampoo is suitable for"
+        "colored",
+        "curly",
+        "fine",
+        "thick",
+        "all"
+      ]
     },
-    "scent": {
+    "sulfate_free": {
+      "type": "boolean"
+    },
+    "formulation": {
       "type": "string",
-      "description": "Scent of the shampoo"
+      "enum": [
+        "liquid",
+        "bar",
+        "powder",
+        "dry"
+      ]
     },
-    "ingredients": {
+    "fragrance_free": {
+      "type": "boolean"
+    },
+    "clarifying": {
+      "type": "boolean"
+    },
+    "vegan": {
+      "type": "boolean"
+    },
+    "key_ingredients": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "List of ingredients in the shampoo"
+      }
     }
   },
   "additionalProperties": true

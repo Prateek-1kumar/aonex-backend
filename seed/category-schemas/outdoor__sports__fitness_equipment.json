@@ -2,59 +2,84 @@
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "category_schemas/outdoor_sports_fitness_equipment/v1",
   "type": "object",
+  "tier": "authoritative",
   "required": [
-    "product_name",
-    "product_description"
+    "equipment_type"
   ],
   "properties": {
-    "product_name": {
+    "equipment_type": {
       "type": "string",
-      "description": "Name of the product"
+      "enum": [
+        "treadmill",
+        "elliptical",
+        "stationary_bike",
+        "rowing_machine",
+        "barbell",
+        "dumbbell",
+        "kettlebell",
+        "pull_up_bar",
+        "bench",
+        "squat_rack",
+        "resistance_bands",
+        "foam_roller",
+        "yoga_mat",
+        "cable_machine",
+        "other"
+      ]
     },
-    "product_description": {
-      "type": "string",
-      "description": "Description of the product"
-    },
-    "weight_lbs": {
+    "weight_kg": {
       "type": "number",
-      "minimum": 0,
-      "description": "Weight of the product in pounds"
+      "minimum": 0.1,
+      "maximum": 500
     },
-    "height_inches": {
+    "max_user_weight_kg": {
       "type": "number",
-      "minimum": 0,
-      "description": "Height of the product in inches"
+      "minimum": 50,
+      "maximum": 500
     },
-    "width_inches": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Width of the product in inches"
-    },
-    "depth_inches": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Depth of the product in inches"
+    "dimensions_cm": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "minimum": 1
+        },
+        "width": {
+          "type": "number",
+          "minimum": 1
+        },
+        "height": {
+          "type": "number",
+          "minimum": 1
+        }
+      }
     },
     "material": {
       "type": "string",
       "enum": [
         "steel",
+        "cast_iron",
         "aluminum",
         "plastic",
-        "wood"
-      ],
-      "description": "Material of the product"
+        "rubber",
+        "wood",
+        "foam"
+      ]
     },
-    "color": {
+    "resistance_type": {
       "type": "string",
-      "description": "Color of the product"
+      "enum": [
+        "magnetic",
+        "air",
+        "water",
+        "friction",
+        "electromagnetic",
+        "none"
+      ]
     },
-    "warranty_years": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Warranty period in years"
+    "foldable": {
+      "type": "boolean"
     }
   },
-  "additionalProperties": true,
-  "tier": "authoritative"
+  "additionalProperties": true
 }

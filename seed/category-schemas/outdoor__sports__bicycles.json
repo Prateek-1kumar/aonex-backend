@@ -2,25 +2,41 @@
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "category_schemas/outdoor_sports_bicycles/v1",
   "type": "object",
+  "tier": "authoritative",
   "required": [
-    "brand",
-    "model",
-    "wheel_size_inches"
+    "frame_size_cm",
+    "wheel_size_inches",
+    "gear_count",
+    "bike_type"
   ],
   "properties": {
-    "brand": {
-      "type": "string",
-      "description": "Brand name of the bicycle"
-    },
-    "model": {
-      "type": "string",
-      "description": "Model name of the bicycle"
+    "frame_size_cm": {
+      "type": "number",
+      "minimum": 30,
+      "maximum": 70
     },
     "wheel_size_inches": {
       "type": "number",
       "minimum": 12,
-      "maximum": 29,
-      "description": "Wheel size in inches"
+      "maximum": 29
+    },
+    "gear_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 33
+    },
+    "bike_type": {
+      "type": "string",
+      "enum": [
+        "road",
+        "mountain",
+        "hybrid",
+        "gravel",
+        "bmx",
+        "electric",
+        "cargo",
+        "folding"
+      ]
     },
     "frame_material": {
       "type": "string",
@@ -28,36 +44,32 @@
         "aluminum",
         "carbon_fiber",
         "steel",
-        "titanium"
-      ],
-      "description": "Material of the bicycle frame"
-    },
-    "gears": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 30,
-      "description": "Number of gears"
+        "titanium",
+        "chromoly"
+      ]
     },
     "brake_type": {
       "type": "string",
       "enum": [
-        "disc",
+        "disc_hydraulic",
+        "disc_mechanical",
         "rim",
-        "hydraulic"
-      ],
-      "description": "Type of brakes"
-    },
-    "weight_lbs": {
-      "type": "number",
-      "minimum": 10,
-      "maximum": 50,
-      "description": "Weight of the bicycle in pounds"
+        "coaster"
+      ]
     },
     "suspension": {
-      "type": "boolean",
-      "description": "Whether the bicycle has suspension"
+      "type": "string",
+      "enum": [
+        "hardtail",
+        "full_suspension",
+        "rigid"
+      ]
+    },
+    "weight_kg": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 40
     }
   },
-  "additionalProperties": true,
-  "tier": "authoritative"
+  "additionalProperties": true
 }

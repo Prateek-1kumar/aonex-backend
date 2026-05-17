@@ -4,60 +4,74 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "product_description",
-    "price_usd"
+    "seat_count",
+    "length_cm",
+    "depth_cm",
+    "height_cm",
+    "upholstery_material"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the sofa"
+    "seat_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
     },
-    "product_description": {
-      "type": "string",
-      "description": "Description of the sofa"
-    },
-    "price_usd": {
+    "length_cm": {
       "type": "number",
-      "description": "Price of the sofa in USD"
+      "minimum": 100,
+      "maximum": 400
     },
-    "seat_depth_inches": {
+    "depth_cm": {
       "type": "number",
-      "minimum": 20,
-      "maximum": 40,
-      "description": "Depth of the sofa seat in inches"
+      "minimum": 60,
+      "maximum": 150
     },
-    "seat_height_inches": {
+    "height_cm": {
       "type": "number",
-      "minimum": 15,
-      "maximum": 25,
-      "description": "Height of the sofa seat in inches"
+      "minimum": 60,
+      "maximum": 120
     },
-    "arm_height_inches": {
-      "type": "number",
-      "minimum": 20,
-      "maximum": 30,
-      "description": "Height of the sofa arm in inches"
-    },
-    "fabric_type": {
+    "upholstery_material": {
       "type": "string",
       "enum": [
         "leather",
+        "faux_leather",
+        "fabric",
+        "velvet",
         "microfiber",
         "linen",
-        "cotton"
-      ],
-      "description": "Type of fabric used for the sofa"
+        "cotton",
+        "polyester"
+      ]
     },
     "color": {
-      "type": "string",
-      "description": "Color of the sofa"
+      "type": "string"
     },
-    "weight_lbs": {
+    "sofa_type": {
+      "type": "string",
+      "enum": [
+        "loveseat",
+        "sofa",
+        "sectional",
+        "sleeper",
+        "chesterfield",
+        "modular",
+        "futon"
+      ]
+    },
+    "leg_material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "plastic",
+        "none"
+      ]
+    },
+    "weight_kg": {
       "type": "number",
-      "minimum": 50,
-      "maximum": 200,
-      "description": "Weight of the sofa in pounds"
+      "minimum": 15,
+      "maximum": 200
     }
   },
   "additionalProperties": true
