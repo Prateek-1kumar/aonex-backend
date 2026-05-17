@@ -2,7 +2,7 @@ import type { Job } from "bullmq";
 import type { DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { runIngestion } from "@aonex/ingestion-spine";
-import { createLinkAdapter } from "@aonex/link-adapter";
+import { createLinkAdapter, createLinkAdapterWithAntibot } from "@aonex/link-adapter";
 import { LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import type { TenantId, MerchantId } from "@aonex/types";
 
@@ -33,7 +33,12 @@ export async function runSpineLink(
   if (data.lane !== "link") {
     throw new Error(`Lane ${data.lane} not implemented in Phase 2`);
   }
-  const adapter = createLinkAdapter({ llmExtractor: deps.llmExtractor });
+  // Phase 6 Layer D wiring: when SCRAPINGBEE_API_KEY is set, the antibot factory
+  // builds a LinkAdapter with the unblock layer active. When unset, it falls
+  // back to a plain LinkAdapter (browser-only escalation). Both paths share
+  // the same LinkAdapterDeps so callers are unaffected.
+  const adapter = await createLinkAdapterWithAntibot({ llmExtractor: deps.llmExtractor });
+  void createLinkAdapter;    // keep the export reachable for direct callers/tests
   let lastResult: Awaited<ReturnType<typeof runIngestion>> | null = null;
   for await (const envelope of adapter.normalize({
     sourceRef: data.sourceRef,

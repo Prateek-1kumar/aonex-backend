@@ -47,6 +47,24 @@ export const EnvSchema = z.object({
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_MODEL: z.string().min(1).optional(),
+
+  // Phase 3 — Groq overrides for LLM extraction + schema drafting.
+  // When set, the LLM extractor prefers GROQ_MODEL_GAP_FILL over OPENAI_MODEL,
+  // and the (future) classifier path uses GROQ_MODEL_CLASSIFIER (cheaper 8B).
+  GROQ_API_KEY: z.string().min(1).optional(),
+  GROQ_BASE_URL: z.string().url().optional(),
+  GROQ_MODEL_GAP_FILL: z.string().min(1).optional(),
+  GROQ_MODEL_CLASSIFIER: z.string().min(1).optional(),
+  GROQ_MODEL_VISION: z.string().min(1).optional(),
+
+  // Phase 6 Layer C — Playwright pool size for browser fallback.
+  PLAYWRIGHT_POOL_SIZE: z.coerce.number().int().positive().optional(),
+
+  // Phase 6 Layer D — ScrapingBee anti-bot vendor.
+  // Presence flips the unblock layer ON in the link-adapter escalation ladder.
+  SCRAPINGBEE_API_KEY: z.string().min(1).optional(),
+  // Per-ingestion USD ceiling for paid escalations (default $0.05 in cost-ceiling.ts).
+  EXTRACTION_COST_CEILING_USD: z.coerce.number().positive().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
