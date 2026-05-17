@@ -6,7 +6,7 @@ import type { TenantId } from "@aonex/types";
 function makeSpyEmitter(): { emitter: AuditEmitter; events: AuditEventInput[] } {
   const events: AuditEventInput[] = [];
   return {
-    emitter: { async emit(event) { events.push(event); } },
+    emitter: { async emit(event: AuditEventInput) { events.push(event); } },
     events
   };
 }
