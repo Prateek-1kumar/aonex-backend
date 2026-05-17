@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_chairs/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the chair"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the chair"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the chair in USD"
+    },
+    "seat_height_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 30,
+      "description": "Height of the seat from the floor"
+    },
+    "arm_height_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 40,
+      "description": "Height of the armrest from the floor"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 100,
+      "description": "Weight of the chair"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "plastic",
+        "leather",
+        "fabric"
+      ],
+      "description": "Material of the chair"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the chair"
+    },
+    "style": {
+      "type": "string",
+      "enum": [
+        "modern",
+        "traditional",
+        "mid-century",
+        "industrial",
+        "rustic"
+      ],
+      "description": "Style of the chair"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

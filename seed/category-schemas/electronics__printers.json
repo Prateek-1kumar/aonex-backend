@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_printers/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "printer_type": {
+      "type": "string",
+      "enum": [
+        "inkjet",
+        "laser",
+        "dot_matrix"
+      ]
+    },
+    "print_resolution_dpi": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1200
+    },
+    "paper_size_support": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "a4",
+          "letter",
+          "legal",
+          "a3"
+        ]
+      }
+    },
+    "connectivity_options": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "usb",
+          "wireless",
+          "ethernet"
+        ]
+      }
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dimensions_inches": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "minimum": 0
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -3,6 +3,14 @@ import { parseShopifyProbe } from "./parsers/shopify-probe.js";
 import { parseNextData } from "./parsers/next-data.js";
 import { parseMicrodata } from "./parsers/microdata.js";
 import { parseOpenGraph } from "./parsers/opengraph.js";
+import { parseNuxt } from "./parsers/nuxt.js";
+import { parseInitialState } from "./parsers/initial-state.js";
+import { parseMagento } from "./parsers/magento-init.js";
+import { parseWoocommerce } from "./parsers/woocommerce.js";
+import { parseAlgolia } from "./parsers/algolia-inline.js";
+import { parseShopifyProductsJson } from "./parsers/shopify-products-json.js";
+import { parseRdfa } from "./parsers/rdfa.js";
+import { parseBreadcrumbList } from "./parsers/breadcrumb-list.js";
 import { mergeParserOutputs } from "./merge.js";
 import { checkCoverage, type CoverageResult } from "./coverage.js";
 import { isCaptchaWall } from "./captcha-detect.js";
@@ -37,6 +45,14 @@ export async function extractStructured(
           next_data: null,
           microdata: null,
           opengraph: null,
+          nuxt: null,
+          initial_state: null,
+          magento: null,
+          woocommerce: null,
+          algolia: null,
+          shopify_products_json: null,
+          rdfa: null,
+          breadcrumb_list: null,
         },
         category: { path: null, confidence: 0 },
       },
@@ -45,8 +61,9 @@ export async function extractStructured(
     };
   }
 
-  const [shopify] = await Promise.all([
+  const [shopify, shopifyProductsJson] = await Promise.all([
     parseShopifyProbe(input.pageUrl),
+    parseShopifyProductsJson(input.pageUrl),
   ]);
 
   const outputs = [
@@ -55,6 +72,14 @@ export async function extractStructured(
     parseNextData(input.structuredBlocks.nextData),
     parseMicrodata(input.rawHtml),
     parseOpenGraph(input.rawHtml),
+    parseNuxt(input.rawHtml),
+    parseInitialState(input.rawHtml),
+    parseMagento(input.rawHtml),
+    parseWoocommerce(input.rawHtml),
+    parseAlgolia(input.rawHtml),
+    shopifyProductsJson,
+    parseRdfa(input.rawHtml),
+    parseBreadcrumbList(input.structuredBlocks.jsonLd),
   ];
 
   const structured = mergeParserOutputs(outputs);

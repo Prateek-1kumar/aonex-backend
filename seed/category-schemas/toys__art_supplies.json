@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys/art_supplies/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "infant",
+        "toddler",
+        "preschool",
+        "school_age"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "wood",
+        "fabric",
+        "paper"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dimensions_length_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dimensions_width_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dimensions_height_cm": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true
+}

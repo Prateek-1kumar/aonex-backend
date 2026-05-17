@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/office_desks/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "desk_size_inches": {
+      "type": "number",
+      "description": "Size of the desk in inches",
+      "minimum": 30,
+      "maximum": 96
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "glass",
+        "plastic"
+      ],
+      "description": "Material of the desk"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "white",
+        "brown",
+        "gray"
+      ],
+      "description": "Color of the desk"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "description": "Weight of the desk in pounds",
+      "minimum": 20,
+      "maximum": 200
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "inferred"
+      ],
+      "description": "Tier of the category"
+    }
+  },
+  "additionalProperties": true
+}

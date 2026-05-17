@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_microphones/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "polar_pattern": {
+      "type": "string",
+      "enum": [
+        "cardioid",
+        "omnidirectional",
+        "bidirectional",
+        "hypercardioid",
+        "shotgun"
+      ]
+    },
+    "frequency_response_hz": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer"
+        },
+        "max": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ]
+    },
+    "sensitivity_db": {
+      "type": "number",
+      "description": "Sensitivity in decibels"
+    },
+    "connectivity": {
+      "type": "string",
+      "enum": [
+        "usb",
+        "xlr",
+        "trrs",
+        "wireless"
+      ]
+    },
+    "weight_grams": {
+      "type": "integer",
+      "description": "Weight in grams"
+    },
+    "dimensions_mm": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "integer"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "length",
+        "width",
+        "height"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

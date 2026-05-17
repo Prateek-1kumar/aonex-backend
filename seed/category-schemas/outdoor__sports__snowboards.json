@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_snowboards/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "model",
+    "length_cm"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "length_cm": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 200
+    },
+    "width_cm": {
+      "type": "integer",
+      "minimum": 20,
+      "maximum": 30
+    },
+    "weight_grams": {
+      "type": "integer",
+      "minimum": 2000,
+      "maximum": 4000
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "all_mountain",
+        "freeride",
+        "freestyle",
+        "powder"
+      ]
+    },
+    "ability_level": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

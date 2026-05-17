@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_gaming_controllers/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "manufacturer"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the gaming controller"
+    },
+    "manufacturer": {
+      "type": "string",
+      "description": "Manufacturer of the gaming controller"
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Battery life of the gaming controller in hours"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the gaming controller in grams"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "playstation",
+        "xbox",
+        "nintendo",
+        "pc"
+      ],
+      "description": "Gaming platform supported by the controller"
+    },
+    "wireless_connectivity": {
+      "type": "boolean",
+      "description": "Whether the gaming controller has wireless connectivity"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

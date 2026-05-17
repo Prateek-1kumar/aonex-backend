@@ -202,6 +202,7 @@ export function buildContainer(env: Env): ApiContainer {
     ingestionsRoutes({
       queues: { [QUEUE.LINK_EXTRACT]: linkExtractQueue },
       audit,
+      db: db.client,
     })
   );
   protectedApp.route("/review", reviewRoutes({ db: db.client, audit }));

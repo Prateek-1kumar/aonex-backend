@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_laptops/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "screen_size_inches",
+    "processor",
+    "ram_gb",
+    "storage_gb",
+    "storage_type"
+  ],
+  "properties": {
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 11,
+      "maximum": 18
+    },
+    "processor": {
+      "type": "string"
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 4,
+      "maximum": 128
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 128,
+      "maximum": 8192
+    },
+    "storage_type": {
+      "type": "string",
+      "enum": [
+        "ssd",
+        "hdd",
+        "emmc",
+        "hybrid"
+      ]
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "windows",
+        "macos",
+        "linux",
+        "chrome_os"
+      ]
+    },
+    "gpu": {
+      "type": "string"
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 30
+    },
+    "weight_kg": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 5
+    }
+  },
+  "additionalProperties": true
+}

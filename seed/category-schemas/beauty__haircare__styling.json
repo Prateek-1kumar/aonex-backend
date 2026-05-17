@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_haircare_styling/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "brand"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the product"
+    },
+    "hair_type": {
+      "type": "string",
+      "enum": [
+        "dry",
+        "damaged",
+        "normal",
+        "oily",
+        "curly",
+        "straight",
+        "wavy"
+      ]
+    },
+    "styling_tool_type": {
+      "type": "string",
+      "enum": [
+        "flat_iron",
+        "curling_iron",
+        "hair_dryer",
+        "styling_brush",
+        "round_brush"
+      ]
+    },
+    "temperature_range_fahrenheit": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 450
+    },
+    "cord_length_feet": {
+      "type": "number",
+      "minimum": 0
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

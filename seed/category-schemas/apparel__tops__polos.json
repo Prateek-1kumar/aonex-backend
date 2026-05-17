@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_tops_polos/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "xs",
+        "s",
+        "m",
+        "l",
+        "xl",
+        "xxl"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the product"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "linen",
+        "rayon"
+      ]
+    },
+    "chest_circumference_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 50
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 40
+    },
+    "sleeve_length_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 30
+    }
+  },
+  "additionalProperties": true
+}

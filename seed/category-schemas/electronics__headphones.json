@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_headphones/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "connectivity",
+    "driver_type",
+    "frequency_response_hz_low",
+    "frequency_response_hz_high"
+  ],
+  "properties": {
+    "connectivity": {
+      "type": "string",
+      "enum": [
+        "wired",
+        "wireless",
+        "both"
+      ]
+    },
+    "driver_type": {
+      "type": "string",
+      "enum": [
+        "dynamic",
+        "balanced_armature",
+        "planar_magnetic",
+        "bone_conduction",
+        "electrostatic"
+      ]
+    },
+    "frequency_response_hz_low": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "frequency_response_hz_high": {
+      "type": "integer",
+      "minimum": 10000,
+      "maximum": 100000
+    },
+    "headphone_type": {
+      "type": "string",
+      "enum": [
+        "in-ear",
+        "on-ear",
+        "over-ear"
+      ]
+    },
+    "impedance_ohms": {
+      "type": "number",
+      "minimum": 8,
+      "maximum": 600
+    },
+    "sensitivity_db": {
+      "type": "number",
+      "minimum": 80,
+      "maximum": 130
+    },
+    "driver_size_mm": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 60
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 500
+    },
+    "noise_cancellation": {
+      "type": "boolean"
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "microphone_included": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

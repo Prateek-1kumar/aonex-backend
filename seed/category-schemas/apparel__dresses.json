@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_dresses/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "color",
+    "dress_length",
+    "neckline"
+  ],
+  "properties": {
+    "size": {
+      "type": "string",
+      "enum": [
+        "xs",
+        "s",
+        "m",
+        "l",
+        "xl",
+        "xxl",
+        "3xl"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "dress_length": {
+      "type": "string",
+      "enum": [
+        "mini",
+        "midi",
+        "maxi",
+        "knee_length"
+      ]
+    },
+    "neckline": {
+      "type": "string",
+      "enum": [
+        "v_neck",
+        "crew",
+        "scoop",
+        "square",
+        "halter",
+        "off_shoulder",
+        "strapless",
+        "cowl"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "silk",
+        "satin",
+        "chiffon",
+        "linen",
+        "wool",
+        "blend"
+      ]
+    },
+    "sleeve_type": {
+      "type": "string",
+      "enum": [
+        "sleeveless",
+        "short_sleeve",
+        "long_sleeve",
+        "3_4_sleeve"
+      ]
+    },
+    "occasion": {
+      "type": "string",
+      "enum": [
+        "casual",
+        "formal",
+        "cocktail",
+        "wedding",
+        "beach",
+        "workwear"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

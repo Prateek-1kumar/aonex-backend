@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_seat_covers/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "material_type"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "material_type": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "fabric",
+        "vinyl"
+      ]
+    },
+    "seat_type": {
+      "type": "string",
+      "enum": [
+        "bucket",
+        "bench"
+      ]
+    },
+    "vehicle_compatibility": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "color_options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "price_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true
+}

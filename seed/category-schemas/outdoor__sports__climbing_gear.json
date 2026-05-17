@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_climbing_gear/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the product in grams"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "aluminum",
+        "steel",
+        "nylon",
+        "polyester"
+      ],
+      "description": "Material of the product"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ],
+      "description": "Season rating of the product"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the product"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

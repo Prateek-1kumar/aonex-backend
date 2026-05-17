@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_ski_equipment/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "product_description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "ski_length_cm": {
+      "type": "number",
+      "minimum": 150,
+      "maximum": 210,
+      "description": "Length of the skis in cm"
+    },
+    "ski_width_mm": {
+      "type": "number",
+      "minimum": 60,
+      "maximum": 120,
+      "description": "Width of the skis in mm"
+    },
+    "binding_type": {
+      "type": "string",
+      "enum": [
+        "alpine",
+        "cross_country",
+        "telemark"
+      ],
+      "description": "Type of binding"
+    },
+    "ski_level": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "description": "Level of the skier"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 1000,
+      "maximum": 3000,
+      "description": "Weight of the skis in grams"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

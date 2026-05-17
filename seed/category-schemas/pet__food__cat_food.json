@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_food_cat_food/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "flavor",
+    "life_stage",
+    "size",
+    "unit_price"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "flavor": {
+      "type": "string"
+    },
+    "life_stage": {
+      "type": "string",
+      "enum": [
+        "kitten",
+        "adult",
+        "senior"
+      ]
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ]
+    },
+    "unit_price": {
+      "type": "number",
+      "units": "dollars",
+      "minimum": 0
+    },
+    "protein_source": {
+      "type": "string",
+      "enum": [
+        "chicken",
+        "salmon",
+        "beef"
+      ]
+    },
+    "calories_per_ounce": {
+      "type": "number",
+      "units": "calories/ounce",
+      "minimum": 0
+    },
+    "shelf_life_days": {
+      "type": "integer",
+      "units": "days",
+      "minimum": 0
+    },
+    "packaging_type": {
+      "type": "string",
+      "enum": [
+        "bag",
+        "can",
+        "pouch"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

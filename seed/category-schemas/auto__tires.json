@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_tires/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "diameter_inches",
+    "width_mm",
+    "aspect_ratio",
+    "load_index",
+    "speed_rating",
+    "season"
+  ],
+  "properties": {
+    "diameter_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 30
+    },
+    "width_mm": {
+      "type": "integer",
+      "minimum": 115,
+      "maximum": 385
+    },
+    "aspect_ratio": {
+      "type": "integer",
+      "minimum": 25,
+      "maximum": 80
+    },
+    "load_index": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 130
+    },
+    "speed_rating": {
+      "type": "string",
+      "enum": [
+        "m",
+        "n",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "h",
+        "v",
+        "w",
+        "y",
+        "zr"
+      ]
+    },
+    "season": {
+      "type": "string",
+      "enum": [
+        "summer",
+        "winter",
+        "all_season",
+        "all_terrain"
+      ]
+    },
+    "tire_type": {
+      "type": "string",
+      "enum": [
+        "passenger",
+        "light_truck",
+        "suv",
+        "performance",
+        "run_flat"
+      ]
+    },
+    "tread_pattern": {
+      "type": "string",
+      "enum": [
+        "symmetric",
+        "asymmetric",
+        "directional"
+      ]
+    },
+    "run_flat": {
+      "type": "boolean"
+    },
+    "tread_depth_mm": {
+      "type": "number",
+      "minimum": 4,
+      "maximum": 20
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_bedding_blankets/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "material",
+    "size_inches"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "wool",
+        "fleece",
+        "microfiber",
+        "synthetic"
+      ]
+    },
+    "size_inches": {
+      "type": "object",
+      "properties": {
+        "length_inches": {
+          "type": "number",
+          "minimum": 30,
+          "maximum": 108
+        },
+        "width_inches": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 90
+        }
+      },
+      "required": [
+        "length_inches",
+        "width_inches"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 5000
+    },
+    "fill_power": {
+      "type": "number",
+      "minimum": 300,
+      "maximum": 900
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ]
+    },
+    "color": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

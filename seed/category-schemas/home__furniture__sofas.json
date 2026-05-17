@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_sofas/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "seat_count",
+    "length_cm",
+    "depth_cm",
+    "height_cm",
+    "upholstery_material"
+  ],
+  "properties": {
+    "seat_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "length_cm": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 400
+    },
+    "depth_cm": {
+      "type": "number",
+      "minimum": 60,
+      "maximum": 150
+    },
+    "height_cm": {
+      "type": "number",
+      "minimum": 60,
+      "maximum": 120
+    },
+    "upholstery_material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "faux_leather",
+        "fabric",
+        "velvet",
+        "microfiber",
+        "linen",
+        "cotton",
+        "polyester"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "sofa_type": {
+      "type": "string",
+      "enum": [
+        "loveseat",
+        "sofa",
+        "sectional",
+        "sleeper",
+        "chesterfield",
+        "modular",
+        "futon"
+      ]
+    },
+    "leg_material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "plastic",
+        "none"
+      ]
+    },
+    "weight_kg": {
+      "type": "number",
+      "minimum": 15,
+      "maximum": 200
+    }
+  },
+  "additionalProperties": true
+}

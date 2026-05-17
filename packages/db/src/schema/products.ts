@@ -93,28 +93,40 @@ export const productVersions = pgTable(
       .references(() => products.id, { onDelete: "restrict" }),
     tenantId: uuid("tenant_id").notNull(),
     merchantId: uuid("merchant_id").notNull(),
-    /** FK to proposed_diffs — NOT NULL enforces HLD §2.4 rule */
     proposedDiffId: uuid("proposed_diff_id")
       .notNull()
       .references(() => proposedDiffs.id, { onDelete: "restrict" }),
     title: varchar("title", { length: 500 }).notNull(),
     brand: varchar("brand", { length: 200 }),
     gtin: varchar("gtin", { length: 30 }),
+    gtinType: varchar("gtin_type", { length: 10 }),
     modelNumber: varchar("model_number", { length: 100 }),
+    manufacturerPartNumber: varchar("manufacturer_part_number", { length: 100 }),
     basePrice: numeric("base_price", { precision: 12, scale: 4 }),
     currency: varchar("currency", { length: 3 }),
+    weightGrams: numeric("weight_grams", { precision: 12, scale: 3 }),
+    dimensionsCm: jsonb("dimensions_cm").$type<{ l?: number; w?: number; h?: number }>(),
     images: jsonb("images").$type<Array<{ url: string; altText?: string }>>(),
     description: text("description"),
     canonicalCategory: varchar("canonical_category", { length: 300 }),
+    categorySchemaVersion: varchar("category_schema_version", { length: 50 }),
+    categoryConfidence: numeric("category_confidence", { precision: 5, scale: 4 }),
+    attributesJson: jsonb("attributes_json")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
     confidenceScore: numeric("confidence_score", { precision: 5, scale: 4 }).notNull(),
     schemaVersion: varchar("schema_version", { length: 20 }).notNull().default("1"),
     merchantExtensionsJson: jsonb("merchant_extensions_json").$type<Record<string, unknown>>(),
+    evidenceSummary: jsonb("evidence_summary").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
     productIdx: index("idx_product_versions_product").on(t.productId),
     diffIdx: index("idx_product_versions_diff").on(t.proposedDiffId),
-    createdIdx: index("idx_product_versions_created").on(t.tenantId, t.createdAt)
+    createdIdx: index("idx_product_versions_created").on(t.tenantId, t.createdAt),
+    attrsGinIdx: index("idx_product_versions_attrs_gin").using("gin", t.attributesJson),
+    categoryIdx: index("idx_product_versions_category").on(t.canonicalCategory)
   })
 );
 

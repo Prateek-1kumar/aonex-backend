@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_haircare_shampoo/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "volume_ml",
+    "hair_type",
+    "sulfate_free"
+  ],
+  "properties": {
+    "volume_ml": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 1000
+    },
+    "hair_type": {
+      "type": "string",
+      "enum": [
+        "oily",
+        "dry",
+        "normal",
+        "colored",
+        "curly",
+        "fine",
+        "thick",
+        "all"
+      ]
+    },
+    "sulfate_free": {
+      "type": "boolean"
+    },
+    "formulation": {
+      "type": "string",
+      "enum": [
+        "liquid",
+        "bar",
+        "powder",
+        "dry"
+      ]
+    },
+    "fragrance_free": {
+      "type": "boolean"
+    },
+    "clarifying": {
+      "type": "boolean"
+    },
+    "vegan": {
+      "type": "boolean"
+    },
+    "key_ingredients": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

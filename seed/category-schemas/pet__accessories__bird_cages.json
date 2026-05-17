@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_accessories_bird_cages/v1",
+  "type": "object",
+  "required": [
+    "material",
+    "size_inches",
+    "bar_spacing_cm",
+    "wire_gauge",
+    "door_type"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "stainless_steel",
+        "powder_coated_steel",
+        "wood"
+      ]
+    },
+    "size_inches": {
+      "type": "number",
+      "description": "Size of the bird cage in inches"
+    },
+    "bar_spacing_cm": {
+      "type": "number",
+      "unit": "cm",
+      "description": "Bar spacing of the bird cage in centimeters"
+    },
+    "wire_gauge": {
+      "type": "number",
+      "description": "Wire gauge of the bird cage"
+    },
+    "door_type": {
+      "type": "string",
+      "enum": [
+        "hinged",
+        "slide_out",
+        "removable"
+      ]
+    },
+    "additional_properties": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "tier": "inferred"
+}

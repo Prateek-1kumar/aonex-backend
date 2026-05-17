@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_dumbbells/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "weight_lbs"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the dumbbell in pounds"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cast_iron",
+        "stainless_steel",
+        "rubber"
+      ],
+      "description": "Material of the dumbbell"
+    },
+    "diameter_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Diameter of the dumbbell in inches"
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Length of the dumbbell in inches"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the dumbbell"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

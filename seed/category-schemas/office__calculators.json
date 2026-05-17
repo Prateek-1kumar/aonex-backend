@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/office_calculators/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "model_number",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the calculator"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the calculator"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the calculator in USD"
+    },
+    "display_type": {
+      "type": "string",
+      "enum": [
+        "lcd",
+        "led"
+      ],
+      "description": "Type of display"
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Battery life in hours"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the calculator in grams"
+    },
+    "dimensions_length_cm": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Length of the calculator in cm"
+    },
+    "dimensions_width_cm": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Width of the calculator in cm"
+    },
+    "dimensions_height_cm": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Height of the calculator in cm"
+    }
+  },
+  "tier": "inferred",
+  "additionalProperties": true
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_accessories_collars/v1",
+  "type": "object",
+  "required": [
+    "material",
+    "size"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "nylon",
+        "canvas"
+      ]
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "color": {
+      "type": "string"
+    },
+    "pattern": {
+      "type": "string"
+    },
+    "adjustable": {
+      "type": "boolean"
+    },
+    "reflective": {
+      "type": "boolean"
+    },
+    "breakaway": {
+      "type": "boolean"
+    },
+    "weight": {
+      "type": "number",
+      "unit": "ounces"
+    },
+    "length": {
+      "type": "number",
+      "unit": "inches"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_beds/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "frame_material",
+    "length_cm",
+    "width_cm"
+  ],
+  "properties": {
+    "size": {
+      "type": "string",
+      "enum": [
+        "twin",
+        "twin_xl",
+        "full",
+        "queen",
+        "king",
+        "california_king"
+      ]
+    },
+    "frame_material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "upholstered",
+        "platform",
+        "mixed"
+      ]
+    },
+    "length_cm": {
+      "type": "number",
+      "minimum": 150,
+      "maximum": 230
+    },
+    "width_cm": {
+      "type": "number",
+      "minimum": 70,
+      "maximum": 200
+    },
+    "headboard": {
+      "type": "boolean"
+    },
+    "storage_included": {
+      "type": "boolean"
+    },
+    "color": {
+      "type": "string"
+    },
+    "max_weight_capacity_kg": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 1000
+    },
+    "weight_kg": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 200
+    },
+    "slat_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 30
+    }
+  },
+  "additionalProperties": true
+}

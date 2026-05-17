@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_footwear_dress_shoes/v1",
+  "type": "object",
+  "required": [
+    "brand_name",
+    "model_name",
+    "size_eu",
+    "color"
+  ],
+  "properties": {
+    "brand_name": {
+      "type": "string",
+      "description": "Brand name of the dress shoe"
+    },
+    "model_name": {
+      "type": "string",
+      "description": "Model name of the dress shoe"
+    },
+    "size_eu": {
+      "type": "integer",
+      "minimum": 35,
+      "maximum": 48,
+      "description": "EU size of the dress shoe"
+    },
+    "size_us": {
+      "type": "integer",
+      "minimum": 4,
+      "maximum": 16,
+      "description": "US size of the dress shoe"
+    },
+    "size_uk": {
+      "type": "integer",
+      "minimum": 3,
+      "maximum": 15,
+      "description": "UK size of the dress shoe"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "brown",
+        "tan",
+        "gray",
+        "blue",
+        "red",
+        "white"
+      ],
+      "description": "Color of the dress shoe"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "suede",
+        "patent_leather",
+        "synthetic"
+      ],
+      "description": "Material of the dress shoe"
+    },
+    "heel_height_inches": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 2.5,
+      "description": "Heel height of the dress shoe in inches"
+    },
+    "weight_grams": {
+      "type": "integer",
+      "minimum": 200,
+      "maximum": 1000,
+      "description": "Weight of the dress shoe in grams"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

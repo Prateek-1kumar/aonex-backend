@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_bottoms_jeans/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size_waist",
+    "size_inseam",
+    "fit",
+    "color",
+    "material"
+  ],
+  "properties": {
+    "size_waist": {
+      "type": "integer",
+      "minimum": 24,
+      "maximum": 54
+    },
+    "size_inseam": {
+      "type": "integer",
+      "minimum": 26,
+      "maximum": 36
+    },
+    "fit": {
+      "type": "string",
+      "enum": [
+        "skinny",
+        "slim",
+        "straight",
+        "relaxed",
+        "bootcut",
+        "wide_leg",
+        "tapered"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "denim",
+        "stretch_denim",
+        "cotton_blend",
+        "polyester_blend"
+      ]
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex",
+        "kids"
+      ]
+    },
+    "rise": {
+      "type": "string",
+      "enum": [
+        "low",
+        "mid",
+        "high"
+      ]
+    },
+    "distressed": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

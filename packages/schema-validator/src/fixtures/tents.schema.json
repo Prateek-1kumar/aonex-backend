@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_camping_tents/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "capacity_persons",
+    "season_rating",
+    "packed_weight_grams",
+    "peak_height_cm",
+    "waterproof_rating_mm"
+  ],
+  "properties": {
+    "capacity_persons": { "type": "integer", "minimum": 1, "maximum": 12 },
+    "season_rating": { "type": "string", "enum": ["3-season", "4-season"] },
+    "packed_weight_grams": { "type": "number", "minimum": 0 },
+    "peak_height_cm": { "type": "number", "minimum": 0 },
+    "waterproof_rating_mm": { "type": "number", "minimum": 0 },
+    "color": { "type": "string" },
+    "pole_material": { "type": "string" },
+    "footprint_cm": { "type": "array", "items": { "type": "number" } }
+  },
+  "additionalProperties": true
+}

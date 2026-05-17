@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys/outdoor_toys/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "infant",
+        "toddler",
+        "preschool",
+        "school_age"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "wood",
+        "metal",
+        "fabric"
+      ]
+    },
+    "max_weight_lbs": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Maximum weight capacity in pounds"
+    },
+    "assembled_size_inches": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "minimum": 0
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ]
+    }
+  },
+  "tier": "inferred",
+  "additionalProperties": true
+}

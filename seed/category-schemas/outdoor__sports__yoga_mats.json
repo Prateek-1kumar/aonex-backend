@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_yoga_mats/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the yoga mat"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the yoga mat"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the yoga mat in USD"
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 60,
+      "maximum": 80,
+      "description": "Length of the yoga mat in inches"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 30,
+      "description": "Width of the yoga mat in inches"
+    },
+    "thickness_mm": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 10,
+      "description": "Thickness of the yoga mat in millimeters"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "pvc",
+        "tpe",
+        "rubber",
+        "eco_pvc"
+      ],
+      "description": "Material of the yoga mat"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the yoga mat"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Weight of the yoga mat in pounds"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

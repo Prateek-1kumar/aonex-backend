@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_usb_hubs/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "number_of_ports": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of USB ports"
+    },
+    "power_output_watts": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total power output in watts"
+    },
+    "usb_version": {
+      "type": "string",
+      "enum": [
+        "usb 2.0",
+        "usb 3.0",
+        "usb 3.1",
+        "usb 3.2",
+        "usb-c"
+      ],
+      "description": "Version of USB"
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Length of the USB hub in inches"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Width of the USB hub in inches"
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Height of the USB hub in inches"
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the USB hub in ounces"
+    }
+  },
+  "additionalProperties": true
+}

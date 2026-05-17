@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_camping_hiking_boots/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "weight_grams": {
+      "type": "number",
+      "description": "Weight of the hiking boots in grams"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "6",
+        "6.5",
+        "7",
+        "7.5",
+        "8",
+        "8.5",
+        "9",
+        "9.5",
+        "10",
+        "10.5",
+        "11",
+        "11.5",
+        "12",
+        "13"
+      ]
+    },
+    "waterproofing": {
+      "type": "boolean",
+      "description": "Whether the hiking boots are waterproof"
+    },
+    "insulation_type": {
+      "type": "string",
+      "enum": [
+        "membrane",
+        "thinsulate",
+        "primaloft"
+      ]
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

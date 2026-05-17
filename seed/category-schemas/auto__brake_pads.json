@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_brake_pads/v1",
+  "type": "object",
+  "required": [
+    "vehicle_type",
+    "brake_pad_type",
+    "compatible_vehicle_make"
+  ],
+  "properties": {
+    "vehicle_type": {
+      "type": "string",
+      "enum": [
+        "car",
+        "truck",
+        "motorcycle",
+        "atv"
+      ]
+    },
+    "brake_pad_type": {
+      "type": "string",
+      "enum": [
+        "semi-metallic",
+        "non-asbestos_organic",
+        "low-metallic",
+        "ceramic"
+      ]
+    },
+    "compatible_vehicle_make": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "friction_material_thickness_mm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "wear_sensor_type": {
+      "type": "string",
+      "enum": [
+        "electronic",
+        "visual"
+      ]
+    },
+    "max_operating_temperature_celsius": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

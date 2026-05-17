@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_footwear_sneakers/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "color",
+    "gender",
+    "upper_material"
+  ],
+  "properties": {
+    "size": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 18
+    },
+    "color": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex",
+        "kids"
+      ]
+    },
+    "upper_material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "synthetic",
+        "mesh",
+        "canvas",
+        "suede",
+        "knit"
+      ]
+    },
+    "sole_material": {
+      "type": "string",
+      "enum": [
+        "rubber",
+        "eva",
+        "tpu",
+        "gum"
+      ]
+    },
+    "closure_type": {
+      "type": "string",
+      "enum": [
+        "lace_up",
+        "slip_on",
+        "velcro",
+        "zipper"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 800
+    },
+    "size_system": {
+      "type": "string",
+      "enum": [
+        "us",
+        "eu",
+        "uk"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

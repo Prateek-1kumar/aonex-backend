@@ -11,4 +11,5 @@ export {
   type LLMRawProductOutput,
   LLM_EXTRACTOR_VERSION,
   DEFAULT_LLM_OPTIONS,
+  DEFAULT_CLASSIFIER_MODEL,
 } from "./types.js";

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_accessories_hats/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the hat"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the hat"
+    },
+    "hat_type": {
+      "type": "string",
+      "enum": [
+        "baseball",
+        "beanie",
+        "fedora",
+        "panama"
+      ]
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large",
+        "x_large"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "wool",
+        "straw"
+      ]
+    },
+    "crown_height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "brim_width_inches": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

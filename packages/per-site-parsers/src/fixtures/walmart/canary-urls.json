@@ -1,0 +1,13 @@
+{
+  "domain": "walmart.com",
+  "urls": [
+    "https://www.walmart.com/ip/Apple-AirPods-Pro-2nd-Generation/1755073510",
+    "https://www.walmart.com/ip/Samsung-65-Class-4K-UHD-Smart-TV/5113073510",
+    "https://www.walmart.com/ip/Instant-Pot-Duo-7-in-1/55137832",
+    "https://www.walmart.com/ip/Dyson-V11-Cordless/553788123",
+    "https://www.walmart.com/ip/iPad-9th-Gen-256GB/890123456",
+    "https://www.walmart.com/ip/LEGO-Star-Wars/345678901",
+    "https://www.walmart.com/ip/Nike-Air-Force-1/234567890"
+  ],
+  "expectedFields": ["title", "base_price", "product_id"]
+}

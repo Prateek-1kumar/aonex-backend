@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_beds_cat_beds/v1",
+  "type": "object",
+  "required": [
+    "material",
+    "size",
+    "color"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "plastic",
+        "fabric"
+      ]
+    },
+    "size": {
+      "type": "object",
+      "properties": {
+        "length_inches": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 40
+        },
+        "width_inches": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 25
+        }
+      },
+      "required": [
+        "length_inches",
+        "width_inches"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "beige",
+        "gray",
+        "blue"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "height_cm": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 50
+    },
+    "assembly_required": {
+      "type": "boolean"
+    },
+    "washable": {
+      "type": "boolean"
+    },
+    "additional_features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_fishing_rods/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the fishing rod"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the fishing rod"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the fishing rod in USD"
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Length of the fishing rod in inches"
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the fishing rod in ounces"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "fast",
+        "medium",
+        "slow"
+      ],
+      "description": "Action of the fishing rod"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "graphite",
+        "fiberglass",
+        "composite"
+      ],
+      "description": "Material of the fishing rod"
+    },
+    "line_rating_lbs": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Line rating of the fishing rod in pounds"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

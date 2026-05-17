@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_footwear_boots/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "color",
+    "gender",
+    "shaft_height_cm",
+    "material"
+  ],
+  "properties": {
+    "size": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 18
+    },
+    "color": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex",
+        "kids"
+      ]
+    },
+    "shaft_height_cm": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 60
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "synthetic",
+        "suede",
+        "rubber",
+        "canvas"
+      ]
+    },
+    "boot_type": {
+      "type": "string",
+      "enum": [
+        "ankle",
+        "knee_high",
+        "over_knee",
+        "chelsea",
+        "combat",
+        "hiking",
+        "rain",
+        "work"
+      ]
+    },
+    "waterproof": {
+      "type": "boolean"
+    },
+    "insulation_type": {
+      "type": "string",
+      "enum": [
+        "thinsulate",
+        "primaloft",
+        "down",
+        "none"
+      ]
+    },
+    "heel_height_cm": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 15
+    },
+    "size_system": {
+      "type": "string",
+      "enum": [
+        "us",
+        "eu",
+        "uk"
+      ]
+    }
+  },
+  "additionalProperties": true
+}
