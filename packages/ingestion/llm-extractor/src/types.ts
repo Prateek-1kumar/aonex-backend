@@ -63,11 +63,21 @@ export interface LLMRawProductOutput {
 export const LLM_EXTRACTOR_VERSION = "llm-url@1.0.0";
 
 export const DEFAULT_LLM_OPTIONS: Required<LLMExtractionOptions> = {
-  model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+  // Phase 6: prefer Groq when GROQ_MODEL_GAP_FILL is set (paired with
+  // GROQ_BASE_URL on the provider). Falls back to OpenAI's gpt-4o-mini.
+  model: process.env["GROQ_MODEL_GAP_FILL"] || process.env["OPENAI_MODEL"] || "gpt-4o-mini",
   maxTokens: 4096,
   temperature: 0.1,
   categoryHint: "",
 };
+
+/**
+ * Phase 6: cheaper classifier model used by category-detection code paths
+ * (NOT product extraction). Defaults to llama-3.1-8b-instant on Groq;
+ * fall back to gpt-4o-mini if Groq is not configured.
+ */
+export const DEFAULT_CLASSIFIER_MODEL =
+  process.env["GROQ_MODEL_CLASSIFIER"] || process.env["OPENAI_CLASSIFIER_MODEL"] || "gpt-4o-mini";
 
 export interface LLMGapFillOptions extends LLMExtractionOptions {
   /** The rawKeys that are missing and need to be filled by the LLM. */
