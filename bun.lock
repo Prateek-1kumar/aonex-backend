@@ -242,6 +242,7 @@
       "name": "@aonex/ingestion-policy-engine",
       "version": "0.1.0",
       "dependencies": {
+        "@aonex/calibration": "workspace:*",
         "@aonex/ingestion-deduplicator": "workspace:*",
         "@aonex/ingestion-field-extractor": "workspace:*",
       },
