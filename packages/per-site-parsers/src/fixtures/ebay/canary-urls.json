@@ -1,0 +1,13 @@
+{
+  "domain": "ebay.com",
+  "urls": [
+    "https://www.ebay.com/itm/304947284856",
+    "https://www.ebay.com/itm/315274519883",
+    "https://www.ebay.com/itm/156428739012",
+    "https://www.ebay.com/itm/186524371023",
+    "https://www.ebay.com/itm/335678123456",
+    "https://www.ebay.com/itm/204321987654",
+    "https://www.ebay.com/itm/166789234567"
+  ],
+  "expectedFields": ["title", "base_price", "item_id"]
+}
