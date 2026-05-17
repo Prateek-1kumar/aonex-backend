@@ -4,6 +4,7 @@ import { parseNextData } from "./parsers/next-data.js";
 import { parseMicrodata } from "./parsers/microdata.js";
 import { parseOpenGraph } from "./parsers/opengraph.js";
 import { parseNuxt } from "./parsers/nuxt.js";
+import { parseInitialState } from "./parsers/initial-state.js";
 import { mergeParserOutputs } from "./merge.js";
 import { checkCoverage, type CoverageResult } from "./coverage.js";
 import { isCaptchaWall } from "./captcha-detect.js";
@@ -62,6 +63,7 @@ export async function extractStructured(
     parseMicrodata(input.rawHtml),
     parseOpenGraph(input.rawHtml),
     parseNuxt(input.rawHtml),
+    parseInitialState(input.rawHtml),
   ];
 
   const structured = mergeParserOutputs(outputs);
