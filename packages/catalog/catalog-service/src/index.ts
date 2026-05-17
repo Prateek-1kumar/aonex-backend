@@ -2,6 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { canonicalStringify, sha256Hex } from "@aonex/lib-utils";
 import { validate, type ValidationOutcome } from "@aonex/schema-validator";
+import {
+  decideReconciliationAction,
+  type ProductIdentity
+} from "@aonex/multi-source-reconciler";
 
 export interface CanonicalVariantPayload {
   sku: string | null;
@@ -149,6 +153,75 @@ export async function applyApprovedDiff(
       throw new Error("Failed to create product");
     }
     productId = product.id;
+  } else {
+    // Phase 9 — multi-source reconciliation observability.
+    // Compare incoming payload identity to the existing product's latest version's
+    // identity. When the composite score falls below the auto-merge threshold,
+    // emit a value_conflict review_task so a human reviews the merge before
+    // downstream distribution.
+    try {
+      const existingProductVersion = await input.db.query.productVersions.findFirst({
+        where: (pv, { eq: eqFn }) => eqFn(pv.productId, productId!),
+        orderBy: (pv, { desc }) => [desc(pv.createdAt)]
+      });
+      if (existingProductVersion) {
+        const incoming: ProductIdentity = {
+          gtin: payload.gtin ?? null,
+          modelNumber: payload.modelNumber ?? null,
+          title: payload.title ?? null,
+          brand: payload.brand ?? null
+        };
+        const existing: ProductIdentity = {
+          gtin: existingProductVersion.gtin ?? null,
+          modelNumber: existingProductVersion.modelNumber ?? null,
+          title: existingProductVersion.title ?? null,
+          brand: existingProductVersion.brand ?? null
+        };
+        const decision = decideReconciliationAction(incoming, existing);
+        if (decision.action === "review") {
+          await input.db.insert(schema.reviewTasks).values({
+            tenantId: diff.tenantId as never,
+            merchantId: diff.merchantId as never,
+            proposedDiffId: input.diffId,
+            artifactId: null,
+            taskType: "value_conflict",
+            signalKind: "value_conflict",
+            signalPayload: {
+              reason: "multi_source_reconciler_review",
+              existingProductId: productId,
+              score: decision.score,
+              incoming: {
+                gtin: incoming.gtin,
+                brand: incoming.brand,
+                title: incoming.title
+              },
+              existing: {
+                gtin: existing.gtin,
+                brand: existing.brand,
+                title: existing.title
+              }
+            },
+            severity: "medium",
+            clusterKey: `value_conflict:${productId}`,
+            fieldName: null,
+            policyVersionId: null
+          }).returning({ id: schema.reviewTasks.id });
+        } else if (decision.action === "keep_separate") {
+          // eslint-disable-next-line no-console
+          console.warn("[catalog-service] reconciler suggested keep_separate but GTIN matched existing product", {
+            productId,
+            score: decision.score.composite,
+            incomingTitle: incoming.title,
+            existingTitle: existing.title
+          });
+        }
+        // action === "merge" → silent, existing behavior preserved.
+      }
+    } catch (err) {
+      // Reconciler shouldn't block the merge — log and continue.
+      // eslint-disable-next-line no-console
+      console.warn("[catalog-service] reconciler check failed", err instanceof Error ? err.message : err);
+    }
   }
 
   await input.db

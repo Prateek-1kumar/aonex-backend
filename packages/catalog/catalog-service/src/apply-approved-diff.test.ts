@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { applyApprovedDiff, type CanonicalProductPayload } from "./index.js";
+import { THRESHOLDS } from "@aonex/multi-source-reconciler";
 
 // Mock the drizzle client. Captures inserts/updates so tests can assert on row content.
 function makeMockDb(opts: {
@@ -301,6 +302,247 @@ describe("applyApprovedDiff — Phase 1 canonical schema", () => {
     expect(result.createdVersion).toBe(false);
     expect(db._insertedVersions).toHaveLength(0);
     expect(db._diffUpdates).toHaveLength(0);
+    expect(db._insertedReviewTasks).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 9 — multi-source reconciliation wiring tests
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a mock DB where:
+ * - The first productVersions.findFirst (idempotency guard) returns null
+ * - The second productVersions.findFirst (reconciler lookup) returns an existing version row
+ * - diff.productId is pre-set so resolveExistingProductId is skipped and we go
+ *   straight to the reconciler branch.
+ */
+function makeMockDbForReconciler(opts: {
+  diff: {
+    id: string;
+    tenantId: string;
+    merchantId: string;
+    productId: string;
+    diffPayload: Record<string, unknown>;
+    confidenceScore: string;
+  };
+  existingVersionIdentity: {
+    gtin: string | null;
+    modelNumber: string | null;
+    title: string;
+    brand: string | null;
+    merchantId: string;
+  };
+}) {
+  const insertedVersions: Array<Record<string, unknown>> = [];
+  const insertedProducts: Array<Record<string, unknown>> = [];
+  const insertedReviewTasks: Array<Record<string, unknown>> = [];
+  const productUpdates: Array<Record<string, unknown>> = [];
+  const diffUpdates: Array<Record<string, unknown>> = [];
+
+  // The first call to productVersions.findFirst is the idempotency check
+  // (where: eq(pv.proposedDiffId, diffId)) — returns null so we proceed.
+  // The second call is the reconciler lookup (where: eq(pv.productId, productId)).
+  let pvFindFirstCallCount = 0;
+  const existingVersionRow = {
+    id: "ver-existing-1",
+    productId: opts.diff.productId,
+    tenantId: opts.diff.tenantId,
+    merchantId: opts.existingVersionIdentity.merchantId,
+    gtin: opts.existingVersionIdentity.gtin,
+    modelNumber: opts.existingVersionIdentity.modelNumber,
+    title: opts.existingVersionIdentity.title,
+    brand: opts.existingVersionIdentity.brand
+  };
+
+  const tableNameOf = (table: unknown): string => {
+    const sym = Object.getOwnPropertySymbols(table as object).find(
+      (s) => s.description === "drizzle:Name"
+    );
+    return sym ? ((table as Record<symbol, unknown>)[sym] as string) : "";
+  };
+
+  let mockIdCounter = 0;
+
+  return {
+    query: {
+      proposedDiffs: { findFirst: async () => opts.diff },
+      productVersions: {
+        findFirst: async () => {
+          pvFindFirstCallCount += 1;
+          // First call: idempotency guard → null (version for this diff does not exist yet)
+          // Second call: reconciler lookup → existing product's latest version
+          return pvFindFirstCallCount === 1 ? null : existingVersionRow;
+        }
+      },
+      categorySchemas: { findFirst: async () => null },
+      productIdentities: { findFirst: async () => null },
+      productVariants: { findFirst: async () => null },
+      extractedFacts: { findMany: async () => [] }
+    },
+    insert: (table: unknown) => ({
+      values: (v: Record<string, unknown> | Record<string, unknown>[]) => ({
+        returning: () => {
+          const name = tableNameOf(table);
+          const rows = Array.isArray(v) ? v : [v];
+          const target =
+            name === "products" ? insertedProducts
+            : name === "review_tasks" ? insertedReviewTasks
+            : name === "product_versions" ? insertedVersions
+            : null;
+          if (target) target.push(...rows);
+          mockIdCounter += 1;
+          return Promise.resolve(rows.map(() => ({ id: `mock-id-${mockIdCounter}` })));
+        },
+        onConflictDoNothing: () => Promise.resolve()
+      })
+    }),
+    update: (table: unknown) => ({
+      set: (v: Record<string, unknown>) => ({
+        where: () => {
+          const name = tableNameOf(table);
+          if (name === "products") productUpdates.push(v);
+          else if (name === "proposed_diffs") diffUpdates.push(v);
+          return Promise.resolve();
+        }
+      })
+    }),
+    _insertedVersions: insertedVersions,
+    _insertedProducts: insertedProducts,
+    _insertedReviewTasks: insertedReviewTasks,
+    _productUpdates: productUpdates,
+    _diffUpdates: diffUpdates,
+    get _pvFindFirstCallCount() { return pvFindFirstCallCount; }
+  };
+}
+
+describe("applyApprovedDiff — multi-source reconciliation observability", () => {
+  it("inserts value_conflict review_task when reconciler score falls in the review band", async () => {
+    // Incoming: same GTIN but maximally different brand+title to land the composite
+    // score in the review band [THRESHOLDS.REVIEW=0.40, THRESHOLDS.AUTO_MERGE=0.70).
+    //
+    // Scoring breakdown (3-char distinct strings → jaro-winkler = 0.0):
+    //   gtin   = 1   × 0.40 = 0.40
+    //   title  = 0.0 × 0.25 = 0.00   ("aaa" vs "xyz" → jaro-winkler 0)
+    //   brand  = 0   × 0.15 = 0.00   ("bbb" vs "uvw")
+    //   mpn    = null (absent both sides)
+    //   composite = 0.40 / (0.40+0.25+0.15) = 0.40 / 0.80 = 0.50 → "review"
+    const incomingPayload: CanonicalProductPayload = {
+      title: "aaa",
+      brand: "bbb",
+      gtin: "GTIN-SHARED-9",
+      gtinType: null,
+      modelNumber: null,
+      manufacturerPartNumber: null,
+      description: null,
+      basePrice: null,
+      currency: null,
+      weightGrams: null,
+      dimensionsCm: null,
+      canonicalCategory: null,
+      categorySchemaVersion: null,
+      categoryConfidence: null,
+      images: [],
+      attributes: {},
+      variants: [],
+      evidence: {}
+    };
+
+    const db = makeMockDbForReconciler({
+      diff: {
+        id: "diff-reconciler-1",
+        tenantId: "tenant-r1",
+        merchantId: "merchant-r1",
+        productId: "prod-existing-r1",
+        diffPayload: incomingPayload as unknown as Record<string, unknown>,
+        confidenceScore: "0.75"
+      },
+      existingVersionIdentity: {
+        gtin: "GTIN-SHARED-9",
+        modelNumber: null,
+        title: "xyz",
+        brand: "uvw",
+        merchantId: "merchant-r1"
+      }
+    });
+
+    const result = await applyApprovedDiff({
+      db: db as never,
+      diffId: "diff-reconciler-1",
+      approvalStatus: "auto_approved"
+    });
+
+    // Merge still happens (existing behavior preserved)
+    expect(result.createdVersion).toBe(true);
+    expect(result.productId).toBe("prod-existing-r1");
+    expect(db._insertedVersions).toHaveLength(1);
+
+    // value_conflict review task was emitted
+    expect(db._insertedReviewTasks).toHaveLength(1);
+    const task = db._insertedReviewTasks[0]!;
+    expect(task.taskType).toBe("value_conflict");
+    expect(task.signalKind).toBe("value_conflict");
+    expect(task.severity).toBe("medium");
+    expect(task.clusterKey).toBe(`value_conflict:prod-existing-r1`);
+
+    const payload = task.signalPayload as Record<string, unknown>;
+    expect(payload.reason).toBe("multi_source_reconciler_review");
+    expect(payload.existingProductId).toBe("prod-existing-r1");
+    const score = payload.score as { composite: number };
+    expect(score.composite).toBeGreaterThanOrEqual(THRESHOLDS.REVIEW);
+    expect(score.composite).toBeLessThan(THRESHOLDS.AUTO_MERGE);
+  });
+
+  it("does NOT insert review_task when reconciler score is in auto-merge band", async () => {
+    // Incoming and existing have identical GTIN, brand, and near-identical title.
+    // Composite will be >= AUTO_MERGE → action "merge" → no review task.
+    const incomingPayload: CanonicalProductPayload = {
+      title: "Quechua MH100 2-Person Tent",
+      brand: "Quechua",
+      gtin: "GTIN-SAME",
+      gtinType: null,
+      modelNumber: null,
+      manufacturerPartNumber: null,
+      description: null,
+      basePrice: null,
+      currency: null,
+      weightGrams: null,
+      dimensionsCm: null,
+      canonicalCategory: null,
+      categorySchemaVersion: null,
+      categoryConfidence: null,
+      images: [],
+      attributes: {},
+      variants: [],
+      evidence: {}
+    };
+
+    const db = makeMockDbForReconciler({
+      diff: {
+        id: "diff-reconciler-2",
+        tenantId: "tenant-r2",
+        merchantId: "merchant-r2",
+        productId: "prod-existing-r2",
+        diffPayload: incomingPayload as unknown as Record<string, unknown>,
+        confidenceScore: "0.88"
+      },
+      existingVersionIdentity: {
+        gtin: "GTIN-SAME",
+        modelNumber: null,
+        title: "Quechua MH100 2-Person Tent",
+        brand: "Quechua",
+        merchantId: "merchant-r2"
+      }
+    });
+
+    const result = await applyApprovedDiff({
+      db: db as never,
+      diffId: "diff-reconciler-2",
+      approvalStatus: "auto_approved"
+    });
+
+    expect(result.createdVersion).toBe(true);
+    // No value_conflict task — action is "merge"
     expect(db._insertedReviewTasks).toHaveLength(0);
   });
 });
