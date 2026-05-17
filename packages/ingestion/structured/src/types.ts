@@ -10,7 +10,10 @@ export type ParserKind =
   | "initial_state"
   | "magento"
   | "woocommerce"
-  | "algolia";
+  | "algolia"
+  | "shopify_products_json"
+  | "rdfa"
+  | "breadcrumb_list";
 
 export interface ParserOutput {
   kind: ParserKind;
