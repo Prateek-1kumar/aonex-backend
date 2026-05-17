@@ -6,9 +6,17 @@ import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-ext
 import { runDomHeuristics } from "@aonex/ingestion-dom-heuristics";
 import {
   fetchWithBrowser,
+  fetchWithBrowserAndScreenshot,
   shouldEscalateToBrowser,
-  type FetchBrowserResult
+  type FetchBrowserResult,
+  type FetchBrowserWithScreenshotResult
 } from "@aonex/ingestion-browser-fallback";
+import {
+  shouldEscalateToVision,
+  callVision,
+  type VisionCallInput,
+  type VisionCallResult
+} from "@aonex/vision-extractor";
 import {
   createScrapingBeeAdapter,
   withinCostCeiling,
@@ -27,6 +35,14 @@ export type EscalatedTo = "static" | "browser" | "unblock";
 
 export interface BrowserFetcher {
   (url: string, opts?: { timeoutMs?: number }): Promise<FetchBrowserResult>;
+}
+
+export interface ScreenshotFetcher {
+  (url: string, opts?: { timeoutMs?: number; screenshotSelector?: string }): Promise<FetchBrowserWithScreenshotResult>;
+}
+
+export interface VisionExtractor {
+  (input: VisionCallInput): Promise<VisionCallResult>;
 }
 
 /**
@@ -49,6 +65,11 @@ export interface LinkAdapterDeps {
   domHeuristics?: (rawHtml: string) => { facts: ExtractedFact[] };
   /** Layer G — per-site parser lookup. Defaults to findParserForUrl from @aonex/per-site-parsers. Stubbable for tests. */
   findPerSiteParser?: (url: string) => PerSiteParser | null;
+  /** Layer F — vision tier-3. When omitted, defaults to fetchWithBrowserAndScreenshot. */
+  screenshotFetcher?: ScreenshotFetcher;
+  /** Layer F — vision LLM call. When omitted AND GROQ_API_KEY/OPENAI_API_KEY env is set, defaults to callVision with that key.
+   *  When omitted AND env unset, vision is DISABLED (signal can fire but no extraction). */
+  visionExtractor?: VisionExtractor;
 }
 
 interface CacheEntry {
@@ -68,17 +89,27 @@ class LinkAdapter implements IngestionAdapter {
     unblockAdapter: UnblockAdapter | null;
     domHeuristics: (rawHtml: string) => { facts: ExtractedFact[] };
     findPerSiteParser: (url: string) => PerSiteParser | null;
+    screenshotFetcher: ScreenshotFetcher;
+    /** Null when no API key is available — vision is disabled in that case. */
+    visionExtractor: VisionExtractor | null;
   };
   private readonly cache = new Map<string, CacheEntry>();
 
   constructor(deps: LinkAdapterDeps) {
+    const apiKey = process.env["GROQ_API_KEY"] ?? process.env["OPENAI_API_KEY"];
+    const defaultVision: VisionExtractor | null = apiKey
+      ? (input) => callVision(input, { apiKey })
+      : null;
+
     this.deps = {
       fetcher: deps.fetcher ?? fetchLink,
       llmExtractor: deps.llmExtractor,
       browserFetcher: deps.browserFetcher ?? fetchWithBrowser,
       unblockAdapter: deps.unblockAdapter ?? null,
       domHeuristics: deps.domHeuristics ?? runDomHeuristics,
-      findPerSiteParser: deps.findPerSiteParser ?? findParserForUrl
+      findPerSiteParser: deps.findPerSiteParser ?? findParserForUrl,
+      screenshotFetcher: deps.screenshotFetcher ?? fetchWithBrowserAndScreenshot,
+      visionExtractor: deps.visionExtractor !== undefined ? deps.visionExtractor : defaultVision
     };
   }
 
@@ -222,11 +253,34 @@ class LinkAdapter implements IngestionAdapter {
       llmFacts.push(...r.facts);
     }
 
+    // Layer F — vision tier-3 (Phase 9)
+    const visionFacts: ExtractedFactSet["facts"] = [];
+    const upstreamFacts = [...baseFacts, ...llmFacts];
+    const visionDecision = shouldEscalateToVision({
+      rawHtml: cached.finalRawHtml,
+      hasTextPrice: upstreamFacts.some((f) => f.rawKey === "base_price"),
+      upstreamFactCount: upstreamFacts.length
+    });
+    if (visionDecision.escalate && this.deps.visionExtractor) {
+      try {
+        const screenshot = await this.deps.screenshotFetcher(cached.fetchResult.finalUrl, {
+          timeoutMs: 20_000
+        });
+        const visionResult = await this.deps.visionExtractor({
+          screenshotBase64: screenshot.screenshotBase64,
+          pageUrl: cached.fetchResult.finalUrl
+        });
+        visionFacts.push(...visionResult.facts);
+      } catch {
+        // Vision failed (screenshot or API error) — don't fail the extract.
+      }
+    }
+
     return {
       artifactId: envelope.sourceExternalId as never,
       marketplace: "link_url",
       extractorVersion: LLM_EXTRACTOR_VERSION,
-      facts: [...baseFacts, ...llmFacts],
+      facts: [...upstreamFacts, ...visionFacts],
       extractedAt: new Date()
     };
   }
