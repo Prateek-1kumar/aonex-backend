@@ -5,6 +5,7 @@
   "references": [
     { "path": "../../db" },
     { "path": "../../lib-utils" },
+    { "path": "../../multi-source-reconciler" },
     { "path": "../../schema-validator" }
   ]
 }
