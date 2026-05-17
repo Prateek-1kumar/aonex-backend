@@ -16,6 +16,8 @@
     { "path": "../../packages/catalog/catalog-service" },
     { "path": "../../packages/ingestion-spine" },
     { "path": "../../packages/link-adapter" },
-    { "path": "../../packages/per-site-parsers" }
+    { "path": "../../packages/per-site-parsers" },
+    { "path": "../../packages/calibration" },
+    { "path": "../../packages/drift-detector" }
   ]
 }
