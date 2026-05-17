@@ -9,6 +9,7 @@ import { parseMagento } from "./parsers/magento-init.js";
 import { parseWoocommerce } from "./parsers/woocommerce.js";
 import { parseAlgolia } from "./parsers/algolia-inline.js";
 import { parseShopifyProductsJson } from "./parsers/shopify-products-json.js";
+import { parseRdfa } from "./parsers/rdfa.js";
 import { mergeParserOutputs } from "./merge.js";
 import { checkCoverage, type CoverageResult } from "./coverage.js";
 import { isCaptchaWall } from "./captcha-detect.js";
@@ -76,6 +77,7 @@ export async function extractStructured(
     parseWoocommerce(input.rawHtml),
     parseAlgolia(input.rawHtml),
     shopifyProductsJson,
+    parseRdfa(input.rawHtml),
   ];
 
   const structured = mergeParserOutputs(outputs);
