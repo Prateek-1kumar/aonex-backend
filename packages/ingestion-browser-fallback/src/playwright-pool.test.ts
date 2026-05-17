@@ -1,5 +1,5 @@
 import { describe, it, expect, afterAll } from "bun:test";
-import { fetchWithBrowser, closeBrowserPool } from "./playwright-pool.js";
+import { fetchWithBrowser, fetchWithBrowserAndScreenshot, closeBrowserPool } from "./playwright-pool.js";
 
 const haveBrowser = process.env["PLAYWRIGHT_INTEGRATION"] === "1";
 
@@ -25,4 +25,18 @@ const haveBrowser = process.env["PLAYWRIGHT_INTEGRATION"] === "1";
       expect(err instanceof Error).toBe(true);
     }
   }, 10_000);
+});
+
+(haveBrowser ? describe : describe.skip)("fetchWithBrowserAndScreenshot — integration", () => {
+  afterAll(async () => {
+    await closeBrowserPool();
+  });
+
+  it("returns PNG base64 of the rendered page", async () => {
+    const result = await fetchWithBrowserAndScreenshot("https://example.com/");
+    expect(result.statusCode).toBe(200);
+    expect(result.screenshotBase64.length).toBeGreaterThan(1000);
+    // PNG base64 starts with "iVBOR" (the base64 form of "\x89PNG")
+    expect(result.screenshotBase64.startsWith("iVBOR")).toBe(true);
+  }, 30_000);
 });
