@@ -11,6 +11,7 @@
     { "path": "../ingestion-dom-heuristics" },
     { "path": "../ingestion-browser-fallback" },
     { "path": "../ingestion-antibot-vendor" },
-    { "path": "../per-site-parsers" }
+    { "path": "../per-site-parsers" },
+    { "path": "../vision-extractor" }
   ]
 }
