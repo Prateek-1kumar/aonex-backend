@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_kitchen_cookware/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "material",
+    "color"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the cookware product"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "stainless_steel",
+        "cast_iron",
+        "copper",
+        "non_stick",
+        "aluminum"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "silver",
+        "red",
+        "blue",
+        "white"
+      ]
+    },
+    "diameter_inches": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 36
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 24
+    },
+    "weight_pounds": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 50
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "not_applicable"
+      ]
+    },
+    "heat_resistance_temp_f": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1000
+    }
+  },
+  "additionalProperties": true
+}

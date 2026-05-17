@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_snow_gear/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ],
+      "description": "Season rating of the snow gear"
+    },
+    "waterproof_rating": {
+      "type": "string",
+      "enum": [
+        "water-resistant",
+        "waterproof",
+        "fully-waterproof"
+      ],
+      "description": "Waterproof rating of the snow gear"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the snow gear in grams"
+    },
+    "packed_size_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Packed size of the snow gear in inches"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the snow gear"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

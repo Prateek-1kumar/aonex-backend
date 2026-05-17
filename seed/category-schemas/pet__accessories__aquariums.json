@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_accessories_aquariums/v1",
+  "type": "object",
+  "required": [
+    "aquarium_size_inches",
+    "water_capacity_gallons",
+    "filter_type",
+    "lighting_type"
+  ],
+  "properties": {
+    "aquarium_size_inches": {
+      "type": "number",
+      "units": "inches",
+      "description": "The size of the aquarium"
+    },
+    "water_capacity_gallons": {
+      "type": "number",
+      "units": "gallons",
+      "description": "The capacity of the aquarium in gallons"
+    },
+    "filter_type": {
+      "type": "string",
+      "description": "The type of filter used in the aquarium"
+    },
+    "lighting_type": {
+      "type": "string",
+      "description": "The type of lighting used in the aquarium"
+    },
+    "additional_properties": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "tier": "inferred"
+}

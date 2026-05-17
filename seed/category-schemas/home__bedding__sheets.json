@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_bedding_sheets/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "material",
+    "thread_count",
+    "size"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "linen",
+        "polyester",
+        "bamboo"
+      ]
+    },
+    "thread_count": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1000
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "twin",
+        "twin_xl",
+        "full",
+        "queen",
+        "king",
+        "california_king"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "pattern": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "striped",
+        "floral",
+        "geometric"
+      ]
+    },
+    "care_instructions": {
+      "type": "string"
+    },
+    "fabric_weight_oz": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20
+    }
+  },
+  "additionalProperties": true
+}

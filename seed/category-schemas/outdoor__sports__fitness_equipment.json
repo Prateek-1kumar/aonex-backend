@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_fitness_equipment/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the product in pounds"
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Height of the product in inches"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Width of the product in inches"
+    },
+    "depth_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Depth of the product in inches"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "steel",
+        "aluminum",
+        "plastic",
+        "wood"
+      ],
+      "description": "Material of the product"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the product"
+    },
+    "warranty_years": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Warranty period in years"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "authoritative"
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_decor_rugs/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wool",
+        "silk",
+        "synthetic",
+        "jute",
+        "cotton"
+      ]
+    },
+    "size_length_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Length of the rug in inches"
+    },
+    "size_width_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Width of the rug in inches"
+    },
+    "pile_height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Pile height of the rug in inches"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the rug"
+    },
+    "pattern": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "striped",
+        "floral",
+        "geometric"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

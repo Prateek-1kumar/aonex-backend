@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_makeup_mascara/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "brand",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the mascara product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the mascara"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the mascara in USD"
+    },
+    "volume_ml": {
+      "type": "number",
+      "description": "Volume of the mascara in milliliters"
+    },
+    "formula_type": {
+      "type": "string",
+      "enum": [
+        "waterproof",
+        "water_resistant",
+        "regular"
+      ],
+      "description": "Type of formula used in the mascara"
+    },
+    "brush_type": {
+      "type": "string",
+      "enum": [
+        "rubber",
+        "fiber",
+        "combination"
+      ],
+      "description": "Type of brush used in the mascara"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "brown",
+        "clear",
+        "colored"
+      ],
+      "description": "Color of the mascara"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

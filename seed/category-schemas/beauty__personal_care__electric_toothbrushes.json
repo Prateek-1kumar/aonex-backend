@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_personal_care_electric_toothbrushes/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number",
+    "brand_name"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "brand_name": {
+      "type": "string",
+      "description": "Name of the brand"
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Battery life in hours"
+    },
+    "charge_time_hours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Charge time in hours"
+    },
+    "brush_head_size_mm": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Brush head size in millimeters"
+    },
+    "brush_strokes_per_minute": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Brush strokes per minute"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "white",
+        "black",
+        "blue",
+        "pink",
+        "red"
+      ],
+      "description": "Color of the toothbrush"
+    },
+    "speed_setting": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Speed setting of the toothbrush"
+    },
+    "timer": {
+      "type": "boolean",
+      "description": "Whether the toothbrush has a timer"
+    },
+    "pressure_sensor": {
+      "type": "boolean",
+      "description": "Whether the toothbrush has a pressure sensor"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the toothbrush in grams"
+    }
+  },
+  "additionalProperties": true
+}

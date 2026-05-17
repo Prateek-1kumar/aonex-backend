@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys_puzzles/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "age_range"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the puzzle"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the puzzle"
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "infant",
+        "toddler",
+        "preschool",
+        "school_age",
+        "adult"
+      ]
+    },
+    "piece_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of pieces in the puzzle"
+    },
+    "puzzle_size_inches": {
+      "type": "number",
+      "minimum": 1,
+      "description": "Size of the completed puzzle in inches"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "plastic",
+        "cardboard",
+        "paper"
+      ]
+    },
+    "difficulty_level": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "medium",
+        "hard",
+        "expert"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

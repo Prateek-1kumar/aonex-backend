@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/office_organizers/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "metal",
+        "wood",
+        "fabric"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 0
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0
+    },
+    "depth_inches": {
+      "type": "number",
+      "minimum": 0
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "num_compartments": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "drawer_type": {
+      "type": "string",
+      "enum": [
+        "slide-out",
+        "hinged",
+        "lift-top"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

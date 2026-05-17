@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_personal_care_nail_polish/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "brand",
+    "color_name"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the nail polish product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the nail polish"
+    },
+    "color_name": {
+      "type": "string",
+      "description": "Name of the nail polish color"
+    },
+    "finish_type": {
+      "type": "string",
+      "enum": [
+        "creme",
+        "sheer",
+        "shimmer",
+        "glitter",
+        "matte",
+        "satin"
+      ],
+      "description": "Type of finish of the nail polish"
+    },
+    "volume_ml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Volume of the nail polish in milliliters"
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of ingredients in the nail polish"
+    }
+  },
+  "additionalProperties": true
+}

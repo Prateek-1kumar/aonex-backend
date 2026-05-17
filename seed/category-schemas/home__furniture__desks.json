@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_desks/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "desk_type": {
+      "type": "string",
+      "enum": [
+        "computer",
+        "writing",
+        "executive",
+        "corner"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "glass",
+        "plastic"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 30,
+      "maximum": 80
+    },
+    "depth_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 40
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 25,
+      "maximum": 50
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 100
+    },
+    "assembly_required": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

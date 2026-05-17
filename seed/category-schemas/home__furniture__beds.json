@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_beds/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "bed_size": {
+      "type": "string",
+      "enum": [
+        "twin",
+        "twin_xl",
+        "full",
+        "queen",
+        "king",
+        "california_king"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "leather",
+        "fabric"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 0
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 0
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true
+}

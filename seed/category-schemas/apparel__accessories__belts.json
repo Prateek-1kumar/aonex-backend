@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_accessories_belts/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "nylon",
+        "polyester",
+        "cotton"
+      ]
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large",
+        "x_large"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 5
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 50
+    },
+    "buckle_type": {
+      "type": "string",
+      "enum": [
+        "pin_buckle",
+        "prong_buckle",
+        "sliding_buckle"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

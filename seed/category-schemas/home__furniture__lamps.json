@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_lamps/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the lamp"
+    },
+    "price_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price of the lamp in USD"
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Height of the lamp in inches"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the lamp in pounds"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "metal",
+        "wood",
+        "plastic",
+        "glass"
+      ],
+      "description": "Material of the lamp"
+    },
+    "light_source": {
+      "type": "string",
+      "enum": [
+        "led",
+        "incandescent",
+        "halogen",
+        "fluorescent"
+      ],
+      "description": "Light source of the lamp"
+    },
+    "wattage_w": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Wattage of the lamp in watts"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

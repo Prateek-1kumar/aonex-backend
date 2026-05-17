@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_jumper_cables/v1",
+  "type": "object",
+  "required": [
+    "length_meters",
+    "gauge",
+    "material"
+  ],
+  "properties": {
+    "length_meters": {
+      "type": "number",
+      "description": "Length of the jumper cable in meters",
+      "minimum": 0.1,
+      "maximum": 10
+    },
+    "gauge": {
+      "type": "integer",
+      "description": "American wire gauge (AWG) of the jumper cable",
+      "minimum": 0,
+      "maximum": 50
+    },
+    "material": {
+      "type": "string",
+      "description": "Material used to make the jumper cable",
+      "enum": [
+        "copper",
+        "aluminum",
+        "silver-plated copper"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the jumper cable",
+      "enum": [
+        "red",
+        "black",
+        "blue",
+        "green"
+      ]
+    },
+    "packaging": {
+      "type": "string",
+      "description": "Packaging type of the jumper cable",
+      "enum": [
+        "individual",
+        "pack of 2",
+        "pack of 5"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "description": "Weight of the jumper cable in grams",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

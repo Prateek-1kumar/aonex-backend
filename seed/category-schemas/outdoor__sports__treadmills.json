@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_treadmills/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "motor_horsepower": {
+      "type": "number",
+      "minimum": 0
+    },
+    "running_surface_length_inches": {
+      "type": "number",
+      "minimum": 0
+    },
+    "running_surface_width_inches": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_user_weight_lbs": {
+      "type": "number",
+      "minimum": 0
+    },
+    "folding": {
+      "type": "boolean"
+    },
+    "incline_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "top_speed_mph": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "heart_rate_monitoring": {
+      "type": "boolean"
+    },
+    "pre_set_workouts": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

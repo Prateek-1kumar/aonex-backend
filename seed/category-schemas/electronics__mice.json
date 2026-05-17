@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_mice/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "dpi": {
+      "type": "integer",
+      "description": "DPI of the mouse",
+      "minimum": 100,
+      "maximum": 16000
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "description": "Battery life of the mouse in hours",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "weight_grams": {
+      "type": "number",
+      "description": "Weight of the mouse in grams",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "connection_type": {
+      "type": "string",
+      "enum": [
+        "wired",
+        "wireless",
+        "bluetooth"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

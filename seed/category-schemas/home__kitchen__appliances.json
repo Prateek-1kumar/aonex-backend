@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_kitchen_appliances/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "model_number",
+    "brand_name"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "brand_name": {
+      "type": "string",
+      "description": "Brand name of the product"
+    },
+    "power_consumption_watts": {
+      "type": "number",
+      "description": "Power consumption of the appliance in watts"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "description": "Weight of the appliance in pounds"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "white",
+        "silver",
+        "stainless_steel"
+      ]
+    },
+    "appliance_type": {
+      "type": "string",
+      "enum": [
+        "refrigerator",
+        "dishwasher",
+        "oven",
+        "microwave"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

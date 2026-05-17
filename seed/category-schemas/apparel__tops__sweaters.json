@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_tops_sweaters/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "xs",
+        "s",
+        "m",
+        "l",
+        "xl",
+        "xxl"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "wool",
+        "blend"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the product"
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 30,
+      "description": "Length of the sweater in inches"
+    },
+    "chest_circumference_inches": {
+      "type": "number",
+      "minimum": 30,
+      "maximum": 50,
+      "description": "Chest circumference of the sweater in inches"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 200,
+      "maximum": 1000,
+      "description": "Weight of the sweater in grams"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_smartwatches/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "brand",
+    "model_number",
+    "screen_size_inches"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "Screen size in inches"
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16,
+      "description": "RAM in GB"
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 128,
+      "description": "Storage in GB"
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "Battery capacity in mAh"
+    },
+    "water_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "ip67",
+        "ip68"
+      ],
+      "description": "Water resistance rating"
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "android",
+        "ios",
+        "wear_os",
+        "tizen"
+      ],
+      "description": "Operating system"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "authoritative"
+}

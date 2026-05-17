@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_car_polish/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the car polish product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the car polish product in USD"
+    },
+    "size_ounces": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the car polish product in ounces"
+    },
+    "finish_type": {
+      "type": "string",
+      "enum": [
+        "glossy",
+        "matte",
+        "satin"
+      ],
+      "description": "Type of finish provided by the car polish product"
+    },
+    "application_method": {
+      "type": "string",
+      "enum": [
+        "spray",
+        "wipe",
+        "buff"
+      ],
+      "description": "Method of applying the car polish product"
+    }
+  },
+  "additionalProperties": true
+}

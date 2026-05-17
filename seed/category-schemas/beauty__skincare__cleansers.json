@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_skincare_cleansers/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "skin_type": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "dry",
+        "oily",
+        "combination",
+        "sensitive"
+      ]
+    },
+    "product_size_ml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the product in milliliters"
+    },
+    "price_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price of the product in US dollars"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

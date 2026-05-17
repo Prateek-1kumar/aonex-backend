@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_tablets/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "screen_size_inches",
+    "ram_gb",
+    "storage_gb",
+    "battery_mah",
+    "operating_system"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 15,
+      "description": "Screen size in inches"
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 16,
+      "description": "RAM in GB"
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 1024,
+      "description": "Storage capacity in GB"
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 3000,
+      "maximum": 10000,
+      "description": "Battery capacity in mAh"
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "android",
+        "ios",
+        "windows"
+      ],
+      "description": "Operating system of the tablet"
+    },
+    "rear_camera_mp": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 50,
+      "description": "Rear camera resolution in megapixels"
+    },
+    "front_camera_mp": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 20,
+      "description": "Front camera resolution in megapixels"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 200,
+      "maximum": 1000,
+      "description": "Weight of the tablet in grams"
+    }
+  },
+  "additionalProperties": true
+}

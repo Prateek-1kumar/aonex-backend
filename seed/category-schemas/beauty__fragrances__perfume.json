@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_fragrances_perfume/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "brand_name",
+    "fragrance_type"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the perfume"
+    },
+    "brand_name": {
+      "type": "string",
+      "description": "Brand of the perfume"
+    },
+    "fragrance_type": {
+      "type": "string",
+      "enum": [
+        "citrus",
+        "floral",
+        "oriental",
+        "woody"
+      ],
+      "description": "Type of fragrance"
+    },
+    "size_ml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the perfume in milliliters"
+    },
+    "concentration_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Concentration of the fragrance"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ],
+      "description": "Seasonal rating of the perfume"
+    }
+  },
+  "additionalProperties": true
+}

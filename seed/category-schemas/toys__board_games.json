@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys_board_games/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description",
+    "age_range_years",
+    "number_of_players"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the board game"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of the board game"
+    },
+    "age_range_years": {
+      "type": "string",
+      "description": "Recommended age range for players",
+      "pattern": "^([0-9]+)-([0-9]+)$"
+    },
+    "number_of_players": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of players the game supports"
+    },
+    "playtime_minutes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Average playtime in minutes"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "all-season",
+        "indoor",
+        "outdoor"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

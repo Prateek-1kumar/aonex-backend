@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_footwear_boots/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "6",
+        "6.5",
+        "7",
+        "7.5",
+        "8",
+        "8.5",
+        "9",
+        "9.5",
+        "10",
+        "10.5",
+        "11",
+        "11.5",
+        "12"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "synthetic",
+        "suede",
+        "mesh"
+      ]
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0
+    },
+    "waterproof": {
+      "type": "boolean"
+    },
+    "insulation_type": {
+      "type": "string",
+      "enum": [
+        "thinsulate",
+        "primaloft",
+        "down",
+        "none"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "authoritative"
+}

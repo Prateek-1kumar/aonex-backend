@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_laptops/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "screen_size_inches",
+    "ram_gb",
+    "storage_gb",
+    "operating_system"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the laptop"
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 17,
+      "description": "Screen size in inches"
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 4,
+      "maximum": 64,
+      "description": "RAM in GB"
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 128,
+      "maximum": 2048,
+      "description": "Storage in GB"
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "windows",
+        "macos",
+        "linux",
+        "chrome os"
+      ],
+      "description": "Operating system"
+    },
+    "processor_speed_ghz": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Processor speed in GHz"
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 2000,
+      "maximum": 10000,
+      "description": "Battery capacity in mAh"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 10,
+      "description": "Weight in pounds"
+    }
+  },
+  "additionalProperties": true
+}

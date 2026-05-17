@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_decor_wall_art/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "frame_width_inches": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "Width of the frame in inches"
+    },
+    "frame_height_inches": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "Height of the frame in inches"
+    },
+    "art_style": {
+      "type": "string",
+      "enum": [
+        "modern",
+        "traditional",
+        "abstract",
+        "impressionist"
+      ],
+      "description": "Style of the art"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "plastic",
+        "canvas"
+      ],
+      "description": "Material of the product"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_skincare_moisturizers/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "brand_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand_name": {
+      "type": "string",
+      "description": "Name of the brand"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "skin_type": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "dry",
+        "oily",
+        "combination",
+        "sensitive"
+      ],
+      "description": "Suitable skin type"
+    },
+    "moisturizer_type": {
+      "type": "string",
+      "enum": [
+        "day",
+        "night",
+        "all_day"
+      ],
+      "description": "Type of moisturizer"
+    },
+    "size_fluid_ounces": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the product in fluid ounces"
+    },
+    "price_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price of the product in USD"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_bottoms_jeans/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "waist_size_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 50,
+      "description": "Waist size of the jeans in inches"
+    },
+    "inseam_length_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 40,
+      "description": "Inseam length of the jeans in inches"
+    },
+    "fit_style": {
+      "type": "string",
+      "enum": [
+        "skinny",
+        "slim",
+        "straight",
+        "relaxed",
+        "loose"
+      ],
+      "description": "Fit style of the jeans"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "denim",
+        "blend"
+      ],
+      "description": "Material of the jeans"
+    }
+  },
+  "additionalProperties": true
+}

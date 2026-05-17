@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_bedding_mattresses/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the mattress"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the mattress"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the mattress in USD"
+    },
+    "thickness_inches": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 20,
+      "description": "Thickness of the mattress in inches"
+    },
+    "firmness_rating": {
+      "type": "string",
+      "enum": [
+        "soft",
+        "medium",
+        "firm",
+        "extra_firm"
+      ],
+      "description": "Firmness rating of the mattress"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "memory_foam",
+        "innerspring",
+        "hybrid",
+        "latex"
+      ],
+      "description": "Material of the mattress"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "twin",
+        "twin_xl",
+        "full",
+        "queen",
+        "king",
+        "california_king"
+      ],
+      "description": "Size of the mattress"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 200,
+      "description": "Weight of the mattress in pounds"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

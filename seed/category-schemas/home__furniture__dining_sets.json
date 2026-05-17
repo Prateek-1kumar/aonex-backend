@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_dining_sets/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "plastic",
+        "glass"
+      ]
+    },
+    "seat_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of seats in the dining set"
+    },
+    "table_size_inches": {
+      "type": "number",
+      "minimum": 30,
+      "maximum": 120,
+      "description": "Size of the table in inches"
+    },
+    "chair_height_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 40,
+      "description": "Height of the chair in inches"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "white",
+        "brown",
+        "gray"
+      ]
+    },
+    "style": {
+      "type": "string",
+      "enum": [
+        "modern",
+        "traditional",
+        "rustic",
+        "contemporary"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

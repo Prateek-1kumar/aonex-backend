@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_ottomans/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "seat_height_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 30,
+      "description": "Height of the seat"
+    },
+    "storage_capacity_cubic_feet": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "Storage capacity of the ottoman"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "fabric",
+        "wood",
+        "metal"
+      ],
+      "description": "Material of the ottoman"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the ottoman"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 100,
+      "description": "Weight of the ottoman"
+    },
+    "dimensions_length_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 50,
+      "description": "Length of the ottoman"
+    },
+    "dimensions_width_inches": {
+      "type": "number",
+      "minimum": 15,
+      "maximum": 40,
+      "description": "Width of the ottoman"
+    }
+  },
+  "additionalProperties": true
+}

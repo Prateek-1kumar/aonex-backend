@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys_plush_toys/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the plush toy"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the plush toy"
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "infant",
+        "toddler",
+        "preschool",
+        "school_age"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "plush",
+        "fleece"
+      ]
+    },
+    "size_inches": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

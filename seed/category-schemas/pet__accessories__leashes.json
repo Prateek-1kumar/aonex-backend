@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_accessories_leashes/v1",
+  "type": "object",
+  "required": [
+    "material",
+    "length_inches",
+    "width_inches",
+    "color"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "nylon",
+        "polypropylene",
+        "rubber"
+      ]
+    },
+    "length_inches": {
+      "type": "number",
+      "unit": "inches"
+    },
+    "width_inches": {
+      "type": "number",
+      "unit": "inches"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "brown",
+        "red",
+        "blue"
+      ]
+    },
+    "additional_properties": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "tier": "inferred"
+}

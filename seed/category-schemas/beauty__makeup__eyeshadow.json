@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_makeup_eyeshadow/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "brand",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the eyeshadow product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the eyeshadow product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the eyeshadow product in USD"
+    },
+    "finish_type": {
+      "type": "string",
+      "enum": [
+        "matte",
+        "satin",
+        "shimmer",
+        "glitter",
+        "metallic"
+      ],
+      "description": "Finish type of the eyeshadow"
+    },
+    "color_shade": {
+      "type": "string",
+      "description": "Color shade of the eyeshadow"
+    },
+    "net_weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Net weight of the eyeshadow in grams"
+    },
+    "pan_size_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the eyeshadow pan in inches"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

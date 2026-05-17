@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_e_readers/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "screen_size_inches",
+    "storage_gb",
+    "battery_life_hours",
+    "weight_grams"
+  ],
+  "properties": {
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 4,
+      "maximum": 13
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 32
+    },
+    "battery_life_hours": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1000
+    },
+    "weight_grams": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 500
+    },
+    "resolution_ppi": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 300
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 0.5,
+      "maximum": 2
+    },
+    "connectivity": {
+      "type": "string",
+      "enum": [
+        "wi-fi",
+        "bluetooth",
+        "usb"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "white",
+        "gray"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

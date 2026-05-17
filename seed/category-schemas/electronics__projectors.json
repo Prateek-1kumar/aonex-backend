@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_projectors/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the projector"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the projector"
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 500,
+      "description": "Screen size in inches"
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "hd",
+        "full_hd",
+        "4k",
+        "8k"
+      ],
+      "description": "Resolution of the projector"
+    },
+    "brightness_lumens": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 100000,
+      "description": "Brightness in lumens"
+    },
+    "contrast_ratio": {
+      "type": "number",
+      "minimum": 1000,
+      "maximum": 1000000,
+      "description": "Contrast ratio"
+    },
+    "weight_pounds": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 50,
+      "description": "Weight in pounds"
+    },
+    "power_consumption_watts": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 1000,
+      "description": "Power consumption in watts"
+    }
+  },
+  "additionalProperties": true
+}

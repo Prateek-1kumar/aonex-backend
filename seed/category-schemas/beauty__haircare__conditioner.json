@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_haircare_conditioner/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "brand_name"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand_name": {
+      "type": "string",
+      "description": "Name of the brand"
+    },
+    "hair_type": {
+      "type": "string",
+      "enum": [
+        "dry",
+        "damaged",
+        "normal",
+        "oily"
+      ]
+    },
+    "scent": {
+      "type": "string",
+      "description": "Scent of the product"
+    },
+    "volume_ml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Volume of the product in milliliters"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the product in grams"
+    }
+  },
+  "additionalProperties": true
+}

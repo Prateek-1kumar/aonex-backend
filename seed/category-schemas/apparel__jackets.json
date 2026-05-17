@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_jackets/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ],
+      "description": "Season rating of the jacket"
+    },
+    "water_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "water-resistant",
+        "waterproof"
+      ],
+      "description": "Water resistance rating of the jacket"
+    },
+    "fill_power": {
+      "type": "integer",
+      "description": "Fill power of the jacket insulation"
+    },
+    "weight_grams": {
+      "type": "number",
+      "description": "Weight of the jacket in grams"
+    },
+    "length_inches": {
+      "type": "number",
+      "description": "Length of the jacket in inches"
+    },
+    "chest_circumference_inches": {
+      "type": "number",
+      "description": "Chest circumference of the jacket in inches"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "nylon",
+        "polyester",
+        "down",
+        "synthetic"
+      ],
+      "description": "Material of the jacket"
+    }
+  },
+  "tier": "authoritative",
+  "additionalProperties": true
+}

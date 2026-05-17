@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys_video_games/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "genre": {
+      "type": "string",
+      "enum": [
+        "action",
+        "adventure",
+        "role_playing",
+        "sports",
+        "strategy"
+      ]
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "playstation",
+        "xbox",
+        "nintendo",
+        "pc"
+      ]
+    },
+    "age_rating": {
+      "type": "string",
+      "enum": [
+        "e",
+        "e10+",
+        "t",
+        "m",
+        "ao"
+      ]
+    },
+    "price_usd": {
+      "type": "number"
+    },
+    "release_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "additionalProperties": true
+}
