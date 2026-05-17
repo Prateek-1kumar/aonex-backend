@@ -99,6 +99,10 @@
         "@aonex/types": "workspace:*",
       },
     },
+    "packages/calibration": {
+      "name": "@aonex/calibration",
+      "version": "0.0.0",
+    },
     "packages/catalog/catalog-service": {
       "name": "@aonex/catalog-service",
       "version": "0.0.0",
@@ -336,6 +340,8 @@
     "@aonex/api": ["@aonex/api@workspace:apps/api"],
 
     "@aonex/audit": ["@aonex/audit@workspace:packages/audit"],
+
+    "@aonex/calibration": ["@aonex/calibration@workspace:packages/calibration"],
 
     "@aonex/catalog-product-versions": ["@aonex/catalog-product-versions@workspace:packages/catalog/product-versions"],
 
