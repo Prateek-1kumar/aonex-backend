@@ -1,4 +1,5 @@
 import { schema, type DrizzleClient } from "@aonex/db";
+import { eq } from "drizzle-orm";
 import type { AuditEmitter } from "@aonex/audit";
 import type { TenantId, MerchantId } from "@aonex/types";
 import type { IngestionAdapter, IngestionEnvelope } from "./adapter.js";
@@ -110,6 +111,7 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     missingRequired: validateResult.missingRequired
   });
   if (!validateResult.valid && validateResult.tier === "authoritative") {
+    await updateArtifactStatus(input.db, persisted.artifactId, "failed");
     return {
       status: "validation_failed",
       missingRequired: validateResult.missingRequired,
@@ -217,6 +219,7 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     meta.productId = approved.productId;
     meta.productVersionId = approved.productVersionId;
     await emitStageAudit(input.audit, "approve", meta);
+    await updateArtifactStatus(input.db, persisted.artifactId, "completed");
     return {
       status: "approved",
       productId: approved.productId,
@@ -244,12 +247,37 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     });
   }
 
+  await updateArtifactStatus(input.db, persisted.artifactId, "needs_review");
   return {
     status: "review",
     proposedDiffId: diff.diffId,
     reasons: decision.reviewTasks.map((t) => t.signalKind),
     confidenceScore: decision.score
   };
+}
+
+/**
+ * Update source_artifacts.status at the end of the run.
+ * Mirrors legacy link-extract.processor.ts behavior so the recent-ingestions
+ * UI no longer shows every spine ingestion as "processing" indefinitely.
+ *
+ * Failure here is non-fatal — log via the caller's audit channel later when
+ * we wire that in. For now, errors are swallowed because the source_artifact
+ * already has the correct ingestion data; the status field is just a hint.
+ */
+async function updateArtifactStatus(
+  db: DrizzleClient,
+  artifactId: string,
+  status: "completed" | "needs_review" | "failed"
+): Promise<void> {
+  try {
+    await db
+      .update(schema.sourceArtifacts)
+      .set({ status })
+      .where(eq(schema.sourceArtifacts.id, artifactId));
+  } catch {
+    // Non-fatal: status is observational.
+  }
 }
 
 // ---------------------------------------------------------------------------
