@@ -272,6 +272,9 @@
       "name": "@aonex/link-adapter",
       "version": "0.0.0",
       "dependencies": {
+        "@aonex/ingestion-antibot-vendor": "workspace:*",
+        "@aonex/ingestion-browser-fallback": "workspace:*",
+        "@aonex/ingestion-dom-heuristics": "workspace:*",
         "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/ingestion-link-fetcher": "workspace:*",
         "@aonex/ingestion-llm-extractor": "workspace:*",
