@@ -180,14 +180,26 @@ class LinkAdapter implements IngestionAdapter {
 
     if (mustEscalate) {
       // Layer C — browser fallback
+      let browserAnemic = false;
       try {
         const browserResult = await this.deps.browserFetcher(input.sourceRef, { timeoutMs: 20_000 });
         finalRawHtml = browserResult.rawHtml;
         resolvedFinalUrl = browserResult.finalUrl || resolvedFinalUrl;
         resolvedStatusCode = browserResult.statusCode || resolvedStatusCode;
         escalatedTo = "browser";
-      } catch {
-        // Browser failed — try unblock vendor (paid) if available + within budget.
+
+        // Anti-bot defense detection: Chromium can be fingerprinted by aggressive
+        // anti-bot stacks (Croma, Cloudflare-protected sites, etc.) and served a
+        // stub page that's technically a 200 OK but useless. Detect & escalate:
+        //   - rawHtml < 5KB AND no structured-data signals → anemic
+        //   - explicit anti-bot markers (cf-* selectors, "Access Denied" text) → anemic
+        browserAnemic = isAnemicResponse(browserResult.rawHtml);
+        if (browserAnemic) {
+          escalationReasons.push(`browser_anemic_${browserResult.rawHtml.length}b`);
+          throw new Error(`browser returned anemic response (${browserResult.rawHtml.length} bytes)`);
+        }
+      } catch (browserErr) {
+        // Browser failed OR returned anemic content — try unblock vendor.
         if (this.deps.unblockAdapter && withinCostCeiling(costCredits, 5)) {
           try {
             const unblockResult: UnblockResult = await this.deps.unblockAdapter.unblock(input.sourceRef, {
@@ -200,14 +212,24 @@ class LinkAdapter implements IngestionAdapter {
             costCredits += unblockResult.costCredits;
           } catch {
             // Both browser and unblock failed.
-            // If the static fetch ALSO failed, we have nothing — re-throw the
-            // original error so the worker creates a fetch_failed review_task.
-            if (staticResult === null) {
+            // Fallback priority:
+            //   1. If browser succeeded (even anemic), keep that HTML — better than nothing.
+            //   2. If only static succeeded, keep static.
+            //   3. If everything threw, re-throw the original static error.
+            if (browserAnemic) {
+              escalatedTo = "browser";
+              escalationReasons.push("unblock_failed_keeping_anemic_browser");
+              // finalRawHtml is already the anemic browser HTML from above.
+            } else if (staticResult === null) {
               throw staticFetchError ?? new Error("All fetch tiers failed");
             }
             // Otherwise: keep the static HTML (likely captcha or thin page);
             // downstream parsers yield few facts but the run completes.
           }
+        } else if (browserAnemic) {
+          // No unblock available but browser was anemic — keep what we have.
+          escalatedTo = "browser";
+          escalationReasons.push("no_unblock_keeping_anemic_browser");
         } else if (staticResult === null) {
           // No unblock available and static failed — bail.
           throw staticFetchError ?? new Error("Browser fetch failed and unblock not configured");
@@ -361,6 +383,52 @@ class LinkAdapter implements IngestionAdapter {
  * Per-site wins on rawKey collisions (Layer G is the highest-priority rung
  * for domains where a hand-written parser exists). Generic facts fill gaps.
  */
+/**
+ * Detect whether a browser-rendered HTML payload is suspiciously empty.
+ *
+ * Anti-bot vendors (Cloudflare, PerimeterX, Croma's stack, Datadome, etc.)
+ * frequently fingerprint headless Chromium via the AutomationControlled flag,
+ * navigator.webdriver, missing plugin arrays, and serve a stub page (~hundreds
+ * of bytes to a few KB) as a 200 OK. We treat such responses as failures so
+ * the LinkAdapter falls through to ScrapingBee (which uses residential proxies
+ * + stealth-mode JS rendering specifically to defeat these checks).
+ *
+ * Heuristics (any one triggers anemic):
+ *  - < 5 KB total HTML (a real PDP is usually 50-200 KB)
+ *  - no structured-data signals (JSON-LD / __NEXT_DATA__ / __NUXT__)
+ *  - explicit anti-bot text markers ("Access Denied", "Just a moment...",
+ *    "Verifying you are human", "blocked", "cf-browser-verification")
+ */
+const ANTI_BOT_MARKERS = [
+  /Access\s+Denied/i,
+  /Just\s+a\s+moment/i,
+  /Verifying\s+you\s+are\s+human/i,
+  /cf-browser-verification/i,
+  /captcha-delivery/i,
+  /unusual\s+traffic/i,
+  /<title>Attention Required/i
+];
+
+function isAnemicResponse(rawHtml: string): boolean {
+  if (!rawHtml || rawHtml.length < 5_000) return true;
+  for (const m of ANTI_BOT_MARKERS) {
+    if (m.test(rawHtml)) return true;
+  }
+  // No structured data + no obvious product content
+  const hasJsonLd = /application\/ld\+json/i.test(rawHtml);
+  const hasNextData = /__NEXT_DATA__/i.test(rawHtml);
+  const hasNuxt = /__NUXT__/i.test(rawHtml);
+  const hasInitialState = /__INITIAL_STATE__/i.test(rawHtml);
+  const hasOgProduct = /og:type"\s+content="product"/i.test(rawHtml);
+  if (!hasJsonLd && !hasNextData && !hasNuxt && !hasInitialState && !hasOgProduct) {
+    // Also check body length — a real page with no structured data should
+    // still have meaningful body content (description, specs, etc.). If the
+    // total rawHtml is under 30 KB, that's a strong signal of a stub.
+    if (rawHtml.length < 30_000) return true;
+  }
+  return false;
+}
+
 function mergeFactsWithPriority(perSite: ExtractedFact[], generic: ExtractedFact[]): ExtractedFact[] {
   const perSiteKeys = new Set(perSite.map((f) => f.rawKey));
   const carried = generic.filter((f) => !perSiteKeys.has(f.rawKey));
