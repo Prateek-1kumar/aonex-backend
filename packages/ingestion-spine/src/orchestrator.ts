@@ -152,13 +152,6 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
   const shouldAutoApprove = decision.route === "auto_approve" && titlePresent;
 
   // 6. diff
-  // Bridge snake_case canonical paths (mapper output, per Phase 3 schema
-  // convention) → camelCase canonical columns that applyApprovedDiff reads.
-  // Without this bridge the basePrice/modelNumber/etc. columns end up null
-  // even when attributes_json carries the value — and the missing_required
-  // detector falsely fires (see Phase-9.x fix in stages/score.ts).
-  const canonicalBridge = buildCanonicalBridge(validateResult.attributes);
-
   const diff = await runDiff({
     db: input.db,
     tenantId: input.tenantId,
@@ -169,7 +162,6 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     status: shouldAutoApprove ? "auto_approved" : "open",
     payload: {
       ...validateResult.attributes,
-      ...canonicalBridge,    // snake → camel canonical columns
       attributes: validateResult.attributes,
       canonicalCategory: mapped.categoryPath,
       categorySchemaVersion: validateResult.categorySchemaVersion,
@@ -262,54 +254,6 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     reasons: decision.reviewTasks.map((t) => t.signalKind),
     confidenceScore: decision.score
   };
-}
-
-/**
- * Map snake_case mapped attributes onto the camelCase canonical columns that
- * applyApprovedDiff reads (basePrice, modelNumber, etc.). Required fields the
- * mapper might emit under either case stay covered. Returns ONLY the canonical
- * keys (no spread of attributes); the orchestrator spreads attributes
- * separately so non-canonical keys still land in attributes_json verbatim.
- */
-function buildCanonicalBridge(attributes: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  const num = (k: string): number | null => {
-    const v = attributes[k];
-    if (v == null) return null;
-    if (typeof v === "number") return Number.isFinite(v) ? v : null;
-    const parsed = Number(v);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-  const str = (k: string): string | null => {
-    const v = attributes[k];
-    return typeof v === "string" ? v : v == null ? null : String(v);
-  };
-
-  // Single-word keys — no snake/camel divergence
-  const title = str("title");
-  if (title != null) out.title = title;
-  const brand = str("brand");
-  if (brand != null) out.brand = brand;
-  const gtin = str("gtin");
-  if (gtin != null) out.gtin = gtin;
-  const currency = str("currency");
-  if (currency != null) out.currency = currency;
-  const description = str("description");
-  if (description != null) out.description = description;
-
-  // Snake → camel bridges (snake takes precedence — mapper emits snake)
-  const basePrice = num("base_price") ?? num("basePrice");
-  if (basePrice != null) out.basePrice = basePrice;
-  const modelNumber = str("model_number") ?? str("modelNumber");
-  if (modelNumber != null) out.modelNumber = modelNumber;
-  const mpn = str("manufacturer_part_number") ?? str("manufacturerPartNumber");
-  if (mpn != null) out.manufacturerPartNumber = mpn;
-  const weightGrams = num("weight_grams") ?? num("weightGrams");
-  if (weightGrams != null) out.weightGrams = weightGrams;
-  const gtinType = str("gtin_type") ?? str("gtinType");
-  if (gtinType != null) out.gtinType = gtinType;
-
-  return out;
 }
 
 /**
