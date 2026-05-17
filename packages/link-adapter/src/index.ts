@@ -1,1 +1,9 @@
-export { LinkAdapter, createLinkAdapter } from "./link-adapter.js";
+export {
+  LinkAdapter,
+  createLinkAdapter,
+  createLinkAdapterWithAntibot,
+  type LinkAdapterDeps,
+  type EscalatedTo,
+  type BrowserFetcher,
+  type UnblockAdapter
+} from "./link-adapter.js";
