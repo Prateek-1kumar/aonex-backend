@@ -151,4 +151,154 @@ describe("LinkAdapter escalation ladder", () => {
     expect(envelopes).toHaveLength(1);
     expect((envelopes[0]!.rawData as { escalatedTo: string }).escalatedTo).toBe("static");
   });
+
+  // ── Phase-6.1 escalation-on-failure regression coverage ────────────────
+  // Original Phase 6 implementation awaited the static fetcher outside any
+  // try/catch, so a 403/captcha/timeout bypassed the entire ladder. These
+  // tests lock in the new behavior.
+
+  it("escalates to browser when static fetch THROWS (e.g. HTTP 403)", async () => {
+    let browserCalls = 0;
+    const adapter = createLinkAdapter({
+      fetcher: async () => {
+        throw new Error("HTTP 403: Forbidden");
+      },
+      llmExtractor: NOOP_LLM_EXTRACTOR,
+      browserFetcher: async () => {
+        browserCalls++;
+        return {
+          rawHtml: "<html><body>browser-rendered</body></html>",
+          finalUrl: "https://x/y",
+          statusCode: 200,
+          fetchDurationMs: 50
+        };
+      },
+      domHeuristics: () => ({ facts: [] })
+    });
+
+    const envelopes: IngestionEnvelope[] = [];
+    for await (const e of adapter.normalize({ sourceRef: "https://x/y" })) envelopes.push(e);
+
+    expect(envelopes).toHaveLength(1);
+    expect((envelopes[0]!.rawData as { escalatedTo: string }).escalatedTo).toBe("browser");
+    expect((envelopes[0]!.rawData as { escalationReasons: string[] }).escalationReasons.some((r) => r.startsWith("static_fetch_failed"))).toBe(true);
+    expect(browserCalls).toBe(1);
+  });
+
+  it("falls through to unblock when BOTH static fetch and browser throw", async () => {
+    let unblockCalls = 0;
+    const adapter = createLinkAdapter({
+      fetcher: async () => { throw new Error("HTTP 403: Forbidden"); },
+      llmExtractor: NOOP_LLM_EXTRACTOR,
+      browserFetcher: async () => { throw new Error("browser timeout"); },
+      unblockAdapter: {
+        async unblock() {
+          unblockCalls++;
+          return {
+            rawHtml: "<html><body>unblocked</body></html>",
+            finalUrl: "https://x/y",
+            costCredits: 5,
+            durationMs: 1200
+          };
+        }
+      },
+      domHeuristics: () => ({ facts: [] })
+    });
+
+    const envelopes: IngestionEnvelope[] = [];
+    for await (const e of adapter.normalize({ sourceRef: "https://x/y" })) envelopes.push(e);
+
+    expect(envelopes).toHaveLength(1);
+    expect((envelopes[0]!.rawData as { escalatedTo: string }).escalatedTo).toBe("unblock");
+    expect((envelopes[0]!.rawData as { costCredits: number }).costCredits).toBe(5);
+    expect(unblockCalls).toBe(1);
+  });
+
+  it("throws the original error when static fails AND no escalation tier helps", async () => {
+    const originalErr = new Error("HTTP 403: Forbidden");
+    const adapter = createLinkAdapter({
+      fetcher: async () => { throw originalErr; },
+      llmExtractor: NOOP_LLM_EXTRACTOR,
+      browserFetcher: async () => { throw new Error("browser blocked"); },
+      // No unblockAdapter — bail out
+      domHeuristics: () => ({ facts: [] })
+    });
+
+    // The original fetch error propagates (so the worker's failure-review-task
+    // captures the actual HTTP 403 reason text).
+    await expect((async () => {
+      for await (const _e of adapter.normalize({ sourceRef: "https://x/y" })) { /* noop */ }
+    })()).rejects.toThrow(/HTTP 403: Forbidden/);
+  });
+
+  it("skips static fetch entirely when per-site parser declares requiresBrowser=true", async () => {
+    let staticCalls = 0;
+    let browserCalls = 0;
+    const adapter = createLinkAdapter({
+      fetcher: async () => {
+        staticCalls++;
+        return {
+          url: "https://amazon.com/dp/X", finalUrl: "https://amazon.com/dp/X",
+          statusCode: 200, contentType: "text/html",
+          rawHtml: "<html>static</html>", cleanedText: "",
+          structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+          captchaSignal: false, fetchedAt: new Date(), contentChecksum: "abc"
+        };
+      },
+      llmExtractor: NOOP_LLM_EXTRACTOR,
+      browserFetcher: async () => {
+        browserCalls++;
+        return { rawHtml: "<html>browser</html>", finalUrl: "https://amazon.com/dp/X", statusCode: 200, fetchDurationMs: 0 };
+      },
+      // Pretend Amazon parser is registered for this URL
+      findPerSiteParser: () => ({
+        domains: ["amazon.com"],
+        priority: 100,
+        fingerprint: "amazon@test",
+        requiresBrowser: true,
+        extract: async () => []
+      }),
+      domHeuristics: () => ({ facts: [] })
+    });
+
+    const envelopes: IngestionEnvelope[] = [];
+    for await (const e of adapter.normalize({ sourceRef: "https://amazon.com/dp/X" })) envelopes.push(e);
+
+    expect(staticCalls).toBe(0);    // skipped
+    expect(browserCalls).toBe(1);    // browser fired
+    expect((envelopes[0]!.rawData as { escalatedTo: string }).escalatedTo).toBe("browser");
+    expect((envelopes[0]!.rawData as { escalationReasons: string[] }).escalationReasons).toContain("per_site_parser_requires_browser");
+  });
+
+  it("escalates to browser when static fetch returns captchaSignal=true (status 200 anti-bot wall)", async () => {
+    let browserCalls = 0;
+    const adapter = createLinkAdapter({
+      fetcher: async () => ({
+        url: "https://example.com/x", finalUrl: "https://example.com/x",
+        statusCode: 200, contentType: "text/html",
+        rawHtml: "<html><body>Enter the captcha</body></html>".repeat(500),
+        cleanedText: "",
+        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+        captchaSignal: true,    // ← the new escalation trigger
+        fetchedAt: new Date(),
+        contentChecksum: "abc"
+      }),
+      llmExtractor: NOOP_LLM_EXTRACTOR,
+      browserFetcher: async () => {
+        browserCalls++;
+        return { rawHtml: "<html>real page</html>", finalUrl: "https://example.com/x", statusCode: 200, fetchDurationMs: 50 };
+      },
+      // Inject null parser lookup so we test the captcha signal path in isolation,
+      // not the per-site `requiresBrowser` short-circuit.
+      findPerSiteParser: () => null,
+      domHeuristics: () => ({ facts: [] })
+    });
+
+    const envelopes: IngestionEnvelope[] = [];
+    for await (const e of adapter.normalize({ sourceRef: "https://example.com/x" })) envelopes.push(e);
+
+    expect(browserCalls).toBe(1);
+    expect((envelopes[0]!.rawData as { escalatedTo: string }).escalatedTo).toBe("browser");
+    expect((envelopes[0]!.rawData as { escalationReasons: string[] }).escalationReasons).toContain("captcha_wall_signal");
+  });
 });

@@ -24,6 +24,7 @@ import {
 } from "@aonex/ingestion-antibot-vendor";
 import { findParserForUrl } from "@aonex/per-site-parsers";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
+import { sha256Hex } from "@aonex/lib-utils";
 
 // Local AdapterInput type — internal to ingestion-spine, not re-exported.
 interface AdapterInput {
@@ -114,33 +115,79 @@ class LinkAdapter implements IngestionAdapter {
   }
 
   async *normalize(input: AdapterInput): AsyncIterable<IngestionEnvelope> {
-    const staticResult = await this.deps.fetcher(input.sourceRef);
+    // Per-site parser short-circuit: if a registered parser declares
+    // `requiresBrowser: true` for this hostname (Amazon, Walmart, BestBuy),
+    // skip the static fetch entirely and go straight to browser. Avoids
+    // wasted requests to known-aggressively-bot-walled retailers.
+    const perSiteParser = this.deps.findPerSiteParser(input.sourceRef);
+    const forceBrowser = perSiteParser?.requiresBrowser === true;
 
-    // Quick coverage probe on the static fetch result
-    const hasJsonLd = staticResult.structuredBlocks.jsonLd.length > 0;
-    const hasNextData = staticResult.structuredBlocks.nextData !== null;
-    const hasNuxt = /window\.__NUXT__\s*=/.test(staticResult.rawHtml);
-    const coveragePercent = hasJsonLd ? 0.8 : (hasNextData || hasNuxt) ? 0.7 : 0.3;
+    let staticResult: LinkFetchResult | null = null;
+    let staticFetchError: unknown = null;
+    if (!forceBrowser) {
+      try {
+        staticResult = await this.deps.fetcher(input.sourceRef);
+      } catch (err) {
+        // Static fetch failed (403/captcha/network/timeout). Capture the error
+        // and try browser/unblock fallbacks instead of bailing.
+        staticFetchError = err;
+      }
+    }
+
+    // Probe signals when we have a static result. When we don't (forced-browser
+    // or fetch failure), set conservative defaults that guarantee escalation.
+    const hasJsonLd = staticResult ? staticResult.structuredBlocks.jsonLd.length > 0 : false;
+    const hasNextData = staticResult ? staticResult.structuredBlocks.nextData !== null : false;
+    const hasNuxt = staticResult ? /window\.__NUXT__\s*=/.test(staticResult.rawHtml) : false;
+    const captchaWall = staticResult?.captchaSignal === true;
+    const coveragePercent = !staticResult
+      ? 0.0
+      : captchaWall
+        ? 0.1
+        : hasJsonLd
+          ? 0.8
+          : hasNextData || hasNuxt
+            ? 0.7
+            : 0.3;
 
     const decision = shouldEscalateToBrowser({
-      rawHtml: staticResult.rawHtml,
+      rawHtml: staticResult?.rawHtml ?? "",
       hasJsonLd,
       hasNextData,
       hasNuxt,
       coveragePercent
     });
 
-    let finalRawHtml = staticResult.rawHtml;
+    // Force escalation when: static fetch failed OR captcha wall detected OR
+    // per-site parser demands browser.
+    const mustEscalate =
+      forceBrowser || staticFetchError !== null || captchaWall || decision.escalate;
+    const escalationReasons = [...decision.reasons];
+    if (forceBrowser) escalationReasons.push("per_site_parser_requires_browser");
+    if (staticFetchError !== null) {
+      const msg = staticFetchError instanceof Error ? staticFetchError.message : String(staticFetchError);
+      escalationReasons.push(`static_fetch_failed:${msg.slice(0, 80)}`);
+    }
+    if (captchaWall) escalationReasons.push("captcha_wall_signal");
+
+    let finalRawHtml = staticResult?.rawHtml ?? "";
     let escalatedTo: EscalatedTo = "static";
     let costCredits = 0;
+    /** Set once we have a usable response (static OR browser OR unblock). */
+    let resolvedFinalUrl = staticResult?.finalUrl ?? input.sourceRef;
+    let resolvedStatusCode = staticResult?.statusCode ?? 0;
+    let resolvedContentType = staticResult?.contentType ?? "text/html";
 
-    if (decision.escalate) {
+    if (mustEscalate) {
+      // Layer C — browser fallback
       try {
         const browserResult = await this.deps.browserFetcher(input.sourceRef, { timeoutMs: 20_000 });
         finalRawHtml = browserResult.rawHtml;
+        resolvedFinalUrl = browserResult.finalUrl || resolvedFinalUrl;
+        resolvedStatusCode = browserResult.statusCode || resolvedStatusCode;
         escalatedTo = "browser";
       } catch {
-        // Browser-fallback failed — try unblock vendor (paid) if available + within budget.
+        // Browser failed — try unblock vendor (paid) if available + within budget.
         if (this.deps.unblockAdapter && withinCostCeiling(costCredits, 5)) {
           try {
             const unblockResult: UnblockResult = await this.deps.unblockAdapter.unblock(input.sourceRef, {
@@ -148,44 +195,67 @@ class LinkAdapter implements IngestionAdapter {
               jsRendering: true
             });
             finalRawHtml = unblockResult.rawHtml;
+            resolvedFinalUrl = unblockResult.finalUrl || resolvedFinalUrl;
             escalatedTo = "unblock";
             costCredits += unblockResult.costCredits;
           } catch {
-            // Both browser and unblock failed — keep the static HTML; downstream
-            // parsers will yield few facts but the run completes.
+            // Both browser and unblock failed.
+            // If the static fetch ALSO failed, we have nothing — re-throw the
+            // original error so the worker creates a fetch_failed review_task.
+            if (staticResult === null) {
+              throw staticFetchError ?? new Error("All fetch tiers failed");
+            }
+            // Otherwise: keep the static HTML (likely captcha or thin page);
+            // downstream parsers yield few facts but the run completes.
           }
+        } else if (staticResult === null) {
+          // No unblock available and static failed — bail.
+          throw staticFetchError ?? new Error("Browser fetch failed and unblock not configured");
         }
       }
     }
 
-    this.cache.set(staticResult.finalUrl, {
-      fetchResult: staticResult,
+    // Persist whatever we got. If we forced-browser without static, use what
+    // resolved (or the requested URL as fallback for the source_external_id).
+    const checksum = staticResult?.contentChecksum ?? sha256Hex(finalRawHtml || input.sourceRef);
+
+    this.cache.set(resolvedFinalUrl, {
+      fetchResult: staticResult ?? {
+        url: input.sourceRef,
+        finalUrl: resolvedFinalUrl,
+        statusCode: resolvedStatusCode,
+        contentType: resolvedContentType,
+        rawHtml: finalRawHtml,
+        cleanedText: "",
+        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+        captchaSignal: false,
+        fetchedAt: new Date(),
+        contentChecksum: checksum
+      },
       finalRawHtml,
       escalatedTo,
       costCredits,
-      escalationReasons: decision.reasons
+      escalationReasons
     });
 
     const hints = input.hints;
     yield {
-      sourceExternalId: staticResult.finalUrl,
+      sourceExternalId: resolvedFinalUrl,
       sourceType: "link_url",
       sourceMarketplace: null,
       rawData: {
-        url: staticResult.url,
-        finalUrl: staticResult.finalUrl,
-        statusCode: staticResult.statusCode,
-        contentType: staticResult.contentType,
-        fetchedAt: staticResult.fetchedAt.toISOString(),
+        url: input.sourceRef,
+        finalUrl: resolvedFinalUrl,
+        statusCode: resolvedStatusCode,
+        contentType: resolvedContentType,
+        fetchedAt: (staticResult?.fetchedAt ?? new Date()).toISOString(),
         htmlSnippet: finalRawHtml.substring(0, 10_000),
-        cleanedTextLength: staticResult.cleanedText.length,
+        cleanedTextLength: staticResult?.cleanedText.length ?? 0,
         escalatedTo,
-        escalationReasons: decision.reasons,
+        escalationReasons,
         costCredits
       },
-      checksum: staticResult.contentChecksum,
-      // exactOptionalPropertyTypes: spread the key in only when there are hints
-      // so we never set extractionHints to undefined explicitly.
+      checksum,
       ...(hints !== undefined
         ? {
             extractionHints: {
