@@ -18,6 +18,9 @@
     "@aonex/ingestion-structured": "workspace:*",
     "@aonex/ingestion-llm-extractor": "workspace:*",
     "@aonex/ingestion-field-extractor": "workspace:*",
+    "@aonex/ingestion-dom-heuristics": "workspace:*",
+    "@aonex/ingestion-browser-fallback": "workspace:*",
+    "@aonex/ingestion-antibot-vendor": "workspace:*",
     "@aonex/types": "workspace:*",
     "@aonex/lib-utils": "workspace:*"
   }

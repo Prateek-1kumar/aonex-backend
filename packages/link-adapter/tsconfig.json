@@ -7,6 +7,9 @@
     { "path": "../ingestion/link-fetcher" },
     { "path": "../ingestion/structured" },
     { "path": "../ingestion/llm-extractor" },
-    { "path": "../ingestion/field-extractor" }
+    { "path": "../ingestion/field-extractor" },
+    { "path": "../ingestion-dom-heuristics" },
+    { "path": "../ingestion-browser-fallback" },
+    { "path": "../ingestion-antibot-vendor" }
   ]
 }
