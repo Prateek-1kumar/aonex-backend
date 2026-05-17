@@ -7,6 +7,7 @@ import { parseNuxt } from "./parsers/nuxt.js";
 import { parseInitialState } from "./parsers/initial-state.js";
 import { parseMagento } from "./parsers/magento-init.js";
 import { parseWoocommerce } from "./parsers/woocommerce.js";
+import { parseAlgolia } from "./parsers/algolia-inline.js";
 import { mergeParserOutputs } from "./merge.js";
 import { checkCoverage, type CoverageResult } from "./coverage.js";
 import { isCaptchaWall } from "./captcha-detect.js";
@@ -68,6 +69,7 @@ export async function extractStructured(
     parseInitialState(input.rawHtml),
     parseMagento(input.rawHtml),
     parseWoocommerce(input.rawHtml),
+    parseAlgolia(input.rawHtml),
   ];
 
   const structured = mergeParserOutputs(outputs);
