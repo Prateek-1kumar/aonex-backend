@@ -23,12 +23,14 @@
     "db:studio": "bun --bun --cwd packages/db drizzle-kit studio"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "bun-types": "^1.3.13",
     "dependency-cruiser": "^16.6.0",
     "eslint": "^9.16.0",
+    "playwright": "^1.60.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.0",
     "typescript": "^5.7.2"
@@ -39,5 +41,8 @@
   },
   "resolutions": {
     "pg-native": "false"
+  },
+  "dependencies": {
+    "scrapingbee": "^1.8.2"
   }
 }
