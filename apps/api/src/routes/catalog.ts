@@ -109,8 +109,20 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
       return c.json({ data: { product_id: productId, version: null, fields: [] } });
     }
 
+    // Look up the category schema tier (Phase 3) if a path is set.
+    let categoryTier: "authoritative" | "inferred" | "promoted_draft" | null = null;
+    if (version.canonicalCategory) {
+      const schemaRow = await deps.db.query.categorySchemas.findFirst({
+        where: (c, { eq }) => eq(c.categoryPath, version.canonicalCategory as string),
+        orderBy: (c, { desc }) => [desc(c.schemaVersion)],
+      });
+      categoryTier =
+        (schemaRow?.tier as "authoritative" | "inferred" | "promoted_draft" | null | undefined) ?? null;
+    }
+
     // Walk: product_version → proposed_diff → source_fact_set → extracted_facts.
-    // We want per-canonical-path the BEST fact (highest confidence) and its rung.
+    // We want per-canonical-path the BEST fact (highest confidence) and its rung,
+    // plus the source_type (link_url / templated_csv / marketplace_connector).
     const facts = version.proposedDiffId
       ? await deps.db.execute(sql`
           SELECT
@@ -123,10 +135,12 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
             ef.confidence::float8 AS confidence,
             ef.mapping_method,
             er.extractor_version,
-            er.mapper_version
+            er.mapper_version,
+            sa.source_type
           FROM extracted_facts ef
           JOIN extracted_fact_sets efs ON efs.id = ef.fact_set_id
           JOIN extraction_runs er ON er.id = efs.extraction_run_id
+          JOIN source_artifacts sa ON sa.id = er.artifact_id
           JOIN proposed_diffs pd ON pd.source_fact_set_id = efs.id
           WHERE pd.id = ${version.proposedDiffId}
           ORDER BY ef.canonical_path NULLS LAST, ef.confidence DESC
@@ -193,12 +207,21 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
       });
     }
 
+    // Source-type aggregation: which lanes contributed to this product?
+    const sourceTypes = Array.from(
+      new Set(
+        (facts as unknown as Array<{ source_type: string }>).map((f) => f.source_type)
+      )
+    );
+
     return c.json({
       data: {
         product_id: productId,
         version_id: version.id,
         category_path: version.canonicalCategory,
         category_schema_version: version.categorySchemaVersion,
+        category_tier: categoryTier,
+        source_types: sourceTypes,
         fields,
       },
     });
