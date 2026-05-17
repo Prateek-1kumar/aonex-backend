@@ -19,32 +19,15 @@ export interface RunScoreInput {
 
 // db/tenantId reserved for future detectors that need DB lookups (price-cluster, identity-index)
 export async function runScore(input: RunScoreInput): Promise<RoutingDecision> {
-  // The Phase 3 category schemas (and the semantic mapper) use snake_case
-  // canonical paths (base_price, model_number) but the RouterInput payload
-  // is camelCase. Read both forms so a snake_case attribute satisfies the
-  // missing_required_attribute detector. Snake takes precedence (mapper
-  // canonical) with camel as a fallback for hand-edited diffs.
-  const pickStr = (snake: string, camel: string): string | null => {
-    const v = input.attributes[snake] ?? input.attributes[camel];
-    return typeof v === "string" ? v : v == null ? null : String(v);
-  };
-  const pickNum = (snake: string, camel: string): number | null => {
-    const v = input.attributes[snake] ?? input.attributes[camel];
-    if (v == null) return null;
-    if (typeof v === "number") return v;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
-
   const routerInput: RouterInput = {
     facts: input.mappedFactSet.facts,
     payload: {
-      title: pickStr("title", "title"),
-      brand: pickStr("brand", "brand"),
-      gtin: pickStr("gtin", "gtin"),
-      modelNumber: pickStr("model_number", "modelNumber"),
-      basePrice: pickNum("base_price", "basePrice"),
-      currency: pickStr("currency", "currency"),
+      title: (input.attributes.title as string | null) ?? null,
+      brand: (input.attributes.brand as string | null) ?? null,
+      gtin: (input.attributes.gtin as string | null) ?? null,
+      modelNumber: (input.attributes.modelNumber as string | null) ?? null,
+      basePrice: (input.attributes.basePrice as number | null) ?? null,
+      currency: (input.attributes.currency as string | null) ?? null,
       canonicalCategory: input.mappedFactSet.categoryPath,
       variants: []
     },
