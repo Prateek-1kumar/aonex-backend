@@ -1,5 +1,6 @@
 import { schema, type DrizzleClient } from "@aonex/db";
 import { sql } from "drizzle-orm";
+import type { CronJob } from "./index.js";
 
 export interface PromotionThresholds {
   minProducts: number;
@@ -108,3 +109,11 @@ export async function runSchemaPromotionScan(input: {
 
   return result;
 }
+
+export const schemaPromotionScan: CronJob = {
+  name: "schema-promotion-scan",
+  cronSchedule: "0 3 * * *",   // nightly at 03:00 UTC
+  async process({ db }) {
+    await runSchemaPromotionScan({ db });
+  },
+};
