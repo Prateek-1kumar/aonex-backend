@@ -10,6 +10,7 @@ import { parseWoocommerce } from "./parsers/woocommerce.js";
 import { parseAlgolia } from "./parsers/algolia-inline.js";
 import { parseShopifyProductsJson } from "./parsers/shopify-products-json.js";
 import { parseRdfa } from "./parsers/rdfa.js";
+import { parseBreadcrumbList } from "./parsers/breadcrumb-list.js";
 import { mergeParserOutputs } from "./merge.js";
 import { checkCoverage, type CoverageResult } from "./coverage.js";
 import { isCaptchaWall } from "./captcha-detect.js";
@@ -78,6 +79,7 @@ export async function extractStructured(
     parseAlgolia(input.rawHtml),
     shopifyProductsJson,
     parseRdfa(input.rawHtml),
+    parseBreadcrumbList(input.structuredBlocks.jsonLd),
   ];
 
   const structured = mergeParserOutputs(outputs);
