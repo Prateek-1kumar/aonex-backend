@@ -145,6 +145,10 @@
         "drizzle-kit": "^0.30.0",
       },
     },
+    "packages/drift-detector": {
+      "name": "@aonex/drift-detector",
+      "version": "0.0.0",
+    },
     "packages/ingestion-antibot-vendor": {
       "name": "@aonex/ingestion-antibot-vendor",
       "version": "0.0.0",
@@ -352,6 +356,8 @@
     "@aonex/connector-gateway": ["@aonex/connector-gateway@workspace:packages/connector-gateway"],
 
     "@aonex/db": ["@aonex/db@workspace:packages/db"],
+
+    "@aonex/drift-detector": ["@aonex/drift-detector@workspace:packages/drift-detector"],
 
     "@aonex/ingestion-antibot-vendor": ["@aonex/ingestion-antibot-vendor@workspace:packages/ingestion-antibot-vendor"],
 
