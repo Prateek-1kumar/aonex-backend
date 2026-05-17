@@ -1,0 +1,13 @@
+{
+  "domain": "bestbuy.com",
+  "urls": [
+    "https://www.bestbuy.com/site/sony-wh-1000xm5-wireless-noise-canceling-over-the-ear-headphones-black/6505727.p?skuId=6505727",
+    "https://www.bestbuy.com/site/apple-airpods-pro-2nd-generation-white/6447382.p",
+    "https://www.bestbuy.com/site/samsung-65-class-q60c-qled-4k-uhd-smart-tizen-tv-titan-gray/6552705.p",
+    "https://www.bestbuy.com/site/macbook-air-13-6-laptop-apple-m2-chip-8gb-memory-256gb-ssd-midnight/6509650.p",
+    "https://www.bestbuy.com/site/dyson-v15-detect-cordless-vacuum-yellow-iron/6502706.p",
+    "https://www.bestbuy.com/site/canon-eos-r6-mark-ii/6512345.p",
+    "https://www.bestbuy.com/site/lego-icons-set/6534567.p"
+  ],
+  "expectedFields": ["title", "base_price", "sku", "model_number"]
+}
