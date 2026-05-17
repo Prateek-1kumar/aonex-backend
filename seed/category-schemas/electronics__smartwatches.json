@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_smartwatches/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "display_size_inches",
+    "battery_life_hours",
+    "water_resistance_atm"
+  ],
+  "properties": {
+    "display_size_inches": {
+      "type": "number",
+      "minimum": 0.8,
+      "maximum": 2.5
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 12,
+      "maximum": 720
+    },
+    "water_resistance_atm": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "wear_os",
+        "watchos",
+        "tizen",
+        "proprietary",
+        "rtos"
+      ]
+    },
+    "connectivity": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "bluetooth",
+          "wifi",
+          "nfc",
+          "lte",
+          "gps"
+        ]
+      }
+    },
+    "heart_rate_monitor": {
+      "type": "boolean"
+    },
+    "gps_built_in": {
+      "type": "boolean"
+    },
+    "display_type": {
+      "type": "string",
+      "enum": [
+        "amoled",
+        "lcd",
+        "mip",
+        "e_ink"
+      ]
+    },
+    "case_material": {
+      "type": "string",
+      "enum": [
+        "aluminum",
+        "stainless_steel",
+        "titanium",
+        "plastic",
+        "ceramic"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

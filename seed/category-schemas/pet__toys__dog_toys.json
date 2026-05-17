@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_toys_dog_toys/v1",
+  "type": "object",
+  "required": [
+    "price",
+    "brand",
+    "model"
+  ],
+  "properties": {
+    "price": {
+      "type": "number",
+      "description": "Price of the product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the product"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model of the product"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the product"
+    },
+    "size": {
+      "type": "string",
+      "description": "Size of the product"
+    },
+    "material": {
+      "type": "string",
+      "description": "Material of the product"
+    },
+    "weight": {
+      "type": "number",
+      "unit": "grams",
+      "description": "Weight of the product"
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "unit": "inches",
+      "description": "Screen size of the product (if applicable)"
+    },
+    "ram_gb": {
+      "type": "number",
+      "unit": "GB",
+      "description": "RAM of the product (if applicable)"
+    },
+    "battery_mah": {
+      "type": "number",
+      "unit": "mAh",
+      "description": "Battery capacity of the product (if applicable)"
+    },
+    "canopy_diameter_cm": {
+      "type": "number",
+      "unit": "cm",
+      "description": "Canopy diameter of the product (if applicable)"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ],
+      "description": "Season rating of the product (if applicable)"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

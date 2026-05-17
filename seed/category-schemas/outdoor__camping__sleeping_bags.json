@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_camping_sleeping_bags/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "temperature_rating_celsius",
+    "fill_type",
+    "shape",
+    "packed_weight_grams"
+  ],
+  "properties": {
+    "temperature_rating_celsius": {
+      "type": "number",
+      "minimum": -40,
+      "maximum": 25
+    },
+    "fill_type": {
+      "type": "string",
+      "enum": [
+        "down",
+        "synthetic"
+      ]
+    },
+    "shape": {
+      "type": "string",
+      "enum": [
+        "mummy",
+        "rectangular",
+        "semi_rectangular",
+        "double"
+      ]
+    },
+    "packed_weight_grams": {
+      "type": "number",
+      "minimum": 200,
+      "maximum": 5000
+    },
+    "fill_power": {
+      "type": "integer",
+      "minimum": 300,
+      "maximum": 1000
+    },
+    "length_cm": {
+      "type": "number",
+      "minimum": 150,
+      "maximum": 230
+    },
+    "compressed_volume_liters": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 20
+    },
+    "water_resistant": {
+      "type": "boolean"
+    },
+    "zipper_side": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "double"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

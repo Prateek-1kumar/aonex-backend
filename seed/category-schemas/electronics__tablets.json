@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_tablets/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "screen_size_inches",
+    "operating_system",
+    "ram_gb",
+    "storage_gb"
+  ],
+  "properties": {
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 7,
+      "maximum": 13
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "ios",
+        "android",
+        "windows",
+        "harmonyos"
+      ]
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 16
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 1024
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 3000,
+      "maximum": 15000
+    },
+    "cellular_capable": {
+      "type": "boolean"
+    },
+    "rear_camera_mp": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 50
+    },
+    "front_camera_mp": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 20
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 200,
+      "maximum": 1200
+    },
+    "stylus_support": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

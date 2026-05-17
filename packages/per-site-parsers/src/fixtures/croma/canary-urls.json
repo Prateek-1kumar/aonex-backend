@@ -1,0 +1,13 @@
+{
+  "domain": "croma.com",
+  "urls": [
+    "https://www.croma.com/sony-wh-1000xm5-bluetooth-headphones-with-mic-black-/p/262844",
+    "https://www.croma.com/apple-iphone-15-pro-256-gb-blue-titanium-/p/270544",
+    "https://www.croma.com/samsung-65-inch-q60c-qled-4k-tv-/p/262199",
+    "https://www.croma.com/lg-7-kg-front-load-washing-machine-/p/255441",
+    "https://www.croma.com/mi-smart-led-tv-43-inch-/p/238877",
+    "https://www.croma.com/dyson-v8-cordless-vacuum-/p/265333",
+    "https://www.croma.com/apple-macbook-air-m2-13-inch-/p/271990"
+  ],
+  "expectedFields": ["title", "base_price", "sku", "currency"]
+}

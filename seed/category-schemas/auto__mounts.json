@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_mounts/v1",
+  "type": "object",
+  "required": [
+    "mount_type",
+    "mount_size_inches"
+  ],
+  "properties": {
+    "mount_type": {
+      "type": "string",
+      "enum": [
+        "bolt-on",
+        "clamp-on",
+        "adapter"
+      ]
+    },
+    "mount_size_inches": {
+      "type": "number",
+      "units": "inches"
+    },
+    "mount_pattern": {
+      "type": "string",
+      "enum": [
+        "5x4.5",
+        "5x5",
+        "5x5.5",
+        "5x6",
+        "5x6.7",
+        "5x7",
+        "5x8",
+        "5x10",
+        "5x12"
+      ]
+    },
+    "mount_offset": {
+      "type": "number",
+      "units": "inches"
+    },
+    "mount_height": {
+      "type": "number",
+      "units": "inches"
+    },
+    "mount_weight_grams": {
+      "type": "number",
+      "units": "grams"
+    },
+    "additional_properties": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "tier": "inferred"
+}

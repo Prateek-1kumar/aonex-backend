@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys_dolls/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the doll"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the doll"
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "infant",
+        "toddler",
+        "preschool",
+        "school_age"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "fabric",
+        "wood",
+        "porcelain"
+      ]
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 36,
+      "multipleOf": 0.1
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "multipleOf": 0.1
+    }
+  },
+  "additionalProperties": true
+}

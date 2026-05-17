@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_bottoms_shorts/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "waist_size_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 50,
+      "description": "Waist size of the shorts in inches"
+    },
+    "inseam_length_inches": {
+      "type": "number",
+      "minimum": 2,
+      "maximum": 12,
+      "description": "Inseam length of the shorts in inches"
+    },
+    "fabric_type": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "linen",
+        "denim"
+      ],
+      "description": "Type of fabric used"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "spring",
+        "summer",
+        "fall",
+        "winter"
+      ],
+      "description": "Seasonal rating of the shorts"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

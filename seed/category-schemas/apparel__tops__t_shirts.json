@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_tops_t_shirts/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "color",
+    "material",
+    "fit"
+  ],
+  "properties": {
+    "size": {
+      "type": "string",
+      "enum": [
+        "xs",
+        "s",
+        "m",
+        "l",
+        "xl",
+        "xxl",
+        "3xl"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "blend",
+        "bamboo",
+        "modal",
+        "linen"
+      ]
+    },
+    "fit": {
+      "type": "string",
+      "enum": [
+        "regular",
+        "slim",
+        "oversized",
+        "relaxed"
+      ]
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex",
+        "kids"
+      ]
+    },
+    "sleeve_type": {
+      "type": "string",
+      "enum": [
+        "short_sleeve",
+        "long_sleeve",
+        "sleeveless"
+      ]
+    },
+    "neck_type": {
+      "type": "string",
+      "enum": [
+        "crew",
+        "v_neck",
+        "polo",
+        "scoop"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

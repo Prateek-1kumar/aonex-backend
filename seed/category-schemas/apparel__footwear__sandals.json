@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_footwear_sandals/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large",
+        "x_large"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "brown",
+        "beige",
+        "red"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "synthetic",
+        "rubber"
+      ]
+    },
+    "heel_height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

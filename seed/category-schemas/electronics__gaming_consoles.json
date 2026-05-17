@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_gaming_consoles/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the gaming console"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the gaming console"
+    },
+    "cpu_speed_ghz": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "CPU speed in GHz"
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 128,
+      "description": "RAM in GB"
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8192,
+      "description": "Storage capacity in GB"
+    },
+    "graphics_card": {
+      "type": "string",
+      "enum": [
+        "nvidia",
+        "amd",
+        "intel"
+      ],
+      "description": "Graphics card manufacturer"
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "hd",
+        "full_hd",
+        "4k",
+        "8k"
+      ],
+      "description": "Maximum supported resolution"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

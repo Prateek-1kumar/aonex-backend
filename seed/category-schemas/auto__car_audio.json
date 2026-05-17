@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_car_audio/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "model",
+    "year",
+    "price"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "year": {
+      "type": "integer",
+      "minimum": 1900,
+      "maximum": 2100
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "power_watts": {
+      "type": "number",
+      "minimum": 0
+    },
+    "rms_rating_db": {
+      "type": "number",
+      "minimum": 0
+    },
+    "frequency_response_hz": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 3
+    },
+    "impedance_ohms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "amplifier_type": {
+      "type": "string",
+      "enum": [
+        "Class AB",
+        "Class D",
+        "Class T"
+      ]
+    },
+    "speaker_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "subwoofer_available": {
+      "type": "boolean"
+    },
+    "warranty_years": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "warranty_details": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "dimensions_cm": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "weight_kg": {
+      "type": "number",
+      "minimum": 0
+    },
+    "power_consumption_w": {
+      "type": "number",
+      "minimum": 0
+    },
+    "battery_mah": {
+      "type": "number",
+      "minimum": 0
+    },
+    "canopy_diameter_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "canopy_color": {
+      "type": "string"
+    },
+    "canopy_material": {
+      "type": "string"
+    },
+    "canopy_size_cm": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "water_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "IPX0",
+        "IPX1",
+        "IPX2",
+        "IPX3",
+        "IPX4",
+        "IPX5",
+        "IPX6",
+        "IPX7",
+        "IPX8"
+      ]
+    },
+    "water_resistance_details": {
+      "type": "string"
+    },
+    "dust_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "IP2X",
+        "IP4X",
+        "IP5X",
+        "IP6X",
+        "IP7X",
+        "IP8X"
+      ]
+    },
+    "dust_resistance_details": {
+      "type": "string"
+    },
+    "mounting_type": {
+      "type": "string"
+    },
+    "mounting_size_cm": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "mounting_color": {
+      "type": "string"
+    },
+    "mounting_material": {
+      "type": "string"
+    },
+    "mounting_weight_kg": {
+      "type": "number",
+      "minimum": 0
+    },
+    "mounting_dimensions_cm": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "mounting_power_consumption_w": {
+      "type": "number",
+      "minimum": 0
+    },
+    "mounting_battery_mah": {
+      "type": "number",
+      "minimum": 0
+    },
+    "mounting_canopy_diameter_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "mounting_canopy_color": {
+      "type": "string"
+    },
+    "mounting_canopy_material": {
+      "type": "string"
+    },
+    "mounting_canopy_size_cm": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "mounting_water_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "IPX0",
+        "IPX1",
+        "IPX2",
+        "IPX3",
+        "IPX4",
+        "IPX5",
+        "IPX6",
+        "IPX7",
+        "IPX8"
+      ]
+    },
+    "mounting_water_resistance_details": {
+      "type": "string"
+    },
+    "mounting_dust_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "IP2X",
+        "IP4X",
+        "IP5X",
+        "IP6X",
+        "IP7X",
+        "IP8X"
+      ]
+    },
+    "mounting_dust_resistance_details": {
+      "type": "string"
+    },
+    "mounting_amplifier_type": {
+      "type": "string",
+      "enum": [
+        "Class AB",
+        "Class D",
+        "Class T"
+      ]
+    },
+    "mounting_speaker_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "mounting_subwoofer_available": {
+      "type": "boolean"
+    },
+    "mounting_warranty_years": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mounting_warranty_details": {
+      "type": "string"
+    }
+  }
+}

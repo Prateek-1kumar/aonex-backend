@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_fragrances_perfume/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "volume_ml",
+    "fragrance_family",
+    "gender"
+  ],
+  "properties": {
+    "volume_ml": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 500
+    },
+    "fragrance_family": {
+      "type": "string",
+      "enum": [
+        "floral",
+        "woody",
+        "oriental",
+        "fresh",
+        "citrus",
+        "aquatic",
+        "gourmand",
+        "fougere"
+      ]
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "unisex",
+        "feminine",
+        "masculine"
+      ]
+    },
+    "concentration": {
+      "type": "string",
+      "enum": [
+        "parfum",
+        "eau_de_parfum",
+        "eau_de_toilette",
+        "eau_de_cologne",
+        "body_spray"
+      ]
+    },
+    "top_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "middle_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "base_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "longevity": {
+      "type": "string",
+      "enum": [
+        "poor",
+        "moderate",
+        "good",
+        "excellent"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

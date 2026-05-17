@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_golf_clubs/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "club_type"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the golf club product"
+    },
+    "club_type": {
+      "type": "string",
+      "enum": [
+        "driver",
+        "fairway_wood",
+        "hybrid",
+        "iron",
+        "wedge",
+        "putter"
+      ]
+    },
+    "shaft_material": {
+      "type": "string",
+      "enum": [
+        "graphite",
+        "steel",
+        "titanium"
+      ]
+    },
+    "shaft_length_inches": {
+      "type": "number",
+      "minimum": 30,
+      "maximum": 48
+    },
+    "swing_weight": {
+      "type": "string",
+      "enum": [
+        "a",
+        "d0",
+        "d1",
+        "d2",
+        "d3",
+        "d4",
+        "d5"
+      ]
+    },
+    "loft_angle_degrees": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 64
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

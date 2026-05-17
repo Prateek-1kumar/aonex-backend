@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_accessories_litter_boxes/v1",
+  "type": "object",
+  "required": [
+    "material",
+    "size_inches",
+    "depth_inches",
+    "width_inches",
+    "height_inches",
+    "weight_ounces"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "stainless steel",
+        "wood",
+        "recycled plastic"
+      ]
+    },
+    "size_inches": {
+      "type": "number",
+      "units": "inches"
+    },
+    "depth_inches": {
+      "type": "number",
+      "units": "inches"
+    },
+    "width_inches": {
+      "type": "number",
+      "units": "inches"
+    },
+    "height_inches": {
+      "type": "number",
+      "units": "inches"
+    },
+    "weight_ounces": {
+      "type": "number",
+      "units": "ounces"
+    },
+    "additional_properties": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "tier": "inferred"
+}

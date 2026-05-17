@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_bottoms_trousers/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "waist_size_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 50,
+      "description": "Waist size of the trousers in inches"
+    },
+    "inseam_length_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 40,
+      "description": "Inseam length of the trousers in inches"
+    },
+    "pocket_type": {
+      "type": "string",
+      "enum": [
+        "side_pockets",
+        "back_pockets",
+        "cargo_pockets"
+      ],
+      "description": "Type of pockets in the trousers"
+    },
+    "fabric_type": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "denim",
+        "linen"
+      ],
+      "description": "Type of fabric used in the trousers"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ],
+      "description": "Seasonal rating of the trousers"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_soccer_balls/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the soccer ball"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the soccer ball"
+    },
+    "size": {
+      "type": "integer",
+      "enum": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "description": "Size of the soccer ball"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "synthetic",
+        "hybrid"
+      ],
+      "description": "Material of the soccer ball"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 300,
+      "maximum": 500,
+      "description": "Weight of the soccer ball in grams"
+    },
+    "circumference_inches": {
+      "type": "number",
+      "minimum": 26,
+      "maximum": 28,
+      "description": "Circumference of the soccer ball in inches"
+    },
+    "inflation_pressure_psi": {
+      "type": "number",
+      "minimum": 8.5,
+      "maximum": 15.6,
+      "description": "Inflation pressure of the soccer ball in psi"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

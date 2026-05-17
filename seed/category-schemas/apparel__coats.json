@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_coats/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "winter",
+        "spring",
+        "summer",
+        "autumn",
+        "all_season"
+      ]
+    },
+    "water_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "water_resistant",
+        "water_repellent",
+        "waterproof"
+      ]
+    },
+    "fill_power": {
+      "type": "integer",
+      "description": "Fill power of the coat"
+    },
+    "length_inches": {
+      "type": "number",
+      "description": "Length of the coat in inches"
+    },
+    "chest_circumference_inches": {
+      "type": "number",
+      "description": "Chest circumference of the coat in inches"
+    },
+    "weight_grams": {
+      "type": "number",
+      "description": "Weight of the coat in grams"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the coat"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "xs",
+        "s",
+        "m",
+        "l",
+        "xl",
+        "xxl"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

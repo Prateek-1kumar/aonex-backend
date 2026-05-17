@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_cameras/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "sensor_type",
+    "megapixels"
+  ],
+  "properties": {
+    "sensor_type": {
+      "type": "string",
+      "enum": [
+        "full_frame",
+        "aps-c",
+        "micro_four_thirds",
+        "1_inch",
+        "medium_format",
+        "bsi_cmos",
+        "cmos",
+        "ccd"
+      ]
+    },
+    "megapixels": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "lens_mount": {
+      "type": "string"
+    },
+    "camera_type": {
+      "type": "string",
+      "enum": [
+        "dslr",
+        "mirrorless",
+        "point_and_shoot",
+        "action",
+        "medium_format",
+        "instant"
+      ]
+    },
+    "viewfinder_type": {
+      "type": "string",
+      "enum": [
+        "optical",
+        "electronic",
+        "none"
+      ]
+    },
+    "video_resolution": {
+      "type": "string",
+      "enum": [
+        "1080p",
+        "4k",
+        "6k",
+        "8k"
+      ]
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 3000
+    },
+    "weather_sealed": {
+      "type": "boolean"
+    },
+    "in_body_stabilization": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

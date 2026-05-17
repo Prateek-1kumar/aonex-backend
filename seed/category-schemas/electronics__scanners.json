@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_scanners/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "scanner_type": {
+      "type": "string",
+      "enum": [
+        "flatbed",
+        "document",
+        "portable",
+        "film"
+      ]
+    },
+    "resolution_dpi": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1200,
+      "description": "Scanner resolution in dots per inch"
+    },
+    "scan_size_inches": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 17,
+      "description": "Maximum scan size in inches"
+    },
+    "interface": {
+      "type": "string",
+      "enum": [
+        "usb",
+        "wireless",
+        "ethernet"
+      ]
+    },
+    "compatibility": {
+      "type": "string",
+      "enum": [
+        "windows",
+        "mac",
+        "linux"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 5000,
+      "description": "Weight of the scanner in grams"
+    },
+    "dimensions_cm": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "minimum": 10,
+        "maximum": 50
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "description": "Dimensions of the scanner in centimeters (length, width, height)"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

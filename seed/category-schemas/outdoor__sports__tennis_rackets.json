@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_tennis_rackets/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "model"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "string_pattern": {
+      "type": "string",
+      "enum": [
+        "open",
+        "dense"
+      ]
+    },
+    "head_size_sq_inches": {
+      "type": "number",
+      "minimum": 85,
+      "maximum": 135
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 26,
+      "maximum": 29
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 8,
+      "maximum": 12.5
+    },
+    "balance_point_inches": {
+      "type": "number",
+      "minimum": 12,
+      "maximum": 16
+    },
+    "grip_size": {
+      "type": "string",
+      "enum": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

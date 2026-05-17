@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_mobile_phones/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "screen_size_inches",
+    "operating_system",
+    "ram_gb",
+    "storage_gb",
+    "battery_mah"
+  ],
+  "properties": {
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 4,
+      "maximum": 7.5
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "ios",
+        "android",
+        "harmonyos"
+      ]
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 24
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 1024
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 1500,
+      "maximum": 7000
+    },
+    "rear_camera_mp": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 200
+    },
+    "front_camera_mp": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 60
+    },
+    "water_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "ip67",
+        "ip68",
+        "ip65",
+        "none"
+      ]
+    },
+    "5g_capable": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

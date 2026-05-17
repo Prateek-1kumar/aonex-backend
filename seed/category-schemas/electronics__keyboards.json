@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_keyboards/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "keyboard_type": {
+      "type": "string",
+      "enum": [
+        "mechanical",
+        "membrane",
+        "dome-switch"
+      ]
+    },
+    "key_switch_type": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "tactile",
+        "clicky"
+      ]
+    },
+    "keyboard_layout": {
+      "type": "string",
+      "enum": [
+        "qwertz",
+        "qerty",
+        "azerty"
+      ]
+    },
+    "connection_type": {
+      "type": "string",
+      "enum": [
+        "wired",
+        "wireless",
+        "bluetooth"
+      ]
+    },
+    "battery_life_hours": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dimensions_length_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dimensions_width_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dimensions_height_cm": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true
+}

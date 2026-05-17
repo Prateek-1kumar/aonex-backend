@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_decor_curtains/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "material",
+    "width_inches",
+    "length_inches"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the curtain product"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "linen",
+        "silk",
+        "velvet"
+      ]
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 120
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 120
+    },
+    "pattern": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "striped",
+        "floral",
+        "geometric"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "opacity": {
+      "type": "string",
+      "enum": [
+        "sheer",
+        "semi_sheer",
+        "blackout"
+      ]
+    },
+    "header_type": {
+      "type": "string",
+      "enum": [
+        "rod_pocket",
+        "pinch_pleat",
+        "grommet"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

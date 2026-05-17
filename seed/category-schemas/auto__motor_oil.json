@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_motor_oil/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "viscosity",
+    "volume_ounces"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the motor oil product"
+    },
+    "viscosity": {
+      "type": "string",
+      "enum": [
+        "0w-20",
+        "5w-20",
+        "5w-30",
+        "10w-30",
+        "10w-40"
+      ]
+    },
+    "volume_ounces": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Volume of the motor oil in ounces"
+    },
+    "api_certification": {
+      "type": "string",
+      "enum": [
+        "sn",
+        "sn_plus",
+        "sn_super",
+        "cj-4"
+      ]
+    },
+    "price_dollars": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price of the motor oil in dollars"
+    }
+  },
+  "additionalProperties": true
+}

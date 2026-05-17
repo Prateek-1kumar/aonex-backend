@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_jackets/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "color",
+    "fabric",
+    "season"
+  ],
+  "properties": {
+    "size": {
+      "type": "string",
+      "enum": [
+        "xs",
+        "s",
+        "m",
+        "l",
+        "xl",
+        "xxl",
+        "3xl"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "fabric": {
+      "type": "string",
+      "enum": [
+        "nylon",
+        "polyester",
+        "down",
+        "synthetic_insulation",
+        "wool",
+        "leather",
+        "denim",
+        "cotton",
+        "fleece",
+        "softshell"
+      ]
+    },
+    "season": {
+      "type": "string",
+      "enum": [
+        "spring",
+        "winter",
+        "all_season"
+      ]
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex",
+        "kids"
+      ]
+    },
+    "jacket_type": {
+      "type": "string",
+      "enum": [
+        "bomber",
+        "puffer",
+        "parka",
+        "trench",
+        "denim",
+        "blazer",
+        "windbreaker",
+        "fleece",
+        "leather",
+        "softshell"
+      ]
+    },
+    "water_resistant": {
+      "type": "boolean"
+    },
+    "insulation_type": {
+      "type": "string",
+      "enum": [
+        "down",
+        "synthetic",
+        "fleece",
+        "none"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 3000
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_running_shoes/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "gender",
+    "drop_mm",
+    "weight_grams",
+    "surface"
+  ],
+  "properties": {
+    "size": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 18
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex"
+      ]
+    },
+    "drop_mm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 14
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 500
+    },
+    "surface": {
+      "type": "string",
+      "enum": [
+        "road",
+        "trail",
+        "track",
+        "cross_country"
+      ]
+    },
+    "upper_material": {
+      "type": "string",
+      "enum": [
+        "mesh",
+        "knit",
+        "synthetic",
+        "gore_tex"
+      ]
+    },
+    "stack_height_mm": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 50
+    },
+    "waterproof": {
+      "type": "boolean"
+    },
+    "size_system": {
+      "type": "string",
+      "enum": [
+        "us",
+        "eu",
+        "uk"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

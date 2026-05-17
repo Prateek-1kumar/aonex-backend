@@ -9,6 +9,7 @@ import {
   integer,
   jsonb,
   text,
+  boolean,
   timestamp,
   uniqueIndex
 } from "drizzle-orm/pg-core";
@@ -30,6 +31,13 @@ export const categorySchemas = pgTable(
       .$type<Record<string, string[]>>()
       .notNull()
       .default({}),
+    tier: varchar("tier", { length: 20 })
+      .$type<"authoritative" | "inferred" | "promoted_draft">()
+      .notNull()
+      .default("authoritative"),
+    parentPath: varchar("parent_path", { length: 300 }),
+    displayName: varchar("display_name", { length: 200 }).notNull().default(""),
+    active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
   },

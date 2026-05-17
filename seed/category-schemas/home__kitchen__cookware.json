@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_kitchen_cookware/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "material",
+    "induction_compatible"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "stainless_steel",
+        "cast_iron",
+        "nonstick",
+        "carbon_steel",
+        "copper",
+        "ceramic",
+        "aluminum",
+        "hard_anodized"
+      ]
+    },
+    "induction_compatible": {
+      "type": "boolean"
+    },
+    "capacity_liters": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 30
+    },
+    "diameter_cm": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 60
+    },
+    "cookware_type": {
+      "type": "string",
+      "enum": [
+        "frying_pan",
+        "saute_pan",
+        "saucepan",
+        "stockpot",
+        "dutch_oven",
+        "wok",
+        "griddle",
+        "roasting_pan",
+        "casserole",
+        "skillet"
+      ]
+    },
+    "oven_safe": {
+      "type": "boolean"
+    },
+    "oven_safe_temp_celsius": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 500
+    },
+    "dishwasher_safe": {
+      "type": "boolean"
+    },
+    "color": {
+      "type": "string"
+    },
+    "includes_lid": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

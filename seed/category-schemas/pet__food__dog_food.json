@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_food_dog_food/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "flavor",
+    "life_stage",
+    "size"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "flavor": {
+      "type": "string"
+    },
+    "life_stage": {
+      "type": "string",
+      "enum": [
+        "puppy",
+        "adult",
+        "senior"
+      ]
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ]
+    },
+    "protein_source": {
+      "type": "string",
+      "enum": [
+        "beef",
+        "chicken",
+        "fish",
+        "lamb"
+      ]
+    },
+    "packed_weight_grams": {
+      "type": "number",
+      "unit": "grams"
+    },
+    "shelf_life_days": {
+      "type": "number",
+      "unit": "days"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_basketballs/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the basketball"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the basketball"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "size_7",
+        "size_6",
+        "size_5",
+        "youth",
+        "junior"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "synthetic",
+        "rubber"
+      ]
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 14,
+      "maximum": 22
+    },
+    "circumference_inches": {
+      "type": "number",
+      "minimum": 28.5,
+      "maximum": 29.5
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

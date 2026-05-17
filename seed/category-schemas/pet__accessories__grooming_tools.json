@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_accessories_grooming_tools/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "model",
+    "material",
+    "size_inches",
+    "weight_ounces"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "material": {
+      "type": "string"
+    },
+    "size_inches": {
+      "type": "number",
+      "description": "Size in inches"
+    },
+    "weight_ounces": {
+      "type": "number",
+      "description": "Weight in ounces"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "white",
+        "gray",
+        "blue",
+        "red"
+      ]
+    },
+    "grooming_type": {
+      "type": "string",
+      "enum": [
+        "brushing",
+        "combing",
+        "clipping",
+        "nail_trimming"
+      ]
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "description": "Battery life in hours"
+    },
+    "additional_features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

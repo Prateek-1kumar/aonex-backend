@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../ingestion-spine" },
+    { "path": "../ingestion/link-fetcher" },
+    { "path": "../ingestion/structured" },
+    { "path": "../ingestion/llm-extractor" },
+    { "path": "../ingestion/field-extractor" },
+    { "path": "../ingestion-dom-heuristics" },
+    { "path": "../ingestion-browser-fallback" },
+    { "path": "../ingestion-antibot-vendor" },
+    { "path": "../per-site-parsers" },
+    { "path": "../vision-extractor" },
+    { "path": "../lib-utils" }
+  ]
+}

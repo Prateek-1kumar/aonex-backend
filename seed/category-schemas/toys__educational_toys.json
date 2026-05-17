@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys_educational_toys/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "age_range",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "infant",
+        "toddler",
+        "preschool",
+        "school_age"
+      ]
+    },
+    "price_usd": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMinimum": true
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMinimum": false
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "wood",
+        "fabric"
+      ]
+    },
+    "battery_required": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

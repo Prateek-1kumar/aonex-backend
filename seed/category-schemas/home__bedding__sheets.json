@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_bedding_sheets/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "size",
+    "thread_count",
+    "material"
+  ],
+  "properties": {
+    "size": {
+      "type": "string",
+      "enum": [
+        "twin",
+        "twin_xl",
+        "full",
+        "queen",
+        "king",
+        "california_king"
+      ]
+    },
+    "thread_count": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 1200
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "microfiber",
+        "linen",
+        "bamboo",
+        "silk",
+        "satin",
+        "tencel"
+      ]
+    },
+    "color": {
+      "type": "string"
+    },
+    "weave_type": {
+      "type": "string",
+      "enum": [
+        "percale",
+        "sateen",
+        "twill",
+        "jersey",
+        "flannel"
+      ]
+    },
+    "pattern": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "striped",
+        "floral",
+        "geometric",
+        "plaid",
+        "printed"
+      ]
+    },
+    "set_includes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "flat_sheet",
+          "fitted_sheet",
+          "pillowcase",
+          "duvet_cover"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

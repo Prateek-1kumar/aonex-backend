@@ -1,0 +1,4 @@
+- [Project context: Aonex ingestion pipeline](project_aonex_ingestion.md) — 3-lane (link/CSV/marketplace) ingestion → tiered canonical catalog with provenance + per-field confidence
+- [Aonex catalog architecture committed](project_aonex_catalog_architecture.md) — 4-layer typed+jsonb + Tiered Maturity, field recon not redesign
+- [Authoritative sources: extraction quality + ML ops](reference_extraction_quality_sources.md) — Shopify, Walmart, Wayfair/Snorkel, WDC, MAVE, Apify, Zyte, Honeycomb, Arize/WhyLabs/Fiddler
+- [PIM vendor doc sources](reference_pim_vendor_docs.md) — authoritative URLs for Akeneo/Salsify/Amazon/Pimcore/inriver/Bloomreach/GS1/Shopify

@@ -5,7 +5,15 @@ export type ParserKind =
   | "shopify_probe"
   | "next_data"
   | "microdata"
-  | "opengraph";
+  | "opengraph"
+  | "nuxt"
+  | "initial_state"
+  | "magento"
+  | "woocommerce"
+  | "algolia"
+  | "shopify_products_json"
+  | "rdfa"
+  | "breadcrumb_list";
 
 export interface ParserOutput {
   kind: ParserKind;
@@ -25,4 +33,6 @@ export interface StructuredResult {
   facts: ExtractedFact[];
   byParser: Record<ParserKind, ParserOutput | null>;
   category: { path: string | null; confidence: number };
+  /** Number of cross-validation conflicts detected (json_ld vs opengraph vs dom). */
+  crossValidationConflicts?: number;
 }

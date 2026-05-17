@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_fitness_equipment/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "equipment_type"
+  ],
+  "properties": {
+    "equipment_type": {
+      "type": "string",
+      "enum": [
+        "treadmill",
+        "elliptical",
+        "stationary_bike",
+        "rowing_machine",
+        "barbell",
+        "dumbbell",
+        "kettlebell",
+        "pull_up_bar",
+        "bench",
+        "squat_rack",
+        "resistance_bands",
+        "foam_roller",
+        "yoga_mat",
+        "cable_machine",
+        "other"
+      ]
+    },
+    "weight_kg": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 500
+    },
+    "max_user_weight_kg": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 500
+    },
+    "dimensions_cm": {
+      "type": "object",
+      "properties": {
+        "length": {
+          "type": "number",
+          "minimum": 1
+        },
+        "width": {
+          "type": "number",
+          "minimum": 1
+        },
+        "height": {
+          "type": "number",
+          "minimum": 1
+        }
+      }
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "steel",
+        "cast_iron",
+        "aluminum",
+        "plastic",
+        "rubber",
+        "wood",
+        "foam"
+      ]
+    },
+    "resistance_type": {
+      "type": "string",
+      "enum": [
+        "magnetic",
+        "air",
+        "water",
+        "friction",
+        "electromagnetic",
+        "none"
+      ]
+    },
+    "foldable": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

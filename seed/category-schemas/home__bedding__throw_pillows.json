@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_bedding_throw_pillows/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the throw pillow"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the throw pillow"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the throw pillow in USD"
+    },
+    "fill_material": {
+      "type": "string",
+      "enum": [
+        "down",
+        "feather",
+        "polyester",
+        "cotton"
+      ],
+      "description": "Material used to fill the throw pillow"
+    },
+    "cover_material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "linen",
+        "polyester",
+        "velvet"
+      ],
+      "description": "Material used for the throw pillow cover"
+    },
+    "size_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 24,
+      "description": "Size of the throw pillow in inches"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the throw pillow"
+    },
+    "pattern": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "striped",
+        "polka_dotted",
+        "floral"
+      ],
+      "description": "Pattern on the throw pillow"
+    }
+  },
+  "additionalProperties": true
+}

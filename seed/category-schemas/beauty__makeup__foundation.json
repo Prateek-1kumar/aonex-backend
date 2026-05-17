@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_makeup_foundation/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "volume_ml",
+    "shade",
+    "coverage",
+    "finish"
+  ],
+  "properties": {
+    "volume_ml": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 100
+    },
+    "shade": {
+      "type": "string"
+    },
+    "coverage": {
+      "type": "string",
+      "enum": [
+        "light",
+        "medium",
+        "full",
+        "buildable"
+      ]
+    },
+    "finish": {
+      "type": "string",
+      "enum": [
+        "matte",
+        "dewy",
+        "satin",
+        "natural",
+        "luminous"
+      ]
+    },
+    "formulation": {
+      "type": "string",
+      "enum": [
+        "liquid",
+        "powder",
+        "cream",
+        "stick",
+        "serum",
+        "cushion"
+      ]
+    },
+    "skin_type": {
+      "type": "string",
+      "enum": [
+        "oily",
+        "dry",
+        "normal",
+        "combination",
+        "all"
+      ]
+    },
+    "spf": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60
+    },
+    "fragrance_free": {
+      "type": "boolean"
+    },
+    "vegan": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}
