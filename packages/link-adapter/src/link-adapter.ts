@@ -14,6 +14,8 @@ import {
   withinCostCeiling,
   type UnblockResult
 } from "@aonex/ingestion-antibot-vendor";
+import { findParserForUrl } from "@aonex/per-site-parsers";
+import type { PerSiteParser } from "@aonex/per-site-parsers";
 
 // Local AdapterInput type — internal to ingestion-spine, not re-exported.
 interface AdapterInput {
@@ -45,6 +47,8 @@ export interface LinkAdapterDeps {
   unblockAdapter?: UnblockAdapter;
   /** Layer B — DOM heuristics runner. Defaults to `runDomHeuristics`; stubbable for tests. */
   domHeuristics?: (rawHtml: string) => { facts: ExtractedFact[] };
+  /** Layer G — per-site parser lookup. Defaults to findParserForUrl from @aonex/per-site-parsers. Stubbable for tests. */
+  findPerSiteParser?: (url: string) => PerSiteParser | null;
 }
 
 interface CacheEntry {
@@ -63,6 +67,7 @@ class LinkAdapter implements IngestionAdapter {
     browserFetcher: BrowserFetcher;
     unblockAdapter: UnblockAdapter | null;
     domHeuristics: (rawHtml: string) => { facts: ExtractedFact[] };
+    findPerSiteParser: (url: string) => PerSiteParser | null;
   };
   private readonly cache = new Map<string, CacheEntry>();
 
@@ -72,7 +77,8 @@ class LinkAdapter implements IngestionAdapter {
       llmExtractor: deps.llmExtractor,
       browserFetcher: deps.browserFetcher ?? fetchWithBrowser,
       unblockAdapter: deps.unblockAdapter ?? null,
-      domHeuristics: deps.domHeuristics ?? runDomHeuristics
+      domHeuristics: deps.domHeuristics ?? runDomHeuristics,
+      findPerSiteParser: deps.findPerSiteParser ?? findParserForUrl
     };
   }
 
@@ -175,7 +181,24 @@ class LinkAdapter implements IngestionAdapter {
       return this.extract(envelope);
     }
 
-    // Run structured parsers on the final (post-escalation) HTML
+    const finalUrl = cached.fetchResult.finalUrl;
+
+    // Layer G — per-site parser (highest priority)
+    let perSiteFacts: ExtractedFact[] = [];
+    const perSiteParser = this.deps.findPerSiteParser(finalUrl);
+    if (perSiteParser) {
+      try {
+        perSiteFacts = await perSiteParser.extract({
+          rawHtml: cached.finalRawHtml,
+          url: finalUrl
+        });
+      } catch {
+        // Per-site parser threw — fall back to generic Layer A/B. Don't fail the whole extract.
+        perSiteFacts = [];
+      }
+    }
+
+    // Layers A + B (always run — additive to per-site)
     const structured = await extractStructured({
       pageUrl: cached.fetchResult.finalUrl,
       rawHtml: cached.finalRawHtml,
@@ -185,8 +208,10 @@ class LinkAdapter implements IngestionAdapter {
     // Run Layer B DOM heuristics
     const dom = this.deps.domHeuristics(cached.finalRawHtml);
 
-    // Combine; LLM gap-fill only if BOTH structured and DOM produced nothing
-    const baseFacts = [...structured.structured.facts, ...dom.facts];
+    // Merge: per-site wins on rawKey collisions (highest-priority Layer G)
+    const baseFacts = mergeFactsWithPriority(perSiteFacts, [...structured.structured.facts, ...dom.facts]);
+
+    // LLM gap-fill ONLY if everything above produced nothing
     const llmFacts: ExtractedFactSet["facts"] = [];
     if (baseFacts.length === 0) {
       const r = await this.deps.llmExtractor.extract(
@@ -205,6 +230,17 @@ class LinkAdapter implements IngestionAdapter {
       extractedAt: new Date()
     };
   }
+}
+
+/**
+ * Merge per-site parser facts with generic Layer A/B facts.
+ * Per-site wins on rawKey collisions (Layer G is the highest-priority rung
+ * for domains where a hand-written parser exists). Generic facts fill gaps.
+ */
+function mergeFactsWithPriority(perSite: ExtractedFact[], generic: ExtractedFact[]): ExtractedFact[] {
+  const perSiteKeys = new Set(perSite.map((f) => f.rawKey));
+  const carried = generic.filter((f) => !perSiteKeys.has(f.rawKey));
+  return [...perSite, ...carried];
 }
 
 export function createLinkAdapter(deps: LinkAdapterDeps): IngestionAdapter {
