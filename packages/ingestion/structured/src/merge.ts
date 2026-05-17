@@ -17,13 +17,13 @@ type FieldFamily =
 // fields where NEXT_DATA is more trustworthy (inventory, category) while
 // preserving JSON-LD's win on canonical attributes (material, title).
 const PRECEDENCE: Record<FieldFamily, Partial<Record<ParserKind, number>>> = {
-  identifier: { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, opengraph: 1 },
-  price:      { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, opengraph: 2 },
-  inventory:  { shopify_probe: 5, next_data: 5, json_ld: 1, microdata: 1, opengraph: 0 },
-  variants:   { shopify_probe: 5, next_data: 5, json_ld: 4, microdata: 2, opengraph: 0 },
-  attribute:  { json_ld: 5, microdata: 3, next_data: 3, shopify_probe: 2, opengraph: 1 },
-  category:   { next_data: 5, microdata: 3, json_ld: 3, shopify_probe: 2, opengraph: 1 },
-  text:       { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, opengraph: 2 },
+  identifier: { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, nuxt: 3, initial_state: 3, magento: 3, woocommerce: 2, algolia: 2, opengraph: 1 },
+  price:      { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, nuxt: 3, initial_state: 3, magento: 3, woocommerce: 2, algolia: 2, opengraph: 2 },
+  inventory:  { shopify_probe: 5, next_data: 5, json_ld: 1, microdata: 1, nuxt: 1, initial_state: 1, magento: 1, woocommerce: 1, algolia: 0, opengraph: 0 },
+  variants:   { shopify_probe: 5, next_data: 5, json_ld: 4, microdata: 2, nuxt: 2, initial_state: 2, magento: 1, woocommerce: 1, algolia: 0, opengraph: 0 },
+  attribute:  { json_ld: 5, microdata: 3, next_data: 3, shopify_probe: 2, nuxt: 2, initial_state: 2, magento: 2, woocommerce: 1, algolia: 1, opengraph: 1 },
+  category:   { next_data: 5, microdata: 3, json_ld: 3, shopify_probe: 2, nuxt: 2, initial_state: 2, magento: 2, woocommerce: 1, algolia: 1, opengraph: 1 },
+  text:       { json_ld: 5, shopify_probe: 5, next_data: 4, microdata: 3, nuxt: 3, initial_state: 3, magento: 3, woocommerce: 2, algolia: 2, opengraph: 2 },
 };
 
 const CORE_IDENTIFIER_KEYS = new Set(["gtin", "sku", "mpn", "model_number", "barcode"]);
@@ -99,6 +99,11 @@ export function mergeParserOutputs(outputs: ParserOutput[]): StructuredResult {
     next_data: outputs.find((o) => o.kind === "next_data") ?? null,
     microdata: outputs.find((o) => o.kind === "microdata") ?? null,
     opengraph: outputs.find((o) => o.kind === "opengraph") ?? null,
+    nuxt: outputs.find((o) => o.kind === "nuxt") ?? null,
+    initial_state: outputs.find((o) => o.kind === "initial_state") ?? null,
+    magento: outputs.find((o) => o.kind === "magento") ?? null,
+    woocommerce: outputs.find((o) => o.kind === "woocommerce") ?? null,
+    algolia: outputs.find((o) => o.kind === "algolia") ?? null,
   };
 
   return {

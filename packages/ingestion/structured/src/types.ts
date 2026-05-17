@@ -5,7 +5,12 @@ export type ParserKind =
   | "shopify_probe"
   | "next_data"
   | "microdata"
-  | "opengraph";
+  | "opengraph"
+  | "nuxt"
+  | "initial_state"
+  | "magento"
+  | "woocommerce"
+  | "algolia";
 
 export interface ParserOutput {
   kind: ParserKind;
