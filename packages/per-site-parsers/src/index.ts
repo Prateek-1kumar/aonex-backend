@@ -5,5 +5,6 @@ export { registerParser, findParserForUrl, listRegisteredParsers } from "./regis
 // (Side-effect imports; each parser's module calls registerParser() at top level.)
 import "./parsers/amazon.js";
 import "./parsers/bestbuy.js";
+import "./parsers/croma.js";
 import "./parsers/ebay.js";
 import "./parsers/walmart.js";
