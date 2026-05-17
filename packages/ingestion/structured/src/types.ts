@@ -33,4 +33,6 @@ export interface StructuredResult {
   facts: ExtractedFact[];
   byParser: Record<ParserKind, ParserOutput | null>;
   category: { path: string | null; confidence: number };
+  /** Number of cross-validation conflicts detected (json_ld vs opengraph vs dom). */
+  crossValidationConflicts?: number;
 }

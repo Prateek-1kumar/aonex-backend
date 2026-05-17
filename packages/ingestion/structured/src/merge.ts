@@ -1,5 +1,6 @@
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput, StructuredResult } from "./types.js";
+import { crossValidate } from "./cross-validator.js";
 
 type ParserKind = ParserOutput["kind"];
 type FieldFamily =
@@ -92,7 +93,36 @@ export function mergeParserOutputs(outputs: ParserOutput[]): StructuredResult {
     });
   }
 
-  const cat = facts.find((f) => f.rawKey === "productType");
+  // Cross-validate: group merged facts by source family before running the
+  // validator. jsonLd = json_ld parser; openGraph = opengraph parser; dom =
+  // all other parser kinds (microdata, nuxt, initial_state, next_data, etc.)
+  // which are all DOM-tag or inline-script extractions.
+  const jsonLdOutput = outputs.find((o) => o.kind === "json_ld");
+  const ogOutput = outputs.find((o) => o.kind === "opengraph");
+
+  // Build per-bucket fact lists from the already-merged `facts` array by
+  // tracing which source parser each winning fact came from.
+  const jsonLdFactSet = new Set(jsonLdOutput?.facts.map((f) => f.sourcePointer) ?? []);
+  const ogFactSet = new Set(ogOutput?.facts.map((f) => f.sourcePointer) ?? []);
+
+  const jsonLdFacts: ExtractedFact[] = [];
+  const openGraphFacts: ExtractedFact[] = [];
+  const domFacts: ExtractedFact[] = [];
+
+  for (const fact of facts) {
+    if (jsonLdFactSet.has(fact.sourcePointer)) {
+      jsonLdFacts.push(fact);
+    } else if (ogFactSet.has(fact.sourcePointer)) {
+      openGraphFacts.push(fact);
+    } else {
+      domFacts.push(fact);
+    }
+  }
+
+  const cv = crossValidate({ jsonLdFacts, openGraphFacts, domFacts });
+
+  const finalFacts = cv.agreedFacts;
+  const cat = finalFacts.find((f) => f.rawKey === "productType");
   const byParser: StructuredResult["byParser"] = {
     json_ld: outputs.find((o) => o.kind === "json_ld") ?? null,
     shopify_probe: outputs.find((o) => o.kind === "shopify_probe") ?? null,
@@ -110,11 +140,12 @@ export function mergeParserOutputs(outputs: ParserOutput[]): StructuredResult {
   };
 
   return {
-    facts,
+    facts: finalFacts,
     byParser,
     category: cat
       ? { path: String(cat.extractedValue), confidence: cat.confidence }
       : { path: null, confidence: 0 },
+    ...(cv.conflicts.length > 0 ? { crossValidationConflicts: cv.conflicts.length } : {}),
   };
 }
 
