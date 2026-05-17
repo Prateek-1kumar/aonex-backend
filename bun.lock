@@ -335,6 +335,13 @@
         "zod": "^3.24.1",
       },
     },
+    "packages/vision-extractor": {
+      "name": "@aonex/vision-extractor",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/ingestion-field-extractor": "workspace:*",
+      },
+    },
   },
   "overrides": {
     "pg-native": "false",
@@ -413,6 +420,8 @@
     "@aonex/selector-health": ["@aonex/selector-health@workspace:packages/selector-health"],
 
     "@aonex/types": ["@aonex/types@workspace:packages/types"],
+
+    "@aonex/vision-extractor": ["@aonex/vision-extractor@workspace:packages/vision-extractor"],
 
     "@aonex/worker": ["@aonex/worker@workspace:apps/worker"],
 
