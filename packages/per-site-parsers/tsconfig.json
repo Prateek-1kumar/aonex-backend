@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../ingestion/field-extractor" },
+    { "path": "../ingestion/link-fetcher" },
+    { "path": "../ingestion-browser-fallback" },
+    { "path": "../selector-health" }
+  ]
+}

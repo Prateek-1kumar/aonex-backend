@@ -284,12 +284,31 @@
         "@aonex/types": "workspace:*",
       },
     },
+    "packages/per-site-parsers": {
+      "name": "@aonex/per-site-parsers",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/ingestion-browser-fallback": "workspace:*",
+        "@aonex/ingestion-field-extractor": "workspace:*",
+        "@aonex/ingestion-link-fetcher": "workspace:*",
+        "@aonex/selector-health": "workspace:*",
+        "cheerio": "^1.0.0",
+      },
+    },
     "packages/schema-validator": {
       "name": "@aonex/schema-validator",
       "version": "0.0.0",
       "dependencies": {
         "ajv": "^8.17.1",
         "ajv-formats": "^3.0.1",
+      },
+    },
+    "packages/selector-health": {
+      "name": "@aonex/selector-health",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/audit": "workspace:*",
+        "@aonex/types": "workspace:*",
       },
     },
     "packages/types": {
@@ -364,7 +383,11 @@
 
     "@aonex/link-adapter": ["@aonex/link-adapter@workspace:packages/link-adapter"],
 
+    "@aonex/per-site-parsers": ["@aonex/per-site-parsers@workspace:packages/per-site-parsers"],
+
     "@aonex/schema-validator": ["@aonex/schema-validator@workspace:packages/schema-validator"],
+
+    "@aonex/selector-health": ["@aonex/selector-health@workspace:packages/selector-health"],
 
     "@aonex/types": ["@aonex/types@workspace:packages/types"],
 
