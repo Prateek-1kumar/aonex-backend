@@ -1,0 +1,14 @@
+{
+  "domain": "amazon.com",
+  "urls": [
+    "https://www.amazon.com/dp/B0CHX3QJJB",
+    "https://www.amazon.com/dp/B07XJ8C8F5",
+    "https://www.amazon.com/dp/B0BSHF7WHW",
+    "https://www.amazon.com/dp/B09JQMJHXY",
+    "https://www.amazon.com/dp/B0BDHB9Y8H",
+    "https://www.amazon.com/dp/B0CGY7P82V",
+    "https://www.amazon.com/dp/B07VGRJDFY",
+    "https://www.amazon.com/dp/B099DPLPKQ"
+  ],
+  "expectedFields": ["title", "brand", "base_price", "asin"]
+}
