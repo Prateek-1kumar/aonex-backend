@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys/model_kits/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "product_description",
+    "age_range",
+    "piece_count"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the model kit"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the model kit"
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "3_and_up",
+        "6_and_up",
+        "8_and_up",
+        "10_and_up",
+        "12_and_up"
+      ],
+      "description": "Recommended age range for the model kit"
+    },
+    "piece_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of pieces in the model kit"
+    },
+    "scale": {
+      "type": "string",
+      "enum": [
+        "1:12",
+        "1:24",
+        "1:32",
+        "1:48",
+        "1:64"
+      ],
+      "description": "Scale of the model kit"
+    },
+    "difficulty_level": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "description": "Difficulty level of the model kit"
+    },
+    "length_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Length of the model kit in inches"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Width of the model kit in inches"
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Height of the model kit in inches"
+    },
+    "weight_ounces": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the model kit in ounces"
+    }
+  },
+  "additionalProperties": true
+}

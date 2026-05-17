@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_tires/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "tire_size",
+    "load_rating",
+    "speed_rating"
+  ],
+  "properties": {
+    "tire_size": {
+      "type": "string",
+      "description": "Tire size in standard notation (e.g. 225/60R17)"
+    },
+    "load_rating": {
+      "type": "string",
+      "enum": [
+        "b",
+        "c",
+        "d",
+        "e",
+        "f",
+        "g",
+        "h",
+        "j",
+        "l",
+        "m",
+        "n",
+        "p",
+        "q",
+        "r"
+      ]
+    },
+    "speed_rating": {
+      "type": "string",
+      "enum": [
+        "m",
+        "n",
+        "p",
+        "q",
+        "r",
+        "s",
+        "t",
+        "u",
+        "h",
+        "v",
+        "w",
+        "y",
+        "zr",
+        "(z)"
+      ]
+    },
+    "tread_depth_mm": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "tire_diameter_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 30
+    },
+    "load_capacity_kg": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1500
+    },
+    "inflation_pressure_kpa": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 900
+    }
+  },
+  "additionalProperties": true
+}

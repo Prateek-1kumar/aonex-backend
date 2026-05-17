@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_skincare_serums/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "brand",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "size_ml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the product in milliliters"
+    },
+    "skin_type": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "dry",
+        "oily",
+        "combination",
+        "sensitive"
+      ],
+      "description": "Skin type the product is suitable for"
+    },
+    "concentration_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Concentration of the active ingredient in percent"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

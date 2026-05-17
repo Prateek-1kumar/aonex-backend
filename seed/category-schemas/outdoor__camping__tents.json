@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_camping_tents/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "brand",
+    "season_rating",
+    "canopy_diameter_cm",
+    "packed_weight_grams"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the product"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ],
+      "description": "Season rating of the tent"
+    },
+    "canopy_diameter_cm": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Diameter of the tent canopy in centimeters"
+    },
+    "packed_weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the tent when packed in grams"
+    },
+    "floor_area_sqm": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Floor area of the tent in square meters"
+    },
+    "door_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of doors in the tent"
+    },
+    "water_resistance_mm": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Water resistance of the tent fabric in millimeters"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_haircare_shampoo/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "brand_name",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the shampoo product"
+    },
+    "brand_name": {
+      "type": "string",
+      "description": "Name of the shampoo brand"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the shampoo in USD"
+    },
+    "volume_fluid_ounces": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Volume of the shampoo in fluid ounces"
+    },
+    "hair_type": {
+      "type": "string",
+      "enum": [
+        "dry",
+        "normal",
+        "oily",
+        "combination"
+      ],
+      "description": "Type of hair the shampoo is suitable for"
+    },
+    "scent": {
+      "type": "string",
+      "description": "Scent of the shampoo"
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of ingredients in the shampoo"
+    }
+  },
+  "additionalProperties": true
+}

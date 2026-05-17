@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_bedding_pillows/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the pillow"
+    },
+    "price_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Price of the pillow in USD"
+    },
+    "fill_material": {
+      "type": "string",
+      "enum": [
+        "down",
+        "feather",
+        "synthetic",
+        "memory_foam",
+        "latex"
+      ],
+      "description": "Material used to fill the pillow"
+    },
+    "cover_material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "bamboo",
+        "linen"
+      ],
+      "description": "Material used for the pillow cover"
+    },
+    "loft_height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Height of the pillow in inches"
+    },
+    "fill_power": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "Fill power of the pillow"
+    },
+    "thread_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "Thread count of the pillow cover"
+    }
+  },
+  "additionalProperties": true
+}

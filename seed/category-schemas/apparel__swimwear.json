@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/apparel_swimwear/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "xs",
+        "s",
+        "m",
+        "l",
+        "xl",
+        "xxl"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the product"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "polyester",
+        "nylon",
+        "spandex",
+        "cotton"
+      ]
+    },
+    "swimwear_type": {
+      "type": "string",
+      "enum": [
+        "swimsuit",
+        "board_shorts",
+        "rash_guard",
+        "beach_cover_up"
+      ]
+    },
+    "gender": {
+      "type": "string",
+      "enum": [
+        "men",
+        "women",
+        "unisex"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_monitors/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "screen_size_inches",
+    "resolution",
+    "refresh_rate_hz"
+  ],
+  "properties": {
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 100
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "hd",
+        "full_hd",
+        "qhd",
+        "4k",
+        "5k",
+        "8k"
+      ]
+    },
+    "refresh_rate_hz": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 360
+    },
+    "response_time_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "aspect_ratio": {
+      "type": "string",
+      "enum": [
+        "16:9",
+        "16:10",
+        "4:3"
+      ]
+    },
+    "display_type": {
+      "type": "string",
+      "enum": [
+        "lcd",
+        "led",
+        "oled"
+      ]
+    },
+    "brightness_candelas": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 1000
+    },
+    "viewing_angle_degrees": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 180
+    }
+  },
+  "additionalProperties": true
+}

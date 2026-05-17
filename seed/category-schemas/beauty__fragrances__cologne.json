@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_fragrances_cologne/v1",
+  "type": "object",
+  "required": [
+    "brand_name",
+    "product_name",
+    "fragrance_type"
+  ],
+  "properties": {
+    "brand_name": {
+      "type": "string",
+      "description": "Name of the brand"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "fragrance_type": {
+      "type": "string",
+      "enum": [
+        "citrus",
+        "floral",
+        "oriental",
+        "woody"
+      ]
+    },
+    "size_ml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the cologne in milliliters"
+    },
+    "concentration_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Concentration of the fragrance"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "spring",
+        "summer",
+        "fall",
+        "winter"
+      ]
+    },
+    "longevity_hours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "How long the fragrance lasts"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

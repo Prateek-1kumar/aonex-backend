@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_beds_dog_beds/v1",
+  "type": "object",
+  "required": [
+    "material",
+    "size",
+    "color"
+  ],
+  "properties": {
+    "material": {
+      "type": "string",
+      "enum": [
+        "cotton",
+        "polyester",
+        "memory_foam"
+      ]
+    },
+    "size": {
+      "type": "object",
+      "properties": {
+        "length_inches": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 40
+        },
+        "width_inches": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 30
+        }
+      },
+      "required": [
+        "length_inches",
+        "width_inches"
+      ]
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "beige",
+        "brown",
+        "gray",
+        "blue"
+      ]
+    },
+    "additional_features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "heated",
+          "cooled",
+          "waterproof",
+          "machine_washable"
+        ]
+      }
+    },
+    "price": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 1000
+    },
+    "brand": {
+      "type": "string"
+    },
+    "model_number": {
+      "type": "string"
+    },
+    "weight_pounds": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 50
+    },
+    "dimensions_cm": {
+      "type": "object",
+      "properties": {
+        "height_cm": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 100
+        },
+        "width_cm": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 100
+        },
+        "depth_cm": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "height_cm",
+        "width_cm",
+        "depth_cm"
+      ]
+    },
+    "tier": {
+      "type": "string",
+      "const": "inferred"
+    }
+  },
+  "additionalProperties": true
+}

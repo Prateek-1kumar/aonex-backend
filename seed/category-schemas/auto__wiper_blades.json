@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/auto_wiper_blades/v1",
+  "type": "object",
+  "required": [
+    "blade_length_inches",
+    "blade_width_inches",
+    "material",
+    "driver_side",
+    "passenger_side"
+  ],
+  "properties": {
+    "blade_length_inches": {
+      "type": "number",
+      "unit": "inches",
+      "description": "Length of the wiper blade"
+    },
+    "blade_width_inches": {
+      "type": "number",
+      "unit": "inches",
+      "description": "Width of the wiper blade"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "rubber",
+        "nylon",
+        "polyurethane"
+      ],
+      "description": "Material used for the wiper blade"
+    },
+    "driver_side": {
+      "type": "boolean",
+      "description": "Whether the wiper blade is for the driver's side"
+    },
+    "passenger_side": {
+      "type": "boolean",
+      "description": "Whether the wiper blade is for the passenger's side"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

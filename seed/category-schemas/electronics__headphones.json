@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_headphones/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "model_number",
+    "manufacturer"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "manufacturer": {
+      "type": "string",
+      "description": "Manufacturer of the product"
+    },
+    "headphone_type": {
+      "type": "string",
+      "enum": [
+        "in-ear",
+        "on-ear",
+        "over-ear"
+      ]
+    },
+    "frequency_response_hz": {
+      "type": "string",
+      "pattern": "^\\d+(-\\d+)?$"
+    },
+    "impedance_ohms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "sensitivity_db": {
+      "type": "number",
+      "minimum": 0
+    },
+    "driver_size_mm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0
+    },
+    "cable_length_meters": {
+      "type": "number",
+      "minimum": 0
+    },
+    "microphone_type": {
+      "type": "string",
+      "enum": [
+        "omnidirectional",
+        "unidirectional",
+        "bidirectional"
+      ]
+    },
+    "noise_cancellation": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

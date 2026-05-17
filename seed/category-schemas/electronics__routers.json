@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_routers/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "wifi_standard": {
+      "type": "string",
+      "enum": [
+        "wifi_4",
+        "wifi_5",
+        "wifi_6",
+        "wifi_6e"
+      ]
+    },
+    "lan_ports": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "wan_ports": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ram_gb": {
+      "type": "number",
+      "minimum": 0.1
+    },
+    "flash_memory_gb": {
+      "type": "number",
+      "minimum": 0.1
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0.1
+    },
+    "dimensions_length_cm": {
+      "type": "number",
+      "minimum": 0.1
+    },
+    "dimensions_width_cm": {
+      "type": "number",
+      "minimum": 0.1
+    },
+    "dimensions_height_cm": {
+      "type": "number",
+      "minimum": 0.1
+    }
+  },
+  "additionalProperties": true
+}

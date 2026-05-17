@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_dressers/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "product_description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Width of the dresser in inches"
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Height of the dresser in inches"
+    },
+    "depth_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Depth of the dresser in inches"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "plastic",
+        "glass"
+      ],
+      "description": "Material of the dresser"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the dresser"
+    },
+    "num_drawers": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of drawers in the dresser"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the dresser in pounds"
+    }
+  },
+  "additionalProperties": true
+}

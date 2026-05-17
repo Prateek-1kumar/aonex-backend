@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_drones/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number",
+    "brand"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the drone product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the drone"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the drone"
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 100000,
+      "description": "Battery capacity in milliampere-hours"
+    },
+    "flight_time_minutes": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 60,
+      "description": "Maximum flight time in minutes"
+    },
+    "weight_grams": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 10000,
+      "description": "Weight of the drone in grams"
+    },
+    "camera_resolution_mp": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 50,
+      "description": "Camera resolution in megapixels"
+    },
+    "max_speed_kmh": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 100,
+      "description": "Maximum speed of the drone in kilometers per hour"
+    },
+    "range_km": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "description": "Maximum range of the drone in kilometers"
+    },
+    "gps": {
+      "type": "boolean",
+      "description": "Whether the drone has GPS capabilities"
+    },
+    "obstacle_avoidance": {
+      "type": "boolean",
+      "description": "Whether the drone has obstacle avoidance features"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_batteries/v1",
+  "type": "object",
+  "required": [
+    "battery_type",
+    "voltage_volts",
+    "capacity_mah"
+  ],
+  "properties": {
+    "battery_type": {
+      "type": "string",
+      "enum": [
+        "alkaline",
+        "nickel_cadmium",
+        "nickel_metal_hydride",
+        "lithium_ion"
+      ]
+    },
+    "voltage_volts": {
+      "type": "number",
+      "minimum": 0
+    },
+    "capacity_mah": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "size": {
+      "type": "string",
+      "enum": [
+        "aaa",
+        "aa",
+        "c",
+        "d",
+        "9v"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0
+    },
+    "self_discharge_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "shelf_life_months": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

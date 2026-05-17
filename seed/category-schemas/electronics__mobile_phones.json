@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_mobile_phones/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "model_name",
+    "screen_size_inches",
+    "ram_gb",
+    "storage_gb",
+    "battery_mah",
+    "operating_system"
+  ],
+  "properties": {
+    "model_name": {
+      "type": "string",
+      "description": "The name of the mobile phone model"
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 10,
+      "description": "The size of the screen in inches"
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 16,
+      "description": "The amount of RAM in GB"
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 512,
+      "description": "The amount of internal storage in GB"
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 5000,
+      "description": "The capacity of the battery in mAh"
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "android",
+        "ios"
+      ],
+      "description": "The operating system of the mobile phone"
+    },
+    "rear_camera_mp": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 50,
+      "description": "The resolution of the rear camera in megapixels"
+    },
+    "front_camera_mp": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 20,
+      "description": "The resolution of the front camera in megapixels"
+    },
+    "water_resistance_rating": {
+      "type": "string",
+      "enum": [
+        "ip67",
+        "ip68"
+      ],
+      "description": "The water resistance rating of the mobile phone"
+    }
+  },
+  "additionalProperties": true
+}

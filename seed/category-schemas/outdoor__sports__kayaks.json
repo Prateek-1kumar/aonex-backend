@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_kayaks/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "length_feet": {
+      "type": "number",
+      "minimum": 8,
+      "maximum": 18,
+      "description": "Length of the kayak in feet"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 30,
+      "description": "Width of the kayak in inches"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 30,
+      "maximum": 100,
+      "description": "Weight of the kayak in pounds"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "polyethylene",
+        "fiberglass",
+        "kevlar",
+        "inflatable"
+      ],
+      "description": "Material of the kayak"
+    },
+    "cockpit_size": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "description": "Size of the cockpit"
+    },
+    "number_of_seats": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Number of seats in the kayak"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

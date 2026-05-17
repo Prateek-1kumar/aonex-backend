@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_gear_water_bottles/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "material",
+    "capacity_milliliters"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the water bottle"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "stainless_steel",
+        "silicone",
+        "glass"
+      ]
+    },
+    "capacity_milliliters": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 2000,
+      "description": "Capacity of the water bottle in milliliters"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the water bottle in grams"
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Height of the water bottle in inches"
+    },
+    "diameter_inches": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Diameter of the water bottle in inches"
+    },
+    "insulation_type": {
+      "type": "string",
+      "enum": [
+        "double_walled",
+        "single_walled",
+        "vacuum_insulated"
+      ]
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "summer",
+        "all_season",
+        "winter"
+      ]
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

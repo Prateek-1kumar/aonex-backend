@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_tables/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "product_description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "table_length_inches": {
+      "type": "number",
+      "minimum": 12,
+      "maximum": 120,
+      "description": "Length of the table in inches"
+    },
+    "table_width_inches": {
+      "type": "number",
+      "minimum": 12,
+      "maximum": 120,
+      "description": "Width of the table in inches"
+    },
+    "table_height_inches": {
+      "type": "number",
+      "minimum": 12,
+      "maximum": 48,
+      "description": "Height of the table in inches"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "glass",
+        "plastic"
+      ],
+      "description": "Material of the table"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the table"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 500,
+      "description": "Weight of the table in pounds"
+    },
+    "assembly_required": {
+      "type": "boolean",
+      "description": "Whether assembly is required"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

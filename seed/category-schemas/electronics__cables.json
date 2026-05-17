@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_cables/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "cable_length_feet",
+    "cable_type"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "cable_length_feet": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 100,
+      "description": "Length of the cable in feet"
+    },
+    "cable_type": {
+      "type": "string",
+      "enum": [
+        "usb",
+        "hdmi",
+        "displayport",
+        "ethernet"
+      ],
+      "description": "Type of the cable"
+    },
+    "connector_type": {
+      "type": "string",
+      "enum": [
+        "male",
+        "female"
+      ],
+      "description": "Type of the connector"
+    },
+    "gauge": {
+      "type": "integer",
+      "minimum": 4,
+      "maximum": 28,
+      "description": "Gauge of the cable"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "white",
+        "red",
+        "blue"
+      ],
+      "description": "Color of the cable"
+    }
+  },
+  "additionalProperties": true
+}

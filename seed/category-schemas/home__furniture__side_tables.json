@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_side_tables/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "product_description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "height_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 40,
+      "description": "Height of the side table in inches"
+    },
+    "width_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 40,
+      "description": "Width of the side table in inches"
+    },
+    "depth_inches": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 40,
+      "description": "Depth of the side table in inches"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "metal",
+        "glass",
+        "plastic"
+      ],
+      "description": "Material of the side table"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "white",
+        "brown",
+        "gray"
+      ],
+      "description": "Color of the side table"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 50,
+      "description": "Weight of the side table in pounds"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

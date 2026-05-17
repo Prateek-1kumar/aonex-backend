@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_chargers/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "input_voltage_volts": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Input voltage of the charger"
+    },
+    "output_voltage_volts": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Output voltage of the charger"
+    },
+    "output_current_amps": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Output current of the charger"
+    },
+    "power_rating_watts": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Power rating of the charger"
+    },
+    "charger_type": {
+      "type": "string",
+      "enum": [
+        "wall_charger",
+        "car_charger",
+        "portable_charger",
+        "wireless_charger"
+      ],
+      "description": "Type of charger"
+    },
+    "compatibility": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of compatible devices"
+    }
+  },
+  "additionalProperties": true
+}

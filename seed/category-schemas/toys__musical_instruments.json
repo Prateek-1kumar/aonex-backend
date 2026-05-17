@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/toys/musical_instruments/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the product"
+    },
+    "instrument_type": {
+      "type": "string",
+      "enum": [
+        "string",
+        "wind",
+        "percussion"
+      ]
+    },
+    "age_range": {
+      "type": "string",
+      "enum": [
+        "infant",
+        "toddler",
+        "preschool",
+        "school_age"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "wood",
+        "plastic",
+        "metal"
+      ]
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0
+    },
+    "length_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "width_cm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "height_cm": {
+      "type": "number",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

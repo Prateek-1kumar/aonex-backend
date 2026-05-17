@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/pet_toys_cat_toys/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "model",
+    "price",
+    "color"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price in USD"
+    },
+    "color": {
+      "type": "string"
+    },
+    "size_inches": {
+      "type": "number",
+      "description": "Size in inches"
+    },
+    "weight_ounces": {
+      "type": "number",
+      "description": "Weight in ounces"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "rubber",
+        "silk"
+      ]
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "3-season",
+        "4-season"
+      ]
+    },
+    "recommended_age": {
+      "type": "integer",
+      "description": "Recommended age in years"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/home_furniture_sofas/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "product_description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the sofa"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the sofa"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the sofa in USD"
+    },
+    "seat_depth_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 40,
+      "description": "Depth of the sofa seat in inches"
+    },
+    "seat_height_inches": {
+      "type": "number",
+      "minimum": 15,
+      "maximum": 25,
+      "description": "Height of the sofa seat in inches"
+    },
+    "arm_height_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 30,
+      "description": "Height of the sofa arm in inches"
+    },
+    "fabric_type": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "microfiber",
+        "linen",
+        "cotton"
+      ],
+      "description": "Type of fabric used for the sofa"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the sofa"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 200,
+      "description": "Weight of the sofa in pounds"
+    }
+  },
+  "additionalProperties": true
+}

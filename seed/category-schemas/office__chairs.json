@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/office_chairs/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "seat_height_inches": {
+      "type": "number",
+      "minimum": 15,
+      "maximum": 25,
+      "description": "Height of the seat"
+    },
+    "arm_height_inches": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 35,
+      "description": "Height of the armrests"
+    },
+    "back_height_inches": {
+      "type": "number",
+      "minimum": 25,
+      "maximum": 40,
+      "description": "Height of the backrest"
+    },
+    "weight_capacity_lbs": {
+      "type": "number",
+      "minimum": 200,
+      "maximum": 500,
+      "description": "Weight capacity of the chair"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "leather",
+        "mesh",
+        "fabric"
+      ],
+      "description": "Material of the chair"
+    },
+    "color": {
+      "type": "string",
+      "description": "Color of the chair"
+    },
+    "adjustability": {
+      "type": "string",
+      "enum": [
+        "height",
+        "tilt",
+        "arm_height",
+        "lumbar_support"
+      ],
+      "description": "Adjustable features of the chair"
+    }
+  },
+  "additionalProperties": true
+}

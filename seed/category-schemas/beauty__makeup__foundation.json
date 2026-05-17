@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/beauty_makeup_foundation/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "brand",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the foundation product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the foundation product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the foundation product in USD"
+    },
+    "shade": {
+      "type": "string",
+      "description": "Shade of the foundation product"
+    },
+    "finish": {
+      "type": "string",
+      "enum": [
+        "matte",
+        "satin",
+        "dewy",
+        "natural"
+      ],
+      "description": "Finish of the foundation product"
+    },
+    "coverage": {
+      "type": "string",
+      "enum": [
+        "sheer",
+        "medium",
+        "full"
+      ],
+      "description": "Coverage level of the foundation product"
+    },
+    "size_ml": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Size of the foundation product in milliliters"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the foundation product in grams"
+    }
+  },
+  "additionalProperties": true
+}

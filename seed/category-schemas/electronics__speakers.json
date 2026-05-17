@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_speakers/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "brand",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "speaker_type": {
+      "type": "string",
+      "enum": [
+        "bookshelf",
+        "floorstanding",
+        "soundbar",
+        "subwoofer",
+        "portable"
+      ]
+    },
+    "power_output_watts": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Power output of the speaker in watts"
+    },
+    "frequency_response_hz": {
+      "type": "string",
+      "pattern": "^\\d+(-\\d+)? Hz$",
+      "description": "Frequency response of the speaker in Hz"
+    },
+    "impedance_ohms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Impedance of the speaker in ohms"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the speaker in grams"
+    },
+    "dimensions_cm": {
+      "type": "string",
+      "pattern": "^\\d+(x\\d+){2}$",
+      "description": "Dimensions of the speaker in cm (e.g. 10x20x30)"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

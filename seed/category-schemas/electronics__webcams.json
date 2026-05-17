@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/electronics_webcams/v1",
+  "type": "object",
+  "required": [
+    "product_name",
+    "model_number"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "model_number": {
+      "type": "string",
+      "description": "Model number of the product"
+    },
+    "resolution_mp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Camera resolution in megapixels"
+    },
+    "frame_rate_fps": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Frame rate in frames per second"
+    },
+    "field_of_view_degrees": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360,
+      "description": "Field of view in degrees"
+    },
+    "connection_type": {
+      "type": "string",
+      "enum": [
+        "usb",
+        "wireless",
+        "ethernet"
+      ],
+      "description": "Type of connection"
+    },
+    "operating_system": {
+      "type": "string",
+      "enum": [
+        "windows",
+        "macos",
+        "linux",
+        "chrome_os"
+      ],
+      "description": "Compatible operating system"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the product in grams"
+    },
+    "dimensions_mm": {
+      "type": "string",
+      "pattern": "^\\d+ x \\d+ x \\d+$",
+      "description": "Dimensions of the product in millimeters"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "inferred"
+}

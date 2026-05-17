@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/office_supplies/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "product_description",
+    "price_usd"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "Price of the product in USD"
+    },
+    "weight_grams": {
+      "type": "number",
+      "description": "Weight of the product in grams"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "black",
+        "blue",
+        "red",
+        "green",
+        "yellow"
+      ]
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "plastic",
+        "paper",
+        "metal",
+        "wood"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

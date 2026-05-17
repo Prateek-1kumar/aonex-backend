@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_running_shoes/v1",
+  "type": "object",
+  "tier": "authoritative",
+  "required": [
+    "product_name",
+    "brand",
+    "model_year"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Brand of the product"
+    },
+    "model_year": {
+      "type": "integer",
+      "minimum": 1900,
+      "maximum": 2100,
+      "description": "Year the model was released"
+    },
+    "heel_to_toe_drop_mm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20,
+      "description": "Heel to toe drop in millimeters"
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight of the shoe in grams"
+    },
+    "season_rating": {
+      "type": "string",
+      "enum": [
+        "all-season",
+        "winter",
+        "summer"
+      ],
+      "description": "Season rating of the shoe"
+    },
+    "terrain_type": {
+      "type": "string",
+      "enum": [
+        "road",
+        "trail",
+        "track"
+      ],
+      "description": "Type of terrain the shoe is designed for"
+    }
+  },
+  "additionalProperties": true
+}

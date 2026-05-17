@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/office_paper/v1",
+  "type": "object",
+  "tier": "inferred",
+  "required": [
+    "product_name",
+    "product_description"
+  ],
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "Name of the product"
+    },
+    "product_description": {
+      "type": "string",
+      "description": "Description of the product"
+    },
+    "sheet_size_inches": {
+      "type": "string",
+      "pattern": "^\\d+(x\\d+)?(in|inch)$",
+      "description": "Size of the paper sheets"
+    },
+    "weight_gsm": {
+      "type": "integer",
+      "minimum": 50,
+      "maximum": 200,
+      "description": "Weight of the paper in grams per square meter"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "white",
+        "yellow",
+        "pink",
+        "blue"
+      ],
+      "description": "Color of the paper"
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of sheets in the pack"
+    },
+    "packaged_weight_grams": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Weight of the packaged product in grams"
+    }
+  },
+  "additionalProperties": true
+}

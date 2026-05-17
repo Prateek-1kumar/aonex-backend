@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "category_schemas/outdoor_sports_bicycles/v1",
+  "type": "object",
+  "required": [
+    "brand",
+    "model",
+    "wheel_size_inches"
+  ],
+  "properties": {
+    "brand": {
+      "type": "string",
+      "description": "Brand name of the bicycle"
+    },
+    "model": {
+      "type": "string",
+      "description": "Model name of the bicycle"
+    },
+    "wheel_size_inches": {
+      "type": "number",
+      "minimum": 12,
+      "maximum": 29,
+      "description": "Wheel size in inches"
+    },
+    "frame_material": {
+      "type": "string",
+      "enum": [
+        "aluminum",
+        "carbon_fiber",
+        "steel",
+        "titanium"
+      ],
+      "description": "Material of the bicycle frame"
+    },
+    "gears": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 30,
+      "description": "Number of gears"
+    },
+    "brake_type": {
+      "type": "string",
+      "enum": [
+        "disc",
+        "rim",
+        "hydraulic"
+      ],
+      "description": "Type of brakes"
+    },
+    "weight_lbs": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 50,
+      "description": "Weight of the bicycle in pounds"
+    },
+    "suspension": {
+      "type": "boolean",
+      "description": "Whether the bicycle has suspension"
+    }
+  },
+  "additionalProperties": true,
+  "tier": "authoritative"
+}
