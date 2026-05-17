@@ -77,6 +77,22 @@ let drafted = 0;
 let skipped = 0;
 let failed = 0;
 
+/** Sleep helper for backoff between requests. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Parse "try again in X.Ys" hint from Groq's 429 response body. */
+function parseRetryAfterMs(errorMessage: string): number | null {
+  const match = errorMessage.match(/try again in ([\d.]+)s/i);
+  if (!match) return null;
+  return Math.ceil(parseFloat(match[1]!) * 1000);
+}
+
+/** Inter-request delay to stay under Groq free-tier TPM (12k tokens/min). */
+const INTER_REQUEST_DELAY_MS = Number(process.env.DRAFTER_DELAY_MS ?? "3000");
+const MAX_RETRIES = 4;
+
 for (const path of targets) {
   const safeName = path.replace(/\//g, "__");
   const outFile = join(OUT_DIR, `${safeName}.json`);
@@ -89,26 +105,51 @@ for (const path of targets) {
   // eslint-disable-next-line no-console
   console.log(`Drafting ${path} (tier=${isAuthoritative ? "authoritative" : "inferred"})...`);
 
-  try {
-    const response = await provider.chatCompletion({
-      model: MODEL,
-      messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: buildPrompt(path, isAuthoritative) }
-      ],
-      maxTokens: 1500,
-      temperature: 0.2,
-      jsonMode: true
-    });
+  let attempt = 0;
+  let lastErr: unknown = null;
+  while (attempt < MAX_RETRIES) {
+    try {
+      const response = await provider.chatCompletion({
+        model: MODEL,
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: buildPrompt(path, isAuthoritative) }
+        ],
+        maxTokens: 1500,
+        temperature: 0.2,
+        jsonMode: true
+      });
 
-    const schemaDoc = JSON.parse(response.content);
-    writeFileSync(outFile, JSON.stringify(schemaDoc, null, 2) + "\n");
-    drafted++;
-  } catch (err) {
+      const schemaDoc = JSON.parse(response.content);
+      writeFileSync(outFile, JSON.stringify(schemaDoc, null, 2) + "\n");
+      drafted++;
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const retryMs = parseRetryAfterMs(msg);
+      if (retryMs != null && attempt < MAX_RETRIES - 1) {
+        // 429 / rate-limit with a hint — wait + retry.
+        // eslint-disable-next-line no-console
+        console.log(`  retrying in ${retryMs}ms (attempt ${attempt + 2}/${MAX_RETRIES})...`);
+        await sleep(retryMs + 250);
+        attempt++;
+        continue;
+      }
+      // Non-retryable or exhausted retries.
+      break;
+    }
+  }
+
+  if (lastErr) {
     failed++;
     // eslint-disable-next-line no-console
-    console.error(`FAILED ${path}: ${err instanceof Error ? err.message : err}`);
+    console.error(`FAILED ${path}: ${lastErr instanceof Error ? lastErr.message : lastErr}`);
   }
+
+  // Pace to stay under Groq free-tier TPM regardless of retry path.
+  await sleep(INTER_REQUEST_DELAY_MS);
 }
 
 // eslint-disable-next-line no-console
