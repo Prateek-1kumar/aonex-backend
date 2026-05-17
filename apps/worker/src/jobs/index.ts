@@ -4,6 +4,7 @@ import { overridePromotionScan } from "./override-promotion-scan.js";
 import { failurePatternRollup } from "./failure-pattern-rollup.js";
 import { domainProfileRefresh } from "./domain-profile-refresh.js";
 import { schemaPromotionScan } from "./schema-promotion-scan.js";
+import { canaryPoll } from "./canary-poll.js";
 
 export interface JobContext {
   db: DrizzleClient;
@@ -25,4 +26,4 @@ export { backfillAttributesJson } from "./backfill-attributes-json.js";
  * Registered cron jobs. Individual job files import this and push themselves
  * onto the array as they're added in subsequent tasks (10-13).
  */
-export const CRON_JOBS: CronJob[] = [priceClusterRebuild, overridePromotionScan, failurePatternRollup, domainProfileRefresh, schemaPromotionScan];
+export const CRON_JOBS: CronJob[] = [priceClusterRebuild, overridePromotionScan, failurePatternRollup, domainProfileRefresh, schemaPromotionScan, canaryPoll];

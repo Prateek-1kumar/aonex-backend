@@ -27,6 +27,7 @@
     "@aonex/ingestion-deduplicator": "workspace:*",
     "@aonex/ingestion-spine": "workspace:*",
     "@aonex/link-adapter": "workspace:*",
+    "@aonex/per-site-parsers": "workspace:*",
     "bullmq": "^5.34.5",
     "ioredis": "^5.4.2",
     "drizzle-orm": "^0.36.4",
