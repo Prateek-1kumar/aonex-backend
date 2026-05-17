@@ -6,23 +6,34 @@
   "required": [
     "screen_size_inches",
     "resolution",
+    "panel_type",
     "refresh_rate_hz"
   ],
   "properties": {
     "screen_size_inches": {
       "type": "number",
-      "minimum": 10,
-      "maximum": 100
+      "minimum": 15,
+      "maximum": 49
     },
     "resolution": {
       "type": "string",
       "enum": [
-        "hd",
-        "full_hd",
-        "qhd",
+        "720p",
+        "1080p",
+        "1440p",
         "4k",
         "5k",
         "8k"
+      ]
+    },
+    "panel_type": {
+      "type": "string",
+      "enum": [
+        "ips",
+        "tn",
+        "va",
+        "oled",
+        "qled"
       ]
     },
     "refresh_rate_hz": {
@@ -31,35 +42,49 @@
       "maximum": 360
     },
     "response_time_ms": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 10
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 20
     },
     "aspect_ratio": {
       "type": "string",
       "enum": [
         "16:9",
         "16:10",
+        "21:9",
+        "32:9",
         "4:3"
       ]
     },
-    "display_type": {
-      "type": "string",
-      "enum": [
-        "lcd",
-        "led",
-        "oled"
-      ]
-    },
-    "brightness_candelas": {
+    "brightness_nits": {
       "type": "number",
       "minimum": 100,
-      "maximum": 1000
+      "maximum": 2000
     },
-    "viewing_angle_degrees": {
-      "type": "integer",
-      "minimum": 30,
-      "maximum": 180
+    "hdr_support": {
+      "type": "string",
+      "enum": [
+        "hdr10",
+        "hdr10+",
+        "hdr400",
+        "hdr600",
+        "dolby_vision",
+        "none"
+      ]
+    },
+    "ports": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "hdmi",
+          "displayport",
+          "usb_c",
+          "vga",
+          "dvi",
+          "thunderbolt"
+        ]
+      }
     }
   },
   "additionalProperties": true

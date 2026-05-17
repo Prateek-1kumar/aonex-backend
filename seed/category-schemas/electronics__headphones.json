@@ -4,22 +4,39 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "model_number",
-    "manufacturer"
+    "connectivity",
+    "driver_type",
+    "frequency_response_hz_low",
+    "frequency_response_hz_high"
   ],
   "properties": {
-    "product_name": {
+    "connectivity": {
       "type": "string",
-      "description": "Name of the product"
+      "enum": [
+        "wired",
+        "wireless",
+        "both"
+      ]
     },
-    "model_number": {
+    "driver_type": {
       "type": "string",
-      "description": "Model number of the product"
+      "enum": [
+        "dynamic",
+        "balanced_armature",
+        "planar_magnetic",
+        "bone_conduction",
+        "electrostatic"
+      ]
     },
-    "manufacturer": {
-      "type": "string",
-      "description": "Manufacturer of the product"
+    "frequency_response_hz_low": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "frequency_response_hz_high": {
+      "type": "integer",
+      "minimum": 10000,
+      "maximum": 100000
     },
     "headphone_type": {
       "type": "string",
@@ -29,39 +46,35 @@
         "over-ear"
       ]
     },
-    "frequency_response_hz": {
-      "type": "string",
-      "pattern": "^\\d+(-\\d+)?$"
-    },
     "impedance_ohms": {
       "type": "number",
-      "minimum": 0
+      "minimum": 8,
+      "maximum": 600
     },
     "sensitivity_db": {
       "type": "number",
-      "minimum": 0
+      "minimum": 80,
+      "maximum": 130
     },
     "driver_size_mm": {
       "type": "number",
-      "minimum": 0
+      "minimum": 5,
+      "maximum": 60
     },
     "weight_grams": {
       "type": "number",
-      "minimum": 0
-    },
-    "cable_length_meters": {
-      "type": "number",
-      "minimum": 0
-    },
-    "microphone_type": {
-      "type": "string",
-      "enum": [
-        "omnidirectional",
-        "unidirectional",
-        "bidirectional"
-      ]
+      "minimum": 5,
+      "maximum": 500
     },
     "noise_cancellation": {
+      "type": "boolean"
+    },
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "microphone_included": {
       "type": "boolean"
     }
   },

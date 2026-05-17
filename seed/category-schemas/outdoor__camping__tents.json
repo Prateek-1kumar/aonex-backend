@@ -4,53 +4,73 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand",
+    "capacity_persons",
     "season_rating",
-    "canopy_diameter_cm",
-    "packed_weight_grams"
+    "packed_weight_grams",
+    "floor_area_sq_m",
+    "waterproof_rating_mm"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the product"
-    },
-    "brand": {
-      "type": "string",
-      "description": "Brand of the product"
+    "capacity_persons": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12
     },
     "season_rating": {
       "type": "string",
       "enum": [
+        "1-season",
+        "2-season",
         "3-season",
         "4-season"
-      ],
-      "description": "Season rating of the tent"
-    },
-    "canopy_diameter_cm": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Diameter of the tent canopy in centimeters"
+      ]
     },
     "packed_weight_grams": {
       "type": "number",
-      "minimum": 0,
-      "description": "Weight of the tent when packed in grams"
+      "minimum": 300,
+      "maximum": 20000
     },
-    "floor_area_sqm": {
+    "floor_area_sq_m": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 30
+    },
+    "waterproof_rating_mm": {
       "type": "number",
       "minimum": 0,
-      "description": "Floor area of the tent in square meters"
+      "maximum": 10000
+    },
+    "setup_type": {
+      "type": "string",
+      "enum": [
+        "freestanding",
+        "semi_freestanding",
+        "non_freestanding"
+      ]
+    },
+    "pole_material": {
+      "type": "string",
+      "enum": [
+        "aluminum",
+        "fiberglass",
+        "carbon_fiber",
+        "steel"
+      ]
+    },
+    "inner_height_cm": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 250
     },
     "door_count": {
       "type": "integer",
       "minimum": 1,
-      "description": "Number of doors in the tent"
+      "maximum": 6
     },
-    "water_resistance_mm": {
+    "vestibule_area_sq_m": {
       "type": "number",
       "minimum": 0,
-      "description": "Water resistance of the tent fabric in millimeters"
+      "maximum": 10
     }
   },
   "additionalProperties": true

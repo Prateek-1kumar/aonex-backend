@@ -4,55 +4,70 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand",
-    "price_usd"
+    "volume_ml",
+    "shade",
+    "coverage",
+    "finish"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the foundation product"
-    },
-    "brand": {
-      "type": "string",
-      "description": "Brand of the foundation product"
-    },
-    "price_usd": {
+    "volume_ml": {
       "type": "number",
-      "description": "Price of the foundation product in USD"
+      "minimum": 5,
+      "maximum": 100
     },
     "shade": {
+      "type": "string"
+    },
+    "coverage": {
       "type": "string",
-      "description": "Shade of the foundation product"
+      "enum": [
+        "light",
+        "medium",
+        "full",
+        "buildable"
+      ]
     },
     "finish": {
       "type": "string",
       "enum": [
         "matte",
-        "satin",
         "dewy",
-        "natural"
-      ],
-      "description": "Finish of the foundation product"
+        "satin",
+        "natural",
+        "luminous"
+      ]
     },
-    "coverage": {
+    "formulation": {
       "type": "string",
       "enum": [
-        "sheer",
-        "medium",
-        "full"
-      ],
-      "description": "Coverage level of the foundation product"
+        "liquid",
+        "powder",
+        "cream",
+        "stick",
+        "serum",
+        "cushion"
+      ]
     },
-    "size_ml": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Size of the foundation product in milliliters"
+    "skin_type": {
+      "type": "string",
+      "enum": [
+        "oily",
+        "dry",
+        "normal",
+        "combination",
+        "all"
+      ]
     },
-    "weight_grams": {
-      "type": "number",
+    "spf": {
+      "type": "integer",
       "minimum": 0,
-      "description": "Weight of the foundation product in grams"
+      "maximum": 60
+    },
+    "fragrance_free": {
+      "type": "boolean"
+    },
+    "vegan": {
+      "type": "boolean"
     }
   },
   "additionalProperties": true

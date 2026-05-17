@@ -4,60 +4,74 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
-    "model_number",
-    "manufacturer"
+    "sensor_type",
+    "megapixels"
   ],
   "properties": {
-    "product_name": {
+    "sensor_type": {
       "type": "string",
-      "description": "Name of the camera product"
-    },
-    "model_number": {
-      "type": "string",
-      "description": "Model number of the camera"
-    },
-    "manufacturer": {
-      "type": "string",
-      "description": "Manufacturer of the camera"
+      "enum": [
+        "full_frame",
+        "aps-c",
+        "micro_four_thirds",
+        "1_inch",
+        "medium_format",
+        "bsi_cmos",
+        "cmos",
+        "ccd"
+      ]
     },
     "megapixels": {
-      "type": "integer",
-      "description": "Number of megapixels of the camera"
-    },
-    "screen_size_inches": {
       "type": "number",
       "minimum": 1,
-      "maximum": 10,
-      "description": "Screen size of the camera in inches"
+      "maximum": 200
     },
-    "weight_grams": {
-      "type": "number",
-      "minimum": 100,
-      "maximum": 2000,
-      "description": "Weight of the camera in grams"
+    "lens_mount": {
+      "type": "string"
     },
-    "battery_mah": {
-      "type": "integer",
-      "minimum": 500,
-      "maximum": 2000,
-      "description": "Battery capacity of the camera in milliampere-hours"
+    "camera_type": {
+      "type": "string",
+      "enum": [
+        "dslr",
+        "mirrorless",
+        "point_and_shoot",
+        "action",
+        "medium_format",
+        "instant"
+      ]
     },
-    "storage_gb": {
-      "type": "integer",
-      "minimum": 4,
-      "maximum": 128,
-      "description": "Internal storage capacity of the camera in gigabytes"
+    "viewfinder_type": {
+      "type": "string",
+      "enum": [
+        "optical",
+        "electronic",
+        "none"
+      ]
     },
     "video_resolution": {
       "type": "string",
       "enum": [
-        "hd",
-        "full_hd",
+        "1080p",
         "4k",
+        "6k",
         "8k"
-      ],
-      "description": "Maximum video resolution of the camera"
+      ]
+    },
+    "screen_size_inches": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "weight_grams": {
+      "type": "number",
+      "minimum": 50,
+      "maximum": 3000
+    },
+    "weather_sealed": {
+      "type": "boolean"
+    },
+    "in_body_stabilization": {
+      "type": "boolean"
     }
   },
   "additionalProperties": true

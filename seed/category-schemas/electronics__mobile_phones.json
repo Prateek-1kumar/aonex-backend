@@ -4,69 +4,62 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "model_name",
     "screen_size_inches",
+    "operating_system",
     "ram_gb",
     "storage_gb",
-    "battery_mah",
-    "operating_system"
+    "battery_mah"
   ],
   "properties": {
-    "model_name": {
-      "type": "string",
-      "description": "The name of the mobile phone model"
-    },
     "screen_size_inches": {
       "type": "number",
-      "minimum": 3,
-      "maximum": 10,
-      "description": "The size of the screen in inches"
-    },
-    "ram_gb": {
-      "type": "integer",
-      "minimum": 2,
-      "maximum": 16,
-      "description": "The amount of RAM in GB"
-    },
-    "storage_gb": {
-      "type": "integer",
-      "minimum": 16,
-      "maximum": 512,
-      "description": "The amount of internal storage in GB"
-    },
-    "battery_mah": {
-      "type": "integer",
-      "minimum": 1000,
-      "maximum": 5000,
-      "description": "The capacity of the battery in mAh"
+      "minimum": 4,
+      "maximum": 7.5
     },
     "operating_system": {
       "type": "string",
       "enum": [
+        "ios",
         "android",
-        "ios"
-      ],
-      "description": "The operating system of the mobile phone"
+        "harmonyos"
+      ]
+    },
+    "ram_gb": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 24
+    },
+    "storage_gb": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 1024
+    },
+    "battery_mah": {
+      "type": "integer",
+      "minimum": 1500,
+      "maximum": 7000
     },
     "rear_camera_mp": {
       "type": "integer",
       "minimum": 5,
-      "maximum": 50,
-      "description": "The resolution of the rear camera in megapixels"
+      "maximum": 200
     },
     "front_camera_mp": {
       "type": "integer",
       "minimum": 2,
-      "maximum": 20,
-      "description": "The resolution of the front camera in megapixels"
+      "maximum": 60
     },
     "water_resistance_rating": {
       "type": "string",
       "enum": [
         "ip67",
-        "ip68"
-      ],
-      "description": "The water resistance rating of the mobile phone"
+        "ip68",
+        "ip65",
+        "none"
+      ]
+    },
+    "5g_capable": {
+      "type": "boolean"
     }
   },
   "additionalProperties": true

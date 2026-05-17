@@ -4,60 +4,67 @@
   "type": "object",
   "tier": "authoritative",
   "required": [
-    "product_name",
     "material",
-    "color"
+    "induction_compatible"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the cookware product"
-    },
     "material": {
       "type": "string",
       "enum": [
         "stainless_steel",
         "cast_iron",
+        "nonstick",
+        "carbon_steel",
         "copper",
-        "non_stick",
-        "aluminum"
+        "ceramic",
+        "aluminum",
+        "hard_anodized"
       ]
     },
-    "color": {
-      "type": "string",
-      "enum": [
-        "black",
-        "silver",
-        "red",
-        "blue",
-        "white"
-      ]
+    "induction_compatible": {
+      "type": "boolean"
     },
-    "diameter_inches": {
-      "type": "number",
-      "minimum": 1,
-      "maximum": 36
-    },
-    "height_inches": {
-      "type": "number",
-      "minimum": 1,
-      "maximum": 24
-    },
-    "weight_pounds": {
+    "capacity_liters": {
       "type": "number",
       "minimum": 0.1,
-      "maximum": 50
+      "maximum": 30
     },
-    "season_rating": {
+    "diameter_cm": {
+      "type": "number",
+      "minimum": 10,
+      "maximum": 60
+    },
+    "cookware_type": {
       "type": "string",
       "enum": [
-        "not_applicable"
+        "frying_pan",
+        "saute_pan",
+        "saucepan",
+        "stockpot",
+        "dutch_oven",
+        "wok",
+        "griddle",
+        "roasting_pan",
+        "casserole",
+        "skillet"
       ]
     },
-    "heat_resistance_temp_f": {
+    "oven_safe": {
+      "type": "boolean"
+    },
+    "oven_safe_temp_celsius": {
       "type": "integer",
       "minimum": 100,
-      "maximum": 1000
+      "maximum": 500
+    },
+    "dishwasher_safe": {
+      "type": "boolean"
+    },
+    "color": {
+      "type": "string"
+    },
+    "includes_lid": {
+      "type": "boolean"
     }
   },
   "additionalProperties": true

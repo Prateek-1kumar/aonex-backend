@@ -2,68 +2,76 @@
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "category_schemas/electronics_smartwatches/v1",
   "type": "object",
+  "tier": "authoritative",
   "required": [
-    "product_name",
-    "brand",
-    "model_number",
-    "screen_size_inches"
+    "display_size_inches",
+    "battery_life_hours",
+    "water_resistance_atm"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the product"
-    },
-    "brand": {
-      "type": "string",
-      "description": "Brand of the product"
-    },
-    "model_number": {
-      "type": "string",
-      "description": "Model number of the product"
-    },
-    "screen_size_inches": {
+    "display_size_inches": {
       "type": "number",
-      "minimum": 0.1,
-      "maximum": 10,
-      "description": "Screen size in inches"
+      "minimum": 0.8,
+      "maximum": 2.5
     },
-    "ram_gb": {
-      "type": "integer",
+    "battery_life_hours": {
+      "type": "number",
+      "minimum": 12,
+      "maximum": 720
+    },
+    "water_resistance_atm": {
+      "type": "number",
       "minimum": 0,
-      "maximum": 16,
-      "description": "RAM in GB"
-    },
-    "storage_gb": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 128,
-      "description": "Storage in GB"
-    },
-    "battery_mah": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 1000,
-      "description": "Battery capacity in mAh"
-    },
-    "water_resistance_rating": {
-      "type": "string",
-      "enum": [
-        "ip67",
-        "ip68"
-      ],
-      "description": "Water resistance rating"
+      "maximum": 20
     },
     "operating_system": {
       "type": "string",
       "enum": [
-        "android",
-        "ios",
         "wear_os",
-        "tizen"
-      ],
-      "description": "Operating system"
+        "watchos",
+        "tizen",
+        "proprietary",
+        "rtos"
+      ]
+    },
+    "connectivity": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "bluetooth",
+          "wifi",
+          "nfc",
+          "lte",
+          "gps"
+        ]
+      }
+    },
+    "heart_rate_monitor": {
+      "type": "boolean"
+    },
+    "gps_built_in": {
+      "type": "boolean"
+    },
+    "display_type": {
+      "type": "string",
+      "enum": [
+        "amoled",
+        "lcd",
+        "mip",
+        "e_ink"
+      ]
+    },
+    "case_material": {
+      "type": "string",
+      "enum": [
+        "aluminum",
+        "stainless_steel",
+        "titanium",
+        "plastic",
+        "ceramic"
+      ]
     }
   },
-  "additionalProperties": true,
-  "tier": "authoritative"
+  "additionalProperties": true
 }

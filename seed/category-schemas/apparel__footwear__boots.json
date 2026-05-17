@@ -2,41 +2,36 @@
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "category_schemas/apparel_footwear_boots/v1",
   "type": "object",
+  "tier": "authoritative",
   "required": [
-    "product_name",
-    "description",
-    "price_usd"
+    "size",
+    "color",
+    "gender",
+    "shaft_height_cm",
+    "material"
   ],
   "properties": {
-    "product_name": {
-      "type": "string",
-      "description": "Name of the product"
-    },
-    "description": {
-      "type": "string",
-      "description": "Description of the product"
-    },
-    "price_usd": {
-      "type": "number",
-      "description": "Price of the product in USD"
-    },
     "size": {
+      "type": "number",
+      "minimum": 3,
+      "maximum": 18
+    },
+    "color": {
+      "type": "string"
+    },
+    "gender": {
       "type": "string",
       "enum": [
-        "6",
-        "6.5",
-        "7",
-        "7.5",
-        "8",
-        "8.5",
-        "9",
-        "9.5",
-        "10",
-        "10.5",
-        "11",
-        "11.5",
-        "12"
+        "men",
+        "women",
+        "unisex",
+        "kids"
       ]
+    },
+    "shaft_height_cm": {
+      "type": "number",
+      "minimum": 5,
+      "maximum": 60
     },
     "material": {
       "type": "string",
@@ -44,17 +39,22 @@
         "leather",
         "synthetic",
         "suede",
-        "mesh"
+        "rubber",
+        "canvas"
       ]
     },
-    "height_inches": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 20
-    },
-    "weight_grams": {
-      "type": "number",
-      "minimum": 0
+    "boot_type": {
+      "type": "string",
+      "enum": [
+        "ankle",
+        "knee_high",
+        "over_knee",
+        "chelsea",
+        "combat",
+        "hiking",
+        "rain",
+        "work"
+      ]
     },
     "waterproof": {
       "type": "boolean"
@@ -67,8 +67,20 @@
         "down",
         "none"
       ]
+    },
+    "heel_height_cm": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 15
+    },
+    "size_system": {
+      "type": "string",
+      "enum": [
+        "us",
+        "eu",
+        "uk"
+      ]
     }
   },
-  "additionalProperties": true,
-  "tier": "authoritative"
+  "additionalProperties": true
 }
