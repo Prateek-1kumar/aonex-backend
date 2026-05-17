@@ -140,6 +140,13 @@
         "drizzle-kit": "^0.30.0",
       },
     },
+    "packages/ingestion-browser-fallback": {
+      "name": "@aonex/ingestion-browser-fallback",
+      "version": "0.0.0",
+      "dependencies": {
+        "playwright": "^1.60.0",
+      },
+    },
     "packages/ingestion-dom-heuristics": {
       "name": "@aonex/ingestion-dom-heuristics",
       "version": "0.0.0",
@@ -308,6 +315,8 @@
     "@aonex/connector-gateway": ["@aonex/connector-gateway@workspace:packages/connector-gateway"],
 
     "@aonex/db": ["@aonex/db@workspace:packages/db"],
+
+    "@aonex/ingestion-browser-fallback": ["@aonex/ingestion-browser-fallback@workspace:packages/ingestion-browser-fallback"],
 
     "@aonex/ingestion-category-detector": ["@aonex/ingestion-category-detector@workspace:packages/ingestion/category-detector"],
 
