@@ -294,6 +294,10 @@
         "@aonex/types": "workspace:*",
       },
     },
+    "packages/observability-views": {
+      "name": "@aonex/observability-views",
+      "version": "0.0.0",
+    },
     "packages/per-site-parsers": {
       "name": "@aonex/per-site-parsers",
       "version": "0.0.0",
@@ -396,6 +400,8 @@
     "@aonex/lib-utils": ["@aonex/lib-utils@workspace:packages/lib-utils"],
 
     "@aonex/link-adapter": ["@aonex/link-adapter@workspace:packages/link-adapter"],
+
+    "@aonex/observability-views": ["@aonex/observability-views@workspace:packages/observability-views"],
 
     "@aonex/per-site-parsers": ["@aonex/per-site-parsers@workspace:packages/per-site-parsers"],
 
