@@ -9,7 +9,10 @@ export {
   type LLMExtractionOptions,
   type LLMExtractionResult,
   type LLMRawProductOutput,
+  type StructuredHints,
   LLM_EXTRACTOR_VERSION,
   DEFAULT_LLM_OPTIONS,
   DEFAULT_CLASSIFIER_MODEL,
 } from "./types.js";
+export { compressJsonLd } from "./jsonld-compressor.js";
+export { pruneNextData } from "./nextdata-pruner.js";

@@ -1,7 +1,12 @@
 import type { IngestionAdapter, IngestionEnvelope } from "@aonex/ingestion-spine";
 import { fetchLink, type LinkFetchResult } from "@aonex/ingestion-link-fetcher";
 import { extractStructured } from "@aonex/ingestion-structured";
-import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
+import {
+  LLMProductExtractor,
+  LLM_EXTRACTOR_VERSION,
+  compressJsonLd,
+  pruneNextData
+} from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import { runDomHeuristics } from "@aonex/ingestion-dom-heuristics";
 import {
@@ -337,10 +342,23 @@ class LinkAdapter implements IngestionAdapter {
     // LLM gap-fill ONLY if everything above produced nothing
     const llmFacts: ExtractedFactSet["facts"] = [];
     if (baseFacts.length === 0) {
+      const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
+      const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
+      const rawImageUrls = (cached.fetchResult.structuredBlocks.images ?? []).map((i) => i.url);
+
       const r = await this.deps.llmExtractor.extract(
         cached.fetchResult.cleanedText,
         cached.fetchResult.finalUrl,
-        envelope.sourceExternalId as never
+        envelope.sourceExternalId as never,
+        {
+          structuredHints: {
+            jsonLd: compressed,
+            metaTags: cached.fetchResult.structuredBlocks.metaTags ?? {},
+            microdata: cached.fetchResult.structuredBlocks.microdata ?? [],
+            rawImageUrls,
+            nextDataProductSubtree: nextSub
+          }
+        }
       );
       llmFacts.push(...r.facts);
     }
