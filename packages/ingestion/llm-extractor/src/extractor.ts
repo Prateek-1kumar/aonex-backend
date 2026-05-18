@@ -13,6 +13,7 @@ import type { ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 import type { IModelProvider } from "./providers/types.js";
 import { buildExtractionPrompt } from "./prompt-builder.js";
 import { parseLLMResponse, convertToExtractedFacts } from "./response-parser.js";
+import { pickModel, decideTextBudget, truncateCenterPreserving } from "./tier-router.js";
 import {
   type LLMExtractionOptions,
   type LLMExtractionResult,
@@ -108,10 +109,19 @@ export class LLMProductExtractor {
     artifactId: ArtifactId,
     options: LLMGapFillOptions
   ): Promise<LLMExtractionResult> {
-    const opts = { ...DEFAULT_LLM_OPTIONS, ...options };
+    const choice = pickModel({
+      gaps: options.gaps,
+      hasJsonLd: (options.structuredHints?.jsonLd?.length ?? 0) > 0,
+      cleanedTextLen: cleanedText.length,
+    });
+    const opts = { ...DEFAULT_LLM_OPTIONS, ...options, model: options.model ?? choice.model, maxTokens: options.maxTokens ?? choice.maxTokens };
+
+    const coverage = Math.min(1, (options.structuredFacts?.length ?? 0) / 25);
+    const textBudget = decideTextBudget(coverage);
+    const trimmedText = truncateCenterPreserving(cleanedText, textBudget);
 
     const promptParams: PromptBuildParams = {
-      cleanedText,
+      cleanedText: trimmedText,
       url,
       gaps: options.gaps,
       structuredFacts: options.structuredFacts,
