@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createLinkAdapter } from "./link-adapter.js";
+import { InMemoryEscalationCache } from "./escalation-cache.js";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
@@ -82,7 +83,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
         fetchDurationMs: 0
       }),
       domHeuristics: () => ({ facts: [] }),
-      findPerSiteParser: () => matchedParser
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
     });
 
     // Normalize first to populate the cache
@@ -108,7 +110,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
       llmExtractor: STUB_LLM as never,
       browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
       domHeuristics: () => ({ facts: [fact("title", "Generic loses", "dom_heuristic:title", 0.85)] }),
-      findPerSiteParser: () => matchedParser
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];
@@ -139,7 +142,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
           fact("base_price", 99, "dom:price", 0.85)
         ]
       }),
-      findPerSiteParser: () => matchedParser
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];
@@ -156,7 +160,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
       llmExtractor: STUB_LLM as never,
       browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
       domHeuristics: () => ({ facts: [fact("title", "DOM only", "dom:title", 0.85)] }),
-      findPerSiteParser: () => null
+      findPerSiteParser: () => null,
+      cache: new InMemoryEscalationCache()
     });
     const envs: IngestionEnvelope[] = [];
     for await (const e of adapter.normalize({ sourceRef: "https://x/y" })) envs.push(e);
@@ -178,7 +183,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
       llmExtractor: STUB_LLM as never,
       browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
       domHeuristics: () => ({ facts: [fact("title", "Generic survived", "dom:title", 0.85)] }),
-      findPerSiteParser: () => failingParser
+      findPerSiteParser: () => failingParser,
+      cache: new InMemoryEscalationCache()
     });
     const envs: IngestionEnvelope[] = [];
     for await (const e of adapter.normalize({ sourceRef: "https://x/y" })) envs.push(e);
@@ -262,7 +268,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
       llmExtractor: trackingLLM as never,
       browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
       domHeuristics: () => ({ facts: [] }),
-      findPerSiteParser: () => matchedParser
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];

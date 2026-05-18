@@ -30,6 +30,7 @@ import {
 import { findParserForUrl } from "@aonex/per-site-parsers";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
 import { sha256Hex } from "@aonex/lib-utils";
+import { FileEscalationCache, type IEscalationCache } from "./escalation-cache.js";
 
 // Local AdapterInput type — internal to ingestion-spine, not re-exported.
 interface AdapterInput {
@@ -76,6 +77,9 @@ export interface LinkAdapterDeps {
   /** Layer F — vision LLM call. When omitted AND GROQ_API_KEY/OPENAI_API_KEY env is set, defaults to callVision with that key.
    *  When omitted AND env unset, vision is DISABLED (signal can fire but no extraction). */
   visionExtractor?: VisionExtractor;
+  /** Cold-path escalation cache. Defaults to FileEscalationCache at ESCALATION_CACHE_PATH
+   *  (or /tmp/aonex-escalation.json). Stubbable for tests (InMemoryEscalationCache). */
+  cache?: IEscalationCache;
 }
 
 interface CacheEntry {
@@ -98,6 +102,7 @@ class LinkAdapter implements IngestionAdapter {
     screenshotFetcher: ScreenshotFetcher;
     /** Null when no API key is available — vision is disabled in that case. */
     visionExtractor: VisionExtractor | null;
+    cache: IEscalationCache;
   };
   private readonly cache = new Map<string, CacheEntry>();
 
@@ -115,7 +120,8 @@ class LinkAdapter implements IngestionAdapter {
       domHeuristics: deps.domHeuristics ?? runDomHeuristics,
       findPerSiteParser: deps.findPerSiteParser ?? findParserForUrl,
       screenshotFetcher: deps.screenshotFetcher ?? fetchWithBrowserAndScreenshot,
-      visionExtractor: deps.visionExtractor !== undefined ? deps.visionExtractor : defaultVision
+      visionExtractor: deps.visionExtractor !== undefined ? deps.visionExtractor : defaultVision,
+      cache: deps.cache ?? new FileEscalationCache(process.env["ESCALATION_CACHE_PATH"] ?? "/tmp/aonex-escalation.json")
     };
   }
 
@@ -265,6 +271,15 @@ class LinkAdapter implements IngestionAdapter {
       escalationReasons
     });
 
+    // Persist escalation state to disk so cold-path retries (worker restart)
+    // can replay the browser/unblock decision instead of silently falling
+    // back to static-only.
+    await this.deps.cache.set(resolvedFinalUrl, {
+      escalatedTo,
+      reasons: escalationReasons,
+      costCredits
+    });
+
     const hints = input.hints;
     yield {
       sourceExternalId: resolvedFinalUrl,
@@ -297,7 +312,19 @@ class LinkAdapter implements IngestionAdapter {
   async extract(envelope: IngestionEnvelope): Promise<ExtractedFactSet> {
     const cached = this.cache.get(envelope.sourceExternalId);
     if (!cached) {
-      // Cold adapter — re-fetch statically (no escalation since we don't know coverage)
+      // Cold adapter — check the persistent escalation cache. If this URL
+      // previously needed browser/unblock, replay the ladder by re-running
+      // normalize(); otherwise fall back to a plain static re-fetch.
+      const prior = await this.deps.cache.get(envelope.sourceExternalId);
+      if (prior && prior.escalatedTo !== "static") {
+        const it = this.normalize({ sourceRef: envelope.sourceExternalId });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for await (const _ of it) {
+          /* consume; populates this.cache */
+        }
+        return this.extract(envelope);
+      }
+      // Static-only fallback
       const result = await this.deps.fetcher(envelope.sourceExternalId);
       this.cache.set(envelope.sourceExternalId, {
         fetchResult: result,
