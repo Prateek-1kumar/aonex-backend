@@ -108,3 +108,20 @@ describe("buildExtractionPrompt — Phase 2 rich schema in prompt", () => {
     expect(msgs[0]!.content).toContain('"material"');
   });
 });
+
+describe("buildExtractionPrompt — category-aware attributes", () => {
+  it("emits CATEGORY-SPECIFIC ATTRIBUTES section when categoryCandidates provided", () => {
+    const msgs = buildExtractionPrompt({
+      cleanedText: "x",
+      url: "https://x.com",
+      categoryCandidates: ["electronics > headphones"]
+    });
+    expect(msgs[0]!.content).toContain("CATEGORY-SPECIFIC ATTRIBUTES");
+    expect(msgs[0]!.content).toContain("battery_life");
+  });
+
+  it("falls back to generic when no categoryCandidates", () => {
+    const msgs = buildExtractionPrompt({ cleanedText: "x", url: "https://x.com" });
+    expect(msgs[0]!.content).toContain("category: generic");
+  });
+});
