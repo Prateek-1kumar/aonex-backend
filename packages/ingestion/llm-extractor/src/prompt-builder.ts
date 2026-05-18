@@ -95,29 +95,88 @@ function renderFullSchema(): string {
   "title": "string|null",
   "brand": "string|null",
   "gtin": "string|null",
+  "mpn": "string|null",
   "model_number": "string|null",
-  "description": "string|null",
-  "base_price": "number|null",
-  "currency": "string|null  // 3-letter code",
+  "sku": "string|null",
+
+  "description_short": "string|null",
+  "description_long": "string|null",
+  "highlights": ["string"],
+
   "category_path": "string|null",
   "category_confidence": "number 0.0-1.0",
-  "images": [{"url": "string", "alt_text": "string|null"}],
-  "attributes": { "key": "value", ...  // category-specific },
+  "breadcrumbs": ["string"],
+
+  "pricing": {
+    "list_price": "number|null",
+    "sale_price": "number|null",
+    "currency": "string|null (3-letter)",
+    "discount_percent": "number|null",
+    "price_per_unit": "string|null"
+  },
+
+  "ratings": { "average": "number|null (0-5)", "count": "integer|null" },
+  "seller":  { "name": "string|null", "is_official": "boolean|null" },
+
+  "images": [{
+    "url": "string",
+    "role": "hero|gallery|swatch|lifestyle|spec|video_thumb",
+    "position": "integer",
+    "alt_text": "string|null",
+    "width": "integer|null",
+    "height": "integer|null",
+    "variant_refs": ["string"]
+  }],
+
+  "options": [{ "name": "string", "values": ["string"] }],
+
   "variants": [{
     "sku": "string|null",
     "barcode": "string|null",
-    "price": "number|null",
-    "option_values": {"Size": "M", "Color": "Red"},
-    "inventory_quantity": "integer|null"
+    "option_values": { "Size": "M", "Color": "Red" },
+    "pricing": { "list_price": "number|null", "sale_price": "number|null", "currency": "string|null" },
+    "image_urls": ["string"]
   }],
-  "_field_confidence": { "title": 0.0-1.0, "brand": 0.0-1.0, ... }
+
+  "attributes": {
+    "<key>": { "value": "any", "unit": "string|null" }
+  },
+
+  "shipping": {
+    "free_shipping": "boolean|null",
+    "shipping_cost": "number|null",
+    "weight": { "value": "number", "unit": "kg|lb|g|oz" },
+    "dimensions": { "length": "n", "width": "n", "height": "n", "unit": "cm|in|mm" }
+  },
+  "warranty": "string|null",
+  "return_policy": "string|null",
+
+  "_field_confidence": { "<field>": "number 0.0-1.0" },
+  "_correction_notes": { "<field>": "string (only for corrections to anchor facts)" }
 }`;
 }
 
 function renderGapSchema(params: PromptBuildParams): string {
   const gaps = params.gaps ?? [];
+  // Map flat gap keys to their nested JSON path representation
+  const NESTED: Record<string, string> = {
+    list_price:       '"pricing": { "list_price": "number|null" }',
+    sale_price:       '"pricing": { "sale_price": "number|null" }',
+    discount_percent: '"pricing": { "discount_percent": "number|null" }',
+    price_per_unit:   '"pricing": { "price_per_unit": "string|null" }',
+    rating_average:   '"ratings": { "average": "number|null" }',
+    rating_count:     '"ratings": { "count": "integer|null" }',
+    seller_name:      '"seller": { "name": "string|null" }',
+    shipping_free:    '"shipping": { "free_shipping": "boolean|null" }',
+    shipping_cost:    '"shipping": { "shipping_cost": "number|null" }',
+    weight:           '"shipping": { "weight": { "value": "number", "unit": "string" } }',
+    dimensions:       '"shipping": { "dimensions": { "length": "n", "width": "n", "height": "n", "unit": "string" } }'
+  };
+
+  const lines = gaps.map((g) => `  ${NESTED[g] ?? `"${g}": "value|null"`},`).join("\n");
+  const confidences = gaps.map((g) => `"${g}": 0.0-1.0`).join(", ");
   return `{
-${gaps.map((g) => `  "${g}": "value|null",`).join("\n")}
-  "_field_confidence": { ${gaps.map((g) => `"${g}": 0.0-1.0`).join(", ")} }
+${lines}
+  "_field_confidence": { ${confidences} }
 }`;
 }
