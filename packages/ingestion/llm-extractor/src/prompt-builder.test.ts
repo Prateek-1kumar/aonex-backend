@@ -74,3 +74,37 @@ describe("buildExtractionPrompt — structured hints", () => {
     expect(msgs[0]!.content).not.toContain("STRUCTURED HINTS");
   });
 });
+
+describe("buildExtractionPrompt — Phase 2 rich schema in prompt", () => {
+  it("renderFullSchema includes pricing.sale_price", () => {
+    const msgs = buildExtractionPrompt({ cleanedText: "x", url: "https://x.com" });
+    expect(msgs[0]!.content).toContain("pricing");
+    expect(msgs[0]!.content).toContain("sale_price");
+  });
+
+  it("renderFullSchema includes shipping.weight and dimensions", () => {
+    const msgs = buildExtractionPrompt({ cleanedText: "x", url: "https://x.com" });
+    expect(msgs[0]!.content).toContain("shipping");
+    expect(msgs[0]!.content).toContain("weight");
+    expect(msgs[0]!.content).toContain("dimensions");
+  });
+
+  it("gap mode renders nested pricing schema for sale_price gap", () => {
+    const msgs = buildExtractionPrompt({
+      cleanedText: "x",
+      url: "https://x.com",
+      gaps: ["sale_price"]
+    });
+    expect(msgs[0]!.content).toContain("pricing");
+    expect(msgs[0]!.content).toContain("sale_price");
+  });
+
+  it("gap mode renders flat schema for unknown gap", () => {
+    const msgs = buildExtractionPrompt({
+      cleanedText: "x",
+      url: "https://x.com",
+      gaps: ["material"]
+    });
+    expect(msgs[0]!.content).toContain('"material"');
+  });
+});
