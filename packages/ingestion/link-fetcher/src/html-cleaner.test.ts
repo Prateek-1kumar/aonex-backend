@@ -135,3 +135,17 @@ describe("cleanHtml — picture/noscript/breadcrumbs", () => {
     expect(r.structuredBlocks.breadcrumbs).toEqual(["Home", "Electronics", "Headphones"]);
   });
 });
+
+describe("cleanHtml — region markers", () => {
+  it("wraps product title region with [PRODUCT_TITLE]", () => {
+    const html = '<h1 class="product-title">Sony WH-1000XM5</h1>';
+    const r = cleanHtml(html);
+    expect(r.cleanedText).toMatch(/\[PRODUCT_TITLE\][\s\S]*Sony WH-1000XM5/);
+  });
+
+  it("wraps description region with [DESCRIPTION]", () => {
+    const html = '<div id="product-description">Best in class noise cancellation.</div>';
+    const r = cleanHtml(html);
+    expect(r.cleanedText).toMatch(/\[DESCRIPTION\][\s\S]*Best in class/);
+  });
+});

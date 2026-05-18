@@ -37,6 +37,23 @@ export function cleanHtml(rawHtml: string): CleanResult {
     /<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
     " $2 ($1) "
   );
+
+  // Inject region markers for product content areas
+  const REGIONS: { marker: string; re: RegExp }[] = [
+    { marker: "[PRODUCT_TITLE]", re: /<(h1|h2)[^>]*class=["'][^"']*(product[-_]?title|pdp[-_]?title)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi },
+    { marker: "[PRICE_REGION]", re: /<[^>]+class=["'][^"']*(price|pricing|cost)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi },
+    { marker: "[DESCRIPTION]", re: /<[^>]+(id|class)=["'][^"']*(product[-_]?description|pdp[-_]?description|description)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi },
+    { marker: "[SPECS]", re: /<[^>]+(id|class)=["'][^"']*(specs|specifications|tech-specs)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi },
+    { marker: "[REVIEWS]", re: /<[^>]+(id|class)=["'][^"']*(reviews?|ratings?)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi }
+  ];
+  for (const { marker, re } of REGIONS) {
+    text = text.replace(re, (_full, ...args) => {
+      // args is [...captures, offset, fullString]. The last capture group is the inner content.
+      const inner = args[args.length - 3];
+      return ` ${marker} ${typeof inner === "string" ? inner : ""} `;
+    });
+  }
+
   text = text.replace(
     /<\/?(div|p|br|h[1-6]|li|tr|td|th|section|article|main|aside|blockquote)[^>]*>/gi,
     "\n"
