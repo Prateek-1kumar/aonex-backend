@@ -21,6 +21,7 @@ function methodToSource(m: string | null | undefined): SourceTag {
   if (!m) return "structured";
   if (m === "direct") return "structured";
   if (m === "inferred") return "llm-text";
+  if (m === "computed") return "enrichment";
   return (m as SourceTag);
 }
 
