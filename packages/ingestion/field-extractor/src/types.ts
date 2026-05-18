@@ -41,6 +41,12 @@ export interface ExtractedFactSet {
   extractorVersion: string;
   facts: ExtractedFact[];
   extractedAt: Date;
+  /** Phase 3 richness: optional rich SKU JSON produced by the enrichment pass.
+   *  Not all adapters populate this — only the link-adapter currently does.
+   *  Typed as `unknown` to avoid a circular package dependency
+   *  (`@aonex/ingestion-enrichment` already depends on this package).
+   *  Consumers should cast to `SkuJson` from `@aonex/ingestion-enrichment`. */
+  skuJson?: unknown;
 }
 
 /** Contract every marketplace extractor must satisfy. */
