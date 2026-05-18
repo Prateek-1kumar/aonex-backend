@@ -70,7 +70,7 @@ export async function callVision(
   deps: VisionCallDeps
 ): Promise<VisionCallResult> {
   const baseUrl = deps.baseUrl ?? DEFAULT_BASE_URL;
-  const model = deps.model ?? DEFAULT_MODEL;
+  const model = deps.model ?? process.env["GROQ_MODEL_VISION"] ?? DEFAULT_MODEL;
   const fetchImpl = deps.fetchImpl ?? fetch;
   const timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
