@@ -114,3 +114,24 @@ describe("cleanHtml — meta/link/microdata extraction", () => {
     expect(r.structuredBlocks.linkTags["image_src"]).toBe("https://x.com/i.jpg");
   });
 });
+
+describe("cleanHtml — picture/noscript/breadcrumbs", () => {
+  it("captures <source srcset> inside <picture>", () => {
+    const html = '<picture><source srcset="https://x.com/big.jpg 1600w"><img src="https://x.com/small.jpg" alt="X"></picture>';
+    const r = cleanHtml(html);
+    const urls = r.structuredBlocks.images.map((i) => i.url);
+    expect(urls).toContain("https://x.com/big.jpg");
+  });
+
+  it("captures img inside <noscript>", () => {
+    const html = '<noscript><img src="https://x.com/real.jpg" alt="real"></noscript>';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.images.map((i) => i.url)).toContain("https://x.com/real.jpg");
+  });
+
+  it("captures breadcrumbs from nav.breadcrumb", () => {
+    const html = '<nav class="breadcrumb"><a>Home</a><a>Electronics</a><a>Headphones</a></nav>';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.breadcrumbs).toEqual(["Home", "Electronics", "Headphones"]);
+  });
+});
