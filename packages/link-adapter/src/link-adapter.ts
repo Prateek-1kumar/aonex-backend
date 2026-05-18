@@ -254,7 +254,7 @@ class LinkAdapter implements IngestionAdapter {
         contentType: resolvedContentType,
         rawHtml: finalRawHtml,
         cleanedText: "",
-        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
         captchaSignal: false,
         fetchedAt: new Date(),
         contentChecksum: checksum

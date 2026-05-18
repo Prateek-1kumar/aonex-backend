@@ -12,7 +12,7 @@ function makeFetcher(html: string) {
     contentType: "text/html",
     rawHtml: html,
     cleanedText: "",
-    structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+    structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
     captchaSignal: false,
     fetchedAt: new Date(),
     contentChecksum: "abc"

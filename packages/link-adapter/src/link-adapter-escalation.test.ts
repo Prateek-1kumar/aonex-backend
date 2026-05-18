@@ -27,7 +27,12 @@ function makeFetcher(
       jsonLd: opts?.jsonLd ?? [],
       nextData: opts?.nextData ?? null,
       apolloState: null,
-      initialState: null
+      initialState: null,
+      metaTags: {},
+      linkTags: {},
+      microdata: [],
+      images: [],
+      breadcrumbs: []
     },
     captchaSignal: false,
     fetchedAt: new Date(),
@@ -241,7 +246,7 @@ describe("LinkAdapter escalation ladder", () => {
           url: "https://amazon.com/dp/X", finalUrl: "https://amazon.com/dp/X",
           statusCode: 200, contentType: "text/html",
           rawHtml: "<html>static</html>", cleanedText: "",
-          structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+          structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
           captchaSignal: false, fetchedAt: new Date(), contentChecksum: "abc"
         };
       },
@@ -278,7 +283,7 @@ describe("LinkAdapter escalation ladder", () => {
         statusCode: 200, contentType: "text/html",
         rawHtml: "<html><body>Enter the captcha</body></html>".repeat(500),
         cleanedText: "",
-        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
         captchaSignal: true,    // ← the new escalation trigger
         fetchedAt: new Date(),
         contentChecksum: "abc"
