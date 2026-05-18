@@ -93,14 +93,41 @@ function extractStructuredBlocks(html: string): StructuredBlocks {
     images.push({ url: src, alt, srcset });
   }
 
+  const metaTags: Record<string, string> = {};
+  for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = m[0]!;
+    const key =
+      tag.match(/\bproperty=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bname=["']([^"']+)["']/i)?.[1];
+    const content = tag.match(/\bcontent=["']([^"']*)["']/i)?.[1];
+    if (key && content !== undefined) metaTags[key] = content;
+  }
+
+  const linkTags: Record<string, string> = {};
+  for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = m[0]!;
+    const rel = tag.match(/\brel=["']([^"']+)["']/i)?.[1];
+    const href = tag.match(/\bhref=["']([^"']+)["']/i)?.[1];
+    if (rel && href) linkTags[rel] = href;
+  }
+
+  const microdata: { prop: string; value: string }[] = [];
+  for (const m of html.matchAll(/<[^>]*\bitemprop=["']([^"']+)["'][^>]*>([^<]*)/gi)) {
+    const prop = m[1]!;
+    const inline = m[0]!;
+    const contentAttr = inline.match(/\bcontent=["']([^"']*)["']/i)?.[1];
+    const value = contentAttr ?? (m[2] ?? "").trim();
+    if (value) microdata.push({ prop, value });
+  }
+
   return {
     jsonLd,
     nextData,
     apolloState,
     initialState,
-    metaTags: {},
-    linkTags: {},
-    microdata: [],
+    metaTags,
+    linkTags,
+    microdata,
     images,
     breadcrumbs: []
   };
