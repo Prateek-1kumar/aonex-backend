@@ -65,9 +65,15 @@ export interface LLMRawProductOutput {
 export const LLM_EXTRACTOR_VERSION = "llm-url@1.0.0";
 
 export const DEFAULT_LLM_OPTIONS: Required<LLMExtractionOptions> = {
-  // Phase 6: prefer Groq when GROQ_MODEL_GAP_FILL is set (paired with
-  // GROQ_BASE_URL on the provider). Falls back to OpenAI's gpt-4o-mini.
-  model: process.env["GROQ_MODEL_GAP_FILL"] || process.env["OPENAI_MODEL"] || "gpt-4o-mini",
+  // Phase 6: prefer Groq models when available. GROQ_MODEL_GAP_FILL_HEAVY
+  // (heavy analysis), then GROQ_MODEL_GAP_FILL, then OPENAI_MODEL, then
+  // Groq's llama-3.3-70b-versatile as the final default (paired with
+  // OPENAI_BASE_URL pointing to Groq in .env).
+  model:
+    process.env["GROQ_MODEL_GAP_FILL_HEAVY"] ||
+    process.env["GROQ_MODEL_GAP_FILL"] ||
+    process.env["OPENAI_MODEL"] ||
+    "llama-3.3-70b-versatile",
   maxTokens: 4096,
   temperature: 0.1,
   categoryHint: "",
