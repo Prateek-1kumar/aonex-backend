@@ -5,6 +5,35 @@ export function buildExtractionPrompt(params: PromptBuildParams): ChatMessage[] 
   return [systemMessage(params), userMessage(params)];
 }
 
+function renderStructuredHints(p: PromptBuildParams): string {
+  const h = p.structuredHints;
+  if (!h) return "";
+  const parts: string[] = ["", "## STRUCTURED HINTS (machine-readable — prefer these over text)"];
+  if (h.jsonLd && h.jsonLd.length > 0) {
+    parts.push("### JSON-LD Product blocks");
+    parts.push(JSON.stringify(h.jsonLd, null, 2));
+  }
+  if (h.metaTags && Object.keys(h.metaTags).length > 0) {
+    parts.push("### Meta tags");
+    for (const [k, v] of Object.entries(h.metaTags)) {
+      parts.push(`${k.padEnd(14)} = ${v}`);
+    }
+  }
+  if (h.microdata && h.microdata.length > 0) {
+    parts.push("### Microdata");
+    for (const m of h.microdata) parts.push(`${m.prop} = ${m.value}`);
+  }
+  if (h.rawImageUrls && h.rawImageUrls.length > 0) {
+    parts.push("### Raw image URLs found in HTML");
+    for (const u of h.rawImageUrls.slice(0, 30)) parts.push(`- ${u}`);
+  }
+  if (h.nextDataProductSubtree !== undefined && h.nextDataProductSubtree !== null) {
+    parts.push("### __NEXT_DATA__ product subtree");
+    parts.push(JSON.stringify(h.nextDataProductSubtree, null, 2));
+  }
+  return parts.join("\n");
+}
+
 function systemMessage(params: PromptBuildParams): ChatMessage {
   const gapMode = params.gaps && params.gaps.length > 0;
   const categories = params.categoryCandidates ?? [];
@@ -32,6 +61,7 @@ Confidence MUST be honest. The system uses your confidence to decide auto-approv
 
 ## CATEGORIES
 ${categories.length === 0 ? "(no category candidates supplied)" : categories.map((c) => `- ${c}`).join("\n")}
+${renderStructuredHints(params)}
 
 ## STRUCTURED FACTS (already extracted — do NOT override unless you are sure they are wrong)
 ${(params.structuredFacts ?? []).map((f) => `  ${f.rawKey} = ${JSON.stringify(f.value)} (source: ${f.source})`).join("\n") || "  (none)"}
