@@ -71,6 +71,12 @@ export interface StructuredBlocks {
   nextData: Record<string, unknown> | null;
   apolloState: Record<string, unknown> | null;
   initialState: Record<string, unknown> | null;
+  // Phase 1 additions:
+  metaTags: Record<string, string>;
+  linkTags: Record<string, string>;
+  microdata: { prop: string; value: string }[];
+  images: { url: string; alt: string | null; srcset: string | null }[];
+  breadcrumbs: string[];
 }
 
 export interface CleanResult {
