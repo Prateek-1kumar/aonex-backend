@@ -339,28 +339,51 @@ class LinkAdapter implements IngestionAdapter {
     // Merge: per-site wins on rawKey collisions (highest-priority Layer G)
     const baseFacts = mergeFactsWithPriority(perSiteFacts, [...structured.structured.facts, ...dom.facts]);
 
-    // LLM gap-fill ONLY if everything above produced nothing
+    // LLM gap-fill — always on. Compute schema fields not yet filled by Layers A/B/G
+    // and ask the LLM to fill ONLY those gaps (anchored by the facts we already have).
     const llmFacts: ExtractedFactSet["facts"] = [];
-    if (baseFacts.length === 0) {
-      const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
-      const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
-      const rawImageUrls = (cached.fetchResult.structuredBlocks.images ?? []).map((i) => i.url);
+    const SCHEMA_FIELDS = [
+      "title","brand","gtin","mpn","model_number","description","base_price","currency",
+      "images","variants","productType",
+      "sale_price","list_price","discount_percent","price_per_unit",
+      "rating_average","rating_count","seller_name",
+      "highlights","breadcrumbs","return_policy","warranty",
+      "shipping_free","shipping_cost","weight","dimensions"
+    ] as const;
 
-      const r = await this.deps.llmExtractor.extract(
-        cached.fetchResult.cleanedText,
-        cached.fetchResult.finalUrl,
-        envelope.sourceExternalId as never,
-        {
-          structuredHints: {
-            jsonLd: compressed,
-            metaTags: cached.fetchResult.structuredBlocks.metaTags ?? {},
-            microdata: cached.fetchResult.structuredBlocks.microdata ?? [],
-            rawImageUrls,
-            nextDataProductSubtree: nextSub
+    const filledKeys = new Set<string>(baseFacts.map((f) => f.rawKey));
+    const gaps = SCHEMA_FIELDS.filter((k) => !filledKeys.has(k));
+
+    if (gaps.length > 0) {
+      try {
+        const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
+        const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
+        const rawImageUrls = (cached.fetchResult.structuredBlocks.images ?? []).map((i) => i.url);
+
+        const r = await this.deps.llmExtractor.extractGapFill(
+          cached.fetchResult.cleanedText,
+          cached.fetchResult.finalUrl,
+          envelope.sourceExternalId as never,
+          {
+            gaps: [...gaps],
+            structuredFacts: baseFacts.map((f) => ({
+              rawKey: f.rawKey,
+              value: f.normalizedValue ?? f.extractedValue,
+              source: f.extractionMethod ?? "structured"
+            })),
+            structuredHints: {
+              jsonLd: compressed,
+              metaTags: cached.fetchResult.structuredBlocks.metaTags ?? {},
+              microdata: cached.fetchResult.structuredBlocks.microdata ?? [],
+              rawImageUrls,
+              nextDataProductSubtree: nextSub
+            }
           }
-        }
-      );
-      llmFacts.push(...r.facts);
+        );
+        llmFacts.push(...r.facts);
+      } catch {
+        // LLM error — keep base facts; absent facts surface in trace
+      }
     }
 
     // Layer F — vision tier-3 (Phase 9)
