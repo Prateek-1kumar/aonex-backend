@@ -52,6 +52,7 @@ export class LLMProductExtractor {
       cleanedText,
       url,
       ...(opts.categoryHint ? { categoryHint: opts.categoryHint } : {}),
+      ...(opts.structuredHints ? { structuredHints: opts.structuredHints } : {}),
     };
     const messages = buildExtractionPrompt(promptParams);
 
@@ -116,6 +117,7 @@ export class LLMProductExtractor {
       structuredFacts: options.structuredFacts,
       categoryCandidates: options.categoryCandidates ?? [],
       ...(opts.categoryHint ? { categoryHint: opts.categoryHint } : {}),
+      ...(opts.structuredHints ? { structuredHints: opts.structuredHints } : {}),
     };
     const messages = buildExtractionPrompt(promptParams);
 

@@ -14,6 +14,8 @@ export interface LLMExtractionOptions {
   temperature?: number;
   /** Category hint provided by the user or auto-detected. */
   categoryHint?: string;
+  /** Phase 1 (richness plan): structured hints from the fetcher (JSON-LD, meta tags, etc). */
+  structuredHints?: StructuredHints;
 }
 
 /** Result from the LLM extraction process. */
@@ -69,6 +71,7 @@ export const DEFAULT_LLM_OPTIONS: Required<LLMExtractionOptions> = {
   maxTokens: 4096,
   temperature: 0.1,
   categoryHint: "",
+  structuredHints: {},
 };
 
 /**
