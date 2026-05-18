@@ -19,7 +19,20 @@ export function cleanHtml(rawHtml: string): CleanResult {
   text = text.replace(/<svg[\s\S]*?<\/svg>/gi, " ");
   text = text.replace(/<nav[\s\S]*?<\/nav>/gi, " ");
   text = text.replace(/<footer[\s\S]*?<\/footer>/gi, " ");
-  text = text.replace(/<img[^>]*alt=["']([^"']*)["'][^>]*>/gi, " $1 ");
+  text = text.replace(/<img\b[^>]*>/gi, (tag) => {
+    const src =
+      tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-original=["']([^"']+)["']/i)?.[1] ??
+      null;
+    const srcset = tag.match(/\bsrcset=["']([^"']+)["']/i)?.[1];
+    const alt = tag.match(/\balt=["']([^"']*)["']/i)?.[1];
+    if (!src && !srcset) return " ";
+    const urls = [src, srcset?.split(",").pop()?.trim().split(" ")[0]]
+      .filter(Boolean)
+      .join(" | ");
+    return ` [img: ${urls}${alt ? ` | alt=${alt}` : ""}] `;
+  });
   text = text.replace(
     /<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
     " $2 ($1) "
@@ -65,7 +78,32 @@ function extractStructuredBlocks(html: string): StructuredBlocks {
   const apolloState = parseWindowAssignment(html, "__APOLLO_STATE__");
   const initialState = parseWindowAssignment(html, "__INITIAL_STATE__");
 
-  return { jsonLd, nextData, apolloState, initialState };
+  const images: { url: string; alt: string | null; srcset: string | null }[] = [];
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    const tag = m[0]!;
+    const src =
+      tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-original=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-zoom-image=["']([^"']+)["']/i)?.[1] ??
+      null;
+    if (!src) continue;
+    const alt = tag.match(/\balt=["']([^"']*)["']/i)?.[1] ?? null;
+    const srcset = tag.match(/\bsrcset=["']([^"']+)["']/i)?.[1] ?? null;
+    images.push({ url: src, alt, srcset });
+  }
+
+  return {
+    jsonLd,
+    nextData,
+    apolloState,
+    initialState,
+    metaTags: {},
+    linkTags: {},
+    microdata: [],
+    images,
+    breadcrumbs: []
+  };
 }
 
 function parseInlineScriptById(

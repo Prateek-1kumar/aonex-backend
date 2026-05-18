@@ -63,3 +63,26 @@ describe("cleanHtml", () => {
     expect(cleanHtml(bewakoofHtml).captchaSignal).toBe(false);
   });
 });
+
+describe("cleanHtml — image preservation", () => {
+  it("preserves <img src> as [img: URL] marker in cleanedText", () => {
+    const html = '<html><body><img src="https://cdn.x.com/a.jpg" alt="Red shoe"></body></html>';
+    const r = cleanHtml(html);
+    expect(r.cleanedText).toContain("[img: https://cdn.x.com/a.jpg");
+    expect(r.cleanedText).toContain("alt=Red shoe");
+  });
+
+  it("captures src + alt + srcset into structuredBlocks.images", () => {
+    const html = '<img src="https://x.com/lo.jpg" srcset="https://x.com/lo.jpg 1x, https://x.com/hi.jpg 2x" alt="Hat">';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.images).toEqual([
+      { url: "https://x.com/lo.jpg", alt: "Hat", srcset: "https://x.com/lo.jpg 1x, https://x.com/hi.jpg 2x" }
+    ]);
+  });
+
+  it("captures data-src for lazy-loaded images", () => {
+    const html = '<img data-src="https://x.com/lazy.jpg" alt="Shirt">';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.images[0]?.url).toBe("https://x.com/lazy.jpg");
+  });
+});
