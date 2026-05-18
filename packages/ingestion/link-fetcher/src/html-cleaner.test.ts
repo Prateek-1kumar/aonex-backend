@@ -86,3 +86,31 @@ describe("cleanHtml — image preservation", () => {
     expect(r.structuredBlocks.images[0]?.url).toBe("https://x.com/lazy.jpg");
   });
 });
+
+describe("cleanHtml — meta/link/microdata extraction", () => {
+  it("captures og:image and og:price:amount into metaTags", () => {
+    const html = `<head>
+      <meta property="og:image" content="https://x.com/hero.jpg">
+      <meta property="og:price:amount" content="39.99">
+      <meta name="twitter:image" content="https://x.com/tw.jpg">
+    </head>`;
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.metaTags["og:image"]).toBe("https://x.com/hero.jpg");
+    expect(r.structuredBlocks.metaTags["og:price:amount"]).toBe("39.99");
+    expect(r.structuredBlocks.metaTags["twitter:image"]).toBe("https://x.com/tw.jpg");
+  });
+
+  it("captures itemprop microdata", () => {
+    const html = '<span itemprop="brand" content="Sony">Sony</span><span itemprop="sku">XM5</span>';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.microdata).toContainEqual({ prop: "brand", value: "Sony" });
+    expect(r.structuredBlocks.microdata).toContainEqual({ prop: "sku", value: "XM5" });
+  });
+
+  it("captures link rel=canonical/image_src into linkTags", () => {
+    const html = '<link rel="canonical" href="https://x.com/p/1"><link rel="image_src" href="https://x.com/i.jpg">';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.linkTags["canonical"]).toBe("https://x.com/p/1");
+    expect(r.structuredBlocks.linkTags["image_src"]).toBe("https://x.com/i.jpg");
+  });
+});
