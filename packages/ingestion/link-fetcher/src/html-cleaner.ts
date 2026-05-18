@@ -93,6 +93,19 @@ function extractStructuredBlocks(html: string): StructuredBlocks {
     images.push({ url: src, alt, srcset });
   }
 
+  for (const m of html.matchAll(/<source\b[^>]*\bsrcset=["']([^"']+)["'][^>]*>/gi)) {
+    const url = m[1]!.split(",").pop()!.trim().split(" ")[0]!;
+    if (url) images.push({ url, alt: null, srcset: m[1]! });
+  }
+
+  for (const m of html.matchAll(/<noscript[^>]*>([\s\S]*?)<\/noscript>/gi)) {
+    const inner = m[1]!;
+    for (const im of inner.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
+      const alt = im[0]!.match(/\balt=["']([^"']*)["']/i)?.[1] ?? null;
+      images.push({ url: im[1]!, alt, srcset: null });
+    }
+  }
+
   const metaTags: Record<string, string> = {};
   for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
     const tag = m[0]!;
@@ -120,6 +133,16 @@ function extractStructuredBlocks(html: string): StructuredBlocks {
     if (value) microdata.push({ prop, value });
   }
 
+  const breadcrumbs: string[] = [];
+  const navMatch = html.match(/<(nav|ol|ul)[^>]*class=["'][^"']*breadcrumb[^"']*["'][^>]*>([\s\S]*?)<\/\1>/i);
+  if (navMatch) {
+    const inner = navMatch[2]!;
+    for (const m of inner.matchAll(/>([^<]{1,80})</g)) {
+      const t = m[1]!.trim();
+      if (t && t !== ">" && t !== "/" && t !== "›") breadcrumbs.push(t);
+    }
+  }
+
   return {
     jsonLd,
     nextData,
@@ -129,7 +152,7 @@ function extractStructuredBlocks(html: string): StructuredBlocks {
     linkTags,
     microdata,
     images,
-    breadcrumbs: []
+    breadcrumbs
   };
 }
 
