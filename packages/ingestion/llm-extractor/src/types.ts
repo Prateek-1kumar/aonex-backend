@@ -40,25 +40,82 @@ export interface LLMExtractionResult {
 
 /** Shape of the JSON the LLM should return (before validation). */
 export interface LLMRawProductOutput {
-  title?: string;
-  brand?: string;
-  gtin?: string;
-  model_number?: string;
-  description?: string;
-  base_price?: number;
-  currency?: string;
-  category_path?: string;
+  // Identity
+  title?: string | null;
+  brand?: string | null;
+  gtin?: string | null;
+  mpn?: string | null;
+  model_number?: string | null;
+  sku?: string | null;
+
+  // Descriptions
+  description?: string | null;             // legacy — keep for back-compat
+  description_short?: string | null;
+  description_long?: string | null;
+  highlights?: string[];
+
+  // Taxonomy
+  category_path?: string | null;
   category_confidence?: number;
-  images?: Array<{ url: string; alt_text?: string }>;
-  attributes?: Record<string, unknown>;
-  variants?: Array<{
-    sku?: string;
-    barcode?: string;
-    price?: number;
-    option_values?: Record<string, string>;
-    inventory_quantity?: number;
+  breadcrumbs?: string[];
+
+  // Pricing (legacy base_price kept for back-compat with old prompts)
+  base_price?: number | null;
+  currency?: string | null;
+  pricing?: {
+    list_price?: number | null;
+    sale_price?: number | null;
+    currency?: string | null;
+    discount_percent?: number | null;
+    price_per_unit?: string | null;
+  };
+
+  // Social proof
+  ratings?: { average?: number | null; count?: number | null };
+  seller?: { name?: string | null; is_official?: boolean | null };
+
+  // Images (richer)
+  images?: Array<{
+    url: string;
+    role?: "hero" | "gallery" | "swatch" | "lifestyle" | "spec" | "video_thumb";
+    position?: number;
+    alt_text?: string | null;
+    width?: number | null;
+    height?: number | null;
+    variant_refs?: string[];
   }>;
+
+  options?: Array<{ name: string; values: string[] }>;
+
+  // Variants
+  variants?: Array<{
+    sku?: string | null;
+    barcode?: string | null;
+    option_values?: Record<string, string>;
+    pricing?: { list_price?: number | null; sale_price?: number | null; currency?: string | null };
+    image_urls?: string[];
+    // legacy fields kept:
+    price?: number | null;
+    inventory_quantity?: number | null;
+  }>;
+
+  // Category-specific attributes
+  attributes?: Record<string, { value: unknown; unit?: string | null; source?: string } | unknown>;
+
+  // Logistics
+  shipping?: {
+    free_shipping?: boolean | null;
+    shipping_cost?: number | null;
+    weight?: { value: number; unit: string } | null;
+    dimensions?: { length: number; width: number; height: number; unit: string } | null;
+  };
+  warranty?: string | null;
+  return_policy?: string | null;
+
+  // Meta
   _field_confidence?: Record<string, number>;
+  _correction_notes?: Record<string, string>;
+  error?: string | null;
 }
 
 /** Extractor version identifier — bump when prompt or parsing logic changes. */

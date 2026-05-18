@@ -12,32 +12,87 @@ import type { LLMRawProductOutput } from "./types.js";
 /** Zod schema for validating the LLM's JSON response. */
 const ImageSchema = z.object({
   url: z.string().url().optional().default(""),
+  role: z.enum(["hero","gallery","swatch","lifestyle","spec","video_thumb"]).optional(),
+  position: z.number().int().optional(),
   alt_text: z.string().nullable().optional().default(null),
-});
+  width: z.number().int().nullable().optional().default(null),
+  height: z.number().int().nullable().optional().default(null),
+  variant_refs: z.array(z.string()).optional().default([])
+}).passthrough();
+
+const PricingObjectSchema = z.object({
+  list_price: z.number().nullable().optional().default(null),
+  sale_price: z.number().nullable().optional().default(null),
+  currency: z.string().max(3).nullable().optional().default(null),
+  discount_percent: z.number().nullable().optional().default(null),
+  price_per_unit: z.string().nullable().optional().default(null)
+}).passthrough();
 
 const VariantSchema = z.object({
   sku: z.string().nullable().optional().default(null),
   barcode: z.string().nullable().optional().default(null),
   price: z.number().nullable().optional().default(null),
+  pricing: PricingObjectSchema.optional(),
   option_values: z.record(z.string()).optional().default({}),
   inventory_quantity: z.number().int().nullable().optional().default(null),
-});
+  image_urls: z.array(z.string()).optional().default([])
+}).passthrough();
+
+const ShippingSchema = z.object({
+  free_shipping: z.boolean().nullable().optional().default(null),
+  shipping_cost: z.number().nullable().optional().default(null),
+  weight: z.object({ value: z.number(), unit: z.string() }).nullable().optional().default(null),
+  dimensions: z.object({
+    length: z.number(),
+    width: z.number(),
+    height: z.number(),
+    unit: z.string()
+  }).nullable().optional().default(null)
+}).passthrough();
 
 const LLMOutputSchema = z.object({
   title: z.string().nullable().optional().default(null),
   brand: z.string().nullable().optional().default(null),
   gtin: z.string().nullable().optional().default(null),
+  mpn: z.string().nullable().optional().default(null),
   model_number: z.string().nullable().optional().default(null),
+  sku: z.string().nullable().optional().default(null),
+
   description: z.string().nullable().optional().default(null),
-  base_price: z.number().nullable().optional().default(null),
-  currency: z.string().max(3).nullable().optional().default(null),
+  description_short: z.string().nullable().optional().default(null),
+  description_long: z.string().nullable().optional().default(null),
+  highlights: z.array(z.string()).optional().default([]),
+
   category_path: z.string().nullable().optional().default(null),
   category_confidence: z.number().min(0).max(1).optional().default(0.5),
+  breadcrumbs: z.array(z.string()).optional().default([]),
+
+  base_price: z.number().nullable().optional().default(null),
+  currency: z.string().max(3).nullable().optional().default(null),
+  pricing: PricingObjectSchema.optional(),
+
+  ratings: z.object({
+    average: z.number().nullable().optional().default(null),
+    count: z.number().nullable().optional().default(null)
+  }).optional().default({ average: null, count: null }),
+
+  seller: z.object({
+    name: z.string().nullable().optional().default(null),
+    is_official: z.boolean().nullable().optional().default(null)
+  }).optional().default({ name: null, is_official: null }),
+
   images: z.array(ImageSchema).optional().default([]),
-  attributes: z.record(z.unknown()).optional().default({}),
+  options: z.array(z.object({ name: z.string(), values: z.array(z.string()) })).optional().default([]),
   variants: z.array(VariantSchema).optional().default([]),
+  attributes: z.record(z.unknown()).optional().default({}),
+
+  shipping: ShippingSchema.optional(),
+  warranty: z.string().nullable().optional().default(null),
+  return_policy: z.string().nullable().optional().default(null),
+
   error: z.string().nullable().optional(),
   _field_confidence: z.record(z.number().min(0).max(1)).optional(),
+  _correction_notes: z.record(z.string()).optional()
 });
 
 /**
@@ -130,6 +185,98 @@ export function convertToExtractedFacts(
     );
   }
 
+  // Pricing object (if present, overrides legacy base_price)
+  const p = output.pricing;
+  if (p) {
+    if (p.list_price != null) {
+      facts.push(makeFact("list_price", p.list_price, p.list_price, `LLM extracted list price from ${sourceUrl}`, confidenceFor("list_price", output)));
+    }
+    if (p.sale_price != null) {
+      facts.push(makeFact("sale_price", p.sale_price, p.sale_price, `LLM extracted sale price from ${sourceUrl}`, confidenceFor("sale_price", output)));
+    }
+    if (p.discount_percent != null) {
+      facts.push(makeFact("discount_percent", p.discount_percent, p.discount_percent, `LLM extracted discount percent from ${sourceUrl}`, confidenceFor("discount_percent", output)));
+    }
+    if (p.price_per_unit) {
+      facts.push(makeFact("price_per_unit", p.price_per_unit, p.price_per_unit, `LLM extracted price per unit from ${sourceUrl}`, confidenceFor("price_per_unit", output)));
+    }
+    if (p.currency && !output.currency) {
+      facts.push(makeFact("currency", p.currency, p.currency.toUpperCase(), `LLM extracted currency from ${sourceUrl}`, confidenceFor("currency", output)));
+    }
+  }
+
+  // Ratings
+  if (output.ratings) {
+    if (output.ratings.average != null) {
+      facts.push(makeFact("rating_average", output.ratings.average, output.ratings.average, `LLM extracted rating average from ${sourceUrl}`, confidenceFor("rating_average", output)));
+    }
+    if (output.ratings.count != null) {
+      facts.push(makeFact("rating_count", output.ratings.count, output.ratings.count, `LLM extracted rating count from ${sourceUrl}`, confidenceFor("rating_count", output)));
+    }
+  }
+
+  // Seller
+  if (output.seller?.name) {
+    facts.push(makeFact("seller_name", output.seller.name, output.seller.name, `LLM extracted seller name from ${sourceUrl}`, confidenceFor("seller_name", output)));
+  }
+  if (output.seller?.is_official != null) {
+    facts.push(makeFact("seller_is_official", output.seller.is_official, output.seller.is_official, `LLM extracted seller official flag from ${sourceUrl}`, confidenceFor("seller_is_official", output)));
+  }
+
+  // Highlights and breadcrumbs
+  if (output.highlights && output.highlights.length > 0) {
+    facts.push(makeFact("highlights", output.highlights, output.highlights, `LLM extracted ${output.highlights.length} highlights from ${sourceUrl}`, confidenceFor("highlights", output)));
+  }
+  if (output.breadcrumbs && output.breadcrumbs.length > 0) {
+    facts.push(makeFact("breadcrumbs", output.breadcrumbs, output.breadcrumbs, `LLM extracted breadcrumbs from ${sourceUrl}`, confidenceFor("breadcrumbs", output)));
+  }
+
+  // Options
+  if (output.options && output.options.length > 0) {
+    facts.push(makeFact("options", output.options, output.options, `LLM extracted option groups from ${sourceUrl}`, confidenceFor("options", output)));
+  }
+
+  // Shipping
+  if (output.shipping) {
+    const s = output.shipping;
+    if (s.free_shipping != null) {
+      facts.push(makeFact("shipping_free", s.free_shipping, s.free_shipping, `LLM extracted free-shipping flag from ${sourceUrl}`, confidenceFor("shipping_free", output)));
+    }
+    if (s.shipping_cost != null) {
+      facts.push(makeFact("shipping_cost", s.shipping_cost, s.shipping_cost, `LLM extracted shipping cost from ${sourceUrl}`, confidenceFor("shipping_cost", output)));
+    }
+    if (s.weight != null) {
+      facts.push(makeFact("weight", s.weight, s.weight, `LLM extracted weight from ${sourceUrl}`, confidenceFor("weight", output), s.weight.unit));
+    }
+    if (s.dimensions != null) {
+      facts.push(makeFact("dimensions", s.dimensions, s.dimensions, `LLM extracted dimensions from ${sourceUrl}`, confidenceFor("dimensions", output), s.dimensions.unit));
+    }
+  }
+
+  // Warranty / return policy
+  if (output.warranty) {
+    facts.push(makeFact("warranty", output.warranty, output.warranty, `LLM extracted warranty from ${sourceUrl}`, confidenceFor("warranty", output)));
+  }
+  if (output.return_policy) {
+    facts.push(makeFact("return_policy", output.return_policy, output.return_policy, `LLM extracted return policy from ${sourceUrl}`, confidenceFor("return_policy", output)));
+  }
+
+  // Identity additions
+  if (output.mpn) {
+    facts.push(makeFact("mpn", output.mpn, output.mpn.trim(), `LLM extracted MPN from ${sourceUrl}`, confidenceFor("mpn", output)));
+  }
+  if (output.sku) {
+    facts.push(makeFact("sku", output.sku, output.sku.trim(), `LLM extracted SKU from ${sourceUrl}`, confidenceFor("sku", output)));
+  }
+
+  // Long/short description
+  if (output.description_short) {
+    facts.push(makeFact("description_short", output.description_short, output.description_short, `LLM extracted short description from ${sourceUrl}`, confidenceFor("description_short", output)));
+  }
+  if (output.description_long) {
+    facts.push(makeFact("description_long", output.description_long, output.description_long, `LLM extracted long description from ${sourceUrl}`, confidenceFor("description_long", output)));
+  }
+
   // Category as a fact (for category detector to process)
   if (output.category_path) {
     facts.push(
@@ -153,12 +300,18 @@ export function convertToExtractedFacts(
 
   // Category-specific attributes
   if (output.attributes) {
-    for (const [key, value] of Object.entries(output.attributes)) {
-      if (value != null && value !== "") {
-        facts.push(
-          makeFact(key, value, value, `LLM extracted attribute '${key}' from ${sourceUrl}`, confidenceFor(key, output))
-        );
+    for (const [key, raw] of Object.entries(output.attributes)) {
+      if (raw == null || raw === "") continue;
+      let value: unknown = raw;
+      let unit: string | null = null;
+      if (raw && typeof raw === "object" && "value" in (raw as Record<string, unknown>)) {
+        const obj = raw as { value: unknown; unit?: string | null };
+        value = obj.value;
+        unit = obj.unit ?? null;
       }
+      facts.push(
+        makeFact(key, value, value, `LLM extracted attribute '${key}' from ${sourceUrl}`, confidenceFor(key, output), unit)
+      );
     }
   }
 
@@ -187,6 +340,23 @@ export function convertToExtractedFacts(
             makeFact(`variants[${i}].option.${optName}`, optValue, optValue, `LLM extracted variant option from ${sourceUrl}`, variantConf)
           );
         }
+      }
+      if (variant.pricing) {
+        if (variant.pricing.list_price != null) {
+          facts.push(
+            makeFact(`variants[${i}].list_price`, variant.pricing.list_price, variant.pricing.list_price, `LLM extracted variant list price from ${sourceUrl}`, variantConf)
+          );
+        }
+        if (variant.pricing.sale_price != null) {
+          facts.push(
+            makeFact(`variants[${i}].sale_price`, variant.pricing.sale_price, variant.pricing.sale_price, `LLM extracted variant sale price from ${sourceUrl}`, variantConf)
+          );
+        }
+      }
+      if (variant.image_urls && variant.image_urls.length > 0) {
+        facts.push(
+          makeFact(`variants[${i}].image_urls`, variant.image_urls, variant.image_urls, `LLM extracted variant images from ${sourceUrl}`, variantConf)
+        );
       }
     });
   }
