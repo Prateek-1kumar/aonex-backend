@@ -8,6 +8,7 @@ import {
   pruneNextData
 } from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
+import { convertFromFacts } from "@aonex/ingestion-enrichment";
 import { runDomHeuristics } from "@aonex/ingestion-dom-heuristics";
 import {
   fetchWithBrowser,
@@ -436,12 +437,36 @@ class LinkAdapter implements IngestionAdapter {
       }
     }
 
+    const allFacts = [...upstreamFacts, ...visionFacts];
+
+    // Phase 3 richness: synthesize a rich SKU JSON via the enrichment pass.
+    // og:image is best-effort — used by image-role-classifier to bias the hero pick.
+    const metaTags = cached.fetchResult.structuredBlocks.metaTags ?? {};
+    const ogImage =
+      metaTags["og:image"] ??
+      metaTags["og:image:url"] ??
+      metaTags["og:image:secure_url"] ??
+      null;
+    const skuJson = convertFromFacts(allFacts, cached.fetchResult.finalUrl, { ogImage });
+
+    // Decorate _extraction_meta with provenance from this run so the trace UI
+    // can show which layers fired and how far we escalated.
+    skuJson._extraction_meta.passes_run = [
+      ...(perSiteFacts.length > 0 ? ["per_site"] : []),
+      "structured",
+      "dom",
+      ...(llmFacts.length > 0 ? ["llm-gap-fill"] : []),
+      ...(visionFacts.length > 0 ? ["vision"] : [])
+    ];
+    skuJson._extraction_meta.escalated_to = cached.escalatedTo;
+
     return {
       artifactId: envelope.sourceExternalId as never,
       marketplace: "link_url",
       extractorVersion: LLM_EXTRACTOR_VERSION,
-      facts: [...upstreamFacts, ...visionFacts],
-      extractedAt: new Date()
+      facts: allFacts,
+      extractedAt: new Date(),
+      skuJson
     };
   }
 }
