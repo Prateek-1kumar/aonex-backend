@@ -102,6 +102,9 @@ describe("LinkAdapter — vision tier-3 (Layer F)", () => {
           sourceAlternatives: null, confidence: 0.85, approved: false },
         { rawKey: "title", canonicalPath: null, extractedValue: "X", normalizedValue: null, unit: null,
           sourcePointer: "dom:title", extractionMethod: "inferred", mappingMethod: null, mappingCandidates: null,
+          sourceAlternatives: null, confidence: 0.85, approved: false },
+        { rawKey: "images", canonicalPath: null, extractedValue: ["http://example.com/img.jpg"], normalizedValue: null, unit: null,
+          sourcePointer: "dom:images", extractionMethod: "inferred", mappingMethod: null, mappingCandidates: null,
           sourceAlternatives: null, confidence: 0.85, approved: false }
       ] }),
       findPerSiteParser: () => null,
@@ -119,7 +122,7 @@ describe("LinkAdapter — vision tier-3 (Layer F)", () => {
   it("does NOT call vision when visionExtractor is null (no API key)", async () => {
     let visionCalls = 0;
     let screenshotCalls = 0;
-    // Manually pass undefined; the constructor will default to null when no env key
+    // Omit visionExtractor; the constructor will default to null when no env key
     // We simulate by checking that no call happens.
     const adapter = createLinkAdapter({
       fetcher: makeFetcher(SIZE_CHART_HTML),
@@ -128,9 +131,7 @@ describe("LinkAdapter — vision tier-3 (Layer F)", () => {
       domHeuristics: () => ({ facts: [] }),
       findPerSiteParser: () => null,
       screenshotFetcher: async () => { screenshotCalls++; return { rawHtml: "", finalUrl: "", statusCode: 200, fetchDurationMs: 0, screenshotBase64: "" }; },
-      // visionExtractor omitted — the constructor checks env; if absent, defaults to null.
-      // Pass explicit null-like behavior by mocking the env check via a no-op visionExtractor.
-      visionExtractor: undefined,
+      // visionExtractor omitted — the constructor checks env; if absent, defaults to null
       cache: new InMemoryEscalationCache()
     });
 

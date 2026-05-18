@@ -420,7 +420,8 @@ class LinkAdapter implements IngestionAdapter {
     const visionDecision = shouldEscalateToVision({
       rawHtml: cached.finalRawHtml,
       hasTextPrice: upstreamFacts.some((f) => f.rawKey === "base_price"),
-      upstreamFactCount: upstreamFacts.length
+      upstreamFactCount: upstreamFacts.length,
+      upstreamFactKeys: upstreamFacts.map((f) => f.rawKey)
     });
     if (visionDecision.escalate && this.deps.visionExtractor) {
       try {
