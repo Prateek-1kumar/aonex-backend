@@ -32,6 +32,7 @@ import { findParserForUrl } from "@aonex/per-site-parsers";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
 import { sha256Hex } from "@aonex/lib-utils";
 import { FileEscalationCache, type IEscalationCache } from "./escalation-cache.js";
+import { BudgetTracker } from "./budget.js";
 
 // Local AdapterInput type — internal to ingestion-spine, not re-exported.
 interface AdapterInput {
@@ -339,6 +340,11 @@ class LinkAdapter implements IngestionAdapter {
 
     const finalUrl = cached.fetchResult.finalUrl;
 
+    // Per-URL budget (soft cap on LLM/vision calls, wall time, cost).
+    // When exceeded, downstream tiers are skipped and skuJson._extraction_meta
+    // carries `budget_exceeded: true` so the orchestrator can flag partial output.
+    const budget = new BudgetTracker();
+
     // Layer G — per-site parser (highest priority)
     let perSiteFacts: ExtractedFact[] = [];
     const perSiteParser = this.deps.findPerSiteParser(finalUrl);
@@ -382,7 +388,7 @@ class LinkAdapter implements IngestionAdapter {
     const filledKeys = new Set<string>(baseFacts.map((f) => f.rawKey));
     const gaps = SCHEMA_FIELDS.filter((k) => !filledKeys.has(k));
 
-    if (gaps.length > 0) {
+    if (gaps.length > 0 && budget.canCallLlm()) {
       try {
         const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
         const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
@@ -408,6 +414,7 @@ class LinkAdapter implements IngestionAdapter {
             }
           }
         );
+        budget.recordLlm(r.estimatedCostUsd ?? 0);
         llmFacts.push(...r.facts);
       } catch {
         // LLM error — keep base facts; absent facts surface in trace
@@ -423,7 +430,7 @@ class LinkAdapter implements IngestionAdapter {
       upstreamFactCount: upstreamFacts.length,
       upstreamFactKeys: upstreamFacts.map((f) => f.rawKey)
     });
-    if (visionDecision.escalate && this.deps.visionExtractor) {
+    if (visionDecision.escalate && this.deps.visionExtractor && budget.canCallVision()) {
       try {
         const screenshot = await this.deps.screenshotFetcher(cached.fetchResult.finalUrl, {
           timeoutMs: 20_000
@@ -432,6 +439,7 @@ class LinkAdapter implements IngestionAdapter {
           screenshotBase64: screenshot.screenshotBase64,
           pageUrl: cached.fetchResult.finalUrl
         });
+        budget.recordVision(visionResult.estimatedCostUsd ?? 0);
         visionFacts.push(...visionResult.facts);
       } catch {
         // Vision failed (screenshot or API error) — don't fail the extract.
@@ -460,6 +468,14 @@ class LinkAdapter implements IngestionAdapter {
       ...(visionFacts.length > 0 ? ["vision"] : [])
     ];
     skuJson._extraction_meta.escalated_to = cached.escalatedTo;
+
+    // Budget snapshot — surfaces real cost/latency in _extraction_meta and
+    // flags `budget_exceeded` when the soft cap was hit during this URL's run.
+    const bs = budget.snapshot();
+    skuJson._extraction_meta.tokens_used = 0; // tokens already aggregated upstream; keep 0 unless plumbed
+    skuJson._extraction_meta.cost_usd = bs.costUsd;
+    skuJson._extraction_meta.latency_ms = bs.wallMs;
+    if (bs.exceeded) skuJson._extraction_meta.budget_exceeded = true;
 
     return {
       artifactId: envelope.sourceExternalId as never,
