@@ -1,5 +1,6 @@
 import type { ChatMessage } from "./providers/types.js";
 import type { PromptBuildParams } from "./types.js";
+import { pickAttributeSchema } from "./attribute-schemas.js";
 
 export function buildExtractionPrompt(params: PromptBuildParams): ChatMessage[] {
   return [systemMessage(params), userMessage(params)];
@@ -37,6 +38,13 @@ function renderStructuredHints(p: PromptBuildParams): string {
 function systemMessage(params: PromptBuildParams): ChatMessage {
   const gapMode = params.gaps && params.gaps.length > 0;
   const categories = params.categoryCandidates ?? [];
+  const topCategory = (params.categoryCandidates ?? [])[0] ?? null;
+  const attrSchema = pickAttributeSchema(topCategory, 0.7);
+  const attrHintBlock = `
+## CATEGORY-SPECIFIC ATTRIBUTES
+For attributes, extract these keys when present (category: ${attrSchema.category}):
+${attrSchema.keys.map((k) => `- ${k}`).join("\n")}`;
+
   return {
     role: "system",
     content: `You are a product data extraction assistant.
@@ -61,7 +69,7 @@ Confidence MUST be honest. The system uses your confidence to decide auto-approv
 
 ## CATEGORIES
 ${categories.length === 0 ? "(no category candidates supplied)" : categories.map((c) => `- ${c}`).join("\n")}
-${renderStructuredHints(params)}
+${renderStructuredHints(params)}${attrHintBlock}
 
 ## STRUCTURED FACTS (already extracted — do NOT override unless you are sure they are wrong)
 ${(params.structuredFacts ?? []).map((f) => `  ${f.rawKey} = ${JSON.stringify(f.value)} (source: ${f.source})`).join("\n") || "  (none)"}
