@@ -36,3 +36,41 @@ describe("buildExtractionPrompt", () => {
     expect(msgs[0]!.content).toContain("apparel/shirts");
   });
 });
+
+describe("buildExtractionPrompt — structured hints", () => {
+  it("includes JSON-LD blocks in system message when provided", () => {
+    const msgs = buildExtractionPrompt({
+      cleanedText: "x",
+      url: "https://x.com",
+      structuredHints: { jsonLd: [{ "@type": "Product", name: "S" }] }
+    });
+    expect(msgs[0]!.content).toContain("JSON-LD");
+    expect(msgs[0]!.content).toContain('"@type": "Product"');
+  });
+
+  it("includes meta tags formatted as key=value", () => {
+    const msgs = buildExtractionPrompt({
+      cleanedText: "x",
+      url: "https://x.com",
+      structuredHints: { metaTags: { "og:image": "https://x.com/i.jpg" } }
+    });
+    expect(msgs[0]!.content).toContain("og:image");
+    expect(msgs[0]!.content).toContain("https://x.com/i.jpg");
+  });
+
+  it("lists raw image URLs (cap 30)", () => {
+    const urls = Array.from({ length: 40 }, (_, i) => `https://x.com/${i}.jpg`);
+    const msgs = buildExtractionPrompt({
+      cleanedText: "x",
+      url: "https://x.com",
+      structuredHints: { rawImageUrls: urls }
+    });
+    expect(msgs[0]!.content).toContain("https://x.com/0.jpg");
+    expect(msgs[0]!.content).not.toContain("https://x.com/30.jpg");
+  });
+
+  it("emits no STRUCTURED HINTS section when hints is undefined", () => {
+    const msgs = buildExtractionPrompt({ cleanedText: "x", url: "https://x.com" });
+    expect(msgs[0]!.content).not.toContain("STRUCTURED HINTS");
+  });
+});

@@ -88,6 +88,14 @@ export interface LLMGapFillOptions extends LLMExtractionOptions {
   categoryCandidates?: string[];
 }
 
+export interface StructuredHints {
+  jsonLd?: Record<string, unknown>[];
+  metaTags?: Record<string, string>;
+  microdata?: { prop: string; value: string }[];
+  rawImageUrls?: string[];
+  nextDataProductSubtree?: unknown;
+}
+
 export interface PromptBuildParams {
   cleanedText: string;
   url: string;
@@ -100,4 +108,5 @@ export interface PromptBuildParams {
   /** Category-required attributes for the (suspected) category, for prompting context. */
   categoryRequiredAttributes?: string[];
   categoryHint?: string;
+  structuredHints?: StructuredHints;
 }
