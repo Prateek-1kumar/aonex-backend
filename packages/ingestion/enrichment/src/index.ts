@@ -5,3 +5,11 @@ export { normalizeImageUrls, type RawImg, type NormalizedImg } from "./image-nor
 export { classifyImageRoles, type ImageRole, type RoledImg } from "./image-role-classifier.js";
 export { linkVariantsToImages, type VariantInput, type LinkedVariant } from "./variant-image-linker.js";
 export { parseUnit } from "./unit-parser.js";
+export {
+  validatePricing,
+  validateGtin,
+  dedupeVariantSkus,
+  type ValidationWarning,
+  type ValidationResult,
+  type PricingInput
+} from "./sanity-validators.js";
