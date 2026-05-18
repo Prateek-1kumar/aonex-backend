@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createLinkAdapter } from "./link-adapter.js";
+import { InMemoryEscalationCache } from "./escalation-cache.js";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 import type { VisionCallResult } from "@aonex/vision-extractor";
 import type { FetchBrowserWithScreenshotResult } from "@aonex/ingestion-browser-fallback";
@@ -76,7 +77,8 @@ describe("LinkAdapter — vision tier-3 (Layer F)", () => {
       domHeuristics: () => ({ facts: [] }),
       findPerSiteParser: () => null,
       screenshotFetcher: async () => { screenshotCalls++; return screenshotStub; },
-      visionExtractor: async () => { visionCalls++; return visionResult; }
+      visionExtractor: async () => { visionCalls++; return visionResult; },
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];
@@ -104,7 +106,8 @@ describe("LinkAdapter — vision tier-3 (Layer F)", () => {
       ] }),
       findPerSiteParser: () => null,
       screenshotFetcher: async () => ({ rawHtml: "", finalUrl: "", statusCode: 200, fetchDurationMs: 0, screenshotBase64: "" }),
-      visionExtractor: async () => { visionCalls++; return { facts: [], modelName: "x", modelVersion: "x", promptTokens: 0, completionTokens: 0, estimatedCostUsd: 0 }; }
+      visionExtractor: async () => { visionCalls++; return { facts: [], modelName: "x", modelVersion: "x", promptTokens: 0, completionTokens: 0, estimatedCostUsd: 0 }; },
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];
@@ -127,7 +130,8 @@ describe("LinkAdapter — vision tier-3 (Layer F)", () => {
       screenshotFetcher: async () => { screenshotCalls++; return { rawHtml: "", finalUrl: "", statusCode: 200, fetchDurationMs: 0, screenshotBase64: "" }; },
       // visionExtractor omitted — the constructor checks env; if absent, defaults to null.
       // Pass explicit null-like behavior by mocking the env check via a no-op visionExtractor.
-      visionExtractor: undefined
+      visionExtractor: undefined,
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];
@@ -151,7 +155,8 @@ describe("LinkAdapter — vision tier-3 (Layer F)", () => {
       domHeuristics: () => ({ facts: [] }),
       findPerSiteParser: () => null,
       screenshotFetcher: async () => { throw new Error("screenshot timeout"); },
-      visionExtractor: async () => ({ facts: [], modelName: "x", modelVersion: "x", promptTokens: 0, completionTokens: 0, estimatedCostUsd: 0 })
+      visionExtractor: async () => ({ facts: [], modelName: "x", modelVersion: "x", promptTokens: 0, completionTokens: 0, estimatedCostUsd: 0 }),
+      cache: new InMemoryEscalationCache()
     });
     const envs: IngestionEnvelope[] = [];
     for await (const e of adapter.normalize({ sourceRef: "https://shop.example/p/123" })) envs.push(e);

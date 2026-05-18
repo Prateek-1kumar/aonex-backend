@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createLinkAdapter } from "./link-adapter.js";
+import { InMemoryEscalationCache } from "./escalation-cache.js";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 
 // Short HTML — triggers escalation: body_under_30kb + no_structured_data +
@@ -73,7 +74,8 @@ describe("LinkAdapter escalation ladder", () => {
         browserCalls++;
         return { rawHtml: "<browser/>", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 };
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -98,7 +100,8 @@ describe("LinkAdapter escalation ladder", () => {
           fetchDurationMs: 50
         };
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -123,7 +126,8 @@ describe("LinkAdapter escalation ladder", () => {
           return { rawHtml: "<unblocked/>", finalUrl: "https://x/y", costCredits: 5, durationMs: 100 };
         }
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -147,7 +151,8 @@ describe("LinkAdapter escalation ladder", () => {
           throw new Error("unblock failed");
         }
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -178,7 +183,8 @@ describe("LinkAdapter escalation ladder", () => {
           fetchDurationMs: 50
         };
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -207,7 +213,8 @@ describe("LinkAdapter escalation ladder", () => {
           };
         }
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -226,7 +233,8 @@ describe("LinkAdapter escalation ladder", () => {
       llmExtractor: NOOP_LLM_EXTRACTOR,
       browserFetcher: async () => { throw new Error("browser blocked"); },
       // No unblockAdapter — bail out
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     // The original fetch error propagates (so the worker's failure-review-task
@@ -263,7 +271,8 @@ describe("LinkAdapter escalation ladder", () => {
         requiresBrowser: true,
         extract: async () => []
       }),
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -296,7 +305,8 @@ describe("LinkAdapter escalation ladder", () => {
       // Inject null parser lookup so we test the captcha signal path in isolation,
       // not the per-site `requiresBrowser` short-circuit.
       findPerSiteParser: () => null,
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
