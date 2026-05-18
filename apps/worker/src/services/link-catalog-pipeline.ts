@@ -576,7 +576,7 @@ function buildCanonicalPayload(input: {
     currency: stringValue(best.get("currency"))?.toUpperCase() ?? null,
     canonicalCategory:
       stringValue(best.get("canonicalCategory")) ?? input.suggestedCategory,
-    images: imageValue(best.get("images")),
+    images: imageValue(best.get("images"), input.facts),
     attributes,
     variants: variantValue(input.facts, stringValue(best.get("currency"))),
     evidence: {
@@ -610,17 +610,52 @@ function numberValue(fact: ExtractedFact | undefined): number | null {
   return null;
 }
 
-function imageValue(fact: ExtractedFact | undefined): Array<{ url: string; altText?: string }> {
+function imageValue(
+  fact: ExtractedFact | undefined,
+  allFacts: ExtractedFact[]
+): Array<{ url: string; altText?: string }> {
+  // Primary path: LLM extracts a single `images` fact whose value is an array.
+  // Accept both legacy `{url, altText}` and new SkuImage-ish `{url, alt}` shapes.
   const value = fact?.normalizedValue ?? fact?.extractedValue;
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!isRecord(item) || typeof item.url !== "string") return [];
-    const image: { url: string; altText?: string } = { url: item.url };
-    if (typeof item.altText === "string" && item.altText.trim()) {
-      image.altText = item.altText;
-    }
-    return [image];
-  });
+  if (Array.isArray(value)) {
+    const fromArray = value.flatMap((item) => {
+      if (!isRecord(item) || typeof item.url !== "string") return [];
+      const image: { url: string; altText?: string } = { url: item.url };
+      const alt = item.altText ?? item.alt ?? item.alt_text;
+      if (typeof alt === "string" && alt.trim()) image.altText = alt;
+      return [image];
+    });
+    if (fromArray.length > 0) return dedupeImages(fromArray);
+  }
+
+  // Fallback: DOM heuristics emit one fact per image as rawKey="image_url"
+  // with `extractedValue` = the URL string. Without this fallback, every
+  // DOM-scraped image is dropped on the floor when the LLM doesn't echo
+  // images back in its JSON.
+  const fromDom = allFacts
+    .filter((f) => f.rawKey === "image_url")
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+    .flatMap((f) => {
+      const url = typeof f.normalizedValue === "string"
+        ? f.normalizedValue
+        : (typeof f.extractedValue === "string" ? f.extractedValue : null);
+      if (!url || !/^https?:\/\//i.test(url)) return [];
+      return [{ url } as { url: string; altText?: string }];
+    });
+  return dedupeImages(fromDom);
+}
+
+function dedupeImages(
+  images: Array<{ url: string; altText?: string }>
+): Array<{ url: string; altText?: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ url: string; altText?: string }> = [];
+  for (const img of images) {
+    if (seen.has(img.url)) continue;
+    seen.add(img.url);
+    out.push(img);
+  }
+  return out;
 }
 
 function variantValue(facts: ExtractedFact[], fallbackCurrency: string | null) {
