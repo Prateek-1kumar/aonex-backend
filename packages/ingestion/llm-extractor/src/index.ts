@@ -17,3 +17,4 @@ export {
 export { compressJsonLd } from "./jsonld-compressor.js";
 export { pruneNextData } from "./nextdata-pruner.js";
 export { pickAttributeSchema, ATTRIBUTE_SCHEMAS, type AttributeBucket, type AttributeSchema } from "./attribute-schemas.js";
+export { pickModel, decideTextBudget, truncateCenterPreserving, type ModelChoice } from "./tier-router.js";
