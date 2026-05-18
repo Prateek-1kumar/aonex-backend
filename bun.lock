@@ -212,6 +212,14 @@
         "@aonex/types": "workspace:*",
       },
     },
+    "packages/ingestion/enrichment": {
+      "name": "@aonex/ingestion-enrichment",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/ingestion-field-extractor": "workspace:*",
+        "@aonex/types": "workspace:*",
+      },
+    },
     "packages/ingestion/field-extractor": {
       "name": "@aonex/ingestion-field-extractor",
       "version": "0.1.0",
@@ -392,6 +400,8 @@
     "@aonex/ingestion-deduplicator": ["@aonex/ingestion-deduplicator@workspace:packages/ingestion/deduplicator"],
 
     "@aonex/ingestion-dom-heuristics": ["@aonex/ingestion-dom-heuristics@workspace:packages/ingestion-dom-heuristics"],
+
+    "@aonex/ingestion-enrichment": ["@aonex/ingestion-enrichment@workspace:packages/ingestion/enrichment"],
 
     "@aonex/ingestion-field-extractor": ["@aonex/ingestion-field-extractor@workspace:packages/ingestion/field-extractor"],
 
