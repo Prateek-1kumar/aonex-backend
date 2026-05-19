@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createLinkAdapter } from "./link-adapter.js";
+import { InMemoryEscalationCache } from "./escalation-cache.js";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 
 // Short, structureless HTML triggers the escalation signal (body_under_30kb +
@@ -24,7 +25,7 @@ describe("LinkAdapter", () => {
         // Short HTML triggers escalation; browserFetcher stub returns same HTML.
         rawHtml: "<html></html>",
         cleanedText: "",
-        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
         captchaSignal: false,
         fetchedAt: new Date(),
         contentChecksum: "abc"
@@ -54,7 +55,8 @@ describe("LinkAdapter", () => {
       // Stub browser fetcher — prevents real Playwright from launching in tests.
       browserFetcher: STUB_BROWSER_FETCHER,
       // Stub DOM heuristics — keeps this test focused on envelope shape only.
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];

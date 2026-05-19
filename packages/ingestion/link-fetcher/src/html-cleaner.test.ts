@@ -63,3 +63,89 @@ describe("cleanHtml", () => {
     expect(cleanHtml(bewakoofHtml).captchaSignal).toBe(false);
   });
 });
+
+describe("cleanHtml — image preservation", () => {
+  it("preserves <img src> as [img: URL] marker in cleanedText", () => {
+    const html = '<html><body><img src="https://cdn.x.com/a.jpg" alt="Red shoe"></body></html>';
+    const r = cleanHtml(html);
+    expect(r.cleanedText).toContain("[img: https://cdn.x.com/a.jpg");
+    expect(r.cleanedText).toContain("alt=Red shoe");
+  });
+
+  it("captures src + alt + srcset into structuredBlocks.images", () => {
+    const html = '<img src="https://x.com/lo.jpg" srcset="https://x.com/lo.jpg 1x, https://x.com/hi.jpg 2x" alt="Hat">';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.images).toEqual([
+      { url: "https://x.com/lo.jpg", alt: "Hat", srcset: "https://x.com/lo.jpg 1x, https://x.com/hi.jpg 2x" }
+    ]);
+  });
+
+  it("captures data-src for lazy-loaded images", () => {
+    const html = '<img data-src="https://x.com/lazy.jpg" alt="Shirt">';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.images[0]?.url).toBe("https://x.com/lazy.jpg");
+  });
+});
+
+describe("cleanHtml — meta/link/microdata extraction", () => {
+  it("captures og:image and og:price:amount into metaTags", () => {
+    const html = `<head>
+      <meta property="og:image" content="https://x.com/hero.jpg">
+      <meta property="og:price:amount" content="39.99">
+      <meta name="twitter:image" content="https://x.com/tw.jpg">
+    </head>`;
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.metaTags["og:image"]).toBe("https://x.com/hero.jpg");
+    expect(r.structuredBlocks.metaTags["og:price:amount"]).toBe("39.99");
+    expect(r.structuredBlocks.metaTags["twitter:image"]).toBe("https://x.com/tw.jpg");
+  });
+
+  it("captures itemprop microdata", () => {
+    const html = '<span itemprop="brand" content="Sony">Sony</span><span itemprop="sku">XM5</span>';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.microdata).toContainEqual({ prop: "brand", value: "Sony" });
+    expect(r.structuredBlocks.microdata).toContainEqual({ prop: "sku", value: "XM5" });
+  });
+
+  it("captures link rel=canonical/image_src into linkTags", () => {
+    const html = '<link rel="canonical" href="https://x.com/p/1"><link rel="image_src" href="https://x.com/i.jpg">';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.linkTags["canonical"]).toBe("https://x.com/p/1");
+    expect(r.structuredBlocks.linkTags["image_src"]).toBe("https://x.com/i.jpg");
+  });
+});
+
+describe("cleanHtml — picture/noscript/breadcrumbs", () => {
+  it("captures <source srcset> inside <picture>", () => {
+    const html = '<picture><source srcset="https://x.com/big.jpg 1600w"><img src="https://x.com/small.jpg" alt="X"></picture>';
+    const r = cleanHtml(html);
+    const urls = r.structuredBlocks.images.map((i) => i.url);
+    expect(urls).toContain("https://x.com/big.jpg");
+  });
+
+  it("captures img inside <noscript>", () => {
+    const html = '<noscript><img src="https://x.com/real.jpg" alt="real"></noscript>';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.images.map((i) => i.url)).toContain("https://x.com/real.jpg");
+  });
+
+  it("captures breadcrumbs from nav.breadcrumb", () => {
+    const html = '<nav class="breadcrumb"><a>Home</a><a>Electronics</a><a>Headphones</a></nav>';
+    const r = cleanHtml(html);
+    expect(r.structuredBlocks.breadcrumbs).toEqual(["Home", "Electronics", "Headphones"]);
+  });
+});
+
+describe("cleanHtml — region markers", () => {
+  it("wraps product title region with [PRODUCT_TITLE]", () => {
+    const html = '<h1 class="product-title">Sony WH-1000XM5</h1>';
+    const r = cleanHtml(html);
+    expect(r.cleanedText).toMatch(/\[PRODUCT_TITLE\][\s\S]*Sony WH-1000XM5/);
+  });
+
+  it("wraps description region with [DESCRIPTION]", () => {
+    const html = '<div id="product-description">Best in class noise cancellation.</div>';
+    const r = cleanHtml(html);
+    expect(r.cleanedText).toMatch(/\[DESCRIPTION\][\s\S]*Best in class/);
+  });
+});

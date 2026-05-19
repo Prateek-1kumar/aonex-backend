@@ -12,6 +12,7 @@ import { QUEUE, TenantId, MerchantId } from "@aonex/types";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
+import { convertFromFacts, type SkuJson } from "@aonex/ingestion-enrichment";
 
 const LinkIngestionBodySchema = z.object({
   /** The URL to extract product data from. Must be HTTP or HTTPS. */
@@ -291,6 +292,48 @@ export function ingestionsRoutes(deps: IngestionsRouteDeps) {
       )
       .orderBy(schema.auditEvents.createdAt);
 
+    // Load the latest extracted fact set for this artifact and rebuild SkuJson on-demand.
+    // Computing on-demand (rather than persisting skuJson) avoids a DB migration and keeps
+    // the trace endpoint a thin view over the canonical extracted_facts table.
+    let sku: SkuJson | null = null;
+    try {
+      const factSet = await deps.db.query.extractedFactSets.findFirst({
+        where: (f, { eq }) => eq(f.artifactId, id),
+        orderBy: (f, { desc }) => desc(f.createdAt),
+      });
+      if (factSet) {
+        const factRows = await deps.db
+          .select()
+          .from(schema.extractedFacts)
+          .where(eq(schema.extractedFacts.factSetId, factSet.id));
+
+        const facts = factRows.map((r) => ({
+          rawKey: r.rawKey,
+          canonicalPath: r.canonicalPath ?? null,
+          extractedValue: r.extractedValue,
+          normalizedValue: r.normalizedValue,
+          unit: r.unit ?? null,
+          sourcePointer: r.sourcePointer ?? "",
+          extractionMethod: r.extractionMethod ?? null,
+          mappingMethod: r.mappingMethod ?? null,
+          mappingCandidates: r.mappingCandidates ?? null,
+          sourceAlternatives: r.sourceAlternatives ?? null,
+          // numeric columns come back as strings from node-postgres — coerce to number
+          confidence: r.confidence != null ? Number(r.confidence) : 0,
+          approved: r.approved ?? false,
+        }));
+
+        const finalUrl = artifact.sourceExternalId ?? "";
+        const ogImage =
+          ((artifact.rawData as { ogImage?: string | null } | null) ?? {}).ogImage ?? null;
+        sku = convertFromFacts(facts as never, finalUrl, { ogImage });
+      }
+    } catch (err) {
+      // Don't fail the whole trace response if SkuJson rebuild fails — log and continue.
+      // eslint-disable-next-line no-console
+      console.warn("[trace] failed to rebuild SkuJson:", err);
+    }
+
     return c.json({
       data: {
         artifact: {
@@ -307,6 +350,7 @@ export function ingestionsRoutes(deps: IngestionsRouteDeps) {
           created_at: e.createdAt,
           metadata: e.metadata,
         })),
+        sku,
       },
     });
   });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createLinkAdapter } from "./link-adapter.js";
+import { InMemoryEscalationCache } from "./escalation-cache.js";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 
 // Short HTML — triggers escalation: body_under_30kb + no_structured_data +
@@ -27,7 +28,12 @@ function makeFetcher(
       jsonLd: opts?.jsonLd ?? [],
       nextData: opts?.nextData ?? null,
       apolloState: null,
-      initialState: null
+      initialState: null,
+      metaTags: {},
+      linkTags: {},
+      microdata: [],
+      images: [],
+      breadcrumbs: []
     },
     captchaSignal: false,
     fetchedAt: new Date(),
@@ -68,7 +74,8 @@ describe("LinkAdapter escalation ladder", () => {
         browserCalls++;
         return { rawHtml: "<browser/>", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 };
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -93,7 +100,8 @@ describe("LinkAdapter escalation ladder", () => {
           fetchDurationMs: 50
         };
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -118,7 +126,8 @@ describe("LinkAdapter escalation ladder", () => {
           return { rawHtml: "<unblocked/>", finalUrl: "https://x/y", costCredits: 5, durationMs: 100 };
         }
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -142,7 +151,8 @@ describe("LinkAdapter escalation ladder", () => {
           throw new Error("unblock failed");
         }
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -173,7 +183,8 @@ describe("LinkAdapter escalation ladder", () => {
           fetchDurationMs: 50
         };
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -202,7 +213,8 @@ describe("LinkAdapter escalation ladder", () => {
           };
         }
       },
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -221,7 +233,8 @@ describe("LinkAdapter escalation ladder", () => {
       llmExtractor: NOOP_LLM_EXTRACTOR,
       browserFetcher: async () => { throw new Error("browser blocked"); },
       // No unblockAdapter — bail out
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     // The original fetch error propagates (so the worker's failure-review-task
@@ -241,7 +254,7 @@ describe("LinkAdapter escalation ladder", () => {
           url: "https://amazon.com/dp/X", finalUrl: "https://amazon.com/dp/X",
           statusCode: 200, contentType: "text/html",
           rawHtml: "<html>static</html>", cleanedText: "",
-          structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+          structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
           captchaSignal: false, fetchedAt: new Date(), contentChecksum: "abc"
         };
       },
@@ -258,7 +271,8 @@ describe("LinkAdapter escalation ladder", () => {
         requiresBrowser: true,
         extract: async () => []
       }),
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];
@@ -278,7 +292,7 @@ describe("LinkAdapter escalation ladder", () => {
         statusCode: 200, contentType: "text/html",
         rawHtml: "<html><body>Enter the captcha</body></html>".repeat(500),
         cleanedText: "",
-        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
         captchaSignal: true,    // ← the new escalation trigger
         fetchedAt: new Date(),
         contentChecksum: "abc"
@@ -291,7 +305,8 @@ describe("LinkAdapter escalation ladder", () => {
       // Inject null parser lookup so we test the captcha signal path in isolation,
       // not the per-site `requiresBrowser` short-circuit.
       findPerSiteParser: () => null,
-      domHeuristics: () => ({ facts: [] })
+      domHeuristics: () => ({ facts: [] }),
+      cache: new InMemoryEscalationCache()
     });
 
     const envelopes: IngestionEnvelope[] = [];

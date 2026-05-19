@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
+import { convertFromFacts, type SkuJson } from "@aonex/ingestion-enrichment";
 
 export interface CatalogRouteDeps {
   db: DrizzleClient;
@@ -48,6 +49,102 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
         };
       })
     );
+
+    // Rich-only mode: when persisted images is empty (rows promoted before
+    // the image-leak fix), recompute thumbnails from extractedFacts so the
+    // list view lights up without re-ingesting. We do this in a single batched
+    // query for all stale rows to keep the list endpoint O(1) DB roundtrips
+    // regardless of product count.
+    const staleRows = hydrated.filter(
+      (r) =>
+        r.current_version &&
+        Array.isArray(r.current_version.images) &&
+        r.current_version.images.length === 0 &&
+        r.current_version.proposedDiffId
+    );
+
+    if (staleRows.length > 0) {
+      const diffIds = staleRows.map((r) => r.current_version!.proposedDiffId as string);
+      const diffs = await deps.db
+        .select({ id: schema.proposedDiffs.id, factSetId: schema.proposedDiffs.sourceFactSetId })
+        .from(schema.proposedDiffs)
+        .where(inArray(schema.proposedDiffs.id, diffIds));
+
+      const factSetIds = diffs.map((d) => d.factSetId).filter((id): id is string => Boolean(id));
+
+      if (factSetIds.length > 0) {
+        // Single query: all image_url / images facts for every stale row.
+        const factRows = await deps.db
+          .select()
+          .from(schema.extractedFacts)
+          .where(
+            and(
+              inArray(schema.extractedFacts.factSetId, factSetIds),
+              inArray(schema.extractedFacts.rawKey, ["image_url", "images"])
+            )
+          );
+
+        // Index facts by factSetId.
+        const byFactSet = new Map<string, typeof factRows>();
+        for (const f of factRows) {
+          const arr = byFactSet.get(f.factSetId) ?? [];
+          arr.push(f);
+          byFactSet.set(f.factSetId, arr);
+        }
+
+        // Index diff → factSet.
+        const diffToFactSet = new Map(diffs.map((d) => [d.id, d.factSetId]));
+
+        for (const row of staleRows) {
+          const diffId = row.current_version!.proposedDiffId as string;
+          const factSetId = diffToFactSet.get(diffId);
+          if (!factSetId) continue;
+          const facts = byFactSet.get(factSetId) ?? [];
+
+          // Prefer plural "images" array fact if present; else aggregate image_url facts.
+          const plural = facts.find((f) => f.rawKey === "images");
+          const pluralValue = plural?.normalizedValue ?? plural?.extractedValue;
+          let images: Array<{ url: string; altText?: string }> = [];
+          if (Array.isArray(pluralValue)) {
+            images = pluralValue.flatMap((it) => {
+              if (!it || typeof it !== "object") return [];
+              const obj = it as Record<string, unknown>;
+              const url = typeof obj.url === "string" ? obj.url : null;
+              if (!url) return [];
+              const alt = obj.altText ?? obj.alt ?? obj.alt_text;
+              return [
+                typeof alt === "string" && alt.trim()
+                  ? { url, altText: alt }
+                  : { url },
+              ];
+            });
+          }
+          if (images.length === 0) {
+            images = facts
+              .filter((f) => f.rawKey === "image_url")
+              .sort((a, b) => Number(b.confidence ?? 0) - Number(a.confidence ?? 0))
+              .flatMap((f) => {
+                const v = (f.normalizedValue ?? f.extractedValue) as unknown;
+                const url = typeof v === "string" ? v : null;
+                if (!url || !/^https?:\/\//i.test(url)) return [];
+                return [{ url }];
+              });
+          }
+          // Dedupe + cap at 12 for list rendering.
+          const seen = new Set<string>();
+          const deduped: Array<{ url: string; altText?: string }> = [];
+          for (const img of images) {
+            if (seen.has(img.url)) continue;
+            seen.add(img.url);
+            deduped.push(img);
+            if (deduped.length >= 12) break;
+          }
+          if (deduped.length > 0 && row.current_version) {
+            row.current_version = { ...row.current_version, images: deduped };
+          }
+        }
+      }
+    }
 
     return c.json({ data: { products: hydrated } });
   });
@@ -225,6 +322,96 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
         fields,
       },
     });
+  });
+
+  /**
+   * GET /products/:id/sku — rebuild the rich SkuJson for a catalog product.
+   *
+   * Walks: product → currentVersionId → proposedDiff → sourceFactSet →
+   * extractedFacts → convertFromFacts(facts, sourceUrl). Computed on-demand
+   * (rather than persisted on product_versions) so no DB migration is needed
+   * and the rendering always reflects the latest enrichment logic.
+   */
+  app.get("/products/:id/sku", async (c) => {
+    const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+    const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+    const productId = c.req.param("id");
+
+    const product = await deps.db.query.products.findFirst({
+      where: (p, { and, eq }) =>
+        and(eq(p.id, productId), eq(p.tenantId, tenantId), eq(p.merchantId, merchantId)),
+    });
+    if (!product) {
+      return c.json({ error: { code: "NOT_FOUND", message: "Product not found" } }, 404);
+    }
+
+    if (!product.currentVersionId) {
+      return c.json({ data: { sku: null } });
+    }
+
+    const version = await deps.db.query.productVersions.findFirst({
+      where: (v, { eq }) => eq(v.id, product.currentVersionId as string),
+    });
+    if (!version || !version.proposedDiffId) {
+      return c.json({ data: { sku: null } });
+    }
+
+    const diff = await deps.db.query.proposedDiffs.findFirst({
+      where: (d, { eq }) => eq(d.id, version.proposedDiffId as string),
+    });
+    if (!diff?.sourceFactSetId) {
+      return c.json({ data: { sku: null } });
+    }
+
+    let sku: SkuJson | null = null;
+    try {
+      const factRows = await deps.db
+        .select()
+        .from(schema.extractedFacts)
+        .where(eq(schema.extractedFacts.factSetId, diff.sourceFactSetId));
+
+      const facts = factRows.map((r) => ({
+        rawKey: r.rawKey,
+        canonicalPath: r.canonicalPath ?? null,
+        extractedValue: r.extractedValue,
+        normalizedValue: r.normalizedValue,
+        unit: r.unit ?? null,
+        sourcePointer: r.sourcePointer ?? "",
+        extractionMethod: r.extractionMethod ?? null,
+        mappingMethod: r.mappingMethod ?? null,
+        mappingCandidates: r.mappingCandidates ?? null,
+        sourceAlternatives: r.sourceAlternatives ?? null,
+        confidence: r.confidence != null ? Number(r.confidence) : 0,
+        approved: r.approved ?? false,
+      }));
+
+      // Recover sourceUrl from the diff's source artifact (via extraction_run).
+      const factSet = await deps.db.query.extractedFactSets.findFirst({
+        where: (f, { eq }) => eq(f.id, diff.sourceFactSetId as string),
+      });
+      let finalUrl = "";
+      let ogImage: string | null = null;
+      if (factSet?.extractionRunId) {
+        const run = await deps.db.query.extractionRuns.findFirst({
+          where: (r, { eq }) => eq(r.id, factSet.extractionRunId),
+        });
+        if (run?.artifactId) {
+          const artifact = await deps.db.query.sourceArtifacts.findFirst({
+            where: (a, { eq }) => eq(a.id, run.artifactId),
+          });
+          finalUrl = artifact?.sourceExternalId ?? "";
+          ogImage =
+            ((artifact?.rawData as { ogImage?: string | null } | null) ?? {}).ogImage ?? null;
+        }
+      }
+
+      sku = convertFromFacts(facts as never, finalUrl, { ogImage });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("[catalog] failed to rebuild SkuJson:", err);
+    }
+
+    return c.json({ data: { sku } });
   });
 
   return app;
