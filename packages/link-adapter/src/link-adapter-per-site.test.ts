@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createLinkAdapter } from "./link-adapter.js";
+import { InMemoryEscalationCache } from "./escalation-cache.js";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
@@ -12,7 +13,7 @@ function makeFetcher(html: string) {
     contentType: "text/html",
     rawHtml: html,
     cleanedText: "",
-    structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+    structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
     captchaSignal: false,
     fetchedAt: new Date(),
     contentChecksum: "abc"
@@ -82,7 +83,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
         fetchDurationMs: 0
       }),
       domHeuristics: () => ({ facts: [] }),
-      findPerSiteParser: () => matchedParser
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
     });
 
     // Normalize first to populate the cache
@@ -108,7 +110,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
       llmExtractor: STUB_LLM as never,
       browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
       domHeuristics: () => ({ facts: [fact("title", "Generic loses", "dom_heuristic:title", 0.85)] }),
-      findPerSiteParser: () => matchedParser
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];
@@ -139,7 +142,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
           fact("base_price", 99, "dom:price", 0.85)
         ]
       }),
-      findPerSiteParser: () => matchedParser
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
     });
 
     const envs: IngestionEnvelope[] = [];
@@ -156,7 +160,8 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
       llmExtractor: STUB_LLM as never,
       browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
       domHeuristics: () => ({ facts: [fact("title", "DOM only", "dom:title", 0.85)] }),
-      findPerSiteParser: () => null
+      findPerSiteParser: () => null,
+      cache: new InMemoryEscalationCache()
     });
     const envs: IngestionEnvelope[] = [];
     for await (const e of adapter.normalize({ sourceRef: "https://x/y" })) envs.push(e);
@@ -178,11 +183,111 @@ describe("LinkAdapter — per-site parser integration (Layer G)", () => {
       llmExtractor: STUB_LLM as never,
       browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
       domHeuristics: () => ({ facts: [fact("title", "Generic survived", "dom:title", 0.85)] }),
-      findPerSiteParser: () => failingParser
+      findPerSiteParser: () => failingParser,
+      cache: new InMemoryEscalationCache()
     });
     const envs: IngestionEnvelope[] = [];
     for await (const e of adapter.normalize({ sourceRef: "https://x/y" })) envs.push(e);
     const result = await adapter.extract(envs[0]!);
     expect(result.facts.find((f: ExtractedFact) => f.rawKey === "title")?.extractedValue).toBe("Generic survived");
+  });
+
+  it("calls LLM gap-fill when base facts are non-empty (always-on)", async () => {
+    // Track invocations manually (bun:test doesn't have vi.fn()).
+    let extractCalls = 0;
+    let gapFillCalls = 0;
+    let lastGapFillArgs: { gaps: string[]; structuredFactsCount: number } | null = null;
+
+    const trackingLLM = {
+      extract: async () => {
+        extractCalls++;
+        return {
+          facts: [],
+          suggestedCategory: null,
+          categoryConfidence: 0,
+          modelName: "t",
+          modelVersion: "t",
+          promptTokens: 0,
+          completionTokens: 0,
+          estimatedCostUsd: 0
+        };
+      },
+      extractGapFill: async (
+        _cleanedText: string,
+        _url: string,
+        _artifactId: never,
+        options: { gaps: string[]; structuredFacts: unknown[] }
+      ) => {
+        gapFillCalls++;
+        lastGapFillArgs = {
+          gaps: options.gaps,
+          structuredFactsCount: options.structuredFacts.length
+        };
+        return {
+          facts: [
+            {
+              rawKey: "images",
+              extractedValue: [],
+              normalizedValue: [{ url: "https://x.com/h.jpg", altText: null }],
+              unit: null,
+              sourcePointer: "",
+              extractionMethod: "inferred",
+              canonicalPath: null,
+              mappingMethod: null,
+              mappingCandidates: null,
+              sourceAlternatives: null,
+              confidence: 0.8,
+              approved: false
+            } as ExtractedFact
+          ],
+          suggestedCategory: null,
+          categoryConfidence: 0,
+          modelName: "t",
+          modelVersion: "t",
+          promptTokens: 0,
+          completionTokens: 0,
+          estimatedCostUsd: 0
+        };
+      }
+    };
+
+    // Per-site parser produces a non-empty baseFacts set with title + base_price.
+    const matchedParser: PerSiteParser = {
+      domains: ["x"],
+      priority: 100,
+      fingerprint: "test@1.0",
+      requiresBrowser: false,
+      extract: async () => [
+        fact("title", "Anchor title", "per-site:title", 0.95),
+        fact("base_price", 42, "per-site:price", 0.95)
+      ]
+    };
+
+    const adapter = createLinkAdapter({
+      fetcher: makeFetcher("<html><body>" + "x".repeat(40000) + "</body></html>"),
+      llmExtractor: trackingLLM as never,
+      browserFetcher: async () => ({ rawHtml: "", finalUrl: "https://x/y", statusCode: 200, fetchDurationMs: 0 }),
+      domHeuristics: () => ({ facts: [] }),
+      findPerSiteParser: () => matchedParser,
+      cache: new InMemoryEscalationCache()
+    });
+
+    const envs: IngestionEnvelope[] = [];
+    for await (const e of adapter.normalize({ sourceRef: "https://x/y" })) envs.push(e);
+    const result = await adapter.extract(envs[0]!);
+
+    // The legacy `extract` path must NOT be called — gap-fill replaces it.
+    expect(extractCalls).toBe(0);
+    // The new gap-fill path MUST be called even though baseFacts is non-empty.
+    expect(gapFillCalls).toBe(1);
+    expect(lastGapFillArgs).not.toBeNull();
+    // Gaps should include images (not produced by per-site), and exclude title/base_price.
+    expect(lastGapFillArgs!.gaps).toContain("images");
+    expect(lastGapFillArgs!.gaps).not.toContain("title");
+    expect(lastGapFillArgs!.gaps).not.toContain("base_price");
+    // Anchored on the 2 per-site facts.
+    expect(lastGapFillArgs!.structuredFactsCount).toBe(2);
+    // The LLM-supplied images fact appears in the merged output.
+    expect(result.facts.find((f: ExtractedFact) => f.rawKey === "images")).toBeDefined();
   });
 });

@@ -1,8 +1,14 @@
 import type { IngestionAdapter, IngestionEnvelope } from "@aonex/ingestion-spine";
 import { fetchLink, type LinkFetchResult } from "@aonex/ingestion-link-fetcher";
 import { extractStructured } from "@aonex/ingestion-structured";
-import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
+import {
+  LLMProductExtractor,
+  LLM_EXTRACTOR_VERSION,
+  compressJsonLd,
+  pruneNextData
+} from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
+import { convertFromFacts } from "@aonex/ingestion-enrichment";
 import { runDomHeuristics } from "@aonex/ingestion-dom-heuristics";
 import {
   fetchWithBrowser,
@@ -25,6 +31,8 @@ import {
 import { findParserForUrl } from "@aonex/per-site-parsers";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
 import { sha256Hex } from "@aonex/lib-utils";
+import { FileEscalationCache, type IEscalationCache } from "./escalation-cache.js";
+import { BudgetTracker } from "./budget.js";
 
 // Local AdapterInput type — internal to ingestion-spine, not re-exported.
 interface AdapterInput {
@@ -71,6 +79,9 @@ export interface LinkAdapterDeps {
   /** Layer F — vision LLM call. When omitted AND GROQ_API_KEY/OPENAI_API_KEY env is set, defaults to callVision with that key.
    *  When omitted AND env unset, vision is DISABLED (signal can fire but no extraction). */
   visionExtractor?: VisionExtractor;
+  /** Cold-path escalation cache. Defaults to FileEscalationCache at ESCALATION_CACHE_PATH
+   *  (or /tmp/aonex-escalation.json). Stubbable for tests (InMemoryEscalationCache). */
+  cache?: IEscalationCache;
 }
 
 interface CacheEntry {
@@ -93,6 +104,7 @@ class LinkAdapter implements IngestionAdapter {
     screenshotFetcher: ScreenshotFetcher;
     /** Null when no API key is available — vision is disabled in that case. */
     visionExtractor: VisionExtractor | null;
+    cache: IEscalationCache;
   };
   private readonly cache = new Map<string, CacheEntry>();
 
@@ -110,7 +122,8 @@ class LinkAdapter implements IngestionAdapter {
       domHeuristics: deps.domHeuristics ?? runDomHeuristics,
       findPerSiteParser: deps.findPerSiteParser ?? findParserForUrl,
       screenshotFetcher: deps.screenshotFetcher ?? fetchWithBrowserAndScreenshot,
-      visionExtractor: deps.visionExtractor !== undefined ? deps.visionExtractor : defaultVision
+      visionExtractor: deps.visionExtractor !== undefined ? deps.visionExtractor : defaultVision,
+      cache: deps.cache ?? new FileEscalationCache(process.env["ESCALATION_CACHE_PATH"] ?? "/tmp/aonex-escalation.json")
     };
   }
 
@@ -249,7 +262,7 @@ class LinkAdapter implements IngestionAdapter {
         contentType: resolvedContentType,
         rawHtml: finalRawHtml,
         cleanedText: "",
-        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null },
+        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
         captchaSignal: false,
         fetchedAt: new Date(),
         contentChecksum: checksum
@@ -258,6 +271,15 @@ class LinkAdapter implements IngestionAdapter {
       escalatedTo,
       costCredits,
       escalationReasons
+    });
+
+    // Persist escalation state to disk so cold-path retries (worker restart)
+    // can replay the browser/unblock decision instead of silently falling
+    // back to static-only.
+    await this.deps.cache.set(resolvedFinalUrl, {
+      escalatedTo,
+      reasons: escalationReasons,
+      costCredits
     });
 
     const hints = input.hints;
@@ -292,7 +314,19 @@ class LinkAdapter implements IngestionAdapter {
   async extract(envelope: IngestionEnvelope): Promise<ExtractedFactSet> {
     const cached = this.cache.get(envelope.sourceExternalId);
     if (!cached) {
-      // Cold adapter — re-fetch statically (no escalation since we don't know coverage)
+      // Cold adapter — check the persistent escalation cache. If this URL
+      // previously needed browser/unblock, replay the ladder by re-running
+      // normalize(); otherwise fall back to a plain static re-fetch.
+      const prior = await this.deps.cache.get(envelope.sourceExternalId);
+      if (prior && prior.escalatedTo !== "static") {
+        const it = this.normalize({ sourceRef: envelope.sourceExternalId });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for await (const _ of it) {
+          /* consume; populates this.cache */
+        }
+        return this.extract(envelope);
+      }
+      // Static-only fallback
       const result = await this.deps.fetcher(envelope.sourceExternalId);
       this.cache.set(envelope.sourceExternalId, {
         fetchResult: result,
@@ -305,6 +339,11 @@ class LinkAdapter implements IngestionAdapter {
     }
 
     const finalUrl = cached.fetchResult.finalUrl;
+
+    // Per-URL budget (soft cap on LLM/vision calls, wall time, cost).
+    // When exceeded, downstream tiers are skipped and skuJson._extraction_meta
+    // carries `budget_exceeded: true` so the orchestrator can flag partial output.
+    const budget = new BudgetTracker();
 
     // Layer G — per-site parser (highest priority)
     let perSiteFacts: ExtractedFact[] = [];
@@ -334,15 +373,52 @@ class LinkAdapter implements IngestionAdapter {
     // Merge: per-site wins on rawKey collisions (highest-priority Layer G)
     const baseFacts = mergeFactsWithPriority(perSiteFacts, [...structured.structured.facts, ...dom.facts]);
 
-    // LLM gap-fill ONLY if everything above produced nothing
+    // LLM gap-fill — always on. Compute schema fields not yet filled by Layers A/B/G
+    // and ask the LLM to fill ONLY those gaps (anchored by the facts we already have).
     const llmFacts: ExtractedFactSet["facts"] = [];
-    if (baseFacts.length === 0) {
-      const r = await this.deps.llmExtractor.extract(
-        cached.fetchResult.cleanedText,
-        cached.fetchResult.finalUrl,
-        envelope.sourceExternalId as never
-      );
-      llmFacts.push(...r.facts);
+    const SCHEMA_FIELDS = [
+      "title","brand","gtin","mpn","model_number","description","base_price","currency",
+      "images","variants","productType",
+      "sale_price","list_price","discount_percent","price_per_unit",
+      "rating_average","rating_count","seller_name",
+      "highlights","breadcrumbs","return_policy","warranty",
+      "shipping_free","shipping_cost","weight","dimensions"
+    ] as const;
+
+    const filledKeys = new Set<string>(baseFacts.map((f) => f.rawKey));
+    const gaps = SCHEMA_FIELDS.filter((k) => !filledKeys.has(k));
+
+    if (gaps.length > 0 && budget.canCallLlm()) {
+      try {
+        const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
+        const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
+        const rawImageUrls = (cached.fetchResult.structuredBlocks.images ?? []).map((i) => i.url);
+
+        const r = await this.deps.llmExtractor.extractGapFill(
+          cached.fetchResult.cleanedText,
+          cached.fetchResult.finalUrl,
+          envelope.sourceExternalId as never,
+          {
+            gaps: [...gaps],
+            structuredFacts: baseFacts.map((f) => ({
+              rawKey: f.rawKey,
+              value: f.normalizedValue ?? f.extractedValue,
+              source: f.extractionMethod ?? "structured"
+            })),
+            structuredHints: {
+              jsonLd: compressed,
+              metaTags: cached.fetchResult.structuredBlocks.metaTags ?? {},
+              microdata: cached.fetchResult.structuredBlocks.microdata ?? [],
+              rawImageUrls,
+              nextDataProductSubtree: nextSub
+            }
+          }
+        );
+        budget.recordLlm(r.estimatedCostUsd ?? 0);
+        llmFacts.push(...r.facts);
+      } catch {
+        // LLM error — keep base facts; absent facts surface in trace
+      }
     }
 
     // Layer F — vision tier-3 (Phase 9)
@@ -351,9 +427,10 @@ class LinkAdapter implements IngestionAdapter {
     const visionDecision = shouldEscalateToVision({
       rawHtml: cached.finalRawHtml,
       hasTextPrice: upstreamFacts.some((f) => f.rawKey === "base_price"),
-      upstreamFactCount: upstreamFacts.length
+      upstreamFactCount: upstreamFacts.length,
+      upstreamFactKeys: upstreamFacts.map((f) => f.rawKey)
     });
-    if (visionDecision.escalate && this.deps.visionExtractor) {
+    if (visionDecision.escalate && this.deps.visionExtractor && budget.canCallVision()) {
       try {
         const screenshot = await this.deps.screenshotFetcher(cached.fetchResult.finalUrl, {
           timeoutMs: 20_000
@@ -362,18 +439,51 @@ class LinkAdapter implements IngestionAdapter {
           screenshotBase64: screenshot.screenshotBase64,
           pageUrl: cached.fetchResult.finalUrl
         });
+        budget.recordVision(visionResult.estimatedCostUsd ?? 0);
         visionFacts.push(...visionResult.facts);
       } catch {
         // Vision failed (screenshot or API error) — don't fail the extract.
       }
     }
 
+    const allFacts = [...upstreamFacts, ...visionFacts];
+
+    // Phase 3 richness: synthesize a rich SKU JSON via the enrichment pass.
+    // og:image is best-effort — used by image-role-classifier to bias the hero pick.
+    const metaTags = cached.fetchResult.structuredBlocks.metaTags ?? {};
+    const ogImage =
+      metaTags["og:image"] ??
+      metaTags["og:image:url"] ??
+      metaTags["og:image:secure_url"] ??
+      null;
+    const skuJson = convertFromFacts(allFacts, cached.fetchResult.finalUrl, { ogImage });
+
+    // Decorate _extraction_meta with provenance from this run so the trace UI
+    // can show which layers fired and how far we escalated.
+    skuJson._extraction_meta.passes_run = [
+      ...(perSiteFacts.length > 0 ? ["per_site"] : []),
+      "structured",
+      "dom",
+      ...(llmFacts.length > 0 ? ["llm-gap-fill"] : []),
+      ...(visionFacts.length > 0 ? ["vision"] : [])
+    ];
+    skuJson._extraction_meta.escalated_to = cached.escalatedTo;
+
+    // Budget snapshot — surfaces real cost/latency in _extraction_meta and
+    // flags `budget_exceeded` when the soft cap was hit during this URL's run.
+    const bs = budget.snapshot();
+    skuJson._extraction_meta.tokens_used = 0; // tokens already aggregated upstream; keep 0 unless plumbed
+    skuJson._extraction_meta.cost_usd = bs.costUsd;
+    skuJson._extraction_meta.latency_ms = bs.wallMs;
+    if (bs.exceeded) skuJson._extraction_meta.budget_exceeded = true;
+
     return {
       artifactId: envelope.sourceExternalId as never,
       marketplace: "link_url",
       extractorVersion: LLM_EXTRACTOR_VERSION,
-      facts: [...upstreamFacts, ...visionFacts],
-      extractedAt: new Date()
+      facts: allFacts,
+      extractedAt: new Date(),
+      skuJson
     };
   }
 }

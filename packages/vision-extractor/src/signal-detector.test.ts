@@ -73,3 +73,51 @@ describe("shouldEscalateToVision", () => {
     expect(decision.escalate).toBe(true);
   });
 });
+
+describe("shouldEscalateToVision — Phase 4 new triggers", () => {
+  it("escalates when images missing from upstream", () => {
+    const r = shouldEscalateToVision({
+      rawHtml: "<html></html>",
+      upstreamFactKeys: ["title","brand","base_price"],
+      hasTextPrice: true,
+      upstreamFactCount: 3
+    });
+    expect(r.escalate).toBe(true);
+    expect(r.reasons).toContain("missing_images");
+  });
+
+  it("escalates when variant pickers present but no variants extracted", () => {
+    const html = '<select name="color"></select><select name="size"></select><div data-variant="x"></div>';
+    const r = shouldEscalateToVision({
+      rawHtml: html,
+      upstreamFactKeys: ["title","base_price","images"],
+      hasTextPrice: true,
+      upstreamFactCount: 3
+    });
+    expect(r.escalate).toBe(true);
+    expect(r.reasons).toContain("variant_markup_without_extracted_variants");
+  });
+
+  it("escalates when price missing entirely", () => {
+    const r = shouldEscalateToVision({
+      rawHtml: "<html></html>",
+      upstreamFactKeys: ["title","brand","images"],
+      hasTextPrice: false,
+      upstreamFactCount: 3
+    });
+    expect(r.escalate).toBe(true);
+    expect(r.reasons).toContain("missing_price");
+  });
+
+  it("does NOT add missing_images when upstreamFactKeys not provided (back-compat)", () => {
+    const r = shouldEscalateToVision({
+      rawHtml: "<html></html>",
+      hasTextPrice: true,
+      upstreamFactCount: 3
+    });
+    // upstreamFactKeys undefined → Phase 4 checks are skipped
+    // This preserves backward compatibility for callers that don't provide keys
+    expect(r.reasons).not.toContain("missing_images");
+    expect(r.reasons).not.toContain("missing_price");
+  });
+});

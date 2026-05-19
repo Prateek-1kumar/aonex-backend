@@ -19,11 +19,41 @@ export function cleanHtml(rawHtml: string): CleanResult {
   text = text.replace(/<svg[\s\S]*?<\/svg>/gi, " ");
   text = text.replace(/<nav[\s\S]*?<\/nav>/gi, " ");
   text = text.replace(/<footer[\s\S]*?<\/footer>/gi, " ");
-  text = text.replace(/<img[^>]*alt=["']([^"']*)["'][^>]*>/gi, " $1 ");
+  text = text.replace(/<img\b[^>]*>/gi, (tag) => {
+    const src =
+      tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-original=["']([^"']+)["']/i)?.[1] ??
+      null;
+    const srcset = tag.match(/\bsrcset=["']([^"']+)["']/i)?.[1];
+    const alt = tag.match(/\balt=["']([^"']*)["']/i)?.[1];
+    if (!src && !srcset) return " ";
+    const urls = [src, srcset?.split(",").pop()?.trim().split(" ")[0]]
+      .filter(Boolean)
+      .join(" | ");
+    return ` [img: ${urls}${alt ? ` | alt=${alt}` : ""}] `;
+  });
   text = text.replace(
     /<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi,
     " $2 ($1) "
   );
+
+  // Inject region markers for product content areas
+  const REGIONS: { marker: string; re: RegExp }[] = [
+    { marker: "[PRODUCT_TITLE]", re: /<(h1|h2)[^>]*class=["'][^"']*(product[-_]?title|pdp[-_]?title)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi },
+    { marker: "[PRICE_REGION]", re: /<[^>]+class=["'][^"']*(price|pricing|cost)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi },
+    { marker: "[DESCRIPTION]", re: /<[^>]+(id|class)=["'][^"']*(product[-_]?description|pdp[-_]?description|description)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi },
+    { marker: "[SPECS]", re: /<[^>]+(id|class)=["'][^"']*(specs|specifications|tech-specs)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi },
+    { marker: "[REVIEWS]", re: /<[^>]+(id|class)=["'][^"']*(reviews?|ratings?)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/gi }
+  ];
+  for (const { marker, re } of REGIONS) {
+    text = text.replace(re, (_full, ...args) => {
+      // args is [...captures, offset, fullString]. The last capture group is the inner content.
+      const inner = args[args.length - 3];
+      return ` ${marker} ${typeof inner === "string" ? inner : ""} `;
+    });
+  }
+
   text = text.replace(
     /<\/?(div|p|br|h[1-6]|li|tr|td|th|section|article|main|aside|blockquote)[^>]*>/gi,
     "\n"
@@ -65,7 +95,82 @@ function extractStructuredBlocks(html: string): StructuredBlocks {
   const apolloState = parseWindowAssignment(html, "__APOLLO_STATE__");
   const initialState = parseWindowAssignment(html, "__INITIAL_STATE__");
 
-  return { jsonLd, nextData, apolloState, initialState };
+  const images: { url: string; alt: string | null; srcset: string | null }[] = [];
+  for (const m of html.matchAll(/<img\b[^>]*>/gi)) {
+    const tag = m[0]!;
+    const src =
+      tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-original=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bdata-zoom-image=["']([^"']+)["']/i)?.[1] ??
+      null;
+    if (!src) continue;
+    const alt = tag.match(/\balt=["']([^"']*)["']/i)?.[1] ?? null;
+    const srcset = tag.match(/\bsrcset=["']([^"']+)["']/i)?.[1] ?? null;
+    images.push({ url: src, alt, srcset });
+  }
+
+  for (const m of html.matchAll(/<source\b[^>]*\bsrcset=["']([^"']+)["'][^>]*>/gi)) {
+    const url = m[1]!.split(",").pop()!.trim().split(" ")[0]!;
+    if (url) images.push({ url, alt: null, srcset: m[1]! });
+  }
+
+  for (const m of html.matchAll(/<noscript[^>]*>([\s\S]*?)<\/noscript>/gi)) {
+    const inner = m[1]!;
+    for (const im of inner.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
+      const alt = im[0]!.match(/\balt=["']([^"']*)["']/i)?.[1] ?? null;
+      images.push({ url: im[1]!, alt, srcset: null });
+    }
+  }
+
+  const metaTags: Record<string, string> = {};
+  for (const m of html.matchAll(/<meta\b[^>]*>/gi)) {
+    const tag = m[0]!;
+    const key =
+      tag.match(/\bproperty=["']([^"']+)["']/i)?.[1] ??
+      tag.match(/\bname=["']([^"']+)["']/i)?.[1];
+    const content = tag.match(/\bcontent=["']([^"']*)["']/i)?.[1];
+    if (key && content !== undefined) metaTags[key] = content;
+  }
+
+  const linkTags: Record<string, string> = {};
+  for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = m[0]!;
+    const rel = tag.match(/\brel=["']([^"']+)["']/i)?.[1];
+    const href = tag.match(/\bhref=["']([^"']+)["']/i)?.[1];
+    if (rel && href) linkTags[rel] = href;
+  }
+
+  const microdata: { prop: string; value: string }[] = [];
+  for (const m of html.matchAll(/<[^>]*\bitemprop=["']([^"']+)["'][^>]*>([^<]*)/gi)) {
+    const prop = m[1]!;
+    const inline = m[0]!;
+    const contentAttr = inline.match(/\bcontent=["']([^"']*)["']/i)?.[1];
+    const value = contentAttr ?? (m[2] ?? "").trim();
+    if (value) microdata.push({ prop, value });
+  }
+
+  const breadcrumbs: string[] = [];
+  const navMatch = html.match(/<(nav|ol|ul)[^>]*class=["'][^"']*breadcrumb[^"']*["'][^>]*>([\s\S]*?)<\/\1>/i);
+  if (navMatch) {
+    const inner = navMatch[2]!;
+    for (const m of inner.matchAll(/>([^<]{1,80})</g)) {
+      const t = m[1]!.trim();
+      if (t && t !== ">" && t !== "/" && t !== "›") breadcrumbs.push(t);
+    }
+  }
+
+  return {
+    jsonLd,
+    nextData,
+    apolloState,
+    initialState,
+    metaTags,
+    linkTags,
+    microdata,
+    images,
+    breadcrumbs
+  };
 }
 
 function parseInlineScriptById(
