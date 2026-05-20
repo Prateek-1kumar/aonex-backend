@@ -43,6 +43,13 @@
       "when": 1778964104129,
       "tag": "0005_serious_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779312664331,
+      "tag": "0006_chemical_darwin",
+      "breakpoints": true
     }
   ]
 }
