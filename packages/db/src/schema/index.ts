@@ -31,3 +31,6 @@ export * from "./channels.js";
 
 // Catalog redesign Phase 1 — core product table
 export * from "./catalog-products.js";
+
+// Catalog redesign Phase 1 — append-only revision log
+export * from "./catalog-product-revisions.js";
