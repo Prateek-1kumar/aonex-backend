@@ -40,3 +40,6 @@ export * from "./catalog-pricing.js";
 
 // Catalog redesign Phase 1 — inventory side tables
 export * from "./catalog-inventory.js";
+
+// Catalog redesign Phase 1 — effective-dated source priority rules
+export * from "./source-priority.js";
