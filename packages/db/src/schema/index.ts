@@ -37,3 +37,6 @@ export * from "./catalog-product-revisions.js";
 
 // Catalog redesign Phase 1 — pricing side tables
 export * from "./catalog-pricing.js";
+
+// Catalog redesign Phase 1 — inventory side tables
+export * from "./catalog-inventory.js";
