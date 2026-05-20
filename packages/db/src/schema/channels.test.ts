@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { schema } from "../index.js";
 import { connectTestDb, closeTestDb } from "../testing/connect.js";
 import { ensureTestTenant, TEST_TENANT_ID } from "../testing/seed-tenant.js";
@@ -10,19 +11,19 @@ describe("channels schema", () => {
   beforeAll(async () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
-    // Clean up any leftover rows from previous test runs
-    await db.delete(schema.inventoryLocations);
-    await db.delete(schema.channels);
+    // Clean up any leftover rows from previous test runs (scoped to test tenant only)
+    await db.delete(schema.inventoryLocations).where(eq(schema.inventoryLocations.tenantId, TEST_TENANT_ID));
+    await db.delete(schema.channels).where(eq(schema.channels.tenantId, TEST_TENANT_ID));
   });
 
   afterAll(async () => {
-    await db.delete(schema.inventoryLocations);
-    await db.delete(schema.channels);
+    await db.delete(schema.inventoryLocations).where(eq(schema.inventoryLocations.tenantId, TEST_TENANT_ID));
+    await db.delete(schema.channels).where(eq(schema.channels.tenantId, TEST_TENANT_ID));
     await closeTestDb();
   });
 
   test("accepts a shopify channel row with default currency", async () => {
-    const [row] = await db
+    const rows = await db
       .insert(schema.channels)
       .values({
         tenantId: TEST_TENANT_ID,
@@ -34,6 +35,7 @@ describe("channels schema", () => {
         displayName: "Demo Store (AU)"
       })
       .returning();
+    const row = rows[0]!;
 
     expect(row.channelKind).toBe("shopify");
     expect(row.defaultCurrency).toBe("AUD");
@@ -43,7 +45,7 @@ describe("channels schema", () => {
   });
 
   test("accepts an inventory_location row for a channel", async () => {
-    const [channel] = await db
+    const channelRows = await db
       .insert(schema.channels)
       .values({
         tenantId: TEST_TENANT_ID,
@@ -53,8 +55,9 @@ describe("channels schema", () => {
         displayName: "FBA US"
       })
       .returning();
+    const channel = channelRows[0]!;
 
-    const [loc] = await db
+    const locRows = await db
       .insert(schema.inventoryLocations)
       .values({
         channelId: channel.channelId,
@@ -64,6 +67,7 @@ describe("channels schema", () => {
         displayName: "FBA Warehouse US-East"
       })
       .returning();
+    const loc = locRows[0]!;
 
     expect(loc.kind).toBe("fba");
     expect(loc.channelId).toBe(channel.channelId);
@@ -81,6 +85,29 @@ describe("channels schema", () => {
 
     await expect(
       db.insert(schema.channels).values(duplicate).returning().execute()
+    ).rejects.toThrow();
+  });
+
+  test("unique constraint (NULLS NOT DISTINCT) blocks duplicate (tenant, kind, NULL, NULL)", async () => {
+    const first = {
+      tenantId: TEST_TENANT_ID,
+      channelKind: "tiktok",
+      region: null,
+      accountRef: null,
+      displayName: "TikTok (no region)"
+    };
+    const second = {
+      tenantId: TEST_TENANT_ID,
+      channelKind: "tiktok",
+      region: null,
+      accountRef: null,
+      displayName: "TikTok (no region) Duplicate"
+    };
+
+    await db.insert(schema.channels).values(first).execute();
+
+    await expect(
+      db.insert(schema.channels).values(second).execute()
     ).rejects.toThrow();
   });
 });

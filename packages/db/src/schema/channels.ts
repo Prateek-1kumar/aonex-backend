@@ -8,7 +8,7 @@ import {
   text,
   jsonb,
   timestamp,
-  uniqueIndex,
+  unique,
   index
 } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants.js";
@@ -27,7 +27,7 @@ export const channels = pgTable(
     createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
-    uniqueChannel: uniqueIndex("uq_channels").on(t.tenantId, t.channelKind, t.region, t.accountRef),
+    uniqueChannel: unique("uq_channels").on(t.tenantId, t.channelKind, t.region, t.accountRef).nullsNotDistinct(),
     tenantIdx:     index("idx_channels_tenant").on(t.tenantId)
   })
 );
