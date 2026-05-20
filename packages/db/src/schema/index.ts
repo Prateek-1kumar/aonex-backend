@@ -25,3 +25,6 @@ export * from "./domain-profiles.js";
 export * from "./category-labels.js";
 export * from "./tenant-category-overlays.js";
 export * from "./category-attribute-promotion-candidates.js";
+
+// Catalog redesign Phase 1 — registry tables
+export * from "./channels.js";
