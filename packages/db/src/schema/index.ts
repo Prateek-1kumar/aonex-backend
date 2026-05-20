@@ -28,3 +28,6 @@ export * from "./category-attribute-promotion-candidates.js";
 
 // Catalog redesign Phase 1 — registry tables
 export * from "./channels.js";
+
+// Catalog redesign Phase 1 — core product table
+export * from "./catalog-products.js";
