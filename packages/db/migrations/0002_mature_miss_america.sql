@@ -45,8 +45,7 @@ ALTER TABLE "mapping_overrides" ADD COLUMN "last_used_at" timestamp with time zo
 ALTER TABLE "mapping_overrides" ADD COLUMN "promote_eligible_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "mapping_overrides" ADD COLUMN "created_by" uuid;--> statement-breakpoint
 ALTER TABLE "mapping_overrides" ADD COLUMN "source_review_task_id" uuid;--> statement-breakpoint
-ALTER TABLE "marketplace_connections" ADD COLUMN "encrypted_access_token" text;--> statement-breakpoint
-ALTER TABLE "marketplace_connections" ADD COLUMN "shop_domain" varchar(200);--> statement-breakpoint
+-- NOTE: marketplace_connections.encrypted_access_token + shop_domain were added in 0001; removed from this file to make the baseline re-runnable on a fresh DB.
 ALTER TABLE "review_tasks" ADD COLUMN "signal_kind" varchar(50);--> statement-breakpoint
 ALTER TABLE "review_tasks" ADD COLUMN "signal_payload" jsonb;--> statement-breakpoint
 ALTER TABLE "review_tasks" ADD COLUMN "cluster_key" varchar(64);--> statement-breakpoint

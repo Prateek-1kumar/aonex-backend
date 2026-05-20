@@ -5,9 +5,9 @@
  * dashboards without burning Postgres on every render. Refresh hourly
  * via the drift-scan cron (Phase 8).
  *
- * Each view's SELECT lives here as a string. The migration at
- * packages/db/drizzle/0006_observability_materialized_views.sql wraps
- * each in `CREATE MATERIALIZED VIEW IF NOT EXISTS <name> AS <select>`.
+ * Each view's SELECT lives here as a string. The Phase 8 install step
+ * wraps each in `CREATE MATERIALIZED VIEW IF NOT EXISTS <name> AS <select>`
+ * via a node-pg-migrate migration created at that time.
  */
 
 export type ObservabilityViewName =
