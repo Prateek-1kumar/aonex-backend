@@ -34,3 +34,6 @@ export * from "./catalog-products.js";
 
 // Catalog redesign Phase 1 — append-only revision log
 export * from "./catalog-product-revisions.js";
+
+// Catalog redesign Phase 1 — pricing side tables
+export * from "./catalog-pricing.js";
