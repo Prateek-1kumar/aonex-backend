@@ -50,6 +50,18 @@ Migrations live in `packages/db/migrations/` and are applied in filename order. 
 - **No `--> statement-breakpoint`** markers needed. They were Drizzle artifacts; SQL comments either way.
 - **Transactional by default.** `node-pg-migrate` wraps each migration in a transaction. For DDL that can't run in a transaction (e.g. `CREATE INDEX CONCURRENTLY`), use a JS migration with `pgm.noTransaction()` instead of SQL.
 
+### Partition maintenance
+
+These tables are partitioned monthly by their time column:
+
+- `catalog_product_revisions` (PARTITION BY RANGE on `ingested_at`)
+
+Coming in later Phase 1 tasks: `catalog_pricing_observations`, `catalog_inventory_observations`, `catalog_events` (all monthly).
+
+The migration that creates each partitioned table also creates a small rolling window of partitions (typically the current + next 2 months). Production uses [pg_partman](https://github.com/pgpartman/pg_partman) with retention 12 months (or per-table override) to extend the window forward.
+
+Local dev: monthly partition creation is manual. When the existing partitions are about to expire (one month before the latest is full), add a new `CREATE TABLE … PARTITION OF` migration. A helper script will be added in a later task; for now, copy the pattern from `0010_catalog_product_revisions.sql`.
+
 ### Bootstrapping a fresh DB
 
 ```bash
