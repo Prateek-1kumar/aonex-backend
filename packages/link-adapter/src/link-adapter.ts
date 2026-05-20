@@ -1,38 +1,28 @@
 import type { IngestionAdapter, IngestionEnvelope } from "@aonex/ingestion-spine";
-import { fetchLink, type LinkFetchResult } from "@aonex/ingestion-link-fetcher";
-import { extractStructured } from "@aonex/ingestion-structured";
-import {
-  LLMProductExtractor,
-  LLM_EXTRACTOR_VERSION,
-  compressJsonLd,
-  pruneNextData
-} from "@aonex/ingestion-llm-extractor";
+import { fetchLink } from "@aonex/ingestion-link-fetcher";
+import { LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
-import { convertFromFacts } from "@aonex/ingestion-enrichment";
 import { runDomHeuristics } from "@aonex/ingestion-dom-heuristics";
 import {
   fetchWithBrowser,
   fetchWithBrowserAndScreenshot,
-  shouldEscalateToBrowser,
   type FetchBrowserResult,
   type FetchBrowserWithScreenshotResult
 } from "@aonex/ingestion-browser-fallback";
 import {
-  shouldEscalateToVision,
   callVision,
   type VisionCallInput,
   type VisionCallResult
 } from "@aonex/vision-extractor";
 import {
   createScrapingBeeAdapter,
-  withinCostCeiling,
   type UnblockResult
 } from "@aonex/ingestion-antibot-vendor";
 import { findParserForUrl } from "@aonex/per-site-parsers";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
-import { sha256Hex } from "@aonex/lib-utils";
 import { FileEscalationCache, type IEscalationCache } from "./escalation-cache.js";
-import { BudgetTracker } from "./budget.js";
+import { runFetchEscalation, type CacheEntry } from "./fetch-escalation.js";
+import { runExtractionLayers } from "./extract-layers.js";
 
 // Local AdapterInput type — internal to ingestion-spine, not re-exported.
 interface AdapterInput {
@@ -84,14 +74,6 @@ export interface LinkAdapterDeps {
   cache?: IEscalationCache;
 }
 
-interface CacheEntry {
-  fetchResult: LinkFetchResult;
-  finalRawHtml: string;
-  escalatedTo: EscalatedTo;
-  costCredits: number;
-  escalationReasons: string[];
-}
-
 class LinkAdapter implements IngestionAdapter {
   readonly lane = "link" as const;
   private readonly deps: {
@@ -128,187 +110,21 @@ class LinkAdapter implements IngestionAdapter {
   }
 
   async *normalize(input: AdapterInput): AsyncIterable<IngestionEnvelope> {
-    // Per-site parser short-circuit: if a registered parser declares
-    // `requiresBrowser: true` for this hostname (Amazon, Walmart, BestBuy),
-    // skip the static fetch entirely and go straight to browser. Avoids
-    // wasted requests to known-aggressively-bot-walled retailers.
-    const perSiteParser = this.deps.findPerSiteParser(input.sourceRef);
-    const forceBrowser = perSiteParser?.requiresBrowser === true;
+    const { cacheEntry, envelope } = await runFetchEscalation(this.deps, input);
 
-    let staticResult: LinkFetchResult | null = null;
-    let staticFetchError: unknown = null;
-    if (!forceBrowser) {
-      try {
-        staticResult = await this.deps.fetcher(input.sourceRef);
-      } catch (err) {
-        // Static fetch failed (403/captcha/network/timeout). Capture the error
-        // and try browser/unblock fallbacks instead of bailing.
-        staticFetchError = err;
-      }
-    }
-
-    // Probe signals when we have a static result. When we don't (forced-browser
-    // or fetch failure), set conservative defaults that guarantee escalation.
-    const hasJsonLd = staticResult ? staticResult.structuredBlocks.jsonLd.length > 0 : false;
-    const hasNextData = staticResult ? staticResult.structuredBlocks.nextData !== null : false;
-    const hasNuxt = staticResult ? /window\.__NUXT__\s*=/.test(staticResult.rawHtml) : false;
-    const captchaWall = staticResult?.captchaSignal === true;
-    const coveragePercent = !staticResult
-      ? 0.0
-      : captchaWall
-        ? 0.1
-        : hasJsonLd
-          ? 0.8
-          : hasNextData || hasNuxt
-            ? 0.7
-            : 0.3;
-
-    const decision = shouldEscalateToBrowser({
-      rawHtml: staticResult?.rawHtml ?? "",
-      hasJsonLd,
-      hasNextData,
-      hasNuxt,
-      coveragePercent
-    });
-
-    // Force escalation when: static fetch failed OR captcha wall detected OR
-    // per-site parser demands browser.
-    const mustEscalate =
-      forceBrowser || staticFetchError !== null || captchaWall || decision.escalate;
-    const escalationReasons = [...decision.reasons];
-    if (forceBrowser) escalationReasons.push("per_site_parser_requires_browser");
-    if (staticFetchError !== null) {
-      const msg = staticFetchError instanceof Error ? staticFetchError.message : String(staticFetchError);
-      escalationReasons.push(`static_fetch_failed:${msg.slice(0, 80)}`);
-    }
-    if (captchaWall) escalationReasons.push("captcha_wall_signal");
-
-    let finalRawHtml = staticResult?.rawHtml ?? "";
-    let escalatedTo: EscalatedTo = "static";
-    let costCredits = 0;
-    /** Set once we have a usable response (static OR browser OR unblock). */
-    let resolvedFinalUrl = staticResult?.finalUrl ?? input.sourceRef;
-    let resolvedStatusCode = staticResult?.statusCode ?? 0;
-    let resolvedContentType = staticResult?.contentType ?? "text/html";
-
-    if (mustEscalate) {
-      // Layer C — browser fallback
-      let browserAnemic = false;
-      try {
-        const browserResult = await this.deps.browserFetcher(input.sourceRef, { timeoutMs: 20_000 });
-        finalRawHtml = browserResult.rawHtml;
-        resolvedFinalUrl = browserResult.finalUrl || resolvedFinalUrl;
-        resolvedStatusCode = browserResult.statusCode || resolvedStatusCode;
-        escalatedTo = "browser";
-
-        // Anti-bot defense detection: Chromium can be fingerprinted by aggressive
-        // anti-bot stacks (Croma, Cloudflare-protected sites, etc.) and served a
-        // stub page that's technically a 200 OK but useless. Detect & escalate:
-        //   - rawHtml < 5KB AND no structured-data signals → anemic
-        //   - explicit anti-bot markers (cf-* selectors, "Access Denied" text) → anemic
-        browserAnemic = isAnemicResponse(browserResult.rawHtml);
-        if (browserAnemic) {
-          escalationReasons.push(`browser_anemic_${browserResult.rawHtml.length}b`);
-          throw new Error(`browser returned anemic response (${browserResult.rawHtml.length} bytes)`);
-        }
-      } catch (browserErr) {
-        // Browser failed OR returned anemic content — try unblock vendor.
-        if (this.deps.unblockAdapter && withinCostCeiling(costCredits, 5)) {
-          try {
-            const unblockResult: UnblockResult = await this.deps.unblockAdapter.unblock(input.sourceRef, {
-              premiumProxy: true,
-              jsRendering: true
-            });
-            finalRawHtml = unblockResult.rawHtml;
-            resolvedFinalUrl = unblockResult.finalUrl || resolvedFinalUrl;
-            escalatedTo = "unblock";
-            costCredits += unblockResult.costCredits;
-          } catch {
-            // Both browser and unblock failed.
-            // Fallback priority:
-            //   1. If browser succeeded (even anemic), keep that HTML — better than nothing.
-            //   2. If only static succeeded, keep static.
-            //   3. If everything threw, re-throw the original static error.
-            if (browserAnemic) {
-              escalatedTo = "browser";
-              escalationReasons.push("unblock_failed_keeping_anemic_browser");
-              // finalRawHtml is already the anemic browser HTML from above.
-            } else if (staticResult === null) {
-              throw staticFetchError ?? new Error("All fetch tiers failed");
-            }
-            // Otherwise: keep the static HTML (likely captcha or thin page);
-            // downstream parsers yield few facts but the run completes.
-          }
-        } else if (browserAnemic) {
-          // No unblock available but browser was anemic — keep what we have.
-          escalatedTo = "browser";
-          escalationReasons.push("no_unblock_keeping_anemic_browser");
-        } else if (staticResult === null) {
-          // No unblock available and static failed — bail.
-          throw staticFetchError ?? new Error("Browser fetch failed and unblock not configured");
-        }
-      }
-    }
-
-    // Persist whatever we got. If we forced-browser without static, use what
-    // resolved (or the requested URL as fallback for the source_external_id).
-    const checksum = staticResult?.contentChecksum ?? sha256Hex(finalRawHtml || input.sourceRef);
-
-    this.cache.set(resolvedFinalUrl, {
-      fetchResult: staticResult ?? {
-        url: input.sourceRef,
-        finalUrl: resolvedFinalUrl,
-        statusCode: resolvedStatusCode,
-        contentType: resolvedContentType,
-        rawHtml: finalRawHtml,
-        cleanedText: "",
-        structuredBlocks: { jsonLd: [], nextData: null, apolloState: null, initialState: null, metaTags: {}, linkTags: {}, microdata: [], images: [], breadcrumbs: [] },
-        captchaSignal: false,
-        fetchedAt: new Date(),
-        contentChecksum: checksum
-      },
-      finalRawHtml,
-      escalatedTo,
-      costCredits,
-      escalationReasons
-    });
+    // Store in the in-process cache for extract() to pick up.
+    this.cache.set(envelope.sourceExternalId, cacheEntry);
 
     // Persist escalation state to disk so cold-path retries (worker restart)
     // can replay the browser/unblock decision instead of silently falling
     // back to static-only.
-    await this.deps.cache.set(resolvedFinalUrl, {
-      escalatedTo,
-      reasons: escalationReasons,
-      costCredits
+    await this.deps.cache.set(envelope.sourceExternalId, {
+      escalatedTo: cacheEntry.escalatedTo,
+      reasons: cacheEntry.escalationReasons,
+      costCredits: cacheEntry.costCredits
     });
 
-    const hints = input.hints;
-    yield {
-      sourceExternalId: resolvedFinalUrl,
-      sourceType: "link_url",
-      sourceMarketplace: null,
-      rawData: {
-        url: input.sourceRef,
-        finalUrl: resolvedFinalUrl,
-        statusCode: resolvedStatusCode,
-        contentType: resolvedContentType,
-        fetchedAt: (staticResult?.fetchedAt ?? new Date()).toISOString(),
-        htmlSnippet: finalRawHtml.substring(0, 10_000),
-        cleanedTextLength: staticResult?.cleanedText.length ?? 0,
-        escalatedTo,
-        escalationReasons,
-        costCredits
-      },
-      checksum,
-      ...(hints !== undefined
-        ? {
-            extractionHints: {
-              ...(hints.categoryHint !== undefined ? { categoryHint: hints.categoryHint } : {}),
-              ...(hints.localeHint !== undefined ? { localeHint: hints.localeHint } : {})
-            }
-          }
-        : {})
-    };
+    yield envelope;
   }
 
   async extract(envelope: IngestionEnvelope): Promise<ExtractedFactSet> {
@@ -338,211 +154,8 @@ class LinkAdapter implements IngestionAdapter {
       return this.extract(envelope);
     }
 
-    const finalUrl = cached.fetchResult.finalUrl;
-
-    // Per-URL budget (soft cap on LLM/vision calls, wall time, cost).
-    // When exceeded, downstream tiers are skipped and skuJson._extraction_meta
-    // carries `budget_exceeded: true` so the orchestrator can flag partial output.
-    const budget = new BudgetTracker();
-
-    // Layer G — per-site parser (highest priority)
-    let perSiteFacts: ExtractedFact[] = [];
-    const perSiteParser = this.deps.findPerSiteParser(finalUrl);
-    if (perSiteParser) {
-      try {
-        perSiteFacts = await perSiteParser.extract({
-          rawHtml: cached.finalRawHtml,
-          url: finalUrl
-        });
-      } catch {
-        // Per-site parser threw — fall back to generic Layer A/B. Don't fail the whole extract.
-        perSiteFacts = [];
-      }
-    }
-
-    // Layers A + B (always run — additive to per-site)
-    const structured = await extractStructured({
-      pageUrl: cached.fetchResult.finalUrl,
-      rawHtml: cached.finalRawHtml,
-      structuredBlocks: cached.fetchResult.structuredBlocks
-    });
-
-    // Run Layer B DOM heuristics
-    const dom = this.deps.domHeuristics(cached.finalRawHtml);
-
-    // Merge: per-site wins on rawKey collisions (highest-priority Layer G)
-    const baseFacts = mergeFactsWithPriority(perSiteFacts, [...structured.structured.facts, ...dom.facts]);
-
-    // LLM gap-fill — always on. Compute schema fields not yet filled by Layers A/B/G
-    // and ask the LLM to fill ONLY those gaps (anchored by the facts we already have).
-    const llmFacts: ExtractedFactSet["facts"] = [];
-    const SCHEMA_FIELDS = [
-      "title","brand","gtin","mpn","model_number","description","base_price","currency",
-      "images","variants","productType",
-      "sale_price","list_price","discount_percent","price_per_unit",
-      "rating_average","rating_count","seller_name",
-      "highlights","breadcrumbs","return_policy","warranty",
-      "shipping_free","shipping_cost","weight","dimensions"
-    ] as const;
-
-    const filledKeys = new Set<string>(baseFacts.map((f) => f.rawKey));
-    const gaps = SCHEMA_FIELDS.filter((k) => !filledKeys.has(k));
-
-    if (gaps.length > 0 && budget.canCallLlm()) {
-      try {
-        const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
-        const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
-        const rawImageUrls = (cached.fetchResult.structuredBlocks.images ?? []).map((i) => i.url);
-
-        const r = await this.deps.llmExtractor.extractGapFill(
-          cached.fetchResult.cleanedText,
-          cached.fetchResult.finalUrl,
-          envelope.sourceExternalId as never,
-          {
-            gaps: [...gaps],
-            structuredFacts: baseFacts.map((f) => ({
-              rawKey: f.rawKey,
-              value: f.normalizedValue ?? f.extractedValue,
-              source: f.extractionMethod ?? "structured"
-            })),
-            structuredHints: {
-              jsonLd: compressed,
-              metaTags: cached.fetchResult.structuredBlocks.metaTags ?? {},
-              microdata: cached.fetchResult.structuredBlocks.microdata ?? [],
-              rawImageUrls,
-              nextDataProductSubtree: nextSub
-            }
-          }
-        );
-        budget.recordLlm(r.estimatedCostUsd ?? 0);
-        llmFacts.push(...r.facts);
-      } catch {
-        // LLM error — keep base facts; absent facts surface in trace
-      }
-    }
-
-    // Layer F — vision tier-3 (Phase 9)
-    const visionFacts: ExtractedFactSet["facts"] = [];
-    const upstreamFacts = [...baseFacts, ...llmFacts];
-    const visionDecision = shouldEscalateToVision({
-      rawHtml: cached.finalRawHtml,
-      hasTextPrice: upstreamFacts.some((f) => f.rawKey === "base_price"),
-      upstreamFactCount: upstreamFacts.length,
-      upstreamFactKeys: upstreamFacts.map((f) => f.rawKey)
-    });
-    if (visionDecision.escalate && this.deps.visionExtractor && budget.canCallVision()) {
-      try {
-        const screenshot = await this.deps.screenshotFetcher(cached.fetchResult.finalUrl, {
-          timeoutMs: 20_000
-        });
-        const visionResult = await this.deps.visionExtractor({
-          screenshotBase64: screenshot.screenshotBase64,
-          pageUrl: cached.fetchResult.finalUrl
-        });
-        budget.recordVision(visionResult.estimatedCostUsd ?? 0);
-        visionFacts.push(...visionResult.facts);
-      } catch {
-        // Vision failed (screenshot or API error) — don't fail the extract.
-      }
-    }
-
-    const allFacts = [...upstreamFacts, ...visionFacts];
-
-    // Phase 3 richness: synthesize a rich SKU JSON via the enrichment pass.
-    // og:image is best-effort — used by image-role-classifier to bias the hero pick.
-    const metaTags = cached.fetchResult.structuredBlocks.metaTags ?? {};
-    const ogImage =
-      metaTags["og:image"] ??
-      metaTags["og:image:url"] ??
-      metaTags["og:image:secure_url"] ??
-      null;
-    const skuJson = convertFromFacts(allFacts, cached.fetchResult.finalUrl, { ogImage });
-
-    // Decorate _extraction_meta with provenance from this run so the trace UI
-    // can show which layers fired and how far we escalated.
-    skuJson._extraction_meta.passes_run = [
-      ...(perSiteFacts.length > 0 ? ["per_site"] : []),
-      "structured",
-      "dom",
-      ...(llmFacts.length > 0 ? ["llm-gap-fill"] : []),
-      ...(visionFacts.length > 0 ? ["vision"] : [])
-    ];
-    skuJson._extraction_meta.escalated_to = cached.escalatedTo;
-
-    // Budget snapshot — surfaces real cost/latency in _extraction_meta and
-    // flags `budget_exceeded` when the soft cap was hit during this URL's run.
-    const bs = budget.snapshot();
-    skuJson._extraction_meta.tokens_used = 0; // tokens already aggregated upstream; keep 0 unless plumbed
-    skuJson._extraction_meta.cost_usd = bs.costUsd;
-    skuJson._extraction_meta.latency_ms = bs.wallMs;
-    if (bs.exceeded) skuJson._extraction_meta.budget_exceeded = true;
-
-    return {
-      artifactId: envelope.sourceExternalId as never,
-      marketplace: "link_url",
-      extractorVersion: LLM_EXTRACTOR_VERSION,
-      facts: allFacts,
-      extractedAt: new Date(),
-      skuJson
-    };
+    return runExtractionLayers(this.deps, envelope, cached);
   }
-}
-
-/**
- * Merge per-site parser facts with generic Layer A/B facts.
- * Per-site wins on rawKey collisions (Layer G is the highest-priority rung
- * for domains where a hand-written parser exists). Generic facts fill gaps.
- */
-/**
- * Detect whether a browser-rendered HTML payload is suspiciously empty.
- *
- * Anti-bot vendors (Cloudflare, PerimeterX, Croma's stack, Datadome, etc.)
- * frequently fingerprint headless Chromium via the AutomationControlled flag,
- * navigator.webdriver, missing plugin arrays, and serve a stub page (~hundreds
- * of bytes to a few KB) as a 200 OK. We treat such responses as failures so
- * the LinkAdapter falls through to ScrapingBee (which uses residential proxies
- * + stealth-mode JS rendering specifically to defeat these checks).
- *
- * Heuristics (any one triggers anemic):
- *  - < 5 KB total HTML (a real PDP is usually 50-200 KB)
- *  - no structured-data signals (JSON-LD / __NEXT_DATA__ / __NUXT__)
- *  - explicit anti-bot text markers ("Access Denied", "Just a moment...",
- *    "Verifying you are human", "blocked", "cf-browser-verification")
- */
-const ANTI_BOT_MARKERS = [
-  /Access\s+Denied/i,
-  /Just\s+a\s+moment/i,
-  /Verifying\s+you\s+are\s+human/i,
-  /cf-browser-verification/i,
-  /captcha-delivery/i,
-  /unusual\s+traffic/i,
-  /<title>Attention Required/i
-];
-
-function isAnemicResponse(rawHtml: string): boolean {
-  if (!rawHtml || rawHtml.length < 5_000) return true;
-  for (const m of ANTI_BOT_MARKERS) {
-    if (m.test(rawHtml)) return true;
-  }
-  // No structured data + no obvious product content
-  const hasJsonLd = /application\/ld\+json/i.test(rawHtml);
-  const hasNextData = /__NEXT_DATA__/i.test(rawHtml);
-  const hasNuxt = /__NUXT__/i.test(rawHtml);
-  const hasInitialState = /__INITIAL_STATE__/i.test(rawHtml);
-  const hasOgProduct = /og:type"\s+content="product"/i.test(rawHtml);
-  if (!hasJsonLd && !hasNextData && !hasNuxt && !hasInitialState && !hasOgProduct) {
-    // Also check body length — a real page with no structured data should
-    // still have meaningful body content (description, specs, etc.). If the
-    // total rawHtml is under 30 KB, that's a strong signal of a stub.
-    if (rawHtml.length < 30_000) return true;
-  }
-  return false;
-}
-
-function mergeFactsWithPriority(perSite: ExtractedFact[], generic: ExtractedFact[]): ExtractedFact[] {
-  const perSiteKeys = new Set(perSite.map((f) => f.rawKey));
-  const carried = generic.filter((f) => !perSiteKeys.has(f.rawKey));
-  return [...perSite, ...carried];
 }
 
 export function createLinkAdapter(deps: LinkAdapterDeps): IngestionAdapter {
