@@ -46,3 +46,9 @@ export * from "./source-priority.js";
 
 // Catalog redesign Phase 1 — append-only identity-field audit log
 export * from "./identity-log.js";
+
+// Catalog redesign Phase 1 — manual per-product winning-value pins
+export * from "./reconciliation-overrides.js";
+
+// Catalog redesign Phase 1 — merge/split/unmerge lineage history
+export * from "./product-lineage.js";
