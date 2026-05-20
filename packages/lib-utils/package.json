@@ -11,7 +11,6 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
     "lint": "eslint src/"
   }
 }
