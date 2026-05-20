@@ -43,3 +43,6 @@ export * from "./catalog-inventory.js";
 
 // Catalog redesign Phase 1 — effective-dated source priority rules
 export * from "./source-priority.js";
+
+// Catalog redesign Phase 1 — append-only identity-field audit log
+export * from "./identity-log.js";
