@@ -17,10 +17,11 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "depcheck": "depcruise --config .dependency-cruiser.cjs apps packages",
-    "db:generate": "bun --bun --cwd packages/db drizzle-kit generate",
-    "db:migrate": "bun --bun --cwd packages/db drizzle-kit migrate",
-    "db:push": "bun --bun --cwd packages/db drizzle-kit push",
-    "db:studio": "bun --bun --cwd packages/db drizzle-kit studio"
+    "db:migrate": "bun --cwd packages/db node-pg-migrate --envPath ../../.env",
+    "db:migrate:up": "bun --cwd packages/db node-pg-migrate --envPath ../../.env up",
+    "db:migrate:down": "bun --cwd packages/db node-pg-migrate --envPath ../../.env down",
+    "db:migrate:create": "bun --cwd packages/db node-pg-migrate --envPath ../../.env -j sql create",
+    "db:studio": "bun --cwd packages/db drizzle-kit studio"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
