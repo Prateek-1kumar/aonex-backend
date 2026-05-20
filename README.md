@@ -33,7 +33,12 @@ The HLD's 4 planes map 1:1 to package directories.
 aonex-backend/
 ├── apps/
 │   ├── api/              Hono — HTTP edge, JWT, webhooks (HLD §7 "API Gateway")
-│   ├── worker/           BullMQ — Phase 1 hosts ingestion + audit workers
+│   │   └── src/
+│   │       ├── routes/       HTTP contract layer — Hono route definitions, input parsing
+│   │       └── handlers/     Handler logic extracted from routes (business logic layer)
+│   ├── worker/           BullMQ — ingestion + audit workers + nightly cron jobs
+│   │   └── src/
+│   │       └── services/     Pipeline files split into focused modules (sync, catalog, link)
 │   └── nango/            Nango sync scripts (deployed via `nango deploy`)
 ├── packages/
 │   ├── connector-gateway/   HLD §17 — only integration boundary
