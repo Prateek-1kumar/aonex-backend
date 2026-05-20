@@ -52,3 +52,6 @@ export * from "./reconciliation-overrides.js";
 
 // Catalog redesign Phase 1 — merge/split/unmerge lineage history
 export * from "./product-lineage.js";
+
+// Catalog redesign Phase 1 — partitioned outbox + DLQ
+export * from "./catalog-events.js";
