@@ -23,6 +23,21 @@ export type {
 export { projectSync } from "./reconciler/sync.js";
 export type { ProjectSyncInput, ProjectSyncResult } from "./reconciler/sync.js";
 
+export {
+  enqueueReconcilerJob,
+  makeReconcilerWorker,
+  processReconcilerJob,
+  reconcilerQueueName,
+  extractPrimaryAmount
+} from "./reconciler/async-debounced.js";
+export type {
+  EnqueueReconcilerOpts,
+  ReconcilerAttributeCode,
+  ReconcilerDeps,
+  ReconcilerJobData,
+  ProcessResult
+} from "./reconciler/async-debounced.js";
+
 export { writeAdapterOutput } from "./catalog-write.js";
 export type {
   WriteAdapterOutputInput,
