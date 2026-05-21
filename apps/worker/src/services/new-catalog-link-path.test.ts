@@ -21,7 +21,8 @@ import {
 } from "@aonex/db/testing";
 import type { ArtifactId, ChannelId, MerchantId, TenantId } from "@aonex/types";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
-import { runNewLinkCatalogPath } from "./new-catalog-link-path.js";
+import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
+import { resolveChannelByCode, runNewLinkCatalogPath } from "./new-catalog-link-path.js";
 
 const TENANT = TEST_TENANT_ID as unknown as TenantId;
 const MERCHANT = TEST_MERCHANT_ID as unknown as MerchantId;
@@ -358,5 +359,88 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
       .where(eq(schema.catalogEvents.productId, seededId));
     expect(events.length).toBe(1);
     expect(events[0]!.eventType).toBe("catalog.product.updated");
+  });
+
+  test("4. resolveChannelByCode rejects arbitrary host prefixes (allow-list)", async () => {
+    // channelCodeFromUrl emits `<host-dotreplaced>` for non-marketplace hosts.
+    // A random blog URL must NOT resolve to any channel row even if the
+    // tenant happens to have a channel whose kind matches by coincidence
+    // (e.g. an "ebay-typo.com" host would otherwise prefix-match "ebay").
+    const blogCode = channelCodeFromUrl("https://random-blog.example.io/product");
+    expect(blogCode).toBe("random-blog-example-io");
+    const blogResolved = await resolveChannelByCode(db, TENANT, blogCode);
+    expect(blogResolved).toBeNull();
+
+    // Likewise, a typo'd marketplace host (note: leading prefix is in the
+    // allow-list — "ebay" — but there's no seeded ebay channel for this
+    // tenant). Verifies the second branch (allow-listed kind, no row).
+    const ebayTypoCode = channelCodeFromUrl("https://ebay-typo.com/product");
+    // Hostname doesn't start with "ebay." so the adapter falls through to
+    // the generic dot-to-hyphen rule, producing "ebay-typo-com".
+    expect(ebayTypoCode).toBe("ebay-typo-com");
+    const ebayResolved = await resolveChannelByCode(db, TENANT, ebayTypoCode);
+    expect(ebayResolved).toBeNull();
+  });
+
+  test("5. SkuJson with list_price + null currency under unresolved channel does not throw", async () => {
+    // Pre-Fix #2 regression: when channelId=null and SkuJson had
+    // pricing.list_price but no currency, the adapter threw before the
+    // post-adapt strip helper could fire ("linkAdapter: pricing currency
+    // missing..."). The fix pre-strips pricing from the SkuJson BEFORE
+    // calling the adapter, so the throw site is unreachable. Verifies
+    // the product row + revision + event still land with zero pricing rows.
+    const sku = emptySku({
+      title: "Currency-less Mystery Widget",
+      gtin: "07000000000005",
+      pricing: {
+        list_price: 99,
+        sale_price: null,
+        currency: null, // critical — would throw under the old strip-after-adapt flow.
+        discount_percent: null,
+        price_per_unit: null,
+      },
+      _field_confidence: { title: 0.8, gtin: 0.9 },
+    });
+
+    const result = await runNewLinkCatalogPath({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      artifactId: "00000000-0000-0000-0000-0000000abc05" as unknown as ArtifactId,
+      sourceUrl: "https://random-blog.example.io/product/no-currency",
+      sku,
+      channelId: null,
+      channelCode: null,
+      channelDefaultCurrency: null,
+      channelDefaultLocale: null,
+    });
+
+    expect(result.created).toBe(true);
+    expect(result.productId).toBeDefined();
+    expect(result.pricingObservationsWritten).toBe(0);
+
+    const pricing = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.productId, result.productId));
+    expect(pricing.length).toBe(0);
+
+    const products = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId));
+    expect(products.length).toBe(1);
+
+    const revisions = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, result.productId));
+    expect(revisions.length).toBe(1);
+
+    const events = await db
+      .select()
+      .from(schema.catalogEvents)
+      .where(eq(schema.catalogEvents.productId, result.productId));
+    expect(events.length).toBe(1);
   });
 });

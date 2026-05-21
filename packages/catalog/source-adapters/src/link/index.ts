@@ -29,6 +29,11 @@ export interface LinkAdapterInput {
 /**
  * Channel-code derivation from a product source URL.
  *
+ * Public API: re-exported from `@aonex/catalog-source-adapters/index.ts`
+ * and consumed by the worker's link-extract processor (Task 4.2) to look
+ * up the matching channel row. Output format is part of the contract —
+ * changing it requires updating the channel-resolver alongside.
+ *
  * - flipkart.com   → "flipkart"
  * - amazon.<tld>   → "amazon-<tld-dot-replaced>"   (e.g. amazon.com.au → amazon-com-au)
  * - ebay.<tld>     → "ebay-<tld-dot-replaced>"
