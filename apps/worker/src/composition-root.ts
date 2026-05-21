@@ -111,7 +111,12 @@ export function buildContainer(env: Env): WorkerContainer {
 
     linkExtractWorker = new Worker(
       QUEUE.LINK_EXTRACT,
-      makeLinkExtractProcessor({ db: db.client, audit, extractor }),
+      makeLinkExtractProcessor({
+        db: db.client,
+        audit,
+        extractor,
+        useNewCatalogSchema: catalogUseNewSchema,
+      }),
       { connection: redis, concurrency: 5 }
     );
 

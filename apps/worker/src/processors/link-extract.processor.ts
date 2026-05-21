@@ -20,8 +20,12 @@ import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm
 import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
+import { convertFromFacts } from "@aonex/ingestion-enrichment";
+import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
+import type { ChannelId } from "@aonex/types";
 import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
 import { emitFailureReviewTask } from "../services/emit-failure-review-task.js";
+import { runNewLinkCatalogPath } from "../services/new-catalog-link-path.js";
 import { runSpineLink } from "./ingestion-spine.processor.js";
 
 export interface LinkExtractJobData {
@@ -37,6 +41,14 @@ export interface LinkExtractProcessorDeps {
   db: DrizzleClient;
   audit: AuditEmitter;
   extractor: LLMProductExtractor;
+  /**
+   * Phase 4 catalog redesign flag. When TRUE, after extraction we hand the
+   * SkuJson to the new `writeAdapterOutput` path (catalog_products + side
+   * tables + revisions + outbox) and skip the legacy
+   * `persistLinkCatalogPipeline`. Defaults to false when omitted to keep
+   * existing call-sites (tests, etc.) on the legacy path.
+   */
+  useNewCatalogSchema?: boolean;
 }
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
@@ -334,7 +346,98 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       return;
     }
 
-    // ── Step 4: Persist canonical proposal / catalog version ─────────
+    // ── Step 4 (NEW PATH): writeAdapterOutput under feature flag ────
+    // Phase 4 catalog redesign. When the flag is on we skip the legacy
+    // proposed-diff machinery entirely and write a single canonical row
+    // through `runNewLinkCatalogPath`. The legacy code path below remains
+    // unchanged so a flag flip mid-flight is safe.
+    if (deps.useNewCatalogSchema) {
+      const sku = convertFromFacts(factSet.facts, fetchResult.finalUrl);
+      const channelCode = channelCodeFromUrl(fetchResult.finalUrl);
+      const channelRow = await deps.db.query.channels.findFirst({
+        where: (c, { and, eq }) =>
+          and(
+            eq(c.tenantId, tenantId),
+            // We match on display_name OR account_ref since `channel_kind`
+            // alone may have multiple regional rows (e.g. amazon-com vs
+            // amazon-com-au). The channelCode emitted by channelCodeFromUrl
+            // already encodes region in its suffix, so a kind+region match
+            // would require parsing kind back out — for v1 we just look up
+            // any channel row whose channelKind matches the prefix.
+            //
+            // Pragmatic v1: derive a coarse `channelKind` by stripping the
+            // region suffix from channelCode (e.g. "amazon-com-au" → "amazon").
+            // Phase 5 will replace this with an explicit channel-resolver
+            // service backed by the channels table.
+            eq(c.channelKind, channelCode.split("-")[0]!)
+          ),
+      });
+
+      const channelId = (channelRow?.channelId as ChannelId | undefined) ?? null;
+      const writeResult = await runNewLinkCatalogPath({
+        db: deps.db,
+        tenantId,
+        merchantId,
+        artifactId,
+        sourceUrl: fetchResult.finalUrl,
+        sku,
+        channelId,
+        channelCode: channelId ? channelCode : null,
+        channelDefaultCurrency: channelRow?.defaultCurrency ?? null,
+        channelDefaultLocale: channelRow?.defaultLocale ?? null,
+      });
+
+      // Mark artifact completed unconditionally — review tasks under the
+      // new schema flow through `review_tasks`, not `source_artifacts.status`.
+      await deps.db
+        .update(schema.sourceArtifacts)
+        .set({ status: "completed" })
+        .where(eq(schema.sourceArtifacts.id, artifactId));
+
+      await deps.audit.emit({
+        tenantId,
+        merchantId,
+        actorType: "worker",
+        eventType: "ingestion.extraction_completed",
+        entityType: "source_artifact",
+        entityId: artifactId,
+        requestId,
+        metadata: {
+          url: fetchResult.finalUrl,
+          factsCount: factSet.facts.length,
+          structuredFactsCount: structuredResult.structured.facts.length,
+          llmFactsCount: llmFacts.length,
+          coverageComplete: coverage.complete,
+          suggestedCategory: structuredResult.structured.category.path,
+          categoryConfidence: structuredResult.structured.category.confidence,
+          model: llmMeta.modelName,
+          promptTokens: llmMeta.promptTokens,
+          completionTokens: llmMeta.completionTokens,
+          estimatedCostUsd: llmMeta.estimatedCostUsd,
+          extractorVersion: LLM_EXTRACTOR_VERSION,
+          // New-path provenance — replaces the legacy run/diff IDs.
+          productId: writeResult.productId,
+          created: writeResult.created,
+          identityStrength: writeResult.identityStrength,
+          matchPath: writeResult.matchPath,
+          channelResolved: channelId !== null,
+          schemaPath: "new",
+        },
+      });
+
+      return {
+        artifactId,
+        factsCount: factSet.facts.length,
+        suggestedCategory: structuredResult.structured.category.path,
+        categoryConfidence: structuredResult.structured.category.confidence,
+        estimatedCostUsd: llmMeta.estimatedCostUsd,
+        productId: writeResult.productId,
+        created: writeResult.created,
+        matchPath: writeResult.matchPath,
+      };
+    }
+
+    // ── Step 4 (LEGACY): Persist canonical proposal / catalog version ──
     // Plan D Task 16: real source reliability from domain_profiles.
     const profile = await deps.db.query.domainProfiles.findFirst({
       where: (p, { eq }) => eq(p.domainPattern, domainOf(fetchResult.finalUrl)),
