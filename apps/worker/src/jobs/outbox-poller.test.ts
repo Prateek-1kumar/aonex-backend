@@ -27,16 +27,15 @@ import {
   ensureTestTenant
 } from "@aonex/db/testing";
 import type { DrizzleClient, CatalogEvent } from "@aonex/db";
-import type { Publisher } from "@aonex/catalog-event-outbox";
+import { DEFAULT_KEY_PREFIX, type Publisher } from "@aonex/catalog-event-outbox";
 import { startOutboxPoller, type OutboxHandle } from "./outbox-poller.js";
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 
-// Default backpressure key prefix used by the spawner (constant in the
-// `backpressure.ts` module). We don't import the internal sentinel; we
-// just build the global key by hand.
-const THROTTLE_PREFIX = "catalog:event-outbox:throttle";
-const GLOBAL_THROTTLE_KEY = `${THROTTLE_PREFIX}:_global`;
+// Default backpressure key prefix used by the spawner. Imported from the
+// source of truth (`backpressure.ts`, re-exported via the package barrel)
+// so this test stays coupled to the canonical constant.
+const GLOBAL_THROTTLE_KEY = `${DEFAULT_KEY_PREFIX}:_global`;
 
 let db: DrizzleClient;
 let redis: IORedis;
@@ -283,9 +282,10 @@ describe("startOutboxPoller — happy path", () => {
       }, 5000);
       expect(ok).toBe(true);
 
-      // The Redis stream got one entry.
+      // The Redis stream got exactly one entry (single seeded event +
+      // publisher-side dedupe key ensures exactly-once).
       const xlen = await redis.xlen(streamName);
-      expect(xlen).toBeGreaterThanOrEqual(1);
+      expect(xlen).toBe(1);
 
       // The backpressure signal level is "none" (fewer than 10K
       // unpublished events globally).
@@ -308,7 +308,6 @@ describe("startOutboxPoller — happy path", () => {
     const streamName = freshStreamName();
 
     let handle: OutboxHandle | null = null;
-    let tickCount = 0;
     // Inject a mock publisher so we don't spam real Redis stream entries.
     const noopPublisher: Publisher = {
       async publish(events: CatalogEvent[]) {
@@ -342,11 +341,10 @@ describe("startOutboxPoller — happy path", () => {
         }
         await sleep(25);
       }
-      tickCount = seenMeasuredAt.size;
       // Expect at least 2 ticks (immediate + at least one interval) over
       // ~500ms with a 100ms cadence. We're conservative because the
       // immediate kick races with the first interval; 2 is the floor.
-      expect(tickCount).toBeGreaterThanOrEqual(2);
+      expect(seenMeasuredAt.size).toBeGreaterThanOrEqual(2);
     } finally {
       if (handle) await handle.stop();
     }
