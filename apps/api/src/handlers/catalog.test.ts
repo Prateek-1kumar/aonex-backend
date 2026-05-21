@@ -28,6 +28,14 @@ import { catalogRoutes } from "../routes/catalog.js";
 // then make the *requester* identify as this other tenant.
 const OTHER_TENANT_ID = "00000000-0000-0000-0000-0000000000ff";
 
+// A second merchant id for cross-merchant 404 tests (within the SAME
+// tenant). Same pattern as OTHER_TENANT_ID — we never seed merchants
+// under this id; we only use it to identify the *requester*. The seeded
+// product still lives under TEST_MERCHANT_ID, and the handler enforces
+// the merchant boundary by mapping a tenant-match-but-merchant-mismatch
+// row to a 404 (per `getProductById`'s explicit check).
+const OTHER_MERCHANT_ID = "00000000-0000-0000-0000-0000000000fe";
+
 // Stable UUIDs for the legacy-path seed (separate from any production data).
 // We deliberately seed a product with NO current_version_id — that
 // exercises the legacy handler path's "no version" branch (current_version
@@ -217,24 +225,54 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
 
   // ---- 3. Flag ON — strong -----------------------------------------------
 
-  test("flag ON, ?consistency=strong — JOINs catalog_pricing_current + catalog_inventory_current", async () => {
+  test("flag ON, ?consistency=strong — overlays catalog_pricing_current + catalog_inventory_current onto reconciler-shape nested objects", async () => {
+    // Seed the cached winning_values with the SAME nested shape the
+    // reconciler writes: { [channelId]: { [locale|locKey]: <leaf> } }.
+    // Strong mode must overlay-by-key, not replace wholesale, so we use
+    // a DIFFERENT channelId in the cached block to verify it survives.
+    const OTHER_CHANNEL_ID = "00000000-0000-0000-0000-00000000aaaa";
     const winningValues = {
-      _meta: { reconciler_version: 1, rules_version: 1 },
+      _meta: { reconciler_version: "v1", rules_version: 1 },
       pricing: {
-        _primary: {
-          _unscoped: { currency: "AUD", amount: "1.00", source: "cached-stale" },
+        [TEST_CHANNEL_ID]: {
+          _unscoped: {
+            source: "cached-stale",
+            currency: "AUD",
+            tiers: [{ price: 1.0, currency: "AUD" }],
+            pricePerUnit: null,
+            observedAt: "2026-05-20T00:00:00.000Z",
+          },
+        },
+        // A second channel that has NO row in catalog_pricing_current —
+        // the overlay must not drop it.
+        [OTHER_CHANNEL_ID]: {
+          _unscoped: {
+            source: "cached-only",
+            currency: "USD",
+            tiers: [{ price: 5.0, currency: "USD" }],
+            pricePerUnit: null,
+            observedAt: "2026-05-20T00:00:00.000Z",
+          },
         },
       },
       inventory: {
-        _primary: {
-          _unscoped: { qty: 0, source: "cached-stale" },
+        [TEST_CHANNEL_ID]: {
+          // Sentinel UUID for NULL location — what the reconciler writes.
+          "00000000-0000-0000-0000-000000000000": {
+            source: "cached-stale",
+            qty: 0,
+            clickCollectEligible: true,
+            purchaseLimit: 5,
+            backorderAllowed: false,
+            observedAt: "2026-05-20T00:00:00.000Z",
+          },
         },
       },
     };
     await seedNewProduct(db, NEW_PRODUCT_ID_STRONG, winningValues);
 
     // Seed the side tables with FRESH data that should override the cached
-    // winning_values leaves.
+    // winning_values leaves on the matching (channel, locale|loc) keys.
     await db.insert(schema.catalogPricingCurrent).values({
       productId: NEW_PRODUCT_ID_STRONG,
       channelId: TEST_CHANNEL_ID,
@@ -261,33 +299,56 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     const body = (await res.json()) as {
       data: {
         product_id: string;
-        winning_values: Record<string, unknown>;
+        winning_values: {
+          _meta?: unknown;
+          pricing: Record<string, Record<string, {
+            source: string;
+            currency: string;
+            primaryAmount?: string | null;
+            tiers: unknown;
+            pricePerUnit: unknown;
+            observedAt: string;
+          }>>;
+          inventory: Record<string, Record<string, {
+            source: string;
+            qty: number;
+            observedAt: string;
+            clickCollectEligible?: boolean | null;
+          }>>;
+        };
         consistency: string;
       };
     };
     expect(body.data.consistency).toBe("strong");
 
-    // Pricing/inventory leaves are now the joined rows (arrays), NOT the
-    // cached `_primary._unscoped` shape.
-    expect(Array.isArray(body.data.winning_values.pricing)).toBe(true);
-    const pricing = body.data.winning_values.pricing as Array<{
-      product_id?: string;
-      productId?: string;
-      currency: string;
-      source: string;
-    }>;
-    expect(pricing.length).toBe(1);
-    expect(pricing[0]!.currency).toBe("AUD");
-    expect(pricing[0]!.source).toBe("live");
+    // ---- pricing: outer key is channelId UUID, inner key is locale --
+    const pricing = body.data.winning_values.pricing;
+    // Live row overlays the cached one on (TEST_CHANNEL_ID, _unscoped).
+    expect(pricing[TEST_CHANNEL_ID]).toBeTruthy();
+    expect(pricing[TEST_CHANNEL_ID]!["_unscoped"]).toBeTruthy();
+    expect(pricing[TEST_CHANNEL_ID]!["_unscoped"]!.source).toBe("live");
+    expect(pricing[TEST_CHANNEL_ID]!["_unscoped"]!.currency).toBe("AUD");
+    // Strong-mode leaf carries primaryAmount from the side table.
+    expect(pricing[TEST_CHANNEL_ID]!["_unscoped"]!.primaryAmount).toBe("42.50");
+    // The cached-only channel survives the overlay.
+    expect(pricing[OTHER_CHANNEL_ID]).toBeTruthy();
+    expect(pricing[OTHER_CHANNEL_ID]!["_unscoped"]!.source).toBe("cached-only");
 
-    expect(Array.isArray(body.data.winning_values.inventory)).toBe(true);
-    const inventory = body.data.winning_values.inventory as Array<{
-      qty: number;
-      source: string;
-    }>;
-    expect(inventory.length).toBe(1);
-    expect(inventory[0]!.qty).toBe(7);
-    expect(inventory[0]!.source).toBe("live");
+    // ---- inventory: outer key is channelId UUID, inner key is locKey -
+    // For NULL location_id the locKey is the sentinel UUID.
+    const inventory = body.data.winning_values.inventory;
+    expect(inventory[TEST_CHANNEL_ID]).toBeTruthy();
+    const invLeaf = inventory[TEST_CHANNEL_ID]!["00000000-0000-0000-0000-000000000000"]!;
+    expect(invLeaf).toBeTruthy();
+    expect(invLeaf.source).toBe("live");
+    expect(invLeaf.qty).toBe(7);
+    // Cached-only extras on the same (channel, loc) survive the merge
+    // because the side table doesn't store them. (clickCollectEligible
+    // was on the cached leaf — but the live overlay leaf REPLACES the
+    // cached leaf at that exact inner key, so this is undefined. That's
+    // by-design: a stale extras value on a leaf that has a fresh primary
+    // should not bleed in. The overlay is per-leaf, not per-field.)
+    expect("clickCollectEligible" in invLeaf).toBe(false);
 
     // _meta is preserved untouched.
     expect(body.data.winning_values._meta).toBeTruthy();
@@ -306,6 +367,34 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
       db,
       useNewCatalogSchema: true,
       tenantId: OTHER_TENANT_ID,
+    });
+    const res = await app.request(`/catalog/products/${NEW_PRODUCT_ID}`);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("NOT_FOUND");
+  });
+
+  // ---- 4b. Cross-merchant 404 -------------------------------------------
+
+  test("flag ON — returns 404 when product belongs to a different merchant in the same tenant", async () => {
+    // Seed under TEST_TENANT_ID + TEST_MERCHANT_ID, then request as the
+    // SAME tenant but a DIFFERENT merchant. The helper's tenant filter
+    // would still let this row through (it's the right tenant), so the
+    // handler's explicit `view.merchant_id !== merchantId` check is what
+    // we're exercising here — that boundary is load-bearing and must be
+    // covered separately from the cross-tenant case.
+    await seedNewProduct(db, NEW_PRODUCT_ID, {
+      _meta: {},
+      title: { _primary: { _unscoped: { value: "Merchant A only" } } },
+    });
+
+    const app = buildApp({
+      db,
+      useNewCatalogSchema: true,
+      // Same tenant, different merchant. We don't have to seed
+      // OTHER_MERCHANT_ID into `merchants` because it's only used to
+      // identify the *requester* — no FK is touched on the request path.
+      merchantId: OTHER_MERCHANT_ID,
     });
     const res = await app.request(`/catalog/products/${NEW_PRODUCT_ID}`);
     expect(res.status).toBe(404);
