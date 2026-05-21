@@ -11,13 +11,15 @@
     "dev": "bun --env-file=../../.env run --hot src/index.ts",
     "start": "bun --env-file=../../.env run src/index.ts",
     "seed:source-priority": "bun --env-file=../../.env run scripts/seed-source-priority.ts",
-    "bootstrap:channels": "bun --env-file=../../.env run scripts/bootstrap-channels.ts"
+    "bootstrap:channels": "bun --env-file=../../.env run scripts/bootstrap-channels.ts",
+    "replay:dlq": "bun --env-file=../../.env run scripts/replay-dlq.ts"
   },
   "dependencies": {
     "@aonex/types": "workspace:*",
     "@aonex/lib-utils": "workspace:*",
     "@aonex/db": "workspace:*",
     "@aonex/catalog-service": "workspace:*",
+    "@aonex/catalog-event-outbox": "workspace:*",
     "@aonex/catalog-source-adapters": "workspace:*",
     "@aonex/connector-gateway": "workspace:*",
     "@aonex/audit": "workspace:*",
