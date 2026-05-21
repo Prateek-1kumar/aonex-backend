@@ -128,6 +128,19 @@ async function cleanup(db: DrizzleClient): Promise<void> {
   await db
     .delete(schema.catalogInventoryObservations)
     .where(eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID));
+  // _current rows have no tenant column — scope by product_id via subselect.
+  await db.execute(sql`
+    DELETE FROM catalog_pricing_current
+    WHERE product_id IN (
+      SELECT product_id FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}
+    )
+  `);
+  await db.execute(sql`
+    DELETE FROM catalog_inventory_current
+    WHERE product_id IN (
+      SELECT product_id FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}
+    )
+  `);
   await db.execute(
     sql`DELETE FROM catalog_events WHERE tenant_id = ${TEST_TENANT_ID}`
   );
@@ -731,6 +744,21 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       actor: "test:undoer"
     });
 
+    // Snapshot post-first-unmerge counts of events + unmerge revisions on the
+    // winner so we can prove the second call writes nothing further.
+    const eventsBefore = await db.execute(sql`
+      SELECT count(*)::int AS c FROM catalog_events
+      WHERE product_id = ${winnerId}::uuid
+        AND event_type = 'catalog.product.unmerged'
+    `);
+    const eventsBeforeCount = (eventsBefore.rows[0] as { c: number }).c;
+    const revsBefore = await db.execute(sql`
+      SELECT count(*)::int AS c FROM catalog_product_revisions
+      WHERE product_id = ${winnerId}::uuid
+        AND revision_reason = 'manual_unmerge'
+    `);
+    const revsBeforeCount = (revsBefore.rows[0] as { c: number }).c;
+
     const second = await unmergeProduct({
       db,
       tenantId: TENANT,
@@ -742,6 +770,22 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(second.observationsRemoved).toBe(0);
     expect(second.pricingObservationsRestored).toBe(0);
     expect(second.inventoryObservationsRestored).toBe(0);
+    expect(second.eventId).toBe(0);
+    expect(second.unmergeRevisionId).toBe(0);
+
+    // No additional event/revision row written by the short-circuit path.
+    const eventsAfter = await db.execute(sql`
+      SELECT count(*)::int AS c FROM catalog_events
+      WHERE product_id = ${winnerId}::uuid
+        AND event_type = 'catalog.product.unmerged'
+    `);
+    expect((eventsAfter.rows[0] as { c: number }).c).toBe(eventsBeforeCount);
+    const revsAfter = await db.execute(sql`
+      SELECT count(*)::int AS c FROM catalog_product_revisions
+      WHERE product_id = ${winnerId}::uuid
+        AND revision_reason = 'manual_unmerge'
+    `);
+    expect((revsAfter.rows[0] as { c: number }).c).toBe(revsBeforeCount);
   });
 
   test("10. unmerge restores winning_values (no longer reflects loser observations)", async () => {
@@ -797,5 +841,231 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       .where(eq(schema.catalogProducts.productId, winnerId));
     const wv = winnerAfter[0]!.winningValues as Record<string, any>;
     expect(wv.title["shopify-au"].en_AU).toBe("Default");
+  });
+
+  test("11. unmerge over-removal guard: winner and loser share (source, sourceRecordId) but differ in (value, observedAt) — only the moved-in row is peeled off", async () => {
+    // Winner already has an obs `{source:"ebay:c", sourceRecordId:"r1",
+    // value:"A", observed_at:T1}`. Loser has `{source:"ebay:c",
+    // sourceRecordId:"r1", value:"B", observed_at:T2}` on the same leaf
+    // coordinates. Merging puts both on the winner; unmerge must remove ONLY
+    // the loser's row (matched on the full triple including observedAt).
+    const T1 = "2026-05-21T10:00:00.000Z";
+    const T2 = "2026-05-21T11:00:00.000Z";
+    const winnerId = await seedProduct(db, {
+      primaryIdentifier: "merge-11-winner",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [obsRow("ebay:c", "A", "r1", T1)]
+          }
+        }
+      }
+    });
+    const loserId = await seedProduct(db, {
+      primaryIdentifier: "merge-11-loser",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [obsRow("ebay:c", "B", "r1", T2)]
+          }
+        }
+      }
+    });
+
+    const mergeResult = await mergeProducts({
+      db,
+      tenantId: TENANT,
+      winnerId,
+      loserIds: [loserId],
+      actor: TEST_ACTOR,
+      rationale: "collision test"
+    });
+    expect(mergeResult.observationsMoved).toBe(1);
+
+    // Sanity: winner leaf now carries both rows post-merge.
+    const winnerMid = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, winnerId));
+    const midLeaf = (winnerMid[0]!.values as Record<string, any>).title[
+      "shopify-au"
+    ].en_AU as StoredObservation[];
+    expect(midLeaf.length).toBe(2);
+
+    // Undo recipe must carry observedAt so unmerge can disambiguate.
+    const revs = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.revisionId, mergeResult.revisionId));
+    const diff = revs[0]!.diff as Record<string, any>;
+    expect(diff.losers[0].observationsMoved[0].observedAt).toBe(T2);
+
+    const unmergeResult = await unmergeProduct({
+      db,
+      tenantId: TENANT,
+      mergeRevisionId: mergeResult.revisionId,
+      actor: "test:undoer"
+    });
+    expect(unmergeResult.observationsRemoved).toBe(1);
+
+    // Winner's original obs (A, T1) is intact; the moved-in (B, T2) is gone.
+    const winnerAfter = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, winnerId));
+    const leaf = (winnerAfter[0]!.values as Record<string, any>).title[
+      "shopify-au"
+    ].en_AU as StoredObservation[];
+    expect(leaf.length).toBe(1);
+    expect(leaf[0]!.value).toBe("A");
+    expect(leaf[0]!.observed_at).toBe(T1);
+    expect(leaf[0]!.source).toBe("ebay:c");
+    expect(leaf[0]!.source_record_id).toBe("r1");
+  });
+
+  test("12. merge deletes loser's _current rows (orphan prevention, decision 11)", async () => {
+    const winnerId = await seedProduct(db, {
+      primaryIdentifier: "merge-12-winner",
+      values: {}
+    });
+    const loserId = await seedProduct(db, {
+      primaryIdentifier: "merge-12-loser",
+      values: {}
+    });
+
+    // Seed pricing and inventory _current rows attached to the loser.
+    await db.insert(schema.catalogPricingCurrent).values({
+      productId: loserId,
+      channelId: TEST_CHANNEL_ID,
+      locale: "en_AU",
+      source: "shopify:connector",
+      currency: "AUD",
+      tiers: [{ kind: "list", amount: 9.99 }],
+      primaryAmount: "9.99",
+      observedAt: new Date("2026-05-21T10:00:00Z")
+    });
+    await db.insert(schema.catalogInventoryCurrent).values({
+      productId: loserId,
+      channelId: TEST_CHANNEL_ID,
+      locationId: TEST_LOCATION_ID,
+      qty: 7,
+      source: "shopify:connector",
+      observedAt: new Date("2026-05-21T10:00:00Z")
+    });
+
+    await mergeProducts({
+      db,
+      tenantId: TENANT,
+      winnerId,
+      loserIds: [loserId],
+      actor: TEST_ACTOR,
+      rationale: "current cleanup"
+    });
+
+    const pricingCurrent = await db
+      .select()
+      .from(schema.catalogPricingCurrent)
+      .where(eq(schema.catalogPricingCurrent.productId, loserId));
+    expect(pricingCurrent.length).toBe(0);
+    const inventoryCurrent = await db
+      .select()
+      .from(schema.catalogInventoryCurrent)
+      .where(eq(schema.catalogInventoryCurrent.productId, loserId));
+    expect(inventoryCurrent.length).toBe(0);
+  });
+
+  test("13. frozen loser: status='frozen_pending_review' is captured in undo recipe and restored on unmerge", async () => {
+    const winnerId = await seedProduct(db, {
+      primaryIdentifier: "merge-13-winner",
+      values: {}
+    });
+    const loserId = await seedProduct(db, {
+      primaryIdentifier: "merge-13-loser",
+      status: "frozen_pending_review",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [obsRow("ebay:c", "Frozen Loser", "merge-13-l-1")]
+          }
+        }
+      }
+    });
+
+    const mergeResult = await mergeProducts({
+      db,
+      tenantId: TENANT,
+      winnerId,
+      loserIds: [loserId],
+      actor: TEST_ACTOR,
+      rationale: "frozen merge"
+    });
+
+    // Loser is now tombstoned.
+    const midLoser = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, loserId));
+    expect(midLoser[0]!.status).toBe("merged_into");
+
+    // Undo recipe captures the prior 'frozen_pending_review' status.
+    const revs = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.revisionId, mergeResult.revisionId));
+    const diff = revs[0]!.diff as Record<string, any>;
+    expect(diff.losers[0].priorStatus).toBe("frozen_pending_review");
+
+    // Unmerge restores the freeze.
+    await unmergeProduct({
+      db,
+      tenantId: TENANT,
+      mergeRevisionId: mergeResult.revisionId,
+      actor: "test:undoer"
+    });
+    const afterLoser = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, loserId));
+    expect(afterLoser[0]!.status).toBe("frozen_pending_review");
+    expect(afterLoser[0]!.mergedIntoProductId).toBeNull();
+  });
+
+  test("14. boundary guards: winnerId===loserIds[0] throws; empty loserIds throws", async () => {
+    const winnerId = await seedProduct(db, {
+      primaryIdentifier: "merge-14-winner",
+      values: {}
+    });
+
+    let threwSelf = false;
+    try {
+      await mergeProducts({
+        db,
+        tenantId: TENANT,
+        winnerId,
+        loserIds: [winnerId],
+        actor: TEST_ACTOR,
+        rationale: "self-merge"
+      });
+    } catch (e) {
+      threwSelf = true;
+      expect((e as Error).message).toMatch(/cannot also be a loser/i);
+    }
+    expect(threwSelf).toBe(true);
+
+    let threwEmpty = false;
+    try {
+      await mergeProducts({
+        db,
+        tenantId: TENANT,
+        winnerId,
+        loserIds: [],
+        actor: TEST_ACTOR,
+        rationale: "empty"
+      });
+    } catch (e) {
+      threwEmpty = true;
+      expect((e as Error).message).toMatch(/non-empty/i);
+    }
+    expect(threwEmpty).toBe(true);
   });
 });
