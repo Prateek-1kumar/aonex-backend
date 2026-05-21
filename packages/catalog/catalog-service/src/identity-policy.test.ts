@@ -395,7 +395,10 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
     const productId = inserted[0]!.productId;
 
     // Pre-seed an identity_log row representing the prior freeze, so the
-    // auto-unfreeze counter starts from after that point.
+    // auto-unfreeze counter starts from after that point. We pin appliedAt
+    // explicitly to a fixed-past timestamp (NOT defaultNow()) so this test
+    // is wall-clock-independent — otherwise observations and the freeze cut
+    // -off race against UTC at run time.
     await db.insert(schema.identityLog).values({
       productId,
       tenantId: TEST_TENANT_ID,
@@ -404,9 +407,12 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       newValue: null,
       source: "shopify:connector",
       sourceRecordId: "freeze-rec",
-      observedAt: new Date("2026-05-20T00:00:00Z"),
+      observedAt: new Date("2025-01-01T00:00:00Z"),
+      appliedAt: new Date("2025-01-01T00:00:00Z"),
       rationale: "freeze_gtin_disagreement"
     });
+
+    const OBS_BASE = "2025-06-01T10:00:00Z";
 
     // Apply 5 matching priority-1 observations. Between calls we push the
     // observation into `values.gtin._unscoped._unscoped[]` (mimicking what
@@ -432,7 +438,7 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
         value,
         confidence: 1.0,
         observed_at: new Date(
-          Date.parse("2026-05-21T10:00:00Z") + isoOffsetMin * 60_000
+          Date.parse(OBS_BASE) + isoOffsetMin * 60_000
         ).toISOString()
       });
       await db
@@ -450,9 +456,7 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
         proposedValue: "X",
         source: "shopify:connector",
         sourceRecordId: `match-${i}`,
-        observedAt: new Date(
-          Date.parse("2026-05-21T10:00:00Z") + i * 60_000
-        )
+        observedAt: new Date(Date.parse(OBS_BASE) + i * 60_000)
       });
       // Frozen state blocks identity application until unfreeze.
       if (i < 4) {
@@ -600,5 +604,221 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .where(eq(schema.catalogProducts.productId, productId));
     const identity = row[0]!.identity as Record<string, unknown>;
     expect(identity.gtin).toBeUndefined();
+  });
+
+  test("8. freeze row is still found behind >20 newer non-freeze rows", async () => {
+    // Regression guard: the auto-unfreeze freeze-lookup must push the
+    // `rationale LIKE 'freeze%'` predicate into SQL. If it falls back to
+    // fetch-N-then-filter, this product (with 25 non-freeze rows after the
+    // freeze) would see freezeAt=null and silently regress to all-time
+    // counting.
+    const inserted = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: "ip-008",
+        identity: { gtin: "Y", identity_strength: 1.0 },
+        status: "frozen_pending_review",
+        values: {}
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const productId = inserted[0]!.productId;
+
+    // Old freeze row, pinned to 2025-01-01 so observation timestamps below
+    // (which are after this) are clearly post-freeze.
+    await db.insert(schema.identityLog).values({
+      productId,
+      tenantId: TEST_TENANT_ID,
+      identityField: "gtin",
+      oldValue: "Y",
+      newValue: null,
+      source: "shopify:connector",
+      sourceRecordId: "freeze-old",
+      observedAt: new Date("2025-01-01T00:00:00Z"),
+      appliedAt: new Date("2025-01-01T00:00:00Z"),
+      rationale: "freeze_gtin_disagreement"
+    });
+
+    // 25 non-freeze identity_log rows AFTER the freeze. We use
+    // `single_priority_one_source` (a real applied-update rationale that does
+    // NOT start with "freeze") so the SQL LIKE predicate filters them out.
+    for (let i = 0; i < 25; i++) {
+      await db.insert(schema.identityLog).values({
+        productId,
+        tenantId: TEST_TENANT_ID,
+        identityField: "gtin",
+        oldValue: "Y",
+        newValue: "Y",
+        source: "shopify:connector",
+        sourceRecordId: `noise-${i}`,
+        observedAt: new Date(
+          Date.parse("2025-06-01T00:00:00Z") + i * 60_000
+        ),
+        appliedAt: new Date(
+          Date.parse("2025-06-01T00:00:00Z") + i * 60_000
+        ),
+        rationale: "single_priority_one_source"
+      });
+    }
+
+    // Seed 4 matching priority-1 observations observed BEFORE the freeze.
+    // These must NOT count toward auto-unfreeze when the freeze lookup
+    // works correctly. With the broken fetch-20-then-filter (regression
+    // mode), freezeAt would come back as null and these pre-freeze
+    // observations would be counted under the all-time fallback, giving
+    // 4 + 1 incoming = 5 and triggering an unfreeze. With the correct
+    // SQL-side LIKE 'freeze%' the freeze row is found behind the 25
+    // non-freeze rows and the count stays at 1 (incoming only) → frozen.
+    const preFreezeObs = Array.from({ length: 4 }, (_, i) => ({
+      source: "shopify:connector",
+      source_record_id: `pre-freeze-${i}`,
+      value: "Y",
+      confidence: 1.0,
+      observed_at: new Date(
+        Date.parse("2024-12-01T00:00:00Z") + i * 60_000
+      ).toISOString()
+    }));
+    await db
+      .update(schema.catalogProducts)
+      .set({
+        values: {
+          gtin: {
+            _unscoped: {
+              _unscoped: preFreezeObs
+            }
+          }
+        }
+      })
+      .where(eq(schema.catalogProducts.productId, productId));
+
+    // Single incoming matching observation. Correct behaviour: 4 pre-freeze
+    // observations are excluded by the freeze cut-off → count = 1 → still
+    // frozen. Broken behaviour: freezeAt=null → all 4 pre-freeze obs count
+    // → count = 5 → unfreezes incorrectly.
+    const r = await applyIdentityObservation({
+      db,
+      productId,
+      field: "gtin",
+      proposedValue: "Y",
+      source: "shopify:connector",
+      sourceRecordId: "incoming-after",
+      observedAt: new Date("2025-06-15T00:00:00Z")
+    });
+    expect(r.applied).toBe(false);
+    expect(r.frozen).toBe(true);
+
+    const row = await db
+      .select({ status: schema.catalogProducts.status })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, productId));
+    expect(row[0]!.status).toBe("frozen_pending_review");
+  });
+
+  test("9. boundary guards: invalid field and empty proposedValue throw", async () => {
+    const inserted = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: "ip-009",
+        identity: { identity_strength: 1.0 },
+        status: "active",
+        values: {}
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const productId = inserted[0]!.productId;
+
+    // Invalid field — caller bug, must throw before any DB work.
+    await expect(
+      applyIdentityObservation({
+        db,
+        productId,
+        // @ts-expect-error — exercising the runtime guard against caller bugs
+        field: "color",
+        proposedValue: "red",
+        source: "shopify:connector",
+        sourceRecordId: "rec-bad",
+        observedAt: new Date("2025-06-01T00:00:00Z")
+      })
+    ).rejects.toThrow(/invalid field/);
+
+    // Empty proposedValue — must throw.
+    await expect(
+      applyIdentityObservation({
+        db,
+        productId,
+        field: "gtin",
+        proposedValue: "",
+        source: "shopify:connector",
+        sourceRecordId: "rec-empty",
+        observedAt: new Date("2025-06-01T00:00:00Z")
+      })
+    ).rejects.toThrow(/non-empty string/);
+  });
+
+  test("10. brand: a conflicting priority-1 observation breaks the streak", async () => {
+    // Three matching priority-1 observations of "NewBrand" — but with a
+    // disagreeing priority-1 ebay observation IN THE MIDDLE. The streak
+    // walks newest-first and stops at the first non-matching priority-1
+    // observation, so the third match shouldn't be enough.
+    const inserted = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: "ip-010",
+        identity: { brand: "OldBrand", identity_strength: 1.0 },
+        status: "active",
+        // Observations are written in chronological order; the conflicting
+        // ebay observation lands at offset 1 (between two matching shopify
+        // observations).
+        values: brandLeaf([
+          {
+            source: "shopify:connector",
+            value: "NewBrand",
+            source_record_id: "rec-shop-1",
+            observed_at: "2025-06-01T10:00:00Z"
+          },
+          {
+            source: "ebay:connector",
+            value: "OtherBrand",
+            source_record_id: "rec-ebay-mid",
+            observed_at: "2025-06-01T10:01:00Z"
+          },
+          {
+            source: "shopify:connector",
+            value: "NewBrand",
+            source_record_id: "rec-shop-2",
+            observed_at: "2025-06-01T10:02:00Z"
+          }
+        ])
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const productId = inserted[0]!.productId;
+
+    // Incoming third matching priority-1 observation (the (existing+1)-th).
+    // existing matching streak walking newest-first: incoming (matches) +
+    // rec-shop-2 (matches) → then rec-ebay-mid (priority-1, NON-matching)
+    // breaks the streak at 2. Still under the BRAND_CONSECUTIVE_REQUIRED=3
+    // threshold → no apply.
+    const r = await applyIdentityObservation({
+      db,
+      productId,
+      field: "brand",
+      proposedValue: "NewBrand",
+      source: "shopify:connector",
+      sourceRecordId: "rec-shop-3-incoming",
+      observedAt: new Date("2025-06-01T10:03:00Z")
+    });
+    expect(r.applied).toBe(false);
+    expect(r.frozen).toBe(false);
+
+    const row = await db
+      .select({ identity: schema.catalogProducts.identity })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, productId));
+    const identity = row[0]!.identity as Record<string, unknown>;
+    expect(identity.brand).toBe("OldBrand"); // unchanged
   });
 });

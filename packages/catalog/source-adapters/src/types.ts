@@ -65,11 +65,15 @@ export interface AdapterOutput {
 }
 
 export interface IdentityHint {
-  gtin?: string;
-  mpn?: string;
-  brand?: string;
-  titleForFuzzy?: string;
-  variantAxes?:   Record<string, string>;
+  gtin?:           string;
+  mpn?:            string;
+  brand?:          string;
+  /** Manufacturer model number. Reserved for future adapters — the identity
+   *  policy gate already treats it on equal footing with `brand`. No current
+   *  adapter populates it. */
+  model_number?:   string;
+  titleForFuzzy?:  string;
+  variantAxes?:    Record<string, string>;
   targetIsVariant: boolean;
 }
 

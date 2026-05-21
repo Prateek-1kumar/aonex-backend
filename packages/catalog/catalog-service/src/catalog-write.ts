@@ -287,11 +287,16 @@ export async function writeAdapterOutput(
         const policySource = firstSignal.source;
         const policySourceRecordId = firstSignal.sourceRecordId;
         const policyObservedAt = firstSignal.observedAt;
+        const hint = adapterOutput.identityHint;
+        const proposedByField: Record<IdentityField, string | undefined> = {
+          gtin: hint.gtin,
+          mpn: hint.mpn,
+          brand: hint.brand,
+          model_number: hint.model_number
+        };
         const fields: IdentityField[] = ["gtin", "mpn", "brand", "model_number"];
         for (const field of fields) {
-          const proposed = (adapterOutput.identityHint as unknown as Record<string, unknown>)[
-            field
-          ];
+          const proposed = proposedByField[field];
           if (typeof proposed !== "string" || proposed.length === 0) continue;
           await applyIdentityObservation({
             db: tx as unknown as DrizzleClient,
