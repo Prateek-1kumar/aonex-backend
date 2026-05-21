@@ -51,7 +51,7 @@ const DEFAULT_BACKPRESSURE_INTERVAL_MS = 10_000;
 export interface StartOutboxDeps {
   db: DrizzleClient;
   connection: IORedis;
-  logger: Logger;
+  logger?: Logger;
 }
 
 export interface StartOutboxOptions {
@@ -86,7 +86,6 @@ export interface StartOutboxOptions {
 
 export interface OutboxHandle {
   workers: PollerWorker[];
-  publisher: Publisher;
   stop(): Promise<void>;
 }
 
@@ -112,7 +111,7 @@ export async function startOutboxPoller(
   const gated = options.gated !== false;
 
   if (gated && options.useNewCatalogSchema === false) {
-    logger.info(
+    logger?.info(
       { useNewCatalogSchema: false },
       "Outbox poller gated by feature flag — skipping"
     );
@@ -132,9 +131,16 @@ export async function startOutboxPoller(
     new RedisStreamsPublisher({ redis: connection, streamName });
 
   // Build the workers (NOT started yet). `makePoller` returns N handles.
-  const workers = makePoller({ db, publisher, workerCount, logger });
+  // Spread `logger` only when supplied — passing `undefined` explicitly
+  // would trip `exactOptionalPropertyTypes` on the downstream type.
+  const workers = makePoller({
+    db,
+    publisher,
+    workerCount,
+    ...(logger !== undefined ? { logger } : {})
+  });
   for (const w of workers) w.start();
-  logger.info(
+  logger?.info(
     { workerCount, streamName },
     "Outbox poller workers started"
   );
@@ -146,11 +152,13 @@ export async function startOutboxPoller(
   const backpressureTick = async (): Promise<void> => {
     if (stopped) return;
     try {
-      await measureAndPublishBackpressure(
-        { db, redis: connection, logger }
-      );
+      await measureAndPublishBackpressure({
+        db,
+        redis: connection,
+        ...(logger !== undefined ? { logger } : {})
+      });
     } catch (err) {
-      logger.error(
+      logger?.error(
         { err: err instanceof Error ? err.message : String(err) },
         "outbox.backpressure.tick_failed"
       );
@@ -167,12 +175,11 @@ export async function startOutboxPoller(
 
   return {
     workers,
-    publisher,
     async stop(): Promise<void> {
       stopped = true;
       clearInterval(intervalHandle);
       await Promise.all(workers.map((w) => w.stop()));
-      logger.info("Outbox poller workers stopped");
+      logger?.info("Outbox poller workers stopped");
     }
   };
 }
