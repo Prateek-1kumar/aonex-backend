@@ -143,6 +143,22 @@
         "typescript": "^5.7.0",
       },
     },
+    "packages/catalog/watchdog": {
+      "name": "@aonex/catalog-watchdog",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/catalog-service": "workspace:*",
+        "@aonex/db": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
+        "@aonex/types": "workspace:*",
+        "bullmq": "^5.34.5",
+        "drizzle-orm": "^0.36.4",
+      },
+      "devDependencies": {
+        "@types/node": "^22.10.0",
+        "typescript": "^5.7.0",
+      },
+    },
     "packages/connector-gateway": {
       "name": "@aonex/connector-gateway",
       "version": "0.1.0",
@@ -403,6 +419,8 @@
     "@aonex/catalog-service": ["@aonex/catalog-service@workspace:packages/catalog/catalog-service"],
 
     "@aonex/catalog-source-adapters": ["@aonex/catalog-source-adapters@workspace:packages/catalog/source-adapters"],
+
+    "@aonex/catalog-watchdog": ["@aonex/catalog-watchdog@workspace:packages/catalog/watchdog"],
 
     "@aonex/connector-gateway": ["@aonex/connector-gateway@workspace:packages/connector-gateway"],
 
