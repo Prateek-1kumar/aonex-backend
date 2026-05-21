@@ -664,29 +664,29 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       data: {
-        product: { productId: string; tenantId: string; merchantId: string };
-        pricingObservations: unknown[];
-        inventoryObservations: unknown[];
+        product: { product_id: string; tenant_id: string; merchant_id: string };
+        pricing_observations: unknown[];
+        inventory_observations: unknown[];
         revisions: unknown[];
-        reconciliationOverrides: unknown[];
+        reconciliation_overrides: unknown[];
         events: unknown[];
-        observationsByAttribute: Record<string, unknown>;
+        observations_by_attribute: Record<string, unknown>;
         window: { since: string; until: string };
         pagination: {
-          observationsNextCursor: string | null;
-          revisionsNextCursor: string | null;
-          eventsNextCursor: string | null;
+          observations_next_cursor: string | null;
+          revisions_next_cursor: string | null;
+          events_next_cursor: string | null;
         };
       };
     };
 
-    expect(body.data.product.productId).toBe(productId);
-    expect(body.data.product.tenantId).toBe(TEST_TENANT_ID);
-    expect(body.data.product.merchantId).toBe(TEST_MERCHANT_ID);
-    expect(body.data.pricingObservations.length).toBe(3);
-    expect(body.data.inventoryObservations.length).toBe(2);
+    expect(body.data.product.product_id).toBe(productId);
+    expect(body.data.product.tenant_id).toBe(TEST_TENANT_ID);
+    expect(body.data.product.merchant_id).toBe(TEST_MERCHANT_ID);
+    expect(body.data.pricing_observations.length).toBe(3);
+    expect(body.data.inventory_observations.length).toBe(2);
     expect(body.data.revisions.length).toBe(5);
-    expect(body.data.reconciliationOverrides.length).toBe(1);
+    expect(body.data.reconciliation_overrides.length).toBe(1);
     expect(body.data.events.length).toBe(4);
     // window.since should be roughly 30 days before window.until.
     const since = new Date(body.data.window.since).getTime();
@@ -695,9 +695,9 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     expect(deltaDays).toBeGreaterThan(29.9);
     expect(deltaDays).toBeLessThan(30.1);
     // All sections under their default limits → no next cursors.
-    expect(body.data.pagination.observationsNextCursor).toBeNull();
-    expect(body.data.pagination.revisionsNextCursor).toBeNull();
-    expect(body.data.pagination.eventsNextCursor).toBeNull();
+    expect(body.data.pagination.observations_next_cursor).toBeNull();
+    expect(body.data.pagination.revisions_next_cursor).toBeNull();
+    expect(body.data.pagination.events_next_cursor).toBeNull();
   });
 
   // ---- 2. ?since= override narrows the window -------------------------------
@@ -756,11 +756,11 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      data: { pricingObservations: Array<{ tiers: unknown }> };
+      data: { pricing_observations: Array<{ tiers: unknown }> };
     };
-    expect(body.data.pricingObservations.length).toBe(1);
+    expect(body.data.pricing_observations.length).toBe(1);
     // The kept observation is the one at amount=1 (recent).
-    const tiers = body.data.pricingObservations[0]!.tiers as Array<{
+    const tiers = body.data.pricing_observations[0]!.tiers as Array<{
       amount: number;
     }>;
     expect(tiers[0]!.amount).toBe(1);
@@ -791,16 +791,20 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       data: {
-        revisions: Array<{ revisionReason: string; ingestedAt: string }>;
-        pagination: { revisionsNextCursor: string | null };
+        revisions: Array<{ revision_reason: string; ingested_at: string }>;
+        pagination: { revisions_next_cursor: string | null };
       };
     };
     expect(body.data.revisions.length).toBe(2);
     // DESC by ingestedAt → newest first (rev-5, rev-4).
-    expect(body.data.revisions[0]!.revisionReason).toBe("rev-5");
-    expect(body.data.revisions[1]!.revisionReason).toBe("rev-4");
+    expect(body.data.revisions[0]!.revision_reason).toBe("rev-5");
+    expect(body.data.revisions[1]!.revision_reason).toBe("rev-4");
     // Hit the limit → a cursor is set.
-    expect(body.data.pagination.revisionsNextCursor).not.toBeNull();
+    expect(body.data.pagination.revisions_next_cursor).not.toBeNull();
+    // Composite cursor format: <iso>|<id>.
+    expect(body.data.pagination.revisions_next_cursor).toMatch(
+      /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.Z]+\|[0-9]+$/
+    );
   });
 
   // ---- 4. Revisions pagination cursor follow-up -----------------------------
@@ -826,15 +830,15 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     );
     const firstBody = (await firstRes.json()) as {
       data: {
-        revisions: Array<{ revisionReason: string }>;
-        pagination: { revisionsNextCursor: string | null };
+        revisions: Array<{ revision_reason: string }>;
+        pagination: { revisions_next_cursor: string | null };
       };
     };
-    expect(firstBody.data.revisions.map((r) => r.revisionReason)).toEqual([
+    expect(firstBody.data.revisions.map((r) => r.revision_reason)).toEqual([
       "rev-5",
       "rev-4",
     ]);
-    const cursor = firstBody.data.pagination.revisionsNextCursor;
+    const cursor = firstBody.data.pagination.revisions_next_cursor;
     expect(cursor).not.toBeNull();
 
     const secondRes = await app.request(
@@ -844,12 +848,12 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     );
     const secondBody = (await secondRes.json()) as {
       data: {
-        revisions: Array<{ revisionReason: string }>;
-        pagination: { revisionsNextCursor: string | null };
+        revisions: Array<{ revision_reason: string }>;
+        pagination: { revisions_next_cursor: string | null };
       };
     };
     // Next 2 oldest: rev-3, rev-2.
-    expect(secondBody.data.revisions.map((r) => r.revisionReason)).toEqual([
+    expect(secondBody.data.revisions.map((r) => r.revision_reason)).toEqual([
       "rev-3",
       "rev-2",
     ]);
@@ -948,14 +952,14 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       data: {
-        observationsByAttribute: Record<
+        observations_by_attribute: Record<
           string,
           Record<string, Record<string, Array<{ value: unknown }>>>
         >;
       };
     };
 
-    const grouped = body.data.observationsByAttribute;
+    const grouped = body.data.observations_by_attribute;
     expect(Object.keys(grouped).sort()).toEqual(["brand", "title"]);
     // 2 channels × 1 locale on title.
     expect(Array.isArray(grouped.title!["shopify-au"]!.en_AU)).toBe(true);
@@ -963,6 +967,48 @@ describe("GET /products/:product_id/trace (Task 6.1)", () => {
     expect(grouped.title!["magento-au"]!.en_AU![0]!.value).toBe("Mage Title");
     // brand is _unscoped on both axes.
     expect(grouped.brand!._unscoped!._unscoped![0]!.value).toBe("ACME");
+  });
+
+  // ---- 10. Malformed ?since= → 400 INVALID_QUERY ----------------------------
+
+  test("returns 400 INVALID_QUERY for a non-ISO ?since=", async () => {
+    const app = buildApp({ db });
+    const res = await app.request(
+      `/catalog/products/${TRACE6_PRODUCT_HAPPY}/trace?since=not-an-iso`
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("INVALID_QUERY");
+  });
+
+  // ---- 11. Malformed ?revisions_limit= → 400 INVALID_QUERY -----------------
+
+  test("returns 400 INVALID_QUERY for ?revisions_limit=-5", async () => {
+    const app = buildApp({ db });
+    // Use a negative number — parsePositiveIntQuery rejects on the leading
+    // dash via the `/^[0-9]+$/` guard. This proves the parse+clamp error
+    // path is wired correctly at the handler boundary, not silently
+    // clamped to the default.
+    const res = await app.request(
+      `/catalog/products/${TRACE6_PRODUCT_HAPPY}/trace?revisions_limit=-5`
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("INVALID_QUERY");
+  });
+
+  // ---- 12. Legacy single-timestamp cursor → 400 INVALID_QUERY --------------
+
+  test("returns 400 INVALID_QUERY for a legacy cursor with no '|' tie-breaker", async () => {
+    const app = buildApp({ db });
+    // Pre-release we hard-break legacy cursors so clients can't silently
+    // half-page when two rows share a timestamp.
+    const res = await app.request(
+      `/catalog/products/${TRACE6_PRODUCT_HAPPY}/trace?revisions_cursor=2026-05-21T00:00:00.000Z`
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("INVALID_QUERY");
   });
 
 });

@@ -35,6 +35,8 @@ import {
 import {
   readProductTrace,
   PRODUCT_NOT_FOUND as TRACE_PRODUCT_NOT_FOUND,
+  type ProductTraceResult,
+  type TraceCursor,
 } from "../services/new-catalog-trace.js";
 
 /** Tight UUID v1-v5 regex. Permissive enough for any well-formed id. */
@@ -171,6 +173,33 @@ function parsePositiveIntQuery(raw: string | undefined): ParsedInt {
 }
 
 /**
+ * Parse a composite pagination cursor `<iso>|<id>`. Returns:
+ *   - `undefined` when absent (caller picks a default — no cursor).
+ *   - `{ ts: Date, id: number }` when valid.
+ *   - `INVALID` symbol when malformed (caller returns 400). Legacy
+ *     single-timestamp cursors (no `|`) are rejected explicitly — we are
+ *     pre-release, so hard-breaking gives clients a clear error message
+ *     rather than half-pages or silently-skipped rows.
+ */
+const INVALID_CURSOR = Symbol("invalid-cursor");
+type ParsedCursor = TraceCursor | undefined | typeof INVALID_CURSOR;
+
+function parseCursorQuery(raw: string | undefined): ParsedCursor {
+  if (raw === undefined || raw === "") return undefined;
+  const sep = raw.indexOf("|");
+  if (sep < 0) return INVALID_CURSOR;
+  const tsPart = raw.slice(0, sep);
+  const idPart = raw.slice(sep + 1);
+  if (!tsPart || !idPart) return INVALID_CURSOR;
+  const ts = new Date(tsPart);
+  if (Number.isNaN(ts.getTime())) return INVALID_CURSOR;
+  if (!/^[0-9]+$/.test(idPart)) return INVALID_CURSOR;
+  const id = Number(idPart);
+  if (!Number.isFinite(id) || id < 0) return INVALID_CURSOR;
+  return { ts, id };
+}
+
+/**
  * GET /products/:product_id/trace — unified product debug payload.
  *
  * Returns a single JSON document covering:
@@ -190,8 +219,13 @@ function parsePositiveIntQuery(raw: string | undefined): ParsedInt {
  *   - `observations_limit` / `revisions_limit` / `events_limit` cap each
  *     section; clamped server-side ([1, 5000] / [1, 200] / [1, 200]).
  *   - `observations_cursor` / `revisions_cursor` / `events_cursor` are
- *     ISO timestamps for the strict-less-than pagination cursors. Pass
- *     back the `pagination.*NextCursor` values to fetch the next page.
+ *     composite pagination cursors in the form `<iso>|<id>` (e.g.
+ *     `2026-05-22T10:30:00.000Z|7392`). The id is the bigint primary key
+ *     of the last row on the previous page; it ties-breaks rows with
+ *     equal timestamps so we never silently drop / duplicate rows. Pass
+ *     back the `pagination.*_next_cursor` values to fetch the next page.
+ *     LEGACY single-timestamp cursors (no `|`) are REJECTED — this is a
+ *     pre-release surface; we'd rather fail loud than half-page.
  *
  * Responses:
  *   - 200 with `{ data: ProductTraceResult }` (see service-layer types).
@@ -231,39 +265,44 @@ export async function getProductTrace(
       400
     );
   }
-  const observationsCursorParsed = parseIsoQuery(
+  const observationsCursorParsed = parseCursorQuery(
     c.req.query("observations_cursor")
   );
-  if (observationsCursorParsed === INVALID_ISO) {
+  if (observationsCursorParsed === INVALID_CURSOR) {
     return c.json(
       {
         error: {
           code: "INVALID_QUERY",
-          message: "observations_cursor must be an ISO-8601 timestamp",
+          message:
+            "observations_cursor must be of the form '<iso>|<id>' (e.g. '2026-05-22T10:30:00.000Z|7392')",
         },
       },
       400
     );
   }
-  const revisionsCursorParsed = parseIsoQuery(c.req.query("revisions_cursor"));
-  if (revisionsCursorParsed === INVALID_ISO) {
+  const revisionsCursorParsed = parseCursorQuery(
+    c.req.query("revisions_cursor")
+  );
+  if (revisionsCursorParsed === INVALID_CURSOR) {
     return c.json(
       {
         error: {
           code: "INVALID_QUERY",
-          message: "revisions_cursor must be an ISO-8601 timestamp",
+          message:
+            "revisions_cursor must be of the form '<iso>|<id>' (e.g. '2026-05-22T10:30:00.000Z|7392')",
         },
       },
       400
     );
   }
-  const eventsCursorParsed = parseIsoQuery(c.req.query("events_cursor"));
-  if (eventsCursorParsed === INVALID_ISO) {
+  const eventsCursorParsed = parseCursorQuery(c.req.query("events_cursor"));
+  if (eventsCursorParsed === INVALID_CURSOR) {
     return c.json(
       {
         error: {
           code: "INVALID_QUERY",
-          message: "events_cursor must be an ISO-8601 timestamp",
+          message:
+            "events_cursor must be of the form '<iso>|<id>' (e.g. '2026-05-22T10:30:00.000Z|7392')",
         },
       },
       400
@@ -347,5 +386,113 @@ export async function getProductTrace(
     );
   }
 
-  return c.json({ data: result });
+  // Service-layer types are camelCase (TS conventions). The API surface
+  // is snake_case (see `getProductById`, `getProductProvenanceTrace`).
+  // We project at the handler boundary so service types stay ergonomic
+  // but the wire shape stays consistent across endpoints.
+  return c.json({ data: projectTraceToWire(result) });
+}
+
+// ---- Response projection: camelCase service types → snake_case wire shape ----
+
+/**
+ * Map the service-layer `ProductTraceResult` (camelCase) to the snake_case
+ * API response. We keep the projection in one place — adding a field to the
+ * service result automatically requires a deliberate change here, which
+ * acts as a forcing function for the wire-contract review.
+ */
+function projectTraceToWire(r: ProductTraceResult): Record<string, unknown> {
+  const p = r.product;
+  return {
+    product: {
+      product_id: p.productId,
+      tenant_id: p.tenantId,
+      merchant_id: p.merchantId,
+      primary_identifier: p.primaryIdentifier,
+      identity: p.identity,
+      family: p.family,
+      status: p.status,
+      values: p.values,
+      winning_values: p.winningValues,
+      schema_version: p.schemaVersion,
+      current_revision_id: p.currentRevisionId,
+      parent_product_id: p.parentProductId,
+      merged_into_product_id: p.mergedIntoProductId,
+      created_at: p.createdAt,
+      updated_at: p.updatedAt,
+    },
+    observations_by_attribute: r.observationsByAttribute,
+    pricing_observations: r.pricingObservations.map((row) => ({
+      observation_id: row.observationId,
+      product_id: row.productId,
+      tenant_id: row.tenantId,
+      channel_id: row.channelId,
+      locale: row.locale,
+      source: row.source,
+      source_record_id: row.sourceRecordId,
+      currency: row.currency,
+      tiers: row.tiers,
+      price_per_unit: row.pricePerUnit,
+      observed_at: row.observedAt,
+      ingested_at: row.ingestedAt,
+      artifact_id: row.artifactId,
+    })),
+    inventory_observations: r.inventoryObservations.map((row) => ({
+      observation_id: row.observationId,
+      product_id: row.productId,
+      tenant_id: row.tenantId,
+      channel_id: row.channelId,
+      location_id: row.locationId,
+      qty: row.qty,
+      click_collect_eligible: row.clickCollectEligible,
+      purchase_limit: row.purchaseLimit,
+      backorder_allowed: row.backorderAllowed,
+      source: row.source,
+      source_record_id: row.sourceRecordId,
+      observed_at: row.observedAt,
+      ingested_at: row.ingestedAt,
+      artifact_id: row.artifactId,
+    })),
+    revisions: r.revisions.map((row) => ({
+      revision_id: row.revisionId,
+      ingested_at: row.ingestedAt,
+      observed_at: row.observedAt,
+      revision_reason: row.revisionReason,
+      source_kind: row.sourceKind,
+      source_record_id: row.sourceRecordId,
+      triggered_by_artifact_id: row.triggeredByArtifactId,
+      actor: row.actor,
+      diff: row.diff,
+      suppress_outbound: row.suppressOutbound,
+    })),
+    reconciliation_overrides: r.reconciliationOverrides.map((row) => ({
+      override_id: row.overrideId,
+      attribute_code: row.attributeCode,
+      channel_code: row.channelCode,
+      locale_code: row.localeCode,
+      frozen_value: row.frozenValue,
+      frozen_until: row.frozenUntil,
+      actor: row.actor,
+      rationale: row.rationale,
+      created_at: row.createdAt,
+    })),
+    events: r.events.map((row) => ({
+      event_id: row.eventId,
+      event_type: row.eventType,
+      payload: row.payload,
+      triggered_by: row.triggeredBy,
+      occurred_at: row.occurredAt,
+      published_at: row.publishedAt,
+      publish_attempts: row.publishAttempts,
+    })),
+    window: {
+      since: r.window.since,
+      until: r.window.until,
+    },
+    pagination: {
+      observations_next_cursor: r.pagination.observationsNextCursor,
+      revisions_next_cursor: r.pagination.revisionsNextCursor,
+      events_next_cursor: r.pagination.eventsNextCursor,
+    },
+  };
 }
