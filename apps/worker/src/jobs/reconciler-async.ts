@@ -26,13 +26,6 @@ import type { Worker } from "bullmq";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { makeReconcilerWorker, reconcilerQueueName } from "@aonex/catalog-service";
 
-/**
- * Default per-tenant Worker concurrency. Mirrors the default in
- * `makeReconcilerWorker` so the fan-out behaviour is identical whether the
- * caller is the composition root or a test instantiating workers directly.
- */
-const DEFAULT_CONCURRENCY = 4;
-
 export interface StartReconcilerWorkersDeps {
   db: DrizzleClient;
   connection: IORedis;
@@ -41,9 +34,9 @@ export interface StartReconcilerWorkersDeps {
 
 export interface StartReconcilerWorkersOptions {
   /**
-   * Per-Worker BullMQ concurrency. Defaults to 4 (matches
-   * `makeReconcilerWorker`'s default). Isolation is per-tenant — this is the
-   * concurrency WITHIN one tenant's worker, not across tenants.
+   * Per-Worker BullMQ concurrency. When omitted, defaults to
+   * `makeReconcilerWorker`'s internal default (4). Isolation is per-tenant —
+   * this is the concurrency WITHIN one tenant's worker, not across tenants.
    */
   concurrency?: number;
   /**
@@ -87,7 +80,7 @@ export async function startReconcilerWorkers(
 ): Promise<ReconcilerWorkerHandle[]> {
   const { db, connection, logger } = deps;
   const gated = options.gated !== false;
-  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
+  const concurrency = options.concurrency;
 
   if (gated && options.useNewCatalogSchema === false) {
     logger?.info(
@@ -107,21 +100,39 @@ export async function startReconcilerWorkers(
     return [];
   }
 
-  const handles: ReconcilerWorkerHandle[] = activeTenants.map((t) => {
-    const worker = makeReconcilerWorker(
-      { connection, db },
-      { tenantId: t.tenantId, concurrency }
+  const handles: ReconcilerWorkerHandle[] = [];
+  try {
+    for (const t of activeTenants) {
+      // Spread concurrency only when supplied so we don't pass `undefined`
+      // explicitly (tripping the downstream type's exactOptionalPropertyTypes);
+      // omitting the key lets `makeReconcilerWorker`'s default (4) apply.
+      const worker = makeReconcilerWorker(
+        { connection, db },
+        {
+          tenantId: t.tenantId,
+          ...(concurrency !== undefined ? { concurrency } : {}),
+        }
+      );
+      logger?.info(
+        {
+          tenantId: t.tenantId,
+          queue: reconcilerQueueName(t.tenantId),
+          concurrency
+        },
+        "Reconciler worker spawned"
+      );
+      handles.push({ tenantId: t.tenantId, worker });
+    }
+  } catch (err) {
+    // Don't leak partially-constructed workers (each opens a Redis subscription
+    // eagerly). Close best-effort + rethrow so the caller knows startup failed.
+    logger?.error(
+      { err, spawned: handles.length, attempted: activeTenants.length },
+      "Reconciler spawn failed mid-loop; closing partial handles"
     );
-    logger?.info(
-      {
-        tenantId: t.tenantId,
-        queue: reconcilerQueueName(t.tenantId),
-        concurrency
-      },
-      "Reconciler worker spawned"
-    );
-    return { tenantId: t.tenantId, worker };
-  });
+    await Promise.allSettled(handles.map((h) => h.worker.close()));
+    throw err;
+  }
 
   logger?.info(
     { count: handles.length, concurrency },
