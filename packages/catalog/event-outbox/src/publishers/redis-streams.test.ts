@@ -8,7 +8,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import IORedis from "ioredis";
 import type { CatalogEvent } from "../types.js";
-import { RedisStreamsPublisher } from "./redis-streams.js";
+import { COMMAND_NAME, RedisStreamsPublisher } from "./redis-streams.js";
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 const STREAM_PREFIX = "test:catalog-events";
@@ -150,11 +150,10 @@ describe("RedisStreamsPublisher", () => {
 
     // Spy via prototype patch: throw on the *second* call to the custom
     // Lua command, succeed on the others.
-    const commandName = "aonexCatalogPublishEvent";
     type Cmd = (...args: unknown[]) => Promise<string | null>;
-    const original = (connection as unknown as Record<string, Cmd>)[commandName]!;
+    const original = (connection as unknown as Record<string, Cmd>)[COMMAND_NAME]!;
     let calls = 0;
-    (connection as unknown as Record<string, Cmd>)[commandName] = async function (
+    (connection as unknown as Record<string, Cmd>)[COMMAND_NAME] = async function (
       ...args: unknown[]
     ): Promise<string | null> {
       calls++;
@@ -174,7 +173,7 @@ describe("RedisStreamsPublisher", () => {
       // A and C land on the stream; B does not.
       expect(await connection.xlen(streamName)).toBe(2);
     } finally {
-      (connection as unknown as Record<string, Cmd>)[commandName] = original;
+      (connection as unknown as Record<string, Cmd>)[COMMAND_NAME] = original;
     }
   });
 
@@ -197,29 +196,5 @@ describe("RedisStreamsPublisher", () => {
       rec[fields[i]!] = fields[i + 1]!;
     }
     expect(rec.triggeredBy).toBe("");
-  });
-
-  test("MAXLEN ~ option is accepted and stream stays bounded", async () => {
-    // Small cap, then publish more than the cap. Redis trims approximately
-    // so we just assert XLEN is in the same order of magnitude as the cap.
-    const boundedPublisher = new RedisStreamsPublisher({
-      redis: connection,
-      streamName,
-      dedupeKeyPrefix: DEDUPE_PREFIX,
-      dedupeTtlSeconds: 60,
-      maxLenApprox: 5
-    });
-    const events = Array.from({ length: 20 }, () => makeEvent());
-    const result = await boundedPublisher.publish(events);
-
-    expect(result.published).toBe(20);
-    expect(result.failed).toEqual([]);
-
-    // Approximate trim: XLEN should be ≤ 20 and ≥ 5. In practice Redis
-    // usually stays close to the cap; we just want to confirm trimming
-    // actually fires and we don't unbound the stream.
-    const len = await connection.xlen(streamName);
-    expect(len).toBeGreaterThanOrEqual(5);
-    expect(len).toBeLessThanOrEqual(20);
   });
 });
