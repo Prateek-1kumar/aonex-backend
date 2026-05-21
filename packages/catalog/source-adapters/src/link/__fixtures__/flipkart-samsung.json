@@ -1,0 +1,83 @@
+{
+  "sourceUrl": "https://www.flipkart.com/samsung-galaxy-s24-ultra-5g-titanium-black-256-gb/p/itm12345",
+  "observedAt": "2026-05-20T10:00:00.000Z",
+  "sku": {
+    "title": "Samsung Galaxy S24 Ultra 5G (Titanium Black, 256 GB)",
+    "brand": "Samsung",
+    "gtin": "8806095269757",
+    "mpn": "SM-S928BZKDINS",
+    "model_number": "SM-S928B",
+    "sku": "MOBHFRGQTJ6JFM5N",
+    "description_short": "Galaxy AI is here. Now with built-in Samsung translate.",
+    "description_long": "Galaxy S24 Ultra is engineered with titanium, our strongest, most lightweight smartphone material to-date, and Corning Gorilla Armor for added protection.",
+    "highlights": [
+      "12 GB RAM | 256 GB ROM",
+      "17.27 cm (6.8 inch) Quad HD+ Display",
+      "200MP + 12MP + 50MP + 10MP | 12MP Front Camera"
+    ],
+    "category_path": "Mobiles > Smartphones",
+    "category_confidence": 0.92,
+    "breadcrumbs": ["Mobiles", "Smartphones"],
+    "pricing": {
+      "list_price": 129999,
+      "sale_price": 59999,
+      "currency": "INR",
+      "discount_percent": 54,
+      "price_per_unit": null
+    },
+    "ratings": { "average": 4.6, "count": 28341 },
+    "seller": { "name": "RetailNet", "is_official": false },
+    "images": [
+      {
+        "url": "https://rukminim2.flixcart.com/image/300/300/sample1.jpeg",
+        "role": "hero",
+        "position": 0,
+        "alt_text": null,
+        "width": 300,
+        "height": 300,
+        "variant_refs": []
+      },
+      {
+        "url": "https://rukminim2.flixcart.com/image/300/300/sample2.jpeg",
+        "role": "gallery",
+        "position": 1,
+        "alt_text": null,
+        "width": 300,
+        "height": 300,
+        "variant_refs": []
+      }
+    ],
+    "options": [],
+    "variants": [],
+    "attributes": {
+      "ram": { "value": "12 GB", "unit": null, "source": "structured" },
+      "storage": { "value": "256 GB", "unit": null, "source": "structured" },
+      "color": { "value": "Titanium Black", "unit": null, "source": "structured" }
+    },
+    "shipping": {
+      "free_shipping": true,
+      "shipping_cost": null,
+      "weight": null,
+      "dimensions": null
+    },
+    "warranty": "1 year manufacturer warranty",
+    "return_policy": "7-day replacement",
+    "_field_confidence": {
+      "title": 0.95,
+      "brand": 0.99,
+      "gtin": 0.9,
+      "pricing.sale_price": 0.98
+    },
+    "_field_source": {
+      "title": "structured",
+      "brand": "structured"
+    },
+    "_extraction_meta": {
+      "passes_run": ["static", "llm"],
+      "tokens_used": 2400,
+      "cost_usd": 0.012,
+      "latency_ms": 4200,
+      "escalated_to": "static"
+    }
+  }
+}
