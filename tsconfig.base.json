@@ -33,7 +33,8 @@
       "@aonex/ingestion-llm-extractor": ["./packages/ingestion/llm-extractor/src/index.ts"],
       "@aonex/ingestion-semantic-mapper": ["./packages/ingestion/semantic-mapper/src/index.ts"],
       "@aonex/ingestion-policy-engine": ["./packages/ingestion/policy-engine/src/index.ts"],
-      "@aonex/catalog-service": ["./packages/catalog/catalog-service/src/index.ts"]
+      "@aonex/catalog-service": ["./packages/catalog/catalog-service/src/index.ts"],
+      "@aonex/db/testing": ["./packages/db/src/testing/index.ts"]
     }
   },
   "exclude": [
