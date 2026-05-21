@@ -40,15 +40,3 @@ export function serializeEventForStream(event: CatalogEvent): Record<string, str
     publishAttempts: String(event.publishAttempts)
   };
 }
-
-/**
- * Flatten the serialized record into the variadic `[k1, v1, k2, v2, ...]`
- * array that `redis.xadd(stream, "*", ...args)` expects.
- */
-export function flattenSerializedFields(fields: Record<string, string>): string[] {
-  const out: string[] = [];
-  for (const [k, v] of Object.entries(fields)) {
-    out.push(k, v);
-  }
-  return out;
-}

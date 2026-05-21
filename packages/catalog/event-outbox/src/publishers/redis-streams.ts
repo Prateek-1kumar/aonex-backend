@@ -54,11 +54,6 @@ export interface RedisStreamsPublisherOptions {
   dedupeKeyPrefix?: string;
   /** TTL for the dedupe key in seconds. Default: 30 days. */
   dedupeTtlSeconds?: number;
-  /**
-   * Optional MAXLEN ~ cap for the stream (applied per XADD). Omit to
-   * disable trimming. Sized in entries.
-   */
-  maxLenApprox?: number;
 }
 
 /**
@@ -67,12 +62,13 @@ export interface RedisStreamsPublisherOptions {
  * KEYS[1] = dedupe key (`<prefix>:<eventId>`)
  * KEYS[2] = stream name
  * ARGV[1] = dedupe TTL (seconds)
- * ARGV[2] = "1" to apply MAXLEN ~, else "0"
- * ARGV[3] = MAXLEN value (only read when ARGV[2] == "1")
- * ARGV[4..] = alternating field, value pairs for XADD
+ * ARGV[2..] = alternating field, value pairs for XADD
  *
  * Returns the new stream entry ID on success, or `false` (nil) if the
  * dedupe key was already set (i.e. the event was already published).
+ *
+ * Stream retention (MAXLEN) is the *bus's* responsibility per spec §19.1,
+ * not the publisher's — this script intentionally does no trimming.
  */
 const CLAIM_AND_XADD_SCRIPT = `
 local claimed = redis.call('SET', KEYS[1], '1', 'NX', 'EX', ARGV[1])
@@ -80,29 +76,27 @@ if not claimed then
   return false
 end
 local fields = {}
-for i = 4, #ARGV do
+for i = 2, #ARGV do
   fields[#fields + 1] = ARGV[i]
 end
-if ARGV[2] == '1' then
-  return redis.call('XADD', KEYS[2], 'MAXLEN', '~', ARGV[3], '*', unpack(fields))
-else
-  return redis.call('XADD', KEYS[2], '*', unpack(fields))
-end
+return redis.call('XADD', KEYS[2], '*', unpack(fields))
 `;
 
 // Symbol used to register the script on the ioredis client once. We add a
 // matching property to the prototype-less call surface via defineCommand,
 // so the second client to be passed in also gets a fresh registration —
 // defineCommand is idempotent per-instance.
-const COMMAND_NAME = "aonexCatalogPublishEvent";
+//
+// Exported for tests only (so the failure-isolation test can patch the
+// command without duplicating the magic string). NOT re-exported from
+// `src/index.ts` — package-internal.
+export const COMMAND_NAME = "aonexCatalogPublishEvent";
 
 interface CommanderWithCustom extends IORedis {
   [COMMAND_NAME]: (
     dedupeKey: string,
     streamKey: string,
     ttl: string,
-    maxLenFlag: string,
-    maxLenValue: string,
     ...fields: string[]
   ) => Promise<string | null>;
 }
@@ -119,19 +113,16 @@ function ensureCommandRegistered(redis: IORedis): CommanderWithCustom {
 }
 
 export class RedisStreamsPublisher implements Publisher {
-  private readonly redis: IORedis;
+  private readonly redis: CommanderWithCustom;
   private readonly streamName: string;
   private readonly dedupeKeyPrefix: string;
   private readonly dedupeTtlSeconds: number;
-  private readonly maxLenApprox: number | undefined;
 
   constructor(opts: RedisStreamsPublisherOptions) {
-    this.redis = opts.redis;
+    this.redis = ensureCommandRegistered(opts.redis);
     this.streamName = opts.streamName;
     this.dedupeKeyPrefix = opts.dedupeKeyPrefix ?? DEFAULT_DEDUPE_PREFIX;
     this.dedupeTtlSeconds = opts.dedupeTtlSeconds ?? DEFAULT_DEDUPE_TTL_SECONDS;
-    this.maxLenApprox = opts.maxLenApprox;
-    ensureCommandRegistered(this.redis);
   }
 
   /** The fully-qualified dedupe key for a given eventId. */
@@ -139,6 +130,26 @@ export class RedisStreamsPublisher implements Publisher {
     return `${this.dedupeKeyPrefix}:${eventId}`;
   }
 
+  /**
+   * Publish a batch of events to the configured Redis stream.
+   *
+   * Returns `{ published, failed }` where `published` is the count of
+   * **newly** written stream entries and `failed[]` carries
+   * `{ event, reason }` for every event whose claim+XADD threw.
+   *
+   * **Idempotency:** a duplicate event (same `eventId` as a previous
+   * successful publish within the dedupe TTL window) is counted in
+   * **neither** `published` **nor** `failed` — it is a silent no-op,
+   * exactly matching the contract that the outbox poller relies on.
+   *
+   * **Dedupe TTL:** defaults to `DEFAULT_DEDUPE_TTL_SECONDS` (30 days,
+   * matching spec §19.1 partition retention). Override via
+   * `RedisStreamsPublisherOptions.dedupeTtlSeconds`.
+   *
+   * See the file header for the v1 limitation around SET-succeeds /
+   * server-side-XADD-fails (next retry skips; the outbox row-level
+   * `publish_attempts` + DLQ path covers it).
+   */
   async publish(events: CatalogEvent[]): Promise<{
     published: number;
     failed: { event: CatalogEvent; reason: string }[];
@@ -147,13 +158,9 @@ export class RedisStreamsPublisher implements Publisher {
       return { published: 0, failed: [] };
     }
 
-    const cmd = ensureCommandRegistered(this.redis);
     const failed: { event: CatalogEvent; reason: string }[] = [];
     let published = 0;
 
-    const maxLenFlag = this.maxLenApprox !== undefined ? "1" : "0";
-    const maxLenValue =
-      this.maxLenApprox !== undefined ? String(this.maxLenApprox) : "0";
     const ttlArg = String(this.dedupeTtlSeconds);
 
     // Sequential, not pipelined: each event needs its own claim+XADD result.
@@ -169,12 +176,10 @@ export class RedisStreamsPublisher implements Publisher {
       }
 
       try {
-        const result = await cmd[COMMAND_NAME](
+        const result = await this.redis[COMMAND_NAME](
           dedupeKey,
           this.streamName,
           ttlArg,
-          maxLenFlag,
-          maxLenValue,
           ...fieldArgs
         );
         // result === null → dedupe key already existed; event was previously
