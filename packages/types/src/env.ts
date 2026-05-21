@@ -65,6 +65,17 @@ export const EnvSchema = z.object({
   SCRAPINGBEE_API_KEY: z.string().min(1).optional(),
   // Per-ingestion USD ceiling for paid escalations (default $0.05 in cost-ceiling.ts).
   EXTRACTION_COST_CEILING_USD: z.coerce.number().positive().optional(),
+
+  /**
+   * Phase 4 feature flag for the catalog redesign. When true, new
+   * ingestion/read paths use the new catalog schema. Legacy path remains
+   * the default until Phase 7 cutover. Strict string enum so a typo
+   * (e.g. "yes", "1") fails loud at startup.
+   */
+  CATALOG_USE_NEW_SCHEMA: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -75,4 +86,14 @@ export type Env = z.infer<typeof EnvSchema>;
  */
 export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return EnvSchema.parse(source);
+}
+
+/**
+ * Phase 4 catalog redesign — typed accessor for the
+ * `CATALOG_USE_NEW_SCHEMA` flag. Reads from the parsed `Env` (no direct
+ * `process.env` access) so composition roots stay the single trust
+ * boundary for ambient config.
+ */
+export function useNewCatalogSchema(env: Env): boolean {
+  return env.CATALOG_USE_NEW_SCHEMA;
 }
