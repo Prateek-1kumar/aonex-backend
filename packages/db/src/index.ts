@@ -13,3 +13,7 @@ export type {
   CatalogEventDlq,
   NewCatalogEventDlq,
 } from "./schema/catalog-events.js";
+export type {
+  TenantWebhook,
+  NewTenantWebhook,
+} from "./schema/tenant-webhooks.js";
