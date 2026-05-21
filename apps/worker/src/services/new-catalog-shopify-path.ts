@@ -45,14 +45,34 @@ import type {
   TenantId,
 } from "@aonex/types";
 import type { DrizzleClient } from "@aonex/db";
+import { sql } from "drizzle-orm";
+import { PLACEHOLDER_CHANNEL_ID } from "./_internal.js";
+
+/**
+ * Minimal structural logger type — kept local so this module doesn't pull in
+ * `pino` as a direct dependency. Both pino's `Logger` and any
+ * `{ warn(obj, msg) }` shape conform.
+ */
+export interface PathLogger {
+  warn(obj: object, msg: string): void;
+}
 
 /**
  * Default region for Shopify channels — mirrors the bootstrap-channels script
  * (Task 1.12). `*.myshopify.com` hostnames don't carry a region signal; the
  * bootstrap defaults to 'AU' (primary aonex tenant region). Per-tenant
  * overrides happen via the channel row that bootstrap creates.
+ *
+ * Region is treated as case-INSENSITIVE for channel lookup (see
+ * `resolveShopifyChannel`); the canonical written form is uppercase ("AU"),
+ * matching bootstrap-channels. Lowercase rows from older seeds still resolve.
  */
 export const SHOPIFY_DEFAULT_REGION = "AU";
+
+/** Runtime guard for the unverified `ShopifyProduct` payload coming off the wire. */
+function isShopifyProduct(x: unknown): x is ShopifyProduct {
+  return typeof x === "object" && x !== null && "id" in x;
+}
 
 /**
  * Look up the channel row for a tenant + shop_domain. Mirrors the unique key
@@ -73,12 +93,15 @@ export async function resolveShopifyChannel(
   defaultCurrency: string | null;
   defaultLocale: string | null;
 } | null> {
+  // Region is matched case-insensitively: bootstrap-channels writes uppercase
+  // ("AU") but older seeds / hand-rolled rows may be lowercase. Normalizing
+  // both sides keeps the lookup robust regardless of which side drifted.
   const row = await db.query.channels.findFirst({
     where: (c, { and, eq }) =>
       and(
         eq(c.tenantId, tenantId),
         eq(c.channelKind, "shopify"),
-        eq(c.region, region),
+        sql`lower(${c.region}) = lower(${region})`,
         eq(c.accountRef, shopDomain)
       ),
   });
@@ -106,6 +129,12 @@ export interface RunNewShopifyCatalogPathInput {
   shopifyProduct: ShopifyProduct;
   /** Wall-clock independent — passed in for test determinism. */
   observedAt: Date;
+  /**
+   * Optional structured logger for the unresolved-channel warning. When
+   * omitted, falls back to `console.warn` so direct callers (and tests) still
+   * see the drop. The drain processor plumbs its pino logger through.
+   */
+  logger?: PathLogger;
 }
 
 export interface RunNewShopifyCatalogPathResult {
@@ -121,6 +150,18 @@ export interface RunNewShopifyCatalogPathResult {
 export async function runNewShopifyCatalogPath(
   input: RunNewShopifyCatalogPathInput
 ): Promise<RunNewShopifyCatalogPathResult> {
+  // Defensive guard at the helper boundary. The drain casts `artifact.raw`
+  // (typed as `unknown`) to `ShopifyProduct` before calling us; a malformed
+  // payload from upstream produces a meaningful error here instead of a
+  // cryptic adapter exception buried in shopify-connector internals. The
+  // drain's swallow-and-warn still catches it — but at least the warn log
+  // names the actual cause.
+  if (!isShopifyProduct(input.shopifyProduct)) {
+    throw new Error(
+      "runNewShopifyCatalogPath: invalid ShopifyProduct payload — expected an object with 'id' field"
+    );
+  }
+
   const {
     db,
     tenantId,
@@ -130,6 +171,7 @@ export async function runNewShopifyCatalogPath(
     region,
     shopifyProduct,
     observedAt,
+    logger,
   } = input;
 
   const effectiveRegion = region ?? SHOPIFY_DEFAULT_REGION;
@@ -161,9 +203,7 @@ export async function runNewShopifyCatalogPath(
     // catalog-write layer maps channelCode→channelId at side-table insert
     // time). When unresolved we still need a placeholder so the
     // AdaptContext is well-typed.
-    channelId:
-      resolved?.channelId ??
-      ("00000000-0000-0000-0000-000000000000" as unknown as ChannelId),
+    channelId: resolved?.channelId ?? PLACEHOLDER_CHANNEL_ID,
     // For unresolved channels we hand the adapter "AUD" so it doesn't throw
     // on the variant-currency check; we then strip every pricing/inventory
     // observation out below BEFORE calling `writeAdapterOutput`. This keeps
@@ -184,10 +224,24 @@ export async function runNewShopifyCatalogPath(
     const droppedPricing = adapterOutput.pricingObservations.length;
     const droppedInventory = adapterOutput.inventoryObservations.length;
     if (droppedPricing + droppedInventory > 0) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[new-catalog-shopify-path] channel unresolved for shopDomain=${shopDomain} region=${effectiveRegion}; dropping ${droppedPricing} pricing + ${droppedInventory} inventory observations`
-      );
+      if (logger) {
+        logger.warn(
+          {
+            tenantId,
+            accountRef: shopDomain,
+            region: effectiveRegion,
+            channelKind: "shopify",
+            droppedPricing,
+            droppedInventory,
+          },
+          "Shopify channel unresolved; skipping side-table writes"
+        );
+      } else {
+        // eslint-disable-next-line no-console -- fallback for direct callers without a structured logger
+        console.warn(
+          `[new-catalog-shopify-path] channel unresolved for shopDomain=${shopDomain} region=${effectiveRegion}; dropping ${droppedPricing} pricing + ${droppedInventory} inventory observations`
+        );
+      }
     }
     writeOutput = {
       ...adapterOutput,

@@ -33,6 +33,7 @@ import type {
   TenantId,
 } from "@aonex/types";
 import type { DrizzleClient } from "@aonex/db";
+import { PLACEHOLDER_CHANNEL_ID } from "./_internal.js";
 
 /**
  * Curated allow-list of canonical marketplace channel-kinds. The link
@@ -188,8 +189,10 @@ export async function runNewLinkCatalogPath(
       (v) => v.pricing.list_price !== null || v.pricing.sale_price !== null
     ).length;
     if (droppedParentPricing + droppedVariantPricing > 0) {
-      // Lightweight stderr warning — we don't pull a logger dep into this
-      // module. The processor's audit emitter records the success path.
+      // TODO(catalog-redesign-cleanup): plumb the drain/processor pino logger
+      // here, mirroring the `PathLogger` pattern in new-catalog-shopify-path.ts.
+      // Lightweight stderr warning for now — the processor's audit emitter
+      // records the success path.
       // eslint-disable-next-line no-console
       console.warn(
         `[new-catalog-link-path] channel unresolved for sourceUrl=${sourceUrl}; dropping ${droppedParentPricing} parent + ${droppedVariantPricing} variant pricing entries`
@@ -202,14 +205,11 @@ export async function runNewLinkCatalogPath(
   // this id — see source-adapters/src/link/index.ts). With pricing
   // pre-stripped above, the placeholder only appears on parent-level
   // CanonicalObservations that aren't bound to a real channel row.
-  const placeholderChannelId =
-    "00000000-0000-0000-0000-000000000000" as unknown as ChannelId;
-
   const adapterOutput = adapter.adapt(
     { sku: adapterSku, sourceUrl, observedAt, artifactId },
     {
       tenantId,
-      channelId: channelId ?? placeholderChannelId,
+      channelId: channelId ?? PLACEHOLDER_CHANNEL_ID,
       channelDefaultCurrency,
       channelDefaultLocale,
       // Phase 4 v1: empty arrays — adapters fall back to default rules.
