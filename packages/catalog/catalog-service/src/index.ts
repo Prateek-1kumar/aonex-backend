@@ -52,3 +52,11 @@ export type {
   ApplyIdentityObservationResult,
   IdentityField
 } from "./identity-policy.js";
+
+export { mergeProducts, unmergeProduct } from "./merge.js";
+export type {
+  MergeProductsInput,
+  MergeProductsResult,
+  UnmergeProductInput,
+  UnmergeProductResult
+} from "./merge.js";
