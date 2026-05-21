@@ -17,10 +17,12 @@ import { eq, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
+  TEST_CHANNEL_ID,
   TEST_MERCHANT_ID,
   TEST_TENANT_ID,
   closeTestDb,
   connectTestDb,
+  ensureTestChannel,
   ensureTestMerchant,
   ensureTestTenant
 } from "@aonex/db/testing";
@@ -52,6 +54,15 @@ async function seedRules(db: DrizzleClient): Promise<void> {
 }
 
 async function cleanup(db: DrizzleClient): Promise<void> {
+  await db
+    .delete(schema.catalogPricingObservations)
+    .where(eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID));
+  await db.execute(
+    sql`DELETE FROM catalog_pricing_current
+        WHERE product_id IN (
+          SELECT product_id FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}
+        )`
+  );
   await db.execute(
     sql`DELETE FROM catalog_events WHERE tenant_id = ${TEST_TENANT_ID}`
   );
@@ -111,11 +122,21 @@ describe("runContinuous (plan §3.10, spec §13.3 — continuous tier)", () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
+    await ensureTestChannel(db);
     await cleanup(db);
     await seedRules(db);
   });
 
   afterEach(async () => {
+    await db
+      .delete(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID));
+    await db.execute(
+      sql`DELETE FROM catalog_pricing_current
+          WHERE product_id IN (
+            SELECT product_id FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}
+          )`
+    );
     await db.execute(
       sql`DELETE FROM catalog_events WHERE tenant_id = ${TEST_TENANT_ID}`
     );
@@ -184,6 +205,39 @@ describe("runContinuous (plan §3.10, spec §13.3 — continuous tier)", () => {
     const stats = await runContinuous({ db });
     expect(stats.sampled).toBe(0);
     expect(stats.driftFound).toBe(0);
+    expect(stats.autoFixed).toBe(0);
+  });
+
+  test("3a. async drift with no queue → asyncDeferred bumps, autoFixed does NOT", async () => {
+    // Stats honesty (Fix 7): when there's pricing/inventory drift but no
+    // Queue is wired into runContinuous, autoFixDrift logs the skip + returns
+    // asyncDeferred>0. The tier runner must NOT count that product toward
+    // `autoFixed` — it bumps `asyncDeferred` instead.
+    const productId = await insertProduct(db, {
+      primaryIdentifier: "CONT-ASYNCDEF-1",
+      values: {}
+    });
+    await db.insert(schema.catalogPricingObservations).values([
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "shopify:connector",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 19.95 }],
+        observedAt: new Date()
+      }
+    ]);
+    // No catalog_pricing_current row → drift exists; runContinuous is
+    // invoked WITHOUT a queue so the fix is deferred.
+
+    const stats = await runContinuous({ db });
+
+    expect(stats.sampled).toBeGreaterThanOrEqual(1);
+    expect(stats.driftFound).toBe(1);
+    expect(stats.asyncDeferred).toBe(1);
+    // Critical: autoFixed must NOT include the deferred product.
     expect(stats.autoFixed).toBe(0);
   });
 

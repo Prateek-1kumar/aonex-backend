@@ -44,6 +44,7 @@ export async function runDaily(deps: DailyDeps): Promise<DailyStats> {
     sampled: 0,
     driftFound: 0,
     autoFixed: 0,
+    asyncDeferred: 0,
     durationMs: 0,
     driftRateByAttribute: {},
     driftByTenant: {}
@@ -103,8 +104,15 @@ export async function runDaily(deps: DailyDeps): Promise<DailyStats> {
           }
           try {
             const autoFixDeps = queue ? { db, queue } : { db };
-            await autoFixDrift(autoFixDeps, row.product_id, report);
-            stats.autoFixed++;
+            const fix = await autoFixDrift(autoFixDeps, row.product_id, report);
+            // Same accounting policy as the continuous tier — products
+            // whose async-tier fixes were skipped (no queue) bump
+            // `asyncDeferred` instead of `autoFixed`. See continuous.ts.
+            if (fix.asyncDeferred > 0) {
+              stats.asyncDeferred++;
+            } else {
+              stats.autoFixed++;
+            }
           } catch (err) {
             console.warn(
               `[catalog-watchdog] AUTOFIX_FAILED product=${row.product_id} err=${
