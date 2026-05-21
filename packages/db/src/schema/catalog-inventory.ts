@@ -43,7 +43,12 @@ export const catalogInventoryObservations = pgTable(
     sourceRecordId:       text("source_record_id"),
     observedAt:           timestamp("observed_at", { withTimezone: true }).notNull(),
     ingestedAt:           timestamp("ingested_at", { withTimezone: true }).notNull().defaultNow(),
-    artifactId:           uuid("artifact_id")
+    artifactId:           uuid("artifact_id"),
+    // Added migration 0017 — set during merge to record the original (loser)
+    // product so unmerge can re-attach this row. Nullable; only populated for
+    // rows moved by mergeProducts (spec §18.1). No FK by design (mirrors the
+    // pricing-side column).
+    mergedFromProductId:  uuid("merged_from_product_id")
   },
   (t) => ({
     pk:         primaryKey({ columns: [t.observationId, t.observedAt] }),
