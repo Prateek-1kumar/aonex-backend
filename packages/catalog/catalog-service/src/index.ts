@@ -45,3 +45,10 @@ export type {
   WriteAdapterOutputResult,
   WriteMatchPath
 } from "./catalog-write.js";
+
+export { applyIdentityObservation } from "./identity-policy.js";
+export type {
+  ApplyIdentityObservationInput,
+  ApplyIdentityObservationResult,
+  IdentityField
+} from "./identity-policy.js";
