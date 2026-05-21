@@ -55,3 +55,6 @@ export * from "./product-lineage.js";
 
 // Catalog redesign Phase 1 — partitioned outbox + DLQ
 export * from "./catalog-events.js";
+
+// Catalog redesign Phase 5 — per-tenant webhook subscriptions
+export * from "./tenant-webhooks.js";
