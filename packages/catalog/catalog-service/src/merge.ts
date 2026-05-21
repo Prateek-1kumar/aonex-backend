@@ -27,13 +27,19 @@
 //      `{ operation: "merge", winnerId, losers: [{ loserId, observationsMoved,
 //         priorStatus, priorMergedIntoProductId }], rationale, actor }`.
 //      `observationsMoved[]` carries `{ attr, channel, locale, source,
-//      sourceRecordId }` — enough to identify which observations to peel off
-//      winner.values on unmerge without storing the full observation payload.
-//   2. Identifying merged-in observations during unmerge: match on
-//      `(source, sourceRecordId)` per the loser. The spec guarantees these
-//      are preserved when observations are moved. If multiple observations
-//      from the same loser share the same `(source, sourceRecordId)` (which
-//      catalog-write's dedup hint already prevents), remove all matches.
+//      sourceRecordId, observedAt }` — enough to identify which observations
+//      to peel off winner.values on unmerge without storing the full
+//      observation payload.
+//   2. Identifying merged-in observations during unmerge: match on the triple
+//      `(source, sourceRecordId, observedAt)`. The 2-tuple `(source,
+//      sourceRecordId)` is NOT sufficient — catalog-write's dedup is per
+//      product per `(source, sourceRecordId, value)`, so two DIFFERENT
+//      products' observations can legally share `(source, sourceRecordId)`
+//      with different values. After a merge those collide on the same leaf
+//      and matching on the 2-tuple alone would remove the winner's original
+//      observation. `observedAt` (captured from the StoredObservation row at
+//      merge time) disambiguates exact rows; if duplicates ever exist they
+//      were genuine duplicates and removing all matches is correct.
 //   3. Per-product advisory locks: lock the winner AND every loser, ordered
 //      by the lexicographic uuid string. Deterministic ordering avoids the
 //      classic two-product deadlock when concurrent merges touch overlapping
@@ -67,7 +73,21 @@
 //      Callers can safely retry on partial failure.
 //  10. Loser's revisions stay on `loser.productId` — preserves audit chain.
 //      We do NOT rewrite their `productId` during merge (the loser row still
-//      exists, just tombstoned).
+//      exists, just tombstoned). `priorMergedIntoProductId` in the undo
+//      recipe is always `null` in v1 because chained merges are blocked at
+//      the entry guard (decision 5); captured defensively for the day chained
+//      merges are allowed.
+//  11. `_current` table reconciliation is deferred to the async-debounced
+//      reconciler. Inside the merge txn we DELETE the loser's
+//      `catalog_pricing_current` / `catalog_inventory_current` rows (they
+//      would otherwise point at a tombstoned product and never get cleaned).
+//      We do NOT recompute the winner's `_current` rows here — that rebuild
+//      is left to the async reconciler keyed off the moved observations
+//      (matching the catalog-write.ts pattern where async enqueue lands in
+//      Phase 4). On unmerge we DELETE `_current` rows for BOTH the winner
+//      and each restored loser so the async reconciler rebuilds them from
+//      the post-unmerge observation layout. Phase 4 will wire
+//      `enqueueReconcilerJob` at the tail of merge/unmerge.
 
 import { eq, inArray, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
@@ -147,12 +167,18 @@ interface MovedObservationRef {
   locale: string;
   source: string;
   sourceRecordId: string;
+  /** ISO observed_at copied from the StoredObservation at merge time. Used at
+   * unmerge to disambiguate observations sharing `(source, sourceRecordId)`
+   * with the winner's pre-existing rows. See decision 2. */
+  observedAt: string;
 }
 
 interface MergeUndoLoserEntry {
   loserId: string;
   observationsMoved: MovedObservationRef[];
   priorStatus: string;
+  /** Always null in v1 — chained merges are blocked at the entry guard
+   * (decision 5). Captured for forward-compat if v2 allows chained merges. */
   priorMergedIntoProductId: string | null;
 }
 
@@ -309,7 +335,8 @@ export async function mergeProducts(
           channel,
           locale,
           source: observation.source,
-          sourceRecordId: observation.source_record_id
+          sourceRecordId: observation.source_record_id,
+          observedAt: observation.observed_at
         });
         touchedAttributes.add(attr);
         observationsMoved++;
@@ -373,6 +400,18 @@ export async function mergeProducts(
           observationId: schema.catalogInventoryObservations.observationId
         });
       inventoryObservationsMoved += inv.length;
+    }
+
+    // 6b. Delete loser's `_current` rows. They would otherwise be orphans
+    //     pointing at a tombstoned product (decision 11). Winner's `_current`
+    //     rows are intentionally left to the async-debounced reconciler.
+    for (const loser of losers) {
+      await tx
+        .delete(schema.catalogPricingCurrent)
+        .where(eq(schema.catalogPricingCurrent.productId, loser.productId));
+      await tx
+        .delete(schema.catalogInventoryCurrent)
+        .where(eq(schema.catalogInventoryCurrent.productId, loser.productId));
     }
 
     // 7. Tombstone losers: status='merged_into', merged_into_product_id=winner.
@@ -557,8 +596,11 @@ export async function unmergeProduct(
       };
     }
 
-    // 4. Load winner.values once, then remove every (source, sourceRecordId)
-    //    pair from the leaf identified by the undo recipe.
+    // 4. Load winner.values once, then remove every
+    //    (source, sourceRecordId, observedAt) triple from the leaf identified
+    //    by the undo recipe. The triple match (vs the 2-tuple) is critical
+    //    when the winner already had an observation sharing `(source,
+    //    sourceRecordId)` with a moved-in row — see decision 2.
     const winnerRows = await tx
       .select({ values: schema.catalogProducts.values })
       .from(schema.catalogProducts)
@@ -584,7 +626,8 @@ export async function unmergeProduct(
           (o) =>
             !(
               o.source === ref.source &&
-              o.source_record_id === ref.sourceRecordId
+              o.source_record_id === ref.sourceRecordId &&
+              o.observed_at === ref.observedAt
             )
         );
         observationsRemoved += before - filtered.length;
@@ -629,6 +672,26 @@ export async function unmergeProduct(
           observationId: schema.catalogInventoryObservations.observationId
         });
       inventoryObservationsRestored += inv.length;
+    }
+
+    // 5b. Delete pricing/inventory `_current` rows for the winner AND each
+    //     restored loser. The winner's rows are now stale (they reflected the
+    //     post-merge state); the losers had none (we deleted them on merge).
+    //     The async-debounced reconciler will rebuild both sides from the
+    //     restored observation layout (decision 11).
+    await tx
+      .delete(schema.catalogPricingCurrent)
+      .where(eq(schema.catalogPricingCurrent.productId, winnerId));
+    await tx
+      .delete(schema.catalogInventoryCurrent)
+      .where(eq(schema.catalogInventoryCurrent.productId, winnerId));
+    for (const loser of undo.losers) {
+      await tx
+        .delete(schema.catalogPricingCurrent)
+        .where(eq(schema.catalogPricingCurrent.productId, loser.loserId));
+      await tx
+        .delete(schema.catalogInventoryCurrent)
+        .where(eq(schema.catalogInventoryCurrent.productId, loser.loserId));
     }
 
     // 6. Recompute winning_values for the union of touched attributes on the
