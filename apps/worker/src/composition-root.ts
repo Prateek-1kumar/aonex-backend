@@ -9,7 +9,7 @@ import { buildGateway, PostgresConnectionRegistry } from "@aonex/connector-gatew
 import { createNangoClient } from "@aonex/connector-gateway/adapters/nango";
 import { SyncService } from "./services/sync-service.js";
 import { PostgresAuditEmitter } from "@aonex/audit";
-import { parseEnv, QUEUE, type Env } from "@aonex/types";
+import { parseEnv, QUEUE, useNewCatalogSchema, type Env } from "@aonex/types";
 
 import { makeNangoAuthProcessor } from "./processors/nango-auth.processor.js";
 import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
@@ -23,12 +23,26 @@ import { CRON_JOBS } from "./jobs/index.js";
 
 export interface WorkerContainer {
   env: Env;
+  /**
+   * Phase 4 catalog redesign flag, resolved once at boot. Downstream
+   * code reads this field instead of `process.env` to keep the trust
+   * boundary in this composition root.
+   */
+  useNewCatalogSchema: boolean;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
 
 export function buildContainer(env: Env): WorkerContainer {
   const logger = pino({ level: env.LOG_LEVEL });
+
+  // Phase 4 catalog redesign — resolve the feature flag once and log it
+  // so ops can confirm flag state at boot. The flag is NOT yet read by
+  // any downstream processor (wiring lands in Phase 4.2+); this just
+  // makes it available on the container.
+  const catalogUseNewSchema = useNewCatalogSchema(env);
+  logger.info({ useNewCatalogSchema: catalogUseNewSchema }, "Catalog feature flag");
+
   const db = createDb(env.DATABASE_URL, { max: 30 });
   const redis = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
@@ -148,6 +162,7 @@ export function buildContainer(env: Env): WorkerContainer {
 
   return {
     env,
+    useNewCatalogSchema: catalogUseNewSchema,
     async start() {
       logger.info({ env: env.NODE_ENV }, "worker.starting");
     },
