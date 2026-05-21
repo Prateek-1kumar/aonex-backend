@@ -1,2 +1,11 @@
 export * from "./types.js";
-export { registerAdapter, getAdapter } from "./registry.js";
+export { getAdapter, registerAdapter } from "./registry.js";
+
+import { linkAdapter } from "./link/index.js";
+import { shopifyConnectorAdapter } from "./shopify-connector/index.js";
+import { csvAdapter } from "./csv/index.js";
+import { registerAdapter } from "./registry.js";
+
+registerAdapter(linkAdapter);
+registerAdapter(shopifyConnectorAdapter);
+registerAdapter(csvAdapter);
