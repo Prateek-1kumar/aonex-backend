@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "dev": "bun --env-file=../../.env run --hot src/index.ts",
-    "start": "bun --env-file=../../.env run src/index.ts"
+    "start": "bun --env-file=../../.env run src/index.ts",
+    "seed:source-priority": "bun --env-file=../../.env run scripts/seed-source-priority.ts"
   },
   "dependencies": {
     "@aonex/types": "workspace:*",

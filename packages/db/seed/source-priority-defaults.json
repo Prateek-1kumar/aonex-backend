@@ -1,0 +1,21 @@
+[
+  { "attribute_code": "title",   "source_glob": "csv:*",             "priority": 1,   "channel_scope": "*",          "rules_version": 1 },
+  { "attribute_code": "title",   "source_glob": "shopify:connector", "priority": 2,   "channel_scope": "shopify-*",  "rules_version": 1 },
+  { "attribute_code": "title",   "source_glob": "amazon:link",       "priority": 2,   "channel_scope": "amazon-*",   "rules_version": 1 },
+  { "attribute_code": "title",   "source_glob": "ebay:link",         "priority": 2,   "channel_scope": "ebay-*",     "rules_version": 1 },
+  { "attribute_code": "title",   "source_glob": "*",                 "priority": 100, "channel_scope": "*",          "rules_version": 1 },
+  { "attribute_code": "pricing", "source_glob": "shopify:connector", "priority": 1,   "channel_scope": "shopify-*",  "rules_version": 1 },
+  { "attribute_code": "pricing", "source_glob": "amazon:link",       "priority": 1,   "channel_scope": "amazon-*",   "rules_version": 1 },
+  { "attribute_code": "pricing", "source_glob": "ebay:link",         "priority": 1,   "channel_scope": "ebay-*",     "rules_version": 1 },
+  { "attribute_code": "pricing", "source_glob": "csv:*",             "priority": 5,   "channel_scope": "*",          "rules_version": 1 },
+  { "attribute_code": "inventory", "source_glob": "shopify:connector","priority": 1,  "channel_scope": "shopify-*",  "rules_version": 1 },
+  { "attribute_code": "inventory", "source_glob": "*",               "priority": 99,  "channel_scope": "*",          "rules_version": 1 },
+  { "attribute_code": "images",  "source_glob": "link:*",            "priority": 1,   "channel_scope": "*",          "rules_version": 1 },
+  { "attribute_code": "images",  "source_glob": "shopify:connector", "priority": 2,   "channel_scope": "*",          "rules_version": 1 },
+  { "attribute_code": "brand",   "source_glob": "csv:*",             "priority": 1,   "channel_scope": "_unscoped",  "rules_version": 1 },
+  { "attribute_code": "brand",   "source_glob": "shopify:connector", "priority": 2,   "channel_scope": "_unscoped",  "rules_version": 1 },
+  { "attribute_code": "brand",   "source_glob": "*",                 "priority": 10,  "channel_scope": "_unscoped",  "rules_version": 1 },
+  { "attribute_code": "gtin",    "source_glob": "csv:*",             "priority": 1,   "channel_scope": "_unscoped",  "rules_version": 1 },
+  { "attribute_code": "gtin",    "source_glob": "shopify:connector", "priority": 2,   "channel_scope": "_unscoped",  "rules_version": 1 },
+  { "attribute_code": "gtin",    "source_glob": "*",                 "priority": 3,   "channel_scope": "_unscoped",  "rules_version": 1 }
+]
