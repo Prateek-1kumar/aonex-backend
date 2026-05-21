@@ -8,6 +8,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { eq, inArray, sql } from "drizzle-orm";
 import IORedis from "ioredis";
+import type { Logger } from "pino";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
@@ -92,8 +93,7 @@ describe("startReconcilerWorkers — feature flag gate", () => {
     // patch the Drizzle proxy, so instead we assert the "gated by feature flag"
     // log message fired AND no "Reconciler worker spawned" log was emitted.
     const handles = await startReconcilerWorkers(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { db, connection, logger: logger as any },
+      { db, connection, logger: logger as unknown as Logger },
       { useNewCatalogSchema: false }
     );
     expect(handles).toEqual([]);
