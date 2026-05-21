@@ -27,6 +27,7 @@ export {
   enqueueReconcilerJob,
   makeReconcilerWorker,
   processReconcilerJob,
+  reconcilerJobId,
   reconcilerQueueName,
   extractPrimaryAmount
 } from "./reconciler/async-debounced.js";

@@ -30,20 +30,22 @@
 //
 // Dependency injection: the plan sketch instantiated `new IORedis(...)` at
 // module load. That's too eager for tests and bad practice for composition
-// roots — `enqueueReconcilerJob` and `makeReconcilerWorker` take an injected
-// `connection` (and `db` for the worker). The composition root (apps/worker,
+// roots — `enqueueReconcilerJob` takes a caller-owned `Queue` (mirrors the
+// `QueueClient` pattern at apps/api/src/queues/client.ts so hot-path callers
+// don't pay a Queue construct/close per observation), and `makeReconcilerWorker`
+// takes an injected `connection` + `db`. The composition root (apps/worker,
 // Phase 4) wires real connections; tests inject test connections.
 
 import { Queue, Worker, type Job } from "bullmq";
 import type IORedis from "ioredis";
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import {
   RECONCILER_VERSION,
   pickWinner,
-  type PickWinnerObservation,
-  type SourcePriorityRule
+  type PickWinnerObservation
 } from "./pick-winner.js";
+import { deepEqual, loadActiveRules } from "./_internal.js";
 
 // ---- Constants -------------------------------------------------------------
 
@@ -60,6 +62,17 @@ const OBSERVATION_LOOKBACK_LIMIT = 200;
  *  Mirrors the STORED generated column declared in migration 0012. We use
  *  it as the winning_values leaf key (since JSON has no null keys). */
 const NULL_LOCATION_SENTINEL = "00000000-0000-0000-0000-000000000000";
+
+/** Failed-job retention for BullMQ `removeOnFail`. Keep the last 1k so an
+ *  operator can inspect what blew up; older failures are evicted. */
+const RETAINED_FAILED_JOBS = 1_000;
+
+/** Separator used inside in-memory group keys (channelId + locale or
+ *  channelId + location). ASCII SOH (U+0001) — illegal in both UUIDs and
+ *  channel-code/locale strings, so it can never appear inside a part.
+ *  Defined as a constant so producer and consumer cannot drift (TAB worked
+ *  but silently breaks under whitespace-normalising tooling). */
+const GROUP_KEY_SEP = "";
 
 /** Reconciler-managed attribute codes supported by this worker. */
 export type ReconcilerAttributeCode = "pricing" | "inventory";
@@ -112,47 +125,58 @@ export function reconcilerQueueName(tenantId: string): string {
  *  collapse to one job. Spec §13.4 leans on BullMQ's same-jobId-replaces
  *  semantics — see test `enqueue with same (productId, attributeCode)`.
  *
+ *  Exported so producers (catalog-write Phase 4) can derive the id without
+ *  re-implementing the convention — useful for `Job.getState()` polling and
+ *  for tests asserting the dedupe identity.
+ *
  *  BullMQ disallows `:` in custom jobIds (reserved for repeatable-job
  *  encoding) so we use a `.` separator to match the queue-name convention. */
-function reconcilerJobId(productId: string, attributeCode: string): string {
+export function reconcilerJobId(
+  productId: string,
+  attributeCode: string
+): string {
   return `${productId}.${attributeCode}`;
 }
 
 // ---- Enqueue ---------------------------------------------------------------
 
 /**
- * Enqueue a debounced reconcile job. Idempotent — a second enqueue with the
- * same (productId, attributeCode) inside the debounce window does not stack
- * a second job. The caller (catalog-write) is expected to fire-and-forget.
+ * Enqueue a debounced reconcile job onto a caller-supplied Queue. Idempotent —
+ * a second enqueue with the same (productId, attributeCode) inside the
+ * debounce window does not stack a second job (BullMQ jobId dedupe).
+ *
+ * The caller owns the `Queue` instance (one per tenant) so we don't pay a
+ * BullMQ Queue construct/close per observation on the hot path. This mirrors
+ * the `QueueClient` pattern at apps/api/src/queues/client.ts.
+ *
+ * Throws if the queue name doesn't match the tenant — catches the common bug
+ * of passing the wrong tenant's queue (which would silently mis-route).
  *
  * Returns the Job for tests; callers can ignore.
  */
 export async function enqueueReconcilerJob(
-  deps: { connection: IORedis },
+  queue: Queue,
   opts: EnqueueReconcilerOpts
 ): Promise<Job> {
-  const queue = new Queue(reconcilerQueueName(opts.tenantId), {
-    connection: deps.connection
-  });
-  try {
-    const data: ReconcilerJobData = {
-      tenantId: opts.tenantId,
-      productId: opts.productId,
-      attributeCode: opts.attributeCode,
-      rulesVersion: opts.rulesVersion ?? 1
-    };
-    return await queue.add("reconcile", data, {
-      delay: opts.debounceMs ?? DEFAULT_DEBOUNCE_MS,
-      jobId: reconcilerJobId(opts.productId, opts.attributeCode),
-      removeOnComplete: true,
-      removeOnFail: 1000
-    });
-  } finally {
-    // Don't keep the producer queue open across calls — the composition root
-    // will hold a single Queue per tenant for hot paths. Here we keep the
-    // helper stateless.
-    await queue.close();
+  const expectedName = reconcilerQueueName(opts.tenantId);
+  if (queue.name !== expectedName) {
+    throw new Error(
+      `enqueueReconcilerJob: queue "${queue.name}" doesn't match tenant ` +
+        `"${opts.tenantId}" (expected "${expectedName}")`
+    );
   }
+  const data: ReconcilerJobData = {
+    tenantId: opts.tenantId,
+    productId: opts.productId,
+    attributeCode: opts.attributeCode,
+    rulesVersion: opts.rulesVersion ?? 1
+  };
+  return queue.add("reconcile", data, {
+    delay: opts.debounceMs ?? DEFAULT_DEBOUNCE_MS,
+    jobId: reconcilerJobId(opts.productId, opts.attributeCode),
+    removeOnComplete: true,
+    removeOnFail: RETAINED_FAILED_JOBS
+  });
 }
 
 // ---- Worker factory --------------------------------------------------------
@@ -200,7 +224,7 @@ export function extractPrimaryAmount(tiers: unknown): number | null {
   return null;
 }
 
-// ---- Shared helpers --------------------------------------------------------
+// ---- Shared types ----------------------------------------------------------
 
 interface WinningValuesMeta {
   reconciler_version: string;
@@ -211,71 +235,6 @@ interface WinningValuesMeta {
 type WinningValuesJson = Record<string, unknown> & {
   _meta?: WinningValuesMeta;
 };
-
-/** Deep-equal good enough for our JSONB winning-value comparison. Local copy
- *  of the helper in sync.ts — keeping them independent avoids cross-module
- *  coupling for a 20-line helper. */
-function deepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (a === null || b === null) return false;
-  if (typeof a !== typeof b) return false;
-  if (typeof a !== "object") return false;
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  if (Array.isArray(a)) {
-    const arrB = b as unknown[];
-    if (a.length !== arrB.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], arrB[i])) return false;
-    }
-    return true;
-  }
-  const objA = a as Record<string, unknown>;
-  const objB = b as Record<string, unknown>;
-  const ka = Object.keys(objA);
-  const kb = Object.keys(objB);
-  if (ka.length !== kb.length) return false;
-  for (const k of ka) {
-    if (!Object.prototype.hasOwnProperty.call(objB, k)) return false;
-    if (!deepEqual(objA[k], objB[k])) return false;
-  }
-  return true;
-}
-
-async function loadActiveRules(
-  tx: DrizzleClient,
-  tenantId: string,
-  attributeCode: string
-): Promise<SourcePriorityRule[]> {
-  const rows = await tx
-    .select({
-      ruleId: schema.sourcePriority.ruleId,
-      attributeCode: schema.sourcePriority.attributeCode,
-      sourceGlob: schema.sourcePriority.sourceGlob,
-      channelScope: schema.sourcePriority.channelScope,
-      priority: schema.sourcePriority.priority
-    })
-    .from(schema.sourcePriority)
-    .where(
-      and(
-        isNull(schema.sourcePriority.effectiveTo),
-        or(
-          isNull(schema.sourcePriority.tenantId),
-          eq(schema.sourcePriority.tenantId, tenantId)
-        ),
-        or(
-          isNull(schema.sourcePriority.attributeCode),
-          inArray(schema.sourcePriority.attributeCode, [attributeCode])
-        )
-      )
-    );
-  return rows.map((r) => ({
-    ruleId: r.ruleId,
-    attributeCode: r.attributeCode,
-    sourceGlob: r.sourceGlob,
-    channelScope: r.channelScope,
-    priority: r.priority
-  }));
-}
 
 // ---- Public API ------------------------------------------------------------
 
@@ -385,13 +344,13 @@ async function reconcilePricing(
       return { winnerChanged: false, leavesWritten: 0 };
     }
 
-    const rules = await loadActiveRules(tx, product.tenantId, "pricing");
+    const rules = await loadActiveRules(tx, product.tenantId, ["pricing"]);
 
     // Group observations by (channelId, locale) → each becomes one
     // `catalog_pricing_current` row + one winning_values leaf.
     const groups = new Map<string, PricingObservationRow[]>();
     for (const row of obsRows) {
-      const key = `${row.channelId}	${row.locale}`;
+      const key = `${row.channelId}${GROUP_KEY_SEP}${row.locale}`;
       let bucket = groups.get(key);
       if (!bucket) {
         bucket = [];
@@ -412,25 +371,35 @@ async function reconcilePricing(
     let leavesWritten = 0;
 
     for (const [key, bucket] of groups.entries()) {
-      const [channelId, locale] = key.split("\t") as [string, string];
+      const [channelId, locale] = key.split(GROUP_KEY_SEP) as [string, string];
 
-      const observations: PickWinnerObservation[] = bucket.map((row) => ({
-        source: row.source,
-        sourceRecordId: row.sourceRecordId ?? `${row.source}#unknown`,
-        // The `value` passed to pickWinner is the full pricing payload —
-        // tiers + currency + the source-specific extras. pickWinner only
-        // uses `source` and `observedAt` to pick; the `value` is what comes
-        // back out.
-        value: {
+      // Track the originating DB row for each PickWinnerObservation we hand
+      // to pickWinner. `pickWinner` returns the winning input observation
+      // by reference, so we can recover the row without re-deriving identity
+      // from (source, observedAt) — which is ambiguous when two observations
+      // in the same bucket share both (legal: same connector pass, same ms).
+      const obsToRow = new Map<PickWinnerObservation, PricingObservationRow>();
+      const observations: PickWinnerObservation[] = bucket.map((row) => {
+        const obs: PickWinnerObservation = {
           source: row.source,
-          currency: row.currency,
-          tiers: row.tiers,
-          pricePerUnit: row.pricePerUnit,
-          observedAt: row.observedAt.toISOString()
-        } satisfies PricingWinnerValue,
-        confidence: 1,
-        observedAt: row.observedAt
-      }));
+          sourceRecordId: row.sourceRecordId ?? `${row.source}#unknown`,
+          // The `value` passed to pickWinner is the full pricing payload —
+          // tiers + currency + the source-specific extras. pickWinner only
+          // uses `source` and `observedAt` to pick; the `value` is what comes
+          // back out.
+          value: {
+            source: row.source,
+            currency: row.currency,
+            tiers: row.tiers,
+            pricePerUnit: row.pricePerUnit,
+            observedAt: row.observedAt.toISOString()
+          } satisfies PricingWinnerValue,
+          confidence: 1,
+          observedAt: row.observedAt
+        };
+        obsToRow.set(obs, row);
+        return obs;
+      });
 
       const winner = pickWinner({
         observations,
@@ -452,16 +421,10 @@ async function reconcilePricing(
       if (!changed) continue;
       anyChange = true;
 
-      // Find the underlying row for the writeable columns. The winner's
-      // value carries everything we need EXCEPT sourceRecordId is not on
-      // catalog_pricing_current (it's an observation-only concept).
-      const winningRow = bucket.find(
-        (r) =>
-          r.source === newValue.source &&
-          r.observedAt.toISOString() === newValue.observedAt
-      );
+      // Recover the DB row via pickWinner's reference-equal `observation`.
+      const winningRow = obsToRow.get(winner.observation);
       if (!winningRow) {
-        // Should be unreachable — winner came from this bucket.
+        // Should be unreachable — pickWinner returns one of `observations`.
         throw new Error(
           `reconcilePricing: lost winning row for ${channelId}/${locale}`
         );
@@ -597,7 +560,7 @@ async function reconcileInventory(
       return { winnerChanged: false, leavesWritten: 0 };
     }
 
-    const rules = await loadActiveRules(tx, product.tenantId, "inventory");
+    const rules = await loadActiveRules(tx, product.tenantId, ["inventory"]);
 
     // Group by (channelId, location_coalesced). Spec §9.1: NULL location
     // collapses to the sentinel for uniqueness. We use the same sentinel as
@@ -605,7 +568,7 @@ async function reconcileInventory(
     const groups = new Map<string, InventoryObservationRow[]>();
     for (const row of obsRows) {
       const locKey = row.locationId ?? NULL_LOCATION_SENTINEL;
-      const key = `${row.channelId}	${locKey}`;
+      const key = `${row.channelId}${GROUP_KEY_SEP}${locKey}`;
       let bucket = groups.get(key);
       if (!bucket) {
         bucket = [];
@@ -629,22 +592,28 @@ async function reconcileInventory(
     let leavesWritten = 0;
 
     for (const [key, bucket] of groups.entries()) {
-      const [channelId, locKey] = key.split("\t") as [string, string];
+      const [channelId, locKey] = key.split(GROUP_KEY_SEP) as [string, string];
 
-      const observations: PickWinnerObservation[] = bucket.map((row) => ({
-        source: row.source,
-        sourceRecordId: row.sourceRecordId ?? `${row.source}#unknown`,
-        value: {
+      // See reconcilePricing for the rationale on tracking obs → row by ref.
+      const obsToRow = new Map<PickWinnerObservation, InventoryObservationRow>();
+      const observations: PickWinnerObservation[] = bucket.map((row) => {
+        const obs: PickWinnerObservation = {
           source: row.source,
-          qty: row.qty,
-          clickCollectEligible: row.clickCollectEligible,
-          purchaseLimit: row.purchaseLimit,
-          backorderAllowed: row.backorderAllowed,
-          observedAt: row.observedAt.toISOString()
-        } satisfies InventoryWinnerValue,
-        confidence: 1,
-        observedAt: row.observedAt
-      }));
+          sourceRecordId: row.sourceRecordId ?? `${row.source}#unknown`,
+          value: {
+            source: row.source,
+            qty: row.qty,
+            clickCollectEligible: row.clickCollectEligible,
+            purchaseLimit: row.purchaseLimit,
+            backorderAllowed: row.backorderAllowed,
+            observedAt: row.observedAt.toISOString()
+          } satisfies InventoryWinnerValue,
+          confidence: 1,
+          observedAt: row.observedAt
+        };
+        obsToRow.set(obs, row);
+        return obs;
+      });
 
       const winner = pickWinner({
         observations,
@@ -664,11 +633,7 @@ async function reconcileInventory(
       if (!changed) continue;
       anyChange = true;
 
-      const winningRow = bucket.find(
-        (r) =>
-          r.source === newValue.source &&
-          r.observedAt.toISOString() === newValue.observedAt
-      );
+      const winningRow = obsToRow.get(winner.observation);
       if (!winningRow) {
         throw new Error(
           `reconcileInventory: lost winning row for ${channelId}/${locKey}`
@@ -678,6 +643,11 @@ async function reconcileInventory(
       // For NULL location the DB-generated `location_id_coalesced` resolves
       // it. We insert the original `location_id` (NULL or UUID) and the PK
       // ON CONFLICT clause references the generated column transparently.
+      //
+      // catalog_inventory_current intentionally stores only the hot-path
+      // columns (qty + source + observed_at). Extras (clickCollectEligible,
+      // purchaseLimit, backorderAllowed) live in
+      // winning_values.inventory.<channel>.<loc> per spec §9.1.
       await tx.execute(sql`
         INSERT INTO catalog_inventory_current
           (product_id, channel_id, location_id, qty, source, observed_at)

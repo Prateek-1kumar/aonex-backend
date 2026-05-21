@@ -42,6 +42,7 @@ import {
   enqueueReconcilerJob,
   makeReconcilerWorker,
   processReconcilerJob,
+  reconcilerJobId,
   reconcilerQueueName,
   extractPrimaryAmount
 } from "./async-debounced.js";
@@ -179,19 +180,23 @@ describe("async-debounced reconciler — BullMQ queue semantics", () => {
       const productId = "11111111-1111-1111-1111-111111111111";
       const attributeCode = "pricing" as const;
 
-      await enqueueReconcilerJob(
-        { connection },
-        { tenantId, productId, attributeCode, debounceMs: 5000 }
-      );
-      await enqueueReconcilerJob(
-        { connection },
-        { tenantId, productId, attributeCode, debounceMs: 5000 }
-      );
+      await enqueueReconcilerJob(queue, {
+        tenantId,
+        productId,
+        attributeCode,
+        debounceMs: 5000
+      });
+      await enqueueReconcilerJob(queue, {
+        tenantId,
+        productId,
+        attributeCode,
+        debounceMs: 5000
+      });
 
       // BullMQ jobId-based idempotence: only one delayed job exists for this jobId.
       const delayed = await queue.getDelayed();
       const ourJobs = delayed.filter(
-        (j) => j.id === `${productId}.${attributeCode}`
+        (j) => j.id === reconcilerJobId(productId, attributeCode)
       );
       expect(ourJobs.length).toBe(1);
     } finally {
@@ -210,10 +215,12 @@ describe("async-debounced reconciler — BullMQ queue semantics", () => {
       await qB.obliterate({ force: true });
 
       const productId = "22222222-2222-2222-2222-222222222222";
-      await enqueueReconcilerJob(
-        { connection },
-        { tenantId: tenantA, productId, attributeCode: "pricing", debounceMs: 5000 }
-      );
+      await enqueueReconcilerJob(qA, {
+        tenantId: tenantA,
+        productId,
+        attributeCode: "pricing",
+        debounceMs: 5000
+      });
 
       const delayedA = await qA.getDelayed();
       const delayedB = await qB.getDelayed();
@@ -225,6 +232,27 @@ describe("async-debounced reconciler — BullMQ queue semantics", () => {
       await qB.obliterate({ force: true });
       await qA.close();
       await qB.close();
+    }
+  });
+
+  test("enqueueReconcilerJob throws when queue name doesn't match tenant", async () => {
+    const tenantA = `test-tenant-mismatch-a-${Date.now()}`;
+    const tenantB = `test-tenant-mismatch-b-${Date.now()}`;
+    const qA = new Queue(reconcilerQueueName(tenantA), { connection });
+    try {
+      await qA.obliterate({ force: true });
+      // Passing tenantA's queue but tenantB's tenantId — must blow up.
+      await expect(
+        enqueueReconcilerJob(qA, {
+          tenantId: tenantB,
+          productId: "33333333-3333-3333-3333-333333333333",
+          attributeCode: "pricing",
+          debounceMs: 5000
+        })
+      ).rejects.toThrow(/doesn't match tenant/);
+    } finally {
+      await qA.obliterate({ force: true });
+      await qA.close();
     }
   });
 });
@@ -477,6 +505,25 @@ describe("processReconcilerJob — inventory", () => {
     connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
   });
 
+  afterEach(async () => {
+    // Per-test scrub — keep tenant/merchant/channel/location/rules.
+    await db
+      .delete(schema.catalogInventoryObservations)
+      .where(eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID));
+    await db.execute(
+      sql`DELETE FROM catalog_inventory_current
+          WHERE product_id IN (
+            SELECT product_id FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}
+          )`
+    );
+    await db.execute(
+      sql`DELETE FROM catalog_events WHERE tenant_id = ${TEST_TENANT_ID}`
+    );
+    await db
+      .delete(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
+  });
+
   afterAll(async () => {
     await cleanupDb(db);
     await connection.quit();
@@ -561,6 +608,102 @@ describe("processReconcilerJob — inventory", () => {
     expect(payload.location).toBe(TEST_LOCATION_ID);
     expect(payload.newValue.qty).toBe(7);
   });
+
+  test("NULL location collapses to sentinel — observations coalesce + winner picked", async () => {
+    // Spec §9.1: NULL location is legal for inventory; the DB-generated
+    // `location_id_coalesced` column substitutes the all-zeros sentinel UUID
+    // so the PK enforces uniqueness across NULL-location observations. The
+    // worker must:
+    //   1. Group both observations into the same bucket despite NULL.
+    //   2. Pick the winner (shopify > ebay per seedRules).
+    //   3. Write one row in catalog_inventory_current.
+    //   4. Stamp winning_values.inventory.<channel>.<sentinel> as the leaf key.
+    const productId = await insertProduct(db, "INV-NULL-LOC");
+
+    await db.insert(schema.catalogInventoryObservations).values([
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locationId: null,
+        qty: 42,
+        source: "ebay:link",
+        observedAt: new Date("2026-05-21T10:00:00Z")
+      },
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locationId: null,
+        qty: 13,
+        source: "shopify:connector",
+        observedAt: new Date("2026-05-21T09:00:00Z")
+      }
+    ]);
+
+    const result = await processReconcilerJob(
+      { connection, db },
+      {
+        tenantId: TEST_TENANT_ID,
+        productId,
+        attributeCode: "inventory",
+        rulesVersion: 1
+      }
+    );
+
+    expect(result.winnerChanged).toBe(true);
+    expect(result.leavesWritten).toBe(1);
+
+    // Raw SQL — `location_id_coalesced` is a DB-generated column not exposed
+    // on the Drizzle schema. We assert the sentinel resolution + the winner.
+    const SENTINEL = "00000000-0000-0000-0000-000000000000";
+    const currentRows = (
+      await db.execute(sql`
+        SELECT location_id, location_id_coalesced::text AS location_id_coalesced,
+               qty, source
+        FROM catalog_inventory_current
+        WHERE product_id = ${productId}
+      `)
+    ).rows as Array<{
+      location_id: string | null;
+      location_id_coalesced: string;
+      qty: number;
+      source: string;
+    }>;
+    expect(currentRows.length).toBe(1);
+    expect(currentRows[0]!.location_id).toBeNull();
+    expect(currentRows[0]!.location_id_coalesced).toBe(SENTINEL);
+    expect(currentRows[0]!.source).toBe("shopify:connector");
+    expect(currentRows[0]!.qty).toBe(13);
+
+    // winning_values uses the sentinel as the location leaf key.
+    const after = await db
+      .select({ winningValues: schema.catalogProducts.winningValues })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, productId));
+    const wv = after[0]!.winningValues as Record<string, any>;
+    expect(wv.inventory[TEST_CHANNEL_ID][SENTINEL]).toBeDefined();
+    expect(wv.inventory[TEST_CHANNEL_ID][SENTINEL].qty).toBe(13);
+    expect(wv.inventory[TEST_CHANNEL_ID][SENTINEL].source).toBe(
+      "shopify:connector"
+    );
+
+    // Event payload reflects the actual NULL location (not the sentinel) —
+    // downstream consumers should see the original observation shape.
+    const events = await db
+      .select()
+      .from(schema.catalogEvents)
+      .where(
+        and(
+          eq(schema.catalogEvents.productId, productId),
+          eq(schema.catalogEvents.tenantId, TEST_TENANT_ID),
+          eq(schema.catalogEvents.eventType, "catalog.product.inventory_changed")
+        )
+      );
+    expect(events.length).toBe(1);
+    const payload = events[0]!.payload as Record<string, any>;
+    expect(payload.location).toBeNull();
+  });
 });
 
 describe("makeReconcilerWorker", () => {
@@ -583,7 +726,7 @@ describe("makeReconcilerWorker", () => {
     await closeTestDb();
   });
 
-  test("worker exists with the expected queue name and concurrency", () => {
+  test("worker exists with the expected queue name and concurrency", async () => {
     const worker = makeReconcilerWorker(
       { connection, db },
       { tenantId: "smoke", concurrency: 4 }
@@ -591,8 +734,9 @@ describe("makeReconcilerWorker", () => {
     try {
       expect(worker.name).toBe("recon.smoke");
     } finally {
-      // close() returns a promise — fire-and-forget in sync test body.
-      void worker.close();
+      // Await close so the worker doesn't leak past the test and hold the
+      // Redis connection open into afterAll's `connection.quit()`.
+      await worker.close();
     }
   });
 });

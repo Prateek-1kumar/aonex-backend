@@ -75,6 +75,13 @@ export interface PickWinnerInput {
 
 export interface PickWinnerResult {
   value: unknown;
+  /**
+   * The original observation that produced the winning value. Reference-equal
+   * to one of the entries in `input.observations` — callers can use this to
+   * recover side-channel fields (DB row, sourceRecordId, etc.) without
+   * re-deriving identity from `value` + `observedAt` (ambiguous on ties).
+   */
+  observation: PickWinnerObservation;
   explanation: WinnerExplanation;
 }
 
@@ -200,6 +207,7 @@ export function pickWinner(input: PickWinnerInput): PickWinnerResult | null {
   const top = ranked[0]!;
   return {
     value: top.obs.value,
+    observation: top.obs,
     explanation: {
       ruleId: top.ruleId,
       sourceGlob: top.sourceGlob,
