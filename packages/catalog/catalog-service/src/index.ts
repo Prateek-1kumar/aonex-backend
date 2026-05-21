@@ -19,3 +19,6 @@ export type {
   SourcePriorityRule,
   WinnerExplanation
 } from "./reconciler/pick-winner.js";
+
+export { projectSync } from "./reconciler/sync.js";
+export type { ProjectSyncInput, ProjectSyncResult } from "./reconciler/sync.js";
