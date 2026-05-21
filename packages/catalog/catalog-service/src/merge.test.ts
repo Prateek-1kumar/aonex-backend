@@ -1733,7 +1733,7 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S9. _current rows cleared on source after split (async reconciler rebuilds)", async () => {
-    // Per design decision 8: rather than filter-aware deletion of _current rows
+    // Per design decision 7: rather than filter-aware deletion of _current rows
     // (which is complex), we delete ALL of source's pricing/inventory _current
     // rows. The async-debounced reconciler rebuilds from observations.
     const sourceId = await seedProduct(db, {
@@ -1851,5 +1851,140 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(
       (newRows[0]!.winningValues as Record<string, any>).title["shopify-au"].en_AU
     ).toBe("Premium Title");
+  });
+
+  test("S11. valueEquals filter: object key-order independent (deepEqual, not JSON.stringify)", async () => {
+    // jsonb does not preserve object key order on round-trip, so a stored
+    // observation value `{size:"L", color:"red"}` must still match a
+    // caller-supplied `{color:"red", size:"L"}`. Regression guard for the
+    // previous JSON.stringify-based comparison.
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-11-source",
+      values: {
+        attrs: {
+          "shopify-au": {
+            en_AU: [
+              obsRow("amazon:link", { size: "L", color: "red" }, "rec-1"),
+              obsRow("amazon:link", { size: "M", color: "blue" }, "rec-2")
+            ]
+          }
+        }
+      }
+    });
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: {
+        // Different key order than stored — must still match via deepEqual.
+        valueEquals: { color: "red", size: "L" }
+      },
+      newIdentity: {
+        primaryIdentifier: "split-11-new",
+        identity: {}
+      },
+      actor: TEST_ACTOR,
+      rationale: "object key-order independent match"
+    });
+
+    expect(result.observationsMoved).toBe(1);
+
+    // Source keeps only the {size:"M", color:"blue"} row.
+    const sourceRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceId));
+    const sourceLeaf = (sourceRows[0]!.values as Record<string, any>).attrs[
+      "shopify-au"
+    ].en_AU as StoredObservation[];
+    expect(sourceLeaf.length).toBe(1);
+    expect(sourceLeaf[0]!.value).toEqual({ size: "M", color: "blue" });
+
+    // New product carries the red-L row.
+    const newRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.newProductId));
+    const newLeaf = (newRows[0]!.values as Record<string, any>).attrs[
+      "shopify-au"
+    ].en_AU as StoredObservation[];
+    expect(newLeaf.length).toBe(1);
+    expect(newLeaf[0]!.value).toEqual({ size: "L", color: "red" });
+  });
+
+  test("S12. zero-match guard: filter matches nothing → throws and writes no rows", async () => {
+    // Seed source with observations from flipkart:link, then call splitProduct
+    // with a filter that targets amazon:link (matches nothing). Must throw
+    // BEFORE creating a phantom new product / lineage / event / revision.
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-12-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [obsRow("flipkart:link", "Flipkart Title", "fk-1")]
+          }
+        }
+      }
+    });
+
+    // Snapshot tenant-scoped table counts before the call.
+    const countProducts = async (): Promise<number> => {
+      const rows = await db.execute(
+        sql`SELECT count(*)::int AS c FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}::uuid`
+      );
+      return (rows.rows[0] as { c: number }).c;
+    };
+    const countEvents = async (): Promise<number> => {
+      const rows = await db.execute(
+        sql`SELECT count(*)::int AS c FROM catalog_events WHERE tenant_id = ${TEST_TENANT_ID}::uuid`
+      );
+      return (rows.rows[0] as { c: number }).c;
+    };
+    const countLineage = async (): Promise<number> => {
+      const rows = await db.execute(sql`
+        SELECT count(*)::int AS c FROM product_lineage
+        WHERE product_id IN (SELECT product_id FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}::uuid)
+           OR origin_product_id IN (SELECT product_id FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}::uuid)
+      `);
+      return (rows.rows[0] as { c: number }).c;
+    };
+    const countRevisions = async (): Promise<number> => {
+      const rows = await db.execute(
+        sql`SELECT count(*)::int AS c FROM catalog_product_revisions WHERE tenant_id = ${TEST_TENANT_ID}::uuid`
+      );
+      return (rows.rows[0] as { c: number }).c;
+    };
+
+    const productsBefore = await countProducts();
+    const eventsBefore = await countEvents();
+    const lineageBefore = await countLineage();
+    const revisionsBefore = await countRevisions();
+
+    let threw = false;
+    try {
+      await splitProduct({
+        db,
+        tenantId: TENANT,
+        sourceProductId: sourceId,
+        observationFilter: { sources: ["amazon:link"] }, // matches nothing
+        newIdentity: {
+          primaryIdentifier: "split-12-new",
+          identity: {}
+        },
+        actor: TEST_ACTOR,
+        rationale: "zero-match guard test"
+      });
+    } catch (e) {
+      threw = true;
+      expect((e as Error).message).toMatch(/zero observations|phantom/i);
+    }
+    expect(threw).toBe(true);
+
+    // No phantom rows.
+    expect(await countProducts()).toBe(productsBefore);
+    expect(await countEvents()).toBe(eventsBefore);
+    expect(await countLineage()).toBe(lineageBefore);
+    expect(await countRevisions()).toBe(revisionsBefore);
   });
 });

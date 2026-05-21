@@ -92,6 +92,7 @@
 import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { TenantId } from "@aonex/types";
+import { deepEqual } from "./reconciler/_internal.js";
 import { projectSync } from "./reconciler/sync.js";
 
 // ---- Public types ----------------------------------------------------------
@@ -593,7 +594,7 @@ export async function mergeProducts(
 //   NEVER physically move revisions. They stay attached to their origin
 //   product_id forever — moving them would corrupt the immutability guarantee.
 //
-// Design decisions (encoded in the function; tests in merge.test.ts §S1–§S10):
+// Design decisions (encoded in the function; tests in merge.test.ts §S1–§S12):
 //
 //   1. Filter contract: `ObservationFilter` (see type) — ALL set fields must
 //      match (AND). Empty filter throws at the boundary; "split everything"
@@ -694,9 +695,12 @@ function matchesValuesObservation(
     }
   }
   if (filter.valueEquals !== undefined) {
-    // Deep-equal via JSON canonicalization. Adequate for stored observation
-    // values (jsonb round-trip is canonical for our shape).
-    if (JSON.stringify(observation.value) !== JSON.stringify(filter.valueEquals)) {
+    // Structural deep-equal, NOT JSON.stringify: jsonb does not preserve
+    // object key order on round-trip, so a stored `{size:"L", color:"red"}`
+    // would otherwise fail to match a caller-supplied `{color:"red", size:"L"}`.
+    // `deepEqual` is the same helper used by the reconciler for winning-value
+    // comparison.
+    if (!deepEqual(observation.value, filter.valueEquals)) {
       return false;
     }
   }
@@ -783,13 +787,136 @@ export async function splitProduct(
       }
     }
 
-    // 4. Persist source.values (the kept observations).
+    // 4. Build side-table predicates and count would-be matches BEFORE any
+    //    writes. This lets us short-circuit a zero-match filter without
+    //    creating a phantom new product / lineage / event row. (The txn
+    //    would roll back anyway on throw, but it's still cleaner to refuse
+    //    early.) Filter scoping per design decision 1:
+    //      - sources, sourceRecordIds, channelIds, localeCodes apply.
+    //      - attributeCodes / valueEquals / channelCodes do NOT (they are
+    //        jsonb-content-specific or coordinate-only).
+    //    If attributeCodes or valueEquals is set, side-tables are NOT moved
+    //    — those rows lack the necessary columns. Documented v1 behaviour.
+    const attributeCodesSet =
+      observationFilter.attributeCodes != null &&
+      observationFilter.attributeCodes.length > 0;
+    const valueEqualsSet = observationFilter.valueEquals !== undefined;
+    const sideTableEligible = !attributeCodesSet && !valueEqualsSet;
+
+    // We use `inArray` for IN-list filters rather than raw `ANY()` because
+    // the underlying pg driver does not auto-cast a JS array as a Postgres
+    // text/uuid array through tagged-template parameter binding.
+    const pricingPredicates: SQL[] = [
+      eq(schema.catalogPricingObservations.productId, sourceProductId)
+    ];
+    const inventoryPredicates: SQL[] = [
+      eq(schema.catalogInventoryObservations.productId, sourceProductId)
+    ];
+    if (sideTableEligible) {
+      if (observationFilter.sources && observationFilter.sources.length > 0) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.source,
+            observationFilter.sources
+          )
+        );
+        inventoryPredicates.push(
+          inArray(
+            schema.catalogInventoryObservations.source,
+            observationFilter.sources
+          )
+        );
+      }
+      if (
+        observationFilter.sourceRecordIds &&
+        observationFilter.sourceRecordIds.length > 0
+      ) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.sourceRecordId,
+            observationFilter.sourceRecordIds
+          )
+        );
+        inventoryPredicates.push(
+          inArray(
+            schema.catalogInventoryObservations.sourceRecordId,
+            observationFilter.sourceRecordIds
+          )
+        );
+      }
+      if (
+        observationFilter.channelIds &&
+        observationFilter.channelIds.length > 0
+      ) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.channelId,
+            observationFilter.channelIds
+          )
+        );
+        inventoryPredicates.push(
+          inArray(
+            schema.catalogInventoryObservations.channelId,
+            observationFilter.channelIds
+          )
+        );
+      }
+      // Inventory side-table has no `locale` column, so localeCodes is a
+      // pricing-only narrow.
+      if (
+        observationFilter.localeCodes &&
+        observationFilter.localeCodes.length > 0
+      ) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.locale,
+            observationFilter.localeCodes
+          )
+        );
+      }
+    }
+
+    // 5. Pre-count side-table matches so we can short-circuit on zero overall.
+    //    We deliberately do this BEFORE any DB writes; an UPDATE-then-throw
+    //    would also roll back, but counting first keeps the failure mode
+    //    obvious and avoids work.
+    let pricingMatchCount = 0;
+    let inventoryMatchCount = 0;
+    if (sideTableEligible) {
+      const pricingCountRows = await tx
+        .select({ c: sql<number>`count(*)::int` })
+        .from(schema.catalogPricingObservations)
+        .where(and(...pricingPredicates));
+      pricingMatchCount = pricingCountRows[0]?.c ?? 0;
+      const inventoryCountRows = await tx
+        .select({ c: sql<number>`count(*)::int` })
+        .from(schema.catalogInventoryObservations)
+        .where(and(...inventoryPredicates));
+      inventoryMatchCount = inventoryCountRows[0]?.c ?? 0;
+    }
+
+    // 6. Zero-match guard: if the filter touched no observation anywhere
+    //    (values JSONB + pricing side-table + inventory side-table), refuse
+    //    to create a phantom new product. Admin footgun protection.
+    if (
+      observationsMoved === 0 &&
+      pricingMatchCount === 0 &&
+      inventoryMatchCount === 0
+    ) {
+      throw new Error(
+        `splitProduct: filter matched zero observations on sourceProductId=${sourceProductId}. ` +
+          `Refusing to create a phantom new product. Verify the filter against the source's ` +
+          `values + side-tables.`
+      );
+    }
+
+    // 7. Persist source.values (the kept observations).
     await tx
       .update(schema.catalogProducts)
       .set({ values: keptValues as Record<string, unknown> })
       .where(eq(schema.catalogProducts.productId, sourceProductId));
 
-    // 5. Insert the new product row. Same tenant + merchant as source.
+    // 8. Insert the new product row. Same tenant + merchant as source.
     const newInserted = await tx
       .insert(schema.catalogProducts)
       .values({
@@ -805,73 +932,10 @@ export async function splitProduct(
       .returning({ productId: schema.catalogProducts.productId });
     const newProductId = newInserted[0]!.productId;
 
-    // 6. Move side-table rows. The filter scoping per design decision 1:
-    //    - sources, sourceRecordIds, channelIds, localeCodes apply.
-    //    - attributeCodes / valueEquals / channelCodes do NOT (they are
-    //      jsonb-content-specific or coordinate-only).
-    //
-    //    If attributeCodes is set, side-tables are NOT moved. This is the
-    //    documented v1 behaviour — attribute-level splits don't affect
-    //    pricing/inventory because those rows lack an attribute_code column.
+    // 9. Move side-table rows using the same predicates as the pre-count.
     let pricingObservationsMoved = 0;
     let inventoryObservationsMoved = 0;
-
-    const attributeCodesSet =
-      observationFilter.attributeCodes != null &&
-      observationFilter.attributeCodes.length > 0;
-    const valueEqualsSet = observationFilter.valueEquals !== undefined;
-    const sideTableEligible = !attributeCodesSet && !valueEqualsSet;
-
     if (sideTableEligible) {
-      // Build typed Drizzle predicates per side-table. We use `inArray` for
-      // the IN-list filters rather than raw `ANY()` because the underlying
-      // pg driver does not auto-cast a JS array as a Postgres text/uuid array
-      // through tagged-template parameter binding.
-      const pricingPredicates: SQL[] = [
-        eq(schema.catalogPricingObservations.productId, sourceProductId)
-      ];
-      if (observationFilter.sources && observationFilter.sources.length > 0) {
-        pricingPredicates.push(
-          inArray(
-            schema.catalogPricingObservations.source,
-            observationFilter.sources
-          )
-        );
-      }
-      if (
-        observationFilter.sourceRecordIds &&
-        observationFilter.sourceRecordIds.length > 0
-      ) {
-        pricingPredicates.push(
-          inArray(
-            schema.catalogPricingObservations.sourceRecordId,
-            observationFilter.sourceRecordIds
-          )
-        );
-      }
-      if (
-        observationFilter.channelIds &&
-        observationFilter.channelIds.length > 0
-      ) {
-        pricingPredicates.push(
-          inArray(
-            schema.catalogPricingObservations.channelId,
-            observationFilter.channelIds
-          )
-        );
-      }
-      if (
-        observationFilter.localeCodes &&
-        observationFilter.localeCodes.length > 0
-      ) {
-        pricingPredicates.push(
-          inArray(
-            schema.catalogPricingObservations.locale,
-            observationFilter.localeCodes
-          )
-        );
-      }
-
       const movedPricing = await tx
         .update(schema.catalogPricingObservations)
         .set({ productId: newProductId })
@@ -880,42 +944,6 @@ export async function splitProduct(
           observationId: schema.catalogPricingObservations.observationId
         });
       pricingObservationsMoved = movedPricing.length;
-
-      // Inventory side-table has no `locale` column, so localeCodes is a
-      // pricing-only narrow.
-      const inventoryPredicates: SQL[] = [
-        eq(schema.catalogInventoryObservations.productId, sourceProductId)
-      ];
-      if (observationFilter.sources && observationFilter.sources.length > 0) {
-        inventoryPredicates.push(
-          inArray(
-            schema.catalogInventoryObservations.source,
-            observationFilter.sources
-          )
-        );
-      }
-      if (
-        observationFilter.sourceRecordIds &&
-        observationFilter.sourceRecordIds.length > 0
-      ) {
-        inventoryPredicates.push(
-          inArray(
-            schema.catalogInventoryObservations.sourceRecordId,
-            observationFilter.sourceRecordIds
-          )
-        );
-      }
-      if (
-        observationFilter.channelIds &&
-        observationFilter.channelIds.length > 0
-      ) {
-        inventoryPredicates.push(
-          inArray(
-            schema.catalogInventoryObservations.channelId,
-            observationFilter.channelIds
-          )
-        );
-      }
 
       const movedInv = await tx
         .update(schema.catalogInventoryObservations)
@@ -927,8 +955,8 @@ export async function splitProduct(
       inventoryObservationsMoved = movedInv.length;
     }
 
-    // 7. Delete source's pricing/inventory _current rows (decision 7). Async
-    //    reconciler will rebuild from observation layout.
+    // 10. Delete source's pricing/inventory _current rows (decision 7). Async
+    //     reconciler will rebuild from observation layout.
     await tx
       .delete(schema.catalogPricingCurrent)
       .where(eq(schema.catalogPricingCurrent.productId, sourceProductId));
@@ -936,8 +964,8 @@ export async function splitProduct(
       .delete(schema.catalogInventoryCurrent)
       .where(eq(schema.catalogInventoryCurrent.productId, sourceProductId));
 
-    // 8. Recompute winning_values on BOTH products for the union of touched
-    //    attributes (decision 8).
+    // 11. Recompute winning_values on BOTH products for the union of touched
+    //     attributes (decision 8).
     if (touchedAttributes.size > 0) {
       const attrs = Array.from(touchedAttributes);
       await projectSync({
@@ -954,8 +982,8 @@ export async function splitProduct(
       });
     }
 
-    // 9. Append revision row on source first (decision 6) so we can capture
-    //    its revisionId as the new product's lineage_pointer.source_revision.
+    // 12. Append revision row on source first (decision 6) so we can capture
+    //     its revisionId as the new product's lineage_pointer.source_revision.
     const sourceAfterRows = await tx
       .select({
         values: schema.catalogProducts.values,
@@ -994,7 +1022,7 @@ export async function splitProduct(
       });
     const sourceRevisionId = sourceRevInserted[0]!.revisionId;
 
-    // 10. Append revision row on new product with lineage_pointer (spec §18.2 step 6).
+    // 13. Append revision row on new product with lineage_pointer (spec §18.2 step 6).
     const newAfterRows = await tx
       .select({
         values: schema.catalogProducts.values,
@@ -1036,7 +1064,7 @@ export async function splitProduct(
       });
     const newRevisionId = newRevInserted[0]!.revisionId;
 
-    // 11. product_lineage row: operation='split', productId=new, origin=source.
+    // 14. product_lineage row: operation='split', productId=new, origin=source.
     const lineageInserted = await tx
       .insert(schema.productLineage)
       .values({
@@ -1050,7 +1078,7 @@ export async function splitProduct(
       .returning({ lineageId: schema.productLineage.lineageId });
     const lineageId = lineageInserted[0]!.lineageId;
 
-    // 12. Outbox event — single `catalog.product.split` (decision 9). product_id
+    // 15. Outbox event — single `catalog.product.split` (decision 9). product_id
     //     on the event row is the NEW product.
     const eventInserted = await tx
       .insert(schema.catalogEvents)
