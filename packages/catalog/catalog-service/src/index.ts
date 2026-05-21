@@ -22,3 +22,10 @@ export type {
 
 export { projectSync } from "./reconciler/sync.js";
 export type { ProjectSyncInput, ProjectSyncResult } from "./reconciler/sync.js";
+
+export { writeAdapterOutput } from "./catalog-write.js";
+export type {
+  WriteAdapterOutputInput,
+  WriteAdapterOutputResult,
+  WriteMatchPath
+} from "./catalog-write.js";

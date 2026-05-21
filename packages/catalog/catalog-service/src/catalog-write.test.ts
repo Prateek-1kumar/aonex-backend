@@ -1,0 +1,509 @@
+// Tests for the catalog write service (plan §3.5, spec §13).
+//
+// Runs against the real dev DB. Each test builds a small synthetic
+// AdapterOutput inline (no Phase-2 fixtures) so failures point straight at
+// the write-service algorithm, not at adapter input quirks.
+
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { and, eq, sql } from "drizzle-orm";
+import { schema } from "@aonex/db";
+import type { DrizzleClient } from "@aonex/db";
+import {
+  TEST_CHANNEL_ID,
+  TEST_MERCHANT_ID,
+  TEST_TENANT_ID,
+  closeTestDb,
+  connectTestDb,
+  ensureTestChannel,
+  ensureTestMerchant,
+  ensureTestTenant
+} from "@aonex/db/testing";
+import type {
+  ChannelId,
+  MerchantId,
+  TenantId
+} from "@aonex/types";
+import type {
+  AdapterOutput,
+  CanonicalObservation,
+  PricingObservation
+} from "@aonex/catalog-source-adapters";
+import { writeAdapterOutput } from "./catalog-write.js";
+
+const TENANT = TEST_TENANT_ID as unknown as TenantId;
+const MERCHANT = TEST_MERCHANT_ID as unknown as MerchantId;
+const CHANNEL = TEST_CHANNEL_ID as unknown as ChannelId;
+
+const TEST_ACTOR = "test:catalog-write";
+
+// ---- Helpers ---------------------------------------------------------------
+
+function obs(overrides: Partial<CanonicalObservation> = {}): CanonicalObservation {
+  return {
+    attributeCode: "title",
+    target: "parent",
+    channelCode: "shopify-au",
+    localeCode: "en_AU",
+    source: "shopify:connector",
+    sourceRecordId: "gid://shopify/Product/1",
+    value: "Default Title",
+    confidence: 0.95,
+    observedAt: new Date("2026-05-21T10:00:00Z"),
+    ...overrides
+  };
+}
+
+function pricingObs(overrides: Partial<PricingObservation> = {}): PricingObservation {
+  return {
+    productHint: "p1",
+    channelCode: "shopify-au",
+    locale: "en_AU",
+    source: "shopify:connector",
+    sourceRecordId: "gid://shopify/ProductVariant/1",
+    currency: "AUD",
+    tiers: [{ kind: "list", amount: 99.95 }],
+    observedAt: new Date("2026-05-21T10:00:00Z"),
+    ...overrides
+  };
+}
+
+function adapterOutput(parts: Partial<AdapterOutput> = {}): AdapterOutput {
+  return {
+    observations: [],
+    pricingObservations: [],
+    inventoryObservations: [],
+    identityHint: { targetIsVariant: false },
+    rawPayload: { src: "test" },
+    ...parts
+  };
+}
+
+async function seedRules(db: DrizzleClient): Promise<void> {
+  // Minimal default catch-all so projectSync has something to pick.
+  await db.insert(schema.sourcePriority).values({
+    tenantId: null,
+    attributeCode: null,
+    sourceGlob: "*",
+    channelScope: null,
+    priority: 100,
+    rulesVersion: 1,
+    actor: TEST_ACTOR
+  });
+}
+
+async function cleanup(db: DrizzleClient): Promise<void> {
+  // Side tables and revisions must be cleared before catalog_products due
+  // to logical referential ordering (no DB-level FK on revisions/events,
+  // but pricing/inventory observations carry product_id we want to scrub).
+  await db
+    .delete(schema.catalogPricingObservations)
+    .where(eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID));
+  await db
+    .delete(schema.catalogInventoryObservations)
+    .where(eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID));
+  await db.execute(
+    sql`DELETE FROM catalog_events WHERE tenant_id = ${TEST_TENANT_ID}`
+  );
+  // catalog_product_revisions has an immutability trigger; disable around
+  // the test-tenant scrub then re-enable.
+  await db.execute(
+    sql`ALTER TABLE catalog_product_revisions DISABLE TRIGGER trg_revisions_immutable`
+  );
+  await db
+    .delete(schema.catalogProductRevisions)
+    .where(eq(schema.catalogProductRevisions.tenantId, TEST_TENANT_ID));
+  await db.execute(
+    sql`ALTER TABLE catalog_product_revisions ENABLE TRIGGER trg_revisions_immutable`
+  );
+  await db
+    .delete(schema.catalogProducts)
+    .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
+  await db
+    .delete(schema.sourcePriority)
+    .where(eq(schema.sourcePriority.actor, TEST_ACTOR));
+}
+
+describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
+  let db: DrizzleClient;
+
+  beforeAll(async () => {
+    db = await connectTestDb();
+    await ensureTestTenant(db);
+    await ensureTestMerchant(db);
+    await ensureTestChannel(db);
+    await cleanup(db);
+    await seedRules(db);
+  });
+
+  afterAll(async () => {
+    await cleanup(db);
+    await closeTestDb();
+  });
+
+  test("1. creates a new product on first ingest", async () => {
+    const out = adapterOutput({
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: "Acme Widget",
+          sourceRecordId: "gid://shopify/Product/T1"
+        })
+      ],
+      identityHint: {
+        gtin: "01000000000001",
+        brand: "Acme",
+        targetIsVariant: false
+      },
+      rawPayload: { hello: "world" }
+    });
+
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: out,
+      actor: "shopify:connector"
+    });
+
+    expect(result.created).toBe(true);
+    expect(result.productId).toBeDefined();
+    expect(result.matchPath).toBe("newly_created");
+    expect(result.identityStrength).toBe(0);
+    expect(result.observationsWritten).toBe(1);
+    expect(result.overflowEvictions).toBe(0);
+    expect(result.syncReconcilerResult).not.toBeNull();
+    expect(result.syncReconcilerResult!.attributesProjected).toContain("title");
+
+    const rows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId));
+    const row = rows[0]!;
+    expect(row.tenantId).toBe(TEST_TENANT_ID);
+    expect(row.merchantId).toBe(TEST_MERCHANT_ID);
+    const values = row.values as Record<string, any>;
+    expect(Array.isArray(values?.title?.["shopify-au"]?.en_AU)).toBe(true);
+    expect(values.title["shopify-au"].en_AU.length).toBe(1);
+    expect(values.title["shopify-au"].en_AU[0].value).toBe("Acme Widget");
+
+    const revisions = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(
+        and(
+          eq(schema.catalogProductRevisions.productId, result.productId),
+          eq(schema.catalogProductRevisions.tenantId, TEST_TENANT_ID)
+        )
+      );
+    expect(revisions.length).toBe(1);
+
+    const events = await db
+      .select()
+      .from(schema.catalogEvents)
+      .where(
+        and(
+          eq(schema.catalogEvents.productId, result.productId),
+          eq(schema.catalogEvents.tenantId, TEST_TENANT_ID)
+        )
+      );
+    expect(events.length).toBe(1);
+    expect(events[0]!.eventType).toBe("catalog.product.created");
+  });
+
+  test("2. attaches to existing product via GTIN match (no new row)", async () => {
+    const gtin = "02000000000002";
+    const seed = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: `seed:${gtin}`,
+        identity: { gtin, identity_strength: 1.0 },
+        status: "active",
+        values: {}
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const seededId = seed[0]!.productId;
+
+    const before = await db
+      .select({ count: sql<string>`count(*)::text` })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
+    const beforeCount = Number(before[0]!.count);
+
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: adapterOutput({
+        observations: [
+          obs({
+            attributeCode: "title",
+            value: "Attached via GTIN",
+            sourceRecordId: "gid://shopify/Product/T2"
+          })
+        ],
+        identityHint: { gtin, targetIsVariant: false }
+      }),
+      actor: "shopify:connector"
+    });
+
+    expect(result.created).toBe(false);
+    expect(result.matchPath).toBe("gtin");
+    expect(result.identityStrength).toBe(1.0);
+    expect(result.productId).toBe(seededId);
+
+    const after = await db
+      .select({ count: sql<string>`count(*)::text` })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
+    const afterCount = Number(after[0]!.count);
+    expect(afterCount).toBe(beforeCount);
+
+    const events = await db
+      .select()
+      .from(schema.catalogEvents)
+      .where(eq(schema.catalogEvents.productId, seededId));
+    expect(events.some((e) => e.eventType === "catalog.product.updated")).toBe(
+      true
+    );
+  });
+
+  test("3. pricing observations land in side table (not values JSONB)", async () => {
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: adapterOutput({
+        observations: [],
+        pricingObservations: [
+          pricingObs({
+            sourceRecordId: "p3-a",
+            tiers: [{ kind: "list", amount: 19.99 }]
+          }),
+          pricingObs({
+            sourceRecordId: "p3-b",
+            tiers: [{ kind: "sale", amount: 14.99 }]
+          })
+        ],
+        identityHint: {
+          gtin: "03000000000003",
+          brand: "Acme",
+          targetIsVariant: false
+        }
+      }),
+      channelCodeToId: { "shopify-au": CHANNEL },
+      actor: "shopify:connector"
+    });
+
+    expect(result.pricingObservationsWritten).toBe(2);
+
+    const pricingRows = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.productId, result.productId));
+    expect(pricingRows.length).toBe(2);
+
+    const productRow = await db
+      .select({ values: schema.catalogProducts.values })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId));
+    const values = productRow[0]!.values as Record<string, unknown>;
+    expect(values.pricing).toBeUndefined();
+  });
+
+  test("4. dedup hint: same (source, sourceRecordId, value) is skipped", async () => {
+    // Seed a product with an existing title observation.
+    const existing = {
+      source: "shopify:connector",
+      source_record_id: "gid://shopify/Product/T4",
+      value: "Dedup Title",
+      confidence: 0.95,
+      observed_at: "2026-05-21T09:00:00Z"
+    };
+    const seed = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: "seed:dedup-04",
+        identity: { gtin: "04000000000004", identity_strength: 1.0 },
+        status: "active",
+        values: {
+          title: { "shopify-au": { en_AU: [existing] } }
+        }
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const seededId = seed[0]!.productId;
+
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: adapterOutput({
+        observations: [
+          obs({
+            sourceRecordId: existing.source_record_id,
+            value: existing.value,
+            observedAt: new Date("2026-05-21T11:00:00Z")
+          })
+        ],
+        identityHint: { gtin: "04000000000004", targetIsVariant: false }
+      }),
+      actor: "shopify:connector"
+    });
+
+    expect(result.productId).toBe(seededId);
+    expect(result.observationsWritten).toBe(0);
+    expect(result.overflowEvictions).toBe(0);
+
+    const row = await db
+      .select({ values: schema.catalogProducts.values })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, seededId));
+    const values = row[0]!.values as Record<string, any>;
+    expect(values.title["shopify-au"].en_AU.length).toBe(1);
+  });
+
+  test("5. N=10 observation cap overflows oldest to revision diff", async () => {
+    // Pre-seed values with 10 title observations across distinct sourceRecordId
+    // / observed_at pairs so the dedup hint does not trigger.
+    const tenObservations = Array.from({ length: 10 }, (_, i) => ({
+      source: `src-${i}`,
+      source_record_id: `rec-${i}`,
+      value: `v-${i}`,
+      confidence: 0.9,
+      observed_at: new Date(
+        Date.parse("2026-05-01T00:00:00Z") + i * 60_000
+      ).toISOString()
+    }));
+    const seed = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: "seed:overflow-05",
+        identity: { gtin: "05000000000005", identity_strength: 1.0 },
+        status: "active",
+        values: {
+          title: { "shopify-au": { en_AU: tenObservations } }
+        }
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const seededId = seed[0]!.productId;
+
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: adapterOutput({
+        observations: [
+          obs({
+            source: "src-new",
+            sourceRecordId: "rec-new",
+            value: "v-new",
+            observedAt: new Date("2026-05-21T12:00:00Z")
+          })
+        ],
+        identityHint: { gtin: "05000000000005", targetIsVariant: false }
+      }),
+      actor: "shopify:connector"
+    });
+
+    expect(result.overflowEvictions).toBe(1);
+
+    const row = await db
+      .select({ values: schema.catalogProducts.values })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, seededId));
+    const values = row[0]!.values as Record<string, any>;
+    expect(values.title["shopify-au"].en_AU.length).toBe(10);
+    // The oldest observation (i=0, observed_at ~2026-05-01T00:00Z) should
+    // have been popped.
+    const remainingIds: string[] = values.title["shopify-au"].en_AU.map(
+      (o: any) => o.source_record_id as string
+    );
+    expect(remainingIds).not.toContain("rec-0");
+    expect(remainingIds).toContain("rec-new");
+
+    const revRows = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, seededId));
+    const lastRev = revRows[revRows.length - 1]!;
+    const diff = lastRev.diff as { overflow_eviction?: unknown[] } | null;
+    expect(diff).not.toBeNull();
+    expect(Array.isArray(diff!.overflow_eviction)).toBe(true);
+    expect(diff!.overflow_eviction!.length).toBe(1);
+  });
+
+  test("6. revision row carries raw_payload deep-equals input", async () => {
+    const payload = { nested: { v: 42 }, arr: [1, 2, 3] };
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: adapterOutput({
+        observations: [
+          obs({
+            sourceRecordId: "gid://shopify/Product/T6",
+            value: "Payload Test"
+          })
+        ],
+        identityHint: {
+          gtin: "06000000000006",
+          targetIsVariant: false
+        },
+        rawPayload: payload
+      }),
+      actor: "shopify:connector"
+    });
+
+    const revs = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, result.productId));
+    expect(revs.length).toBeGreaterThan(0);
+    const lastRev = revs[revs.length - 1]!;
+    expect(lastRev.rawPayload).toEqual(payload);
+    expect(lastRev.actor).toBe("shopify:connector");
+    expect(lastRev.revisionReason).toBe("create");
+    expect(lastRev.sourceKind).toBe("shopify");
+  });
+
+  test("7. outbox event carries productId and matchPath in payload", async () => {
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: adapterOutput({
+        observations: [
+          obs({
+            sourceRecordId: "gid://shopify/Product/T7",
+            value: "Event Test"
+          })
+        ],
+        identityHint: {
+          gtin: "07000000000007",
+          targetIsVariant: false
+        }
+      }),
+      actor: "shopify:connector"
+    });
+
+    const events = await db
+      .select()
+      .from(schema.catalogEvents)
+      .where(eq(schema.catalogEvents.eventId, result.eventId));
+    expect(events.length).toBe(1);
+    const ev = events[0]!;
+    expect(ev.eventType).toBe("catalog.product.created");
+    expect(ev.productId).toBe(result.productId);
+    expect(ev.tenantId).toBe(TEST_TENANT_ID);
+    expect(ev.publishedAt).toBeNull();
+    expect(ev.publishAttempts).toBe(0);
+    const payload = ev.payload as Record<string, unknown>;
+    expect(payload.productId).toBe(result.productId);
+    expect(payload.matchPath).toBe("newly_created");
+  });
+});
