@@ -5,7 +5,14 @@
 
 import { schema, type DrizzleClient } from '@aonex/db';
 import type { Queue } from 'bullmq';
-import { JOB_KIND, STANDARD_RETRY, type MerchantId, type TenantId, type Marketplace } from '@aonex/types';
+import {
+  JOB_KIND,
+  STANDARD_RETRY,
+  type ArtifactId,
+  type MerchantId,
+  type TenantId,
+  type Marketplace
+} from '@aonex/types';
 import { canonicalStringify, sha256Hex } from '@aonex/lib-utils';
 
 export interface ProviderProductRecord {
@@ -22,6 +29,25 @@ export interface PersistArtifactsInput {
   records: ProviderProductRecord[];
 }
 
+/**
+ * Detail of a single artifact that was newly inserted (i.e. NOT a
+ * checksum-dedup hit). Returned per-record so the drain processor can
+ * dispatch downstream side-effects (new catalog projection in Phase 4,
+ * extract queue enqueue is handled inline below) keyed on the same
+ * `artifactId` that landed in `source_artifacts`.
+ */
+export interface InsertedArtifact {
+  artifactId: ArtifactId;
+  externalId: string;
+  raw: unknown;
+  modifiedAt?: Date;
+}
+
+export interface PersistArtifactsResult {
+  /** Per-record details for NEWLY inserted artifacts (dedup hits omitted). */
+  inserted: InsertedArtifact[];
+}
+
 export interface SyncServiceDeps {
   db: DrizzleClient;
   extractQueue: Queue;
@@ -30,8 +56,8 @@ export interface SyncServiceDeps {
 export class SyncService {
   constructor(private readonly deps: SyncServiceDeps) {}
 
-  async persistArtifacts(input: PersistArtifactsInput): Promise<{ inserted: number }> {
-    let inserted = 0;
+  async persistArtifacts(input: PersistArtifactsInput): Promise<PersistArtifactsResult> {
+    const inserted: InsertedArtifact[] = [];
     for (const record of input.records) {
       const checksum = sha256Hex(canonicalStringify(record.raw));
       const rows = await this.deps.db
@@ -59,11 +85,17 @@ export class SyncService {
         .returning({ id: schema.sourceArtifacts.id });
 
       if (rows.length > 0) {
-        inserted += 1;
+        const artifactId = rows[0]!.id as ArtifactId;
+        inserted.push({
+          artifactId,
+          externalId: record.externalId,
+          raw: record.raw,
+          ...(record.modifiedAt ? { modifiedAt: record.modifiedAt } : {})
+        });
         await this.deps.extractQueue.add(
           JOB_KIND.EXTRACT,
-          { artifactId: rows[0]!.id },
-          { jobId: `extract:${rows[0]!.id}`, ...STANDARD_RETRY }
+          { artifactId },
+          { jobId: `extract:${artifactId}`, ...STANDARD_RETRY }
         );
       }
     }

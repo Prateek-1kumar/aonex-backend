@@ -73,7 +73,14 @@ export function buildContainer(env: Env): WorkerContainer {
 
   const drainWorker = new Worker(
     QUEUE.NANGO_DRAIN,
-    makeDrainProcessor({ db: db.client, audit, gateway, syncService }),
+    makeDrainProcessor({
+      db: db.client,
+      audit,
+      gateway,
+      syncService,
+      useNewCatalogSchema: catalogUseNewSchema,
+      logger,
+    }),
     {
       connection: redis,
       concurrency: 3,
