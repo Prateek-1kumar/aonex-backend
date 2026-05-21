@@ -22,11 +22,16 @@
 //    independent of the others once the product row is resolved. Running
 //    them concurrently keeps the heavy read's wall-clock close to the
 //    slowest single query rather than their sum.
-// 3. **Cursor encoding = ISO timestamp string** — pagination uses the
-//    natural ordering column (`observed_at` / `ingested_at` / `occurred_at`)
-//    as the cursor. ISO is human-debuggable, idempotent (same cursor →
-//    same page even across restarts), and doesn't require server state.
-//    Strict-less-than (`<`) avoids returning the cursor row again.
+// 3. **Composite cursor (`<iso>|<id>`)** — pagination uses the natural
+//    ordering column (`observed_at` / `ingested_at` / `occurred_at`) PLUS
+//    the row id as a tie-breaker. Encoded on the wire as
+//    `2026-05-21T10:00:00.000Z|7392`. The SQL filter is a row-value
+//    comparison `(ts_col, id_col) < (cursor_ts, cursor_id)` so rows that
+//    share a timestamp are still totally ordered. Without the tie-breaker
+//    a single-column `observed_at < cursor` could silently drop or
+//    duplicate rows when two observations land in the same microsecond.
+//    The cursor is human-debuggable, idempotent (same cursor → same page
+//    even across restarts), and doesn't require server state.
 // 4. **Limit clamps server-side** — clients can pass any number; we clamp
 //    to per-section caps (`observationsLimit ≤ 5000`, `revisionsLimit ≤ 200`,
 //    `eventsLimit ≤ 200`). Never trust the wire.
@@ -43,7 +48,7 @@
 //    A row in a different tenant OR different merchant returns
 //    `PRODUCT_NOT_FOUND` (handler maps to 404). Never 403, never empty 200.
 
-import { and, desc, eq, gt, gte, isNull, lt, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNull, or, sql, type SQL } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 
 /**
@@ -79,12 +84,31 @@ export interface ProductTraceQueryOptions {
   revisionsLimit?: number;
   /** Default 50, capped at 200. */
   eventsLimit?: number;
-  /** Pagination cursor for observations (returns rows with observed_at < this). */
-  observationsCursor?: Date;
-  /** Pagination cursor for revisions (returns rows with ingested_at < this). */
-  revisionsCursor?: Date;
-  /** Pagination cursor for events (returns rows with occurred_at < this). */
-  eventsCursor?: Date;
+  /**
+   * Pagination cursor for observations. Composite `(observed_at, observation_id)`;
+   * returns rows strictly older than this (row-value comparison).
+   */
+  observationsCursor?: TraceCursor;
+  /**
+   * Pagination cursor for revisions. Composite `(ingested_at, revision_id)`;
+   * returns rows strictly older than this.
+   */
+  revisionsCursor?: TraceCursor;
+  /**
+   * Pagination cursor for events. Composite `(occurred_at, event_id)`;
+   * returns rows strictly older than this.
+   */
+  eventsCursor?: TraceCursor;
+}
+
+/**
+ * Composite cursor used for tie-breaking pagination. Wire format is
+ * `<iso>|<id>` (e.g. `2026-05-21T10:00:00.000Z|7392`); the handler parses
+ * the string and forwards this struct to the service.
+ */
+export interface TraceCursor {
+  ts: Date;
+  id: number;
 }
 
 export interface ProductSnapshot {
@@ -238,8 +262,9 @@ function clampLimit(
 
 /**
  * If `rows` is exactly `limit` long, the "next page exists" guess is on —
- * return the timestamp of the OLDEST row (which is the last one because
- * rows are sorted DESC) as the cursor. If shorter, no more pages.
+ * return a composite cursor `<iso>|<id>` built from the timestamp + row id
+ * of the OLDEST row (which is the last one because rows are sorted DESC).
+ * If shorter, no more pages.
  *
  * Note: this can yield a single false-positive cursor when the result set
  * size happens to be an exact multiple of `limit`. Clients that page until
@@ -248,12 +273,13 @@ function clampLimit(
 function nextCursorFromRows<T>(
   rows: T[],
   limit: number,
-  pluckTs: (r: T) => Date
+  pluck: (r: T) => { ts: Date; id: number }
 ): string | null {
   if (rows.length < limit) return null;
   const last = rows[rows.length - 1];
   if (!last) return null;
-  return pluckTs(last).toISOString();
+  const { ts, id } = pluck(last);
+  return `${ts.toISOString()}|${id}`;
 }
 
 // ---- Public API ------------------------------------------------------------
@@ -321,32 +347,34 @@ export async function readProductTrace(
   if (product.merchantId !== merchantId) return PRODUCT_NOT_FOUND;
 
   // 4. Compose cursor-aware WHERE clauses for paginated sections.
+  //    Cursor comparisons are row-value: `(ts, id) < (cursor_ts, cursor_id)`
+  //    so rows that share a timestamp are still totally ordered by id.
   const pricingWhere = andOptional(
     eq(schema.catalogPricingObservations.productId, productId),
     gte(schema.catalogPricingObservations.observedAt, since),
     observationsCursor
-      ? lt(schema.catalogPricingObservations.observedAt, observationsCursor)
+      ? sql`(${schema.catalogPricingObservations.observedAt}, ${schema.catalogPricingObservations.observationId}) < (${observationsCursor.ts.toISOString()}::timestamptz, ${observationsCursor.id}::bigint)`
       : undefined
   );
   const inventoryWhere = andOptional(
     eq(schema.catalogInventoryObservations.productId, productId),
     gte(schema.catalogInventoryObservations.observedAt, since),
     observationsCursor
-      ? lt(schema.catalogInventoryObservations.observedAt, observationsCursor)
+      ? sql`(${schema.catalogInventoryObservations.observedAt}, ${schema.catalogInventoryObservations.observationId}) < (${observationsCursor.ts.toISOString()}::timestamptz, ${observationsCursor.id}::bigint)`
       : undefined
   );
   const revisionsWhere = andOptional(
     eq(schema.catalogProductRevisions.productId, productId),
     gte(schema.catalogProductRevisions.ingestedAt, since),
     revisionsCursor
-      ? lt(schema.catalogProductRevisions.ingestedAt, revisionsCursor)
+      ? sql`(${schema.catalogProductRevisions.ingestedAt}, ${schema.catalogProductRevisions.revisionId}) < (${revisionsCursor.ts.toISOString()}::timestamptz, ${revisionsCursor.id}::bigint)`
       : undefined
   );
   const eventsWhere = andOptional(
     eq(schema.catalogEvents.productId, productId),
     gte(schema.catalogEvents.occurredAt, since),
     eventsCursor
-      ? lt(schema.catalogEvents.occurredAt, eventsCursor)
+      ? sql`(${schema.catalogEvents.occurredAt}, ${schema.catalogEvents.eventId}) < (${eventsCursor.ts.toISOString()}::timestamptz, ${eventsCursor.id}::bigint)`
       : undefined
   );
 
@@ -363,19 +391,28 @@ export async function readProductTrace(
       .select()
       .from(schema.catalogPricingObservations)
       .where(pricingWhere)
-      .orderBy(desc(schema.catalogPricingObservations.observedAt))
+      .orderBy(
+        desc(schema.catalogPricingObservations.observedAt),
+        desc(schema.catalogPricingObservations.observationId)
+      )
       .limit(observationsLimit),
     db
       .select()
       .from(schema.catalogInventoryObservations)
       .where(inventoryWhere)
-      .orderBy(desc(schema.catalogInventoryObservations.observedAt))
+      .orderBy(
+        desc(schema.catalogInventoryObservations.observedAt),
+        desc(schema.catalogInventoryObservations.observationId)
+      )
       .limit(observationsLimit),
     db
       .select()
       .from(schema.catalogProductRevisions)
       .where(revisionsWhere)
-      .orderBy(desc(schema.catalogProductRevisions.ingestedAt))
+      .orderBy(
+        desc(schema.catalogProductRevisions.ingestedAt),
+        desc(schema.catalogProductRevisions.revisionId)
+      )
       .limit(revisionsLimit),
     // Reconciliation overrides: active = NOT past their frozen_until.
     // No time-window filter on these (override list is small, and an old
@@ -397,7 +434,10 @@ export async function readProductTrace(
       .select()
       .from(schema.catalogEvents)
       .where(eventsWhere)
-      .orderBy(desc(schema.catalogEvents.occurredAt))
+      .orderBy(
+        desc(schema.catalogEvents.occurredAt),
+        desc(schema.catalogEvents.eventId)
+      )
       .limit(eventsLimit),
   ]);
 
@@ -487,28 +527,31 @@ export async function readProductTrace(
   //    through the same `observations_cursor` query param. The next cursor
   //    is the older of the two sections' next cursors (so the next page
   //    catches both up). If only one section is paginated, that's fine —
-  //    its cursor wins.
+  //    its cursor wins. Composite cursors are compared on timestamp only
+  //    for "older" — within the same timestamp the id tie-break doesn't
+  //    affect which page comes next (either id is a valid resume point
+  //    for both sections, which use distinct id spaces anyway).
   const pricingNext = nextCursorFromRows(
     pricingObservations,
     observationsLimit,
-    (r) => new Date(r.observedAt)
+    (r) => ({ ts: new Date(r.observedAt), id: r.observationId })
   );
   const inventoryNext = nextCursorFromRows(
     inventoryObservations,
     observationsLimit,
-    (r) => new Date(r.observedAt)
+    (r) => ({ ts: new Date(r.observedAt), id: r.observationId })
   );
   const observationsNextCursor = pickOlderCursor(pricingNext, inventoryNext);
 
   const revisionsNextCursor = nextCursorFromRows(
     revisions,
     revisionsLimit,
-    (r) => new Date(r.ingestedAt)
+    (r) => ({ ts: new Date(r.ingestedAt), id: r.revisionId })
   );
   const eventsNextCursor = nextCursorFromRows(
     events,
     eventsLimit,
-    (r) => new Date(r.occurredAt)
+    (r) => ({ ts: new Date(r.occurredAt), id: r.eventId })
   );
 
   return {
@@ -550,14 +593,18 @@ export async function readProductTrace(
 // ---- Internals -------------------------------------------------------------
 
 /**
- * Pick the older of two ISO cursors (so callers paging both pricing and
- * inventory simultaneously catch up the slower one first). Either may be
- * null. If both are null, returns null.
+ * Pick the older of two composite cursors (so callers paging both pricing
+ * and inventory simultaneously catch up the slower one first). Cursors are
+ * `<iso>|<id>`; we compare the ISO portion only — the id is just a row
+ * tie-breaker within a single section, not a cross-section ordering. Either
+ * may be null. If both are null, returns null.
  */
 function pickOlderCursor(a: string | null, b: string | null): string | null {
   if (a === null) return b;
   if (b === null) return a;
-  return new Date(a).getTime() <= new Date(b).getTime() ? a : b;
+  const aTs = a.split("|", 1)[0]!;
+  const bTs = b.split("|", 1)[0]!;
+  return new Date(aTs).getTime() <= new Date(bTs).getTime() ? a : b;
 }
 
 /**
