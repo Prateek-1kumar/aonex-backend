@@ -4,23 +4,27 @@
 // (`persistLinkCatalogPipeline`) is gated separately in the processor.
 //
 // Responsibilities:
-//   1. Wrap an LLM-extracted SkuJson into a LinkAdapterInput envelope.
-//   2. Call the `link` source adapter to produce CanonicalObservations +
+//   1. Resolve the channel row for a given URL via `resolveChannelByCode`
+//      (allow-list of known marketplace kinds + tenant lookup).
+//   2. Wrap an LLM-extracted SkuJson into a LinkAdapterInput envelope.
+//   3. Call the `link` source adapter to produce CanonicalObservations +
 //      pricing / inventory observations + identity hint.
-//   3. Hand the AdapterOutput to `writeAdapterOutput`, which is the single
+//   4. Hand the AdapterOutput to `writeAdapterOutput`, which is the single
 //      transactional funnel into catalog_products + side tables + revisions
 //      + outbox events.
 //
-// Channel resolution lives in the CALLER (processor). When the caller cannot
-// resolve a channel for the incoming URL (unknown marketplace, no row in
-// `channels`), we deliberately DROP pricing + inventory observations from
-// the adapter output before writing — the catalog_products row, revision,
-// and outbox event still land so the URL isn't silently lost. Logged as a
-// warning. Bootstrap of new channel rows happens out-of-band via
+// Channel resolution: callers invoke `resolveChannelByCode(db, tenantId, code)`
+// which returns null for unknown marketplaces (anything outside the curated
+// allow-list, or any allow-listed kind with no tenant row). When the channel
+// is null, we deliberately pre-strip `sku.pricing` and per-variant pricing
+// from the SkuJson BEFORE calling the adapter, so the adapter never sees
+// channel-scoped data and never throws on missing currency. The
+// catalog_products row, revision, and outbox event still land so the URL
+// isn't silently lost. Bootstrap of new channel rows happens out-of-band via
 // `scripts/bootstrap-channels.ts`; we do NOT auto-create here.
 
 import { writeAdapterOutput, type WriteAdapterOutputResult } from "@aonex/catalog-service";
-import { getAdapter, type AdapterOutput } from "@aonex/catalog-source-adapters";
+import { getAdapter } from "@aonex/catalog-source-adapters";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
 import type {
   ArtifactId,
@@ -29,6 +33,69 @@ import type {
   TenantId,
 } from "@aonex/types";
 import type { DrizzleClient } from "@aonex/db";
+
+/**
+ * Curated allow-list of canonical marketplace channel-kinds. The link
+ * adapter's `channelCodeFromUrl` can emit arbitrary host-derived codes
+ * (e.g. "myshop-example-io") whose prefix is NOT a real marketplace —
+ * matching those against `channels.channel_kind` would silently bind
+ * unrelated URLs to a tenant's real channel rows. Only codes whose prefix
+ * falls in this set are looked up; anything else returns null
+ * ("channel unresolved") so the strip-and-warn branch fires.
+ *
+ * Phase 5 will replace this with an explicit channel-resolver service
+ * backed by `channels` + per-tenant marketplace registration.
+ */
+const KNOWN_CHANNEL_KINDS: ReadonlySet<string> = new Set([
+  "amazon",
+  "ebay",
+  "flipkart",
+  "shopify",
+  "walmart",
+  "myntra",
+  "kmart",
+  "bunnings",
+  "jbhifi",
+  "catch",
+  "woolworths",
+]);
+
+/**
+ * Look up the channel row for a tenant + channel-code (as emitted by
+ * `channelCodeFromUrl`). Returns null when:
+ *   - the code's prefix is not in `KNOWN_CHANNEL_KINDS`, OR
+ *   - the tenant has no row for that channelKind.
+ *
+ * Encapsulating the allow-list + DB lookup here (rather than inlining in
+ * the processor) keeps the trust boundary in one place and lets tests
+ * exercise both branches without dragging in the rest of the pipeline.
+ */
+export async function resolveChannelByCode(
+  db: DrizzleClient,
+  tenantId: TenantId,
+  channelCode: string
+): Promise<{
+  channelId: ChannelId;
+  channelCode: string;
+  defaultCurrency: string | null;
+  defaultLocale: string | null;
+} | null> {
+  const derivedKind = channelCode.split("-")[0] ?? "";
+  if (!KNOWN_CHANNEL_KINDS.has(derivedKind)) return null;
+
+  const row = await db.query.channels.findFirst({
+    where: (c, { and, eq }) =>
+      and(eq(c.tenantId, tenantId), eq(c.channelKind, derivedKind)),
+  });
+  if (!row) return null;
+
+  return {
+    channelId: row.channelId as ChannelId,
+    channelCode,
+    defaultCurrency: row.defaultCurrency ?? null,
+    defaultLocale: row.defaultLocale ?? null,
+  };
+}
 
 export interface RunNewLinkCatalogPathInput {
   db: DrizzleClient;
@@ -53,15 +120,35 @@ export interface RunNewLinkCatalogPathInput {
 }
 
 /**
- * Drop pricing + inventory observations from an AdapterOutput. Used when
- * we can't resolve a channel — writeAdapterOutput would otherwise throw
- * for missing channelCodeToId.
+ * Pre-strip pricing + inventory data from a SkuJson envelope. Used when
+ * the channel is unresolved — feeds the adapter a sanitized SkuJson so it
+ * never emits PricingObservations / InventoryObservations and never throws
+ * on missing currency (`linkAdapter: pricing currency missing...`).
+ *
+ * Both parent-level `pricing` and per-variant `pricing` fields are zeroed
+ * (set to all-null) — keeping the SkuJson shape intact rather than deleting
+ * keys, so the adapter's null-checks still see a well-formed object.
  */
-function stripChannelScopedObservations(out: AdapterOutput): AdapterOutput {
+function stripChannelScopedSkuData(sku: SkuJson): SkuJson {
+  const nullPricing = {
+    list_price: null,
+    sale_price: null,
+    currency: null,
+    discount_percent: null,
+    price_per_unit: null,
+  };
+  const nullVariantPricing = {
+    list_price: null,
+    sale_price: null,
+    currency: null,
+  };
   return {
-    ...out,
-    pricingObservations: [],
-    inventoryObservations: [],
+    ...sku,
+    pricing: nullPricing,
+    variants: sku.variants.map((v) => ({
+      ...v,
+      pricing: nullVariantPricing,
+    })),
   };
 }
 
@@ -83,17 +170,43 @@ export async function runNewLinkCatalogPath(
   } = input;
 
   const adapter = getAdapter("link");
+  const channelResolved = channelId !== null && channelCode !== null;
+
+  // Unknown-channel safety net: feed the adapter a SkuJson with pricing +
+  // variant pricing zeroed BEFORE it runs, so the adapter never emits
+  // channel-scoped observations and never throws on missing currency. The
+  // catalog_products row, revision, and outbox event still land. We log a
+  // warning if the original SkuJson actually had pricing data so the drop
+  // is observable.
+  const adapterSku = channelResolved ? sku : stripChannelScopedSkuData(sku);
+  if (!channelResolved) {
+    const droppedParentPricing =
+      sku.pricing.list_price !== null || sku.pricing.sale_price !== null
+        ? 1
+        : 0;
+    const droppedVariantPricing = sku.variants.filter(
+      (v) => v.pricing.list_price !== null || v.pricing.sale_price !== null
+    ).length;
+    if (droppedParentPricing + droppedVariantPricing > 0) {
+      // Lightweight stderr warning — we don't pull a logger dep into this
+      // module. The processor's audit emitter records the success path.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[new-catalog-link-path] channel unresolved for sourceUrl=${sourceUrl}; dropping ${droppedParentPricing} parent + ${droppedVariantPricing} variant pricing entries`
+      );
+    }
+  }
 
   // The adapter REQUIRES a non-empty ChannelId in its AdaptContext even
-  // when we don't have one (used only as a tag on observations downstream
-  // for some adapters; the link adapter does not actually persist this id
-  // — see source-adapters/src/link/index.ts). Pass a sentinel zero-UUID when
-  // unresolved so the type stays satisfied.
+  // when we don't have one (the link adapter does not actually persist
+  // this id — see source-adapters/src/link/index.ts). With pricing
+  // pre-stripped above, the placeholder only appears on parent-level
+  // CanonicalObservations that aren't bound to a real channel row.
   const placeholderChannelId =
     "00000000-0000-0000-0000-000000000000" as unknown as ChannelId;
 
   const adapterOutput = adapter.adapt(
-    { sku, sourceUrl, observedAt, artifactId },
+    { sku: adapterSku, sourceUrl, observedAt, artifactId },
     {
       tenantId,
       channelId: channelId ?? placeholderChannelId,
@@ -107,37 +220,15 @@ export async function runNewLinkCatalogPath(
     }
   );
 
-  // Unknown-channel safety net: strip pricing + inventory observations so
-  // writeAdapterOutput's precondition (channelCodeToId required iff side-
-  // table observations present) is satisfied. The product row + revision +
-  // outbox event still land.
-  const outputToWrite =
-    channelId === null || channelCode === null
-      ? stripChannelScopedObservations(adapterOutput)
-      : adapterOutput;
-
-  if (
-    outputToWrite !== adapterOutput &&
-    (adapterOutput.pricingObservations.length > 0 ||
-      adapterOutput.inventoryObservations.length > 0)
-  ) {
-    // Lightweight stderr warning — we don't pull a logger dep into this
-    // module. The processor's audit emitter still records the success path.
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[new-catalog-link-path] channel unresolved for sourceUrl=${sourceUrl}; dropping ${adapterOutput.pricingObservations.length} pricing + ${adapterOutput.inventoryObservations.length} inventory observations`
-    );
-  }
-
   const writeInput: Parameters<typeof writeAdapterOutput>[0] = {
     db,
     tenantId,
     merchantId,
-    adapterOutput: outputToWrite,
+    adapterOutput,
     actor: "link-extract",
     rulesVersion: 1,
   };
-  if (channelId !== null && channelCode !== null) {
+  if (channelResolved) {
     writeInput.channelCodeToId = { [channelCode]: channelId };
   }
 

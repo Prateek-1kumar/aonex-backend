@@ -22,10 +22,12 @@ import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
 import { convertFromFacts } from "@aonex/ingestion-enrichment";
 import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
-import type { ChannelId } from "@aonex/types";
 import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
 import { emitFailureReviewTask } from "../services/emit-failure-review-task.js";
-import { runNewLinkCatalogPath } from "../services/new-catalog-link-path.js";
+import {
+  runNewLinkCatalogPath,
+  resolveChannelByCode,
+} from "../services/new-catalog-link-path.js";
 import { runSpineLink } from "./ingestion-spine.processor.js";
 
 export interface LinkExtractJobData {
@@ -45,10 +47,11 @@ export interface LinkExtractProcessorDeps {
    * Phase 4 catalog redesign flag. When TRUE, after extraction we hand the
    * SkuJson to the new `writeAdapterOutput` path (catalog_products + side
    * tables + revisions + outbox) and skip the legacy
-   * `persistLinkCatalogPipeline`. Defaults to false when omitted to keep
-   * existing call-sites (tests, etc.) on the legacy path.
+   * `persistLinkCatalogPipeline`. Required — the composition root always
+   * supplies it; tests must pass `false` (or `true`) explicitly to keep
+   * the trust boundary tight.
    */
-  useNewCatalogSchema?: boolean;
+  useNewCatalogSchema: boolean;
 }
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
@@ -57,6 +60,15 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     // When INGESTION_SPINE_ENABLED=true, route this job through runSpineLink
     // instead of the legacy code path below. Both paths are idempotent so
     // a flag flip mid-flight is safe.
+    //
+    // NOTE on flag interaction: when INGESTION_SPINE_ENABLED=true, the spine
+    // path supersedes the catalog dual-path below — `runSpineLink` does NOT
+    // consult `deps.useNewCatalogSchema`. The new-schema branch
+    // (deps.useNewCatalogSchema=true) is only reachable when
+    // INGESTION_SPINE_ENABLED is false. The spine itself will need to be
+    // wired through `writeAdapterOutput` in a future task before the
+    // catalog cutover can complete; until then, running with the spine
+    // enabled bypasses the new catalog path entirely.
     if (process.env.INGESTION_SPINE_ENABLED === "true") {
       return runSpineLink(
         { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor },
@@ -354,26 +366,15 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     if (deps.useNewCatalogSchema) {
       const sku = convertFromFacts(factSet.facts, fetchResult.finalUrl);
       const channelCode = channelCodeFromUrl(fetchResult.finalUrl);
-      const channelRow = await deps.db.query.channels.findFirst({
-        where: (c, { and, eq }) =>
-          and(
-            eq(c.tenantId, tenantId),
-            // We match on display_name OR account_ref since `channel_kind`
-            // alone may have multiple regional rows (e.g. amazon-com vs
-            // amazon-com-au). The channelCode emitted by channelCodeFromUrl
-            // already encodes region in its suffix, so a kind+region match
-            // would require parsing kind back out — for v1 we just look up
-            // any channel row whose channelKind matches the prefix.
-            //
-            // Pragmatic v1: derive a coarse `channelKind` by stripping the
-            // region suffix from channelCode (e.g. "amazon-com-au" → "amazon").
-            // Phase 5 will replace this with an explicit channel-resolver
-            // service backed by the channels table.
-            eq(c.channelKind, channelCode.split("-")[0]!)
-          ),
-      });
+      // resolveChannelByCode applies a curated allow-list of marketplace
+      // kinds (so e.g. "myshop-example-io" or "ebay-typo-com" don't silently
+      // bind to a tenant's real eBay channel) before looking up the row.
+      // Returns null when the prefix isn't in the allow-list OR when no
+      // tenant row exists for that kind — both cases drive the strip-and-
+      // warn branch inside runNewLinkCatalogPath.
+      const resolved = await resolveChannelByCode(deps.db, tenantId, channelCode);
 
-      const channelId = (channelRow?.channelId as ChannelId | undefined) ?? null;
+      const channelId = resolved?.channelId ?? null;
       const writeResult = await runNewLinkCatalogPath({
         db: deps.db,
         tenantId,
@@ -382,9 +383,9 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         sourceUrl: fetchResult.finalUrl,
         sku,
         channelId,
-        channelCode: channelId ? channelCode : null,
-        channelDefaultCurrency: channelRow?.defaultCurrency ?? null,
-        channelDefaultLocale: channelRow?.defaultLocale ?? null,
+        channelCode: resolved ? resolved.channelCode : null,
+        channelDefaultCurrency: resolved?.defaultCurrency ?? null,
+        channelDefaultLocale: resolved?.defaultLocale ?? null,
       });
 
       // Mark artifact completed unconditionally — review tasks under the
