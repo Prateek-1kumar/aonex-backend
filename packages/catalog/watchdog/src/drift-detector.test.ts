@@ -365,7 +365,53 @@ describe("detectDrift (plan §3.10, spec §13.3)", () => {
     expect(report.hasDrift).toBe(false);
   });
 
-  test("6. inventory drift case where current row exists but expected has no winner — flagged as orphan", async () => {
+  test("6. pricing drift: currency mismatch between observation and stale _current row is flagged", async () => {
+    // Coverage gap fix — `catalog_pricing_current` stores currency +
+    // pricePerUnit alongside source/tiers/primary_amount. A writer-vs-current
+    // divergence on currency must be visible to the watchdog. Seed an
+    // observation with currency=USD but a stale current row with currency=AUD
+    // (same source, same tiers) → drift detected on the currency mismatch.
+    const productId = await insertProduct(db, {
+      primaryIdentifier: "DRIFT-PRC-CURRENCY",
+      values: {}
+    });
+
+    const tiers = [{ kind: "list", amount: 49.99 }];
+    await db.insert(schema.catalogPricingObservations).values([
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "shopify:connector",
+        currency: "USD",
+        tiers,
+        observedAt: new Date("2026-05-21T10:00:00Z")
+      }
+    ]);
+    // Stale current row — same source + tiers, but stale currency=AUD.
+    await db.execute(sql`
+      INSERT INTO catalog_pricing_current
+        (product_id, channel_id, locale, source, currency, tiers,
+         price_per_unit, primary_amount, observed_at)
+      VALUES
+        (${productId}, ${TEST_CHANNEL_ID}, 'en_AU', 'shopify:connector', 'AUD',
+         ${JSON.stringify(tiers)}::jsonb,
+         NULL, 49.99, '2026-05-21T10:00:00Z')
+    `);
+
+    const report = await detectDrift({ db }, productId);
+    expect(report.hasDrift).toBe(true);
+    expect(report.driftPricingCurrentRows.length).toBe(1);
+    const row = report.driftPricingCurrentRows[0]!;
+    expect(row.stored?.currency).toBe("AUD");
+    expect(row.expected?.currency).toBe("USD");
+    // Source unchanged — the drift is solely on currency.
+    expect(row.stored?.source).toBe("shopify:connector");
+    expect(row.expected?.source).toBe("shopify:connector");
+  });
+
+  test("7. inventory drift case where current row exists but expected has no winner — flagged as orphan", async () => {
     // Edge case from spec: current row exists but no observation projects a
     // winner (e.g. observations were dropped by rule filtering). Expected
     // is null; stored row exists → drift, auto-fix would DELETE the orphan.

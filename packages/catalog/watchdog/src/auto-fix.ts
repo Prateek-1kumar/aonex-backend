@@ -57,6 +57,11 @@ export interface AutoFixResult {
   syncProjected: string[];
   /** Async-tier enqueues. Each entry is one (attributeCode, jobId). */
   asyncEnqueued: Array<{ attributeCode: ReconcilerAttributeCode; jobId: string }>;
+  /** Count of async-tier attribute categories (pricing/inventory) that
+   *  needed re-projection but were skipped because no queue was wired.
+   *  Lets the caller distinguish "fully fixed" from "fixed sync only —
+   *  async deferred to a runtime with Redis". */
+  asyncDeferred: number;
 }
 
 // ---- Public API ------------------------------------------------------------
@@ -114,16 +119,23 @@ export async function autoFixDrift(
   if (report.driftInventoryCurrentRows.length > 0) asyncAttrs.push("inventory");
 
   if (asyncAttrs.length === 0) {
-    return { syncProjected: syncAttrs, asyncEnqueued };
+    return { syncProjected: syncAttrs, asyncEnqueued, asyncDeferred: 0 };
   }
 
   if (!queue) {
     // No queue wired — log deferred and return cleanly. Tests + standalone
-    // dev runs don't need Redis just to validate drift detection.
+    // dev runs don't need Redis just to validate drift detection. The
+    // count of skipped attribute categories surfaces via `asyncDeferred`
+    // so tier-runner stats can honestly distinguish "fully fixed" from
+    // "sync fixed; async waiting on Redis".
     console.warn(
       `[catalog-watchdog] DEFERRED-AUTOFIX product=${productId} attrs=${asyncAttrs.join(",")} reason=no_queue_in_deps`
     );
-    return { syncProjected: syncAttrs, asyncEnqueued };
+    return {
+      syncProjected: syncAttrs,
+      asyncEnqueued,
+      asyncDeferred: asyncAttrs.length
+    };
   }
 
   for (const attributeCode of asyncAttrs) {
@@ -138,5 +150,5 @@ export async function autoFixDrift(
       asyncEnqueued.push({ attributeCode, jobId: job.id });
     }
   }
-  return { syncProjected: syncAttrs, asyncEnqueued };
+  return { syncProjected: syncAttrs, asyncEnqueued, asyncDeferred: 0 };
 }

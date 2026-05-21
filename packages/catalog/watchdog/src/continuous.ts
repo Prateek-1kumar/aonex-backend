@@ -55,6 +55,7 @@ export async function runSweep(
     sampled: 0,
     driftFound: 0,
     autoFixed: 0,
+    asyncDeferred: 0,
     durationMs: 0,
     driftRateByAttribute: {}
   };
@@ -106,8 +107,16 @@ export async function runSweep(
         }
         try {
           const autoFixDeps = queue ? { db, queue } : { db };
-          await autoFixDrift(autoFixDeps, row.product_id, report);
-          stats.autoFixed++;
+          const fix = await autoFixDrift(autoFixDeps, row.product_id, report);
+          // A product whose async drift was skipped due to no queue is NOT
+          // counted as "autoFixed" — it bumps `asyncDeferred` instead so
+          // the stats are honest. Sync-only drift still counts toward
+          // autoFixed (asyncDeferred=0 in that case).
+          if (fix.asyncDeferred > 0) {
+            stats.asyncDeferred++;
+          } else {
+            stats.autoFixed++;
+          }
         } catch (err) {
           // Per spec §13.3 + design decision 4: one bad product shouldn't
           // abort the sweep. Log + continue.

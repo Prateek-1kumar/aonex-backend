@@ -17,13 +17,12 @@
   "dependencies": {
     "@aonex/db": "workspace:*",
     "@aonex/catalog-service": "workspace:*",
-    "@aonex/types": "workspace:*",
-    "@aonex/lib-utils": "workspace:*",
     "bullmq": "^5.34.5",
     "drizzle-orm": "^0.36.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "ioredis": "^5.4.2",
     "typescript": "^5.7.0"
   }
 }

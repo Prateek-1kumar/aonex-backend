@@ -44,9 +44,10 @@
 //      attributes added in later phases will need their own _current-table
 //      reads here.
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import {
+  extractPrimaryAmount,
   pickWinner,
   type PickWinnerObservation,
   type SourcePriorityRule
@@ -73,8 +74,20 @@ export interface DriftReport {
   driftPricingCurrentRows: Array<{
     channelId: string;
     locale: string;
-    stored: { source: string; primaryAmount: number | null; tiers: unknown } | null;
-    expected: { source: string; primaryAmount: number | null; tiers: unknown } | null;
+    stored: {
+      source: string;
+      primaryAmount: number | null;
+      tiers: unknown;
+      currency: string;
+      pricePerUnit: unknown;
+    } | null;
+    expected: {
+      source: string;
+      primaryAmount: number | null;
+      tiers: unknown;
+      currency: string;
+      pricePerUnit: unknown;
+    } | null;
   }>;
   driftInventoryCurrentRows: Array<{
     channelId: string;
@@ -91,8 +104,15 @@ export interface WatchdogStats {
   sampled: number;
   /** Products with at least one drift (hasDrift=true). */
   driftFound: number;
-  /** Products for which auto-fix completed without error. */
+  /** Products for which auto-fix completed without error AND fully — i.e.
+   *  every drift attribute was handled. Excludes products whose async fixes
+   *  were skipped because no queue was wired (those count via
+   *  `asyncDeferred`). */
   autoFixed: number;
+  /** Products for which at least one async-tier fix (pricing/inventory) was
+   *  skipped because the watchdog had no Queue in deps. Surfacing this
+   *  separately means `autoFixed` doesn't lie when running without Redis. */
+  asyncDeferred: number;
   durationMs: number;
   /** Count of drift instances broken down by attributeCode. */
   driftRateByAttribute: Record<string, number>;
@@ -108,6 +128,12 @@ const NULL_LOCATION_SENTINEL = "00000000-0000-0000-0000-000000000000";
  *  read-only and we want to consider the full observation history that the
  *  reconciler would have seen. */
 const OBSERVATION_LOOKBACK_LIMIT = 200;
+
+// TODO(catalog-redesign): `catalog_products.updated_at` is unindexed today,
+// so the continuous/hourly tier samplers (continuous.ts:67) do a full table
+// scan on the `updated_at > now() - interval ...` predicate. Add a btree
+// index on (updated_at) in a follow-up migration ticket — at 1k+ products
+// per tenant the sweep latency will start to bite.
 
 // ---- Internal shapes -------------------------------------------------------
 
@@ -150,6 +176,8 @@ interface PricingExpectedLeaf {
   source: string;
   primaryAmount: number | null;
   tiers: unknown;
+  currency: string;
+  pricePerUnit: unknown;
 }
 
 interface InventoryExpectedLeaf {
@@ -189,41 +217,47 @@ function deepEqual(a: unknown, b: unknown): boolean {
 
 /** Locally re-implemented (decision 2 — `_internal.ts` is module-private).
  *  Selects rules from source_priority filtered by tenant (null = global)
- *  and attributeCode (null = all). Same shape returned by the async-debounced
- *  worker's loader. */
+ *  and attributeCode (null = all). Same shape (and same WHERE clause —
+ *  mirrors reconciler/_internal.ts:loadActiveRules) returned by the
+ *  async-debounced worker's loader. Filtering in SQL keeps the result set
+ *  bounded even when source_priority grows. */
 async function loadRules(
   db: DrizzleClient,
   tenantId: string,
   attributeCodes: string[]
 ): Promise<SourcePriorityRule[]> {
   if (attributeCodes.length === 0) return [];
+  const attributeFilter =
+    attributeCodes.length === 1
+      ? eq(schema.sourcePriority.attributeCode, attributeCodes[0]!)
+      : inArray(schema.sourcePriority.attributeCode, attributeCodes);
+
   const rows = await db
     .select({
       ruleId: schema.sourcePriority.ruleId,
       attributeCode: schema.sourcePriority.attributeCode,
       sourceGlob: schema.sourcePriority.sourceGlob,
       channelScope: schema.sourcePriority.channelScope,
-      priority: schema.sourcePriority.priority,
-      tenantId: schema.sourcePriority.tenantId,
-      effectiveTo: schema.sourcePriority.effectiveTo
+      priority: schema.sourcePriority.priority
     })
-    .from(schema.sourcePriority);
-  // Filter in memory — count is bounded (a few dozen per tenant max). Avoids
-  // re-deriving the multi-condition WHERE that loadActiveRules has internally.
-  return rows
-    .filter(
-      (r) =>
-        r.effectiveTo === null &&
-        (r.tenantId === null || r.tenantId === tenantId) &&
-        (r.attributeCode === null || attributeCodes.includes(r.attributeCode))
-    )
-    .map((r) => ({
-      ruleId: r.ruleId,
-      attributeCode: r.attributeCode,
-      sourceGlob: r.sourceGlob,
-      channelScope: r.channelScope,
-      priority: r.priority
-    }));
+    .from(schema.sourcePriority)
+    .where(
+      and(
+        isNull(schema.sourcePriority.effectiveTo),
+        or(
+          isNull(schema.sourcePriority.tenantId),
+          eq(schema.sourcePriority.tenantId, tenantId)
+        ),
+        or(isNull(schema.sourcePriority.attributeCode), attributeFilter)
+      )
+    );
+  return rows.map((r) => ({
+    ruleId: r.ruleId,
+    attributeCode: r.attributeCode,
+    sourceGlob: r.sourceGlob,
+    channelScope: r.channelScope,
+    priority: r.priority
+  }));
 }
 
 // ---- Public API ------------------------------------------------------------
@@ -266,20 +300,21 @@ export async function detectDrift(
     (product.winningValues ?? {}) as WinningValuesJson;
 
   // 1. Compute drift for sync attributes (everything in values JSONB).
-  const attributeCodes = Object.keys(valuesJson).filter(
+  const syncAttributeCodes = Object.keys(valuesJson).filter(
     (k) => k !== "_meta" && k !== "pricing" && k !== "inventory"
   );
   // pricing/inventory aren't typically under values JSONB (they live in side
   // tables) — exclude defensively.
 
-  const rules =
-    attributeCodes.length > 0
-      ? await loadRules(db, product.tenantId, attributeCodes)
-      : [];
+  // Hoisted: one `loadRules` query per detectDrift call. The rules table is
+  // tenant-bounded so collecting all attributes (sync + pricing + inventory)
+  // into a single SELECT is strictly cheaper than three round-trips.
+  const allAttributes = [...syncAttributeCodes, "pricing", "inventory"];
+  const rules = await loadRules(db, product.tenantId, allAttributes);
 
   const driftAttributes: DriftReport["driftAttributes"] = [];
 
-  for (const attr of attributeCodes) {
+  for (const attr of syncAttributeCodes) {
     const attrValues = valuesJson[attr];
     if (!attrValues || typeof attrValues !== "object") continue;
 
@@ -317,14 +352,14 @@ export async function detectDrift(
   const driftPricingCurrentRows = await detectPricingDrift(
     db,
     product.productId,
-    product.tenantId
+    rules
   );
 
   // 3. Inventory drift.
   const driftInventoryCurrentRows = await detectInventoryDrift(
     db,
     product.productId,
-    product.tenantId
+    rules
   );
 
   const hasDrift =
@@ -348,9 +383,13 @@ export async function detectDrift(
 async function detectPricingDrift(
   db: DrizzleClient,
   productId: string,
-  tenantId: string
+  rules: SourcePriorityRule[]
 ): Promise<DriftReport["driftPricingCurrentRows"]> {
-  // Mirror the read pattern from async-debounced.ts.
+  // Mirror the read pattern from async-debounced.ts. We carry currency +
+  // pricePerUnit on the leaf so writer-vs-current divergence on either of
+  // those columns is visible to the watchdog (catalog_pricing_current.currency
+  // / .price_per_unit are stored alongside source/tiers/primary_amount; see
+  // packages/db/src/schema/catalog-pricing.ts:52-70).
   const obsRows = (await db
     .select({
       channelId: schema.catalogPricingObservations.channelId,
@@ -372,15 +411,16 @@ async function detectPricingDrift(
       channelId: schema.catalogPricingCurrent.channelId,
       locale: schema.catalogPricingCurrent.locale,
       source: schema.catalogPricingCurrent.source,
+      currency: schema.catalogPricingCurrent.currency,
       primaryAmount: schema.catalogPricingCurrent.primaryAmount,
-      tiers: schema.catalogPricingCurrent.tiers
+      tiers: schema.catalogPricingCurrent.tiers,
+      pricePerUnit: schema.catalogPricingCurrent.pricePerUnit
     })
     .from(schema.catalogPricingCurrent)
     .where(eq(schema.catalogPricingCurrent.productId, productId));
 
   const expectedByLeaf = new Map<string, PricingExpectedLeaf>();
   if (obsRows.length > 0) {
-    const rules = await loadRules(db, tenantId, ["pricing"]);
     const groups = new Map<string, PricingObservationRow[]>();
     for (const row of obsRows) {
       const key = `${row.channelId}::${row.locale}`;
@@ -392,10 +432,16 @@ async function detectPricingDrift(
       const observations: PickWinnerObservation[] = bucket.map((row) => ({
         source: row.source,
         sourceRecordId: row.sourceRecordId ?? `${row.source}#unknown`,
+        // pickWinner returns whichever value object it picked, by reference;
+        // we stuff currency + pricePerUnit from the winning ROW here so the
+        // expected leaf matches exactly what the worker would have written
+        // to catalog_pricing_current.
         value: {
           source: row.source,
           tiers: row.tiers,
-          primaryAmount: extractPrimaryAmount(row.tiers)
+          primaryAmount: extractPrimaryAmount(row.tiers),
+          currency: row.currency,
+          pricePerUnit: row.pricePerUnit ?? null
         } satisfies PricingExpectedLeaf,
         confidence: 1,
         observedAt: row.observedAt
@@ -411,10 +457,7 @@ async function detectPricingDrift(
     }
   }
 
-  const storedByLeaf = new Map<
-    string,
-    { source: string; primaryAmount: number | null; tiers: unknown }
-  >();
+  const storedByLeaf = new Map<string, PricingExpectedLeaf>();
   for (const r of currentRows) {
     const key = `${r.channelId}::${r.locale}`;
     storedByLeaf.set(key, {
@@ -423,7 +466,9 @@ async function detectPricingDrift(
         r.primaryAmount === null || r.primaryAmount === undefined
           ? null
           : Number(r.primaryAmount),
-      tiers: r.tiers
+      tiers: r.tiers,
+      currency: r.currency,
+      pricePerUnit: r.pricePerUnit ?? null
     });
   }
 
@@ -448,7 +493,7 @@ async function detectPricingDrift(
 async function detectInventoryDrift(
   db: DrizzleClient,
   productId: string,
-  tenantId: string
+  rules: SourcePriorityRule[]
 ): Promise<DriftReport["driftInventoryCurrentRows"]> {
   const obsRows = (await db
     .select({
@@ -476,7 +521,6 @@ async function detectInventoryDrift(
 
   const expectedByLeaf = new Map<string, InventoryExpectedLeaf>();
   if (obsRows.length > 0) {
-    const rules = await loadRules(db, tenantId, ["inventory"]);
     const groups = new Map<string, InventoryObservationRow[]>();
     for (const row of obsRows) {
       const locKey = row.locationId ?? NULL_LOCATION_SENTINEL;
@@ -548,23 +592,6 @@ function toPickWinnerObs(o: ValuesObservation): PickWinnerObservation {
     confidence: o.confidence,
     observedAt: new Date(o.observed_at)
   };
-}
-
-/**
- * Extract a primary amount from a pricing tiers array. Mirrors
- * `extractPrimaryAmount` from catalog-service/reconciler/async-debounced.ts;
- * duplicated here because we want detect-drift to be independent of any
- * undocumented internal renames in async-debounced. (Trivial helper — keeps
- * the comparison apples-to-apples.)
- */
-function extractPrimaryAmount(tiers: unknown): number | null {
-  if (!Array.isArray(tiers)) return null;
-  const typed = tiers as Array<{ kind?: string; amount?: number }>;
-  const sale = typed.find((t) => t && t.kind === "sale");
-  if (sale && typeof sale.amount === "number") return sale.amount;
-  const list = typed.find((t) => t && t.kind === "list");
-  if (list && typeof list.amount === "number") return list.amount;
-  return null;
 }
 
 function leafEqual(a: unknown, b: unknown): boolean {

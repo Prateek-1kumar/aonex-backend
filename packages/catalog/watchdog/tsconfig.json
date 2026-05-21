@@ -4,8 +4,6 @@
   "include": ["src/**/*"],
   "references": [
     { "path": "../../db" },
-    { "path": "../../types" },
-    { "path": "../../lib-utils" },
     { "path": "../catalog-service" }
   ]
 }
