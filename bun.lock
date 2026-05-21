@@ -59,6 +59,7 @@
       "dependencies": {
         "@aonex/audit": "workspace:*",
         "@aonex/calibration": "workspace:*",
+        "@aonex/catalog-event-outbox": "workspace:*",
         "@aonex/catalog-service": "workspace:*",
         "@aonex/catalog-source-adapters": "workspace:*",
         "@aonex/connector-gateway": "workspace:*",

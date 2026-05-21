@@ -28,3 +28,11 @@ export type {
   ThrottleSignal,
   ThrottleThresholds
 } from "./backpressure.js";
+export { moveToDlq, replayDlq } from "./dlq.js";
+export type {
+  MoveToDlqDeps,
+  MoveToDlqInput,
+  MoveToDlqResult,
+  ReplayDlqOptions,
+  ReplayDlqResult
+} from "./dlq.js";
