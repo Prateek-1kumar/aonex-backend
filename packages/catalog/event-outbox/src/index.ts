@@ -13,3 +13,19 @@ export type {
   PollerStats,
   PollerWorker
 } from "./poller.js";
+export {
+  classifyThrottle,
+  DEFAULT_KEY_PREFIX,
+  DEFAULT_THRESHOLDS,
+  DEFAULT_TTL_SECONDS,
+  getCurrentThrottleLevel,
+  getCurrentThrottleSignal,
+  measureAndPublishBackpressure
+} from "./backpressure.js";
+export type {
+  MeasureBackpressureDeps,
+  MeasureBackpressureOptions,
+  ThrottleLevel,
+  ThrottleSignal,
+  ThrottleThresholds
+} from "./backpressure.js";
