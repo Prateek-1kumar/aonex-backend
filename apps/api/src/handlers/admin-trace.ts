@@ -32,6 +32,10 @@ import {
   readProvenance,
   PRODUCT_NOT_FOUND,
 } from "../services/new-catalog-provenance.js";
+import {
+  readProductTrace,
+  PRODUCT_NOT_FOUND as TRACE_PRODUCT_NOT_FOUND,
+} from "../services/new-catalog-trace.js";
 
 /** Tight UUID v1-v5 regex. Permissive enough for any well-formed id. */
 const UUID_RE =
@@ -122,6 +126,221 @@ export async function getProductProvenanceTrace(
   });
 
   if (result === PRODUCT_NOT_FOUND) {
+    return c.json(
+      { error: { code: "NOT_FOUND", message: "Product not found" } },
+      404
+    );
+  }
+
+  return c.json({ data: result });
+}
+
+/**
+ * Parse an ISO-8601 timestamp from a query param. Returns:
+ *   - `undefined` when the param is absent (caller picks a default).
+ *   - `Date` instance when valid.
+ *   - `INVALID` symbol when present but unparseable (caller returns 400).
+ */
+const INVALID_ISO = Symbol("invalid-iso");
+type ParsedIso = Date | undefined | typeof INVALID_ISO;
+
+function parseIsoQuery(raw: string | undefined): ParsedIso {
+  if (raw === undefined || raw === "") return undefined;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return INVALID_ISO;
+  return d;
+}
+
+/**
+ * Parse a positive-integer query param. Returns:
+ *   - `undefined` when absent (caller picks a default).
+ *   - parsed number when finite & positive.
+ *   - `INVALID` symbol when malformed (caller returns 400).
+ */
+const INVALID_INT = Symbol("invalid-int");
+type ParsedInt = number | undefined | typeof INVALID_INT;
+
+function parsePositiveIntQuery(raw: string | undefined): ParsedInt {
+  if (raw === undefined || raw === "") return undefined;
+  // Reject non-numeric strings outright — `parseInt("3abc")` would silently
+  // accept `3`, but for a debug endpoint we'd rather fail loud on typos.
+  if (!/^[0-9]+$/.test(raw)) return INVALID_INT;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return INVALID_INT;
+  return n;
+}
+
+/**
+ * GET /products/:product_id/trace — unified product debug payload.
+ *
+ * Returns a single JSON document covering:
+ *   - Current `catalog_products` row (identity, status, winning_values).
+ *   - Pricing & inventory observations (last N within the window).
+ *   - Revisions (last N).
+ *   - Active reconciliation_overrides.
+ *   - Recent catalog_events (outbox).
+ *   - `observationsByAttribute` (passthrough of `catalog_products.values`).
+ *
+ * This is a HEAVY READ — up to 6 SELECTs run in parallel via the service
+ * helper. Intended as an admin / support / debugging surface, not a hot
+ * path. Production deployments should consider rate-limiting if exposed.
+ *
+ * Query params:
+ *   - `since=<iso>` overrides the 30-day default window.
+ *   - `observations_limit` / `revisions_limit` / `events_limit` cap each
+ *     section; clamped server-side ([1, 5000] / [1, 200] / [1, 200]).
+ *   - `observations_cursor` / `revisions_cursor` / `events_cursor` are
+ *     ISO timestamps for the strict-less-than pagination cursors. Pass
+ *     back the `pagination.*NextCursor` values to fetch the next page.
+ *
+ * Responses:
+ *   - 200 with `{ data: ProductTraceResult }` (see service-layer types).
+ *   - 400 with `INVALID_PRODUCT_ID` when `product_id` isn't a UUID.
+ *   - 400 with `INVALID_QUERY` when an `iso` or `int` query param is
+ *     malformed — fail-loud beats silent fallback for a debug surface.
+ *   - 404 when the product doesn't exist OR belongs to a different
+ *     tenant/merchant (no existence leak across tenants).
+ */
+export async function getProductTrace(
+  c: Context,
+  deps: CatalogRouteDeps
+): Promise<Response> {
+  const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+  const merchantId = MerchantId.unsafeFrom(
+    c.get("merchantId" as never) as string
+  );
+
+  const productId = c.req.param("product_id") as string;
+  if (!productId || !looksLikeUuid(productId)) {
+    return c.json(
+      {
+        error: {
+          code: "INVALID_PRODUCT_ID",
+          message: "product_id must be a UUID",
+        },
+      },
+      400
+    );
+  }
+
+  // Parse + validate query params. Each malformed value becomes a 400.
+  const sinceParsed = parseIsoQuery(c.req.query("since"));
+  if (sinceParsed === INVALID_ISO) {
+    return c.json(
+      { error: { code: "INVALID_QUERY", message: "since must be an ISO-8601 timestamp" } },
+      400
+    );
+  }
+  const observationsCursorParsed = parseIsoQuery(
+    c.req.query("observations_cursor")
+  );
+  if (observationsCursorParsed === INVALID_ISO) {
+    return c.json(
+      {
+        error: {
+          code: "INVALID_QUERY",
+          message: "observations_cursor must be an ISO-8601 timestamp",
+        },
+      },
+      400
+    );
+  }
+  const revisionsCursorParsed = parseIsoQuery(c.req.query("revisions_cursor"));
+  if (revisionsCursorParsed === INVALID_ISO) {
+    return c.json(
+      {
+        error: {
+          code: "INVALID_QUERY",
+          message: "revisions_cursor must be an ISO-8601 timestamp",
+        },
+      },
+      400
+    );
+  }
+  const eventsCursorParsed = parseIsoQuery(c.req.query("events_cursor"));
+  if (eventsCursorParsed === INVALID_ISO) {
+    return c.json(
+      {
+        error: {
+          code: "INVALID_QUERY",
+          message: "events_cursor must be an ISO-8601 timestamp",
+        },
+      },
+      400
+    );
+  }
+  const observationsLimitParsed = parsePositiveIntQuery(
+    c.req.query("observations_limit")
+  );
+  if (observationsLimitParsed === INVALID_INT) {
+    return c.json(
+      {
+        error: {
+          code: "INVALID_QUERY",
+          message: "observations_limit must be a positive integer",
+        },
+      },
+      400
+    );
+  }
+  const revisionsLimitParsed = parsePositiveIntQuery(
+    c.req.query("revisions_limit")
+  );
+  if (revisionsLimitParsed === INVALID_INT) {
+    return c.json(
+      {
+        error: {
+          code: "INVALID_QUERY",
+          message: "revisions_limit must be a positive integer",
+        },
+      },
+      400
+    );
+  }
+  const eventsLimitParsed = parsePositiveIntQuery(c.req.query("events_limit"));
+  if (eventsLimitParsed === INVALID_INT) {
+    return c.json(
+      {
+        error: {
+          code: "INVALID_QUERY",
+          message: "events_limit must be a positive integer",
+        },
+      },
+      400
+    );
+  }
+
+  // Build options object by spreading conditionally — exactOptionalPropertyTypes
+  // is on, so we must NOT pass `since: undefined` for absent params; we
+  // omit the key entirely instead. Slightly more verbose but the types
+  // (`since?: Date`) then properly express "absent" vs "present".
+  const traceOpts: Parameters<typeof readProductTrace>[1] = {
+    tenantId,
+    merchantId,
+    productId,
+    ...(sinceParsed !== undefined ? { since: sinceParsed } : {}),
+    ...(observationsLimitParsed !== undefined
+      ? { observationsLimit: observationsLimitParsed }
+      : {}),
+    ...(revisionsLimitParsed !== undefined
+      ? { revisionsLimit: revisionsLimitParsed }
+      : {}),
+    ...(eventsLimitParsed !== undefined
+      ? { eventsLimit: eventsLimitParsed }
+      : {}),
+    ...(observationsCursorParsed !== undefined
+      ? { observationsCursor: observationsCursorParsed }
+      : {}),
+    ...(revisionsCursorParsed !== undefined
+      ? { revisionsCursor: revisionsCursorParsed }
+      : {}),
+    ...(eventsCursorParsed !== undefined
+      ? { eventsCursor: eventsCursorParsed }
+      : {}),
+  };
+  const result = await readProductTrace(deps.db, traceOpts);
+
+  if (result === TRACE_PRODUCT_NOT_FOUND) {
     return c.json(
       { error: { code: "NOT_FOUND", message: "Product not found" } },
       404

@@ -7,7 +7,10 @@ import {
   getProductProvenance,
   getProductSku,
 } from "../handlers/catalog.js";
-import { getProductProvenanceTrace } from "../handlers/admin-trace.js";
+import {
+  getProductProvenanceTrace,
+  getProductTrace,
+} from "../handlers/admin-trace.js";
 
 export interface CatalogRouteDeps {
   db: DrizzleClient;
@@ -51,6 +54,19 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
     app.get("/products/:product_id/provenance/:attribute_code", (c) =>
       getProductProvenanceTrace(c, deps)
     );
+
+    // New-schema product trace (Task 6.1, spec §20). 3-segment URL
+    // `/products/:product_id/trace` — distinct from the 4-segment
+    // `/products/:product_id/provenance/:attribute_code` declared just
+    // above and from the legacy 3-segment `/products/:id/provenance`
+    // earlier in this file (Hono matches on the static `/trace` /
+    // `/provenance` segment, so the trie disambiguates cleanly).
+    //
+    // Like the per-attribute provenance trace, this only mounts under
+    // the new-schema flag — the legacy projection has no `winning_values`
+    // / event outbox / revision log to surface, so the path is 404 (no
+    // route) under the legacy flag-OFF surface.
+    app.get("/products/:product_id/trace", (c) => getProductTrace(c, deps));
   }
 
   return app;

@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
@@ -35,6 +35,24 @@ const OTHER_MERCHANT_ID = "00000000-0000-0000-0000-0000000000fe";
 const TRACE_PRODUCT_ID = "33333333-3333-3333-3333-333333333301";
 const TRACE_PRODUCT_ID_JSONB = "33333333-3333-3333-3333-333333333302";
 const TRACE_PRODUCT_ID_MISSING_ATTR = "33333333-3333-3333-3333-333333333303";
+// Task 6.1 — product trace endpoint test fixtures. Distinct from the
+// 4.5 provenance fixtures above so the two suites can interleave their
+// cleanup without stepping on each other.
+const TRACE6_PRODUCT_HAPPY = "33333333-3333-3333-3333-333333333310";
+const TRACE6_PRODUCT_WINDOW = "33333333-3333-3333-3333-333333333311";
+const TRACE6_PRODUCT_REVISIONS = "33333333-3333-3333-3333-333333333312";
+const TRACE6_PRODUCT_CROSS_TENANT = "33333333-3333-3333-3333-333333333313";
+const TRACE6_PRODUCT_CROSS_MERCHANT = "33333333-3333-3333-3333-333333333314";
+const TRACE6_PRODUCT_GROUPING = "33333333-3333-3333-3333-333333333315";
+
+const TRACE6_PRODUCT_IDS = [
+  TRACE6_PRODUCT_HAPPY,
+  TRACE6_PRODUCT_WINDOW,
+  TRACE6_PRODUCT_REVISIONS,
+  TRACE6_PRODUCT_CROSS_TENANT,
+  TRACE6_PRODUCT_CROSS_MERCHANT,
+  TRACE6_PRODUCT_GROUPING,
+];
 
 // Marker for source_priority cleanup. Same pattern as
 // async-debounced.test.ts — tag rows we insert so we can DELETE them in
@@ -67,20 +85,48 @@ function buildApp(opts: {
 async function fullCleanup(db: DrizzleClient): Promise<void> {
   // Side tables first (no FK to catalog_products on these test rows but
   // we delete by product_id explicitly for safety).
-  for (const id of [
+  //
+  // For Task 6.1 fixtures we also wipe revisions / overrides / events.
+  // reconciliation_overrides has ON DELETE CASCADE FK to catalog_products
+  // but we delete explicitly anyway so the test seeds are idempotent
+  // regardless of FK direction.
+  const allIds = [
     TRACE_PRODUCT_ID,
     TRACE_PRODUCT_ID_JSONB,
     TRACE_PRODUCT_ID_MISSING_ATTR,
-  ]) {
-    await db
-      .delete(schema.catalogPricingObservations)
-      .where(eq(schema.catalogPricingObservations.productId, id));
-    await db
-      .delete(schema.catalogInventoryObservations)
-      .where(eq(schema.catalogInventoryObservations.productId, id));
-    await db
-      .delete(schema.catalogProducts)
-      .where(eq(schema.catalogProducts.productId, id));
+    ...TRACE6_PRODUCT_IDS,
+  ];
+  // Revisions table has BEFORE UPDATE/DELETE trigger trg_revisions_immutable
+  // (migration 0010) — temporarily disable it to wipe test rows, then
+  // re-enable. Same pattern as `packages/catalog/catalog-service/src/merge.test.ts`.
+  await db.execute(
+    sql`ALTER TABLE catalog_product_revisions DISABLE TRIGGER trg_revisions_immutable`
+  );
+  try {
+    for (const id of allIds) {
+      await db
+        .delete(schema.catalogPricingObservations)
+        .where(eq(schema.catalogPricingObservations.productId, id));
+      await db
+        .delete(schema.catalogInventoryObservations)
+        .where(eq(schema.catalogInventoryObservations.productId, id));
+      await db
+        .delete(schema.catalogProductRevisions)
+        .where(eq(schema.catalogProductRevisions.productId, id));
+      await db
+        .delete(schema.reconciliationOverrides)
+        .where(eq(schema.reconciliationOverrides.productId, id));
+      await db
+        .delete(schema.catalogEvents)
+        .where(eq(schema.catalogEvents.productId, id));
+      await db
+        .delete(schema.catalogProducts)
+        .where(eq(schema.catalogProducts.productId, id));
+    }
+  } finally {
+    await db.execute(
+      sql`ALTER TABLE catalog_product_revisions ENABLE TRIGGER trg_revisions_immutable`
+    );
   }
   await db
     .delete(schema.sourcePriority)
@@ -441,4 +487,482 @@ describe("GET /products/:product_id/provenance/:attribute_code (Task 4.5)", () =
     const body = (await res.json()) as { error: { code: string } };
     expect(body.error.code).toBe("INVALID_PRODUCT_ID");
   });
+});
+
+// ===========================================================================
+// Task 6.1 — Product Trace endpoint
+// ===========================================================================
+//
+// Endpoint under test:
+//   GET /products/:product_id/trace
+//     ?since=<iso>
+//     &observations_limit=<n> &revisions_limit=<n> &events_limit=<n>
+//     &observations_cursor=<iso> &revisions_cursor=<iso> &events_cursor=<iso>
+//
+// Same harness as the Phase 4.5 suite above — real DB via @aonex/db/testing,
+// stub-auth middleware, hit through `app.request()`. The fullCleanup helper
+// already wipes the Task 6.1 product IDs so we don't need a separate
+// cleanup function.
+//
+// All seed timestamps stay within May/June 2026 because that's the range
+// covered by the static monthly partitions (migrations 0010-0016 create
+// partitions for 2026-05/06/07 only). Tests that want "out-of-window"
+// behavior use `?since=` to narrow the window rather than seeding rows in
+// April or earlier — INSERTs to a non-existent partition would fail.
+
+/**
+ * Shared product seed used by the Task 6.1 suite. Defaults to TEST_TENANT_ID
+ * + TEST_MERCHANT_ID; callers can override per cross-tenant / cross-merchant
+ * cases.
+ */
+async function seedTraceProduct(
+  db: DrizzleClient,
+  productId: string,
+  opts: {
+    values?: Record<string, unknown>;
+    winningValues?: Record<string, unknown>;
+    tenantId?: string;
+    merchantId?: string;
+  } = {}
+): Promise<void> {
+  await db.insert(schema.catalogProducts).values({
+    productId,
+    tenantId: opts.tenantId ?? TEST_TENANT_ID,
+    merchantId: opts.merchantId ?? TEST_MERCHANT_ID,
+    primaryIdentifier: `TRACE6-${productId.slice(-6)}`,
+    identity: { brand: "TraceBrand" },
+    status: "active",
+    values: opts.values ?? {},
+    winningValues: opts.winningValues ?? {},
+  });
+}
+
+describe("GET /products/:product_id/trace (Task 6.1)", () => {
+  let db: DrizzleClient;
+
+  beforeAll(async () => {
+    db = await connectTestDb();
+    await ensureTestTenant(db);
+    await ensureTestMerchant(db);
+    await ensureTestChannel(db);
+  });
+
+  beforeEach(async () => {
+    await fullCleanup(db);
+  });
+
+  afterAll(async () => {
+    await fullCleanup(db);
+    // closeTestDb is idempotent (sets the internal singleton to null),
+    // so calling it here is safe even though the Phase 4.5 suite's
+    // afterAll runs first and already closes the pool. The second call
+    // is a no-op — see packages/db/src/testing/connect.ts.
+    await closeTestDb();
+  });
+
+  // ---- 1. Happy path — full payload ----------------------------------------
+
+  test("happy path — returns product, observations, revisions, overrides, events", async () => {
+    const productId = TRACE6_PRODUCT_HAPPY;
+    await seedTraceProduct(db, productId);
+
+    // All timestamps are recent (within the default 30-day window). Use
+    // distinct, decreasing observed_at so DESC ordering is unambiguous.
+    const base = new Date("2026-05-21T12:00:00Z");
+    const stamp = (offsetMinutes: number) =>
+      new Date(base.getTime() - offsetMinutes * 60 * 1000);
+
+    await db.insert(schema.catalogPricingObservations).values([
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "shopify:connector",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 99 }],
+        observedAt: stamp(10),
+      },
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "csv:upload",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 100 }],
+        observedAt: stamp(20),
+      },
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "csv:upload",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 110 }],
+        observedAt: stamp(30),
+      },
+    ]);
+
+    await db.insert(schema.catalogInventoryObservations).values([
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        qty: 5,
+        source: "shopify:connector",
+        observedAt: stamp(15),
+      },
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        qty: 10,
+        source: "shopify:connector",
+        observedAt: stamp(25),
+      },
+    ]);
+
+    // 5 revisions at 5 distinct ingested_at within May 2026.
+    await db.insert(schema.catalogProductRevisions).values(
+      [1, 2, 3, 4, 5].map((i) => ({
+        productId,
+        tenantId: TEST_TENANT_ID,
+        valuesSnapshot: { rev: i },
+        revisionReason: `ingest-${i}`,
+        ingestedAt: stamp(60 + i * 10),
+      }))
+    );
+
+    // 1 active override (frozen_until in the future).
+    await db.insert(schema.reconciliationOverrides).values({
+      productId,
+      attributeCode: "title",
+      channelCode: "_unscoped",
+      localeCode: "_unscoped",
+      frozenValue: "Pinned Title",
+      frozenUntil: new Date("2026-12-31T00:00:00Z"),
+      actor: TEST_ACTOR,
+      rationale: "test pin",
+    });
+
+    // 4 events.
+    await db.insert(schema.catalogEvents).values(
+      [1, 2, 3, 4].map((i) => ({
+        eventType: "product.upserted",
+        productId,
+        tenantId: TEST_TENANT_ID,
+        payload: { idx: i },
+        triggeredBy: TEST_ACTOR,
+        occurredAt: stamp(5 + i * 5),
+      }))
+    );
+
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/${productId}/trace`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      data: {
+        product: { productId: string; tenantId: string; merchantId: string };
+        pricingObservations: unknown[];
+        inventoryObservations: unknown[];
+        revisions: unknown[];
+        reconciliationOverrides: unknown[];
+        events: unknown[];
+        observationsByAttribute: Record<string, unknown>;
+        window: { since: string; until: string };
+        pagination: {
+          observationsNextCursor: string | null;
+          revisionsNextCursor: string | null;
+          eventsNextCursor: string | null;
+        };
+      };
+    };
+
+    expect(body.data.product.productId).toBe(productId);
+    expect(body.data.product.tenantId).toBe(TEST_TENANT_ID);
+    expect(body.data.product.merchantId).toBe(TEST_MERCHANT_ID);
+    expect(body.data.pricingObservations.length).toBe(3);
+    expect(body.data.inventoryObservations.length).toBe(2);
+    expect(body.data.revisions.length).toBe(5);
+    expect(body.data.reconciliationOverrides.length).toBe(1);
+    expect(body.data.events.length).toBe(4);
+    // window.since should be roughly 30 days before window.until.
+    const since = new Date(body.data.window.since).getTime();
+    const until = new Date(body.data.window.until).getTime();
+    const deltaDays = (until - since) / (24 * 60 * 60 * 1000);
+    expect(deltaDays).toBeGreaterThan(29.9);
+    expect(deltaDays).toBeLessThan(30.1);
+    // All sections under their default limits → no next cursors.
+    expect(body.data.pagination.observationsNextCursor).toBeNull();
+    expect(body.data.pagination.revisionsNextCursor).toBeNull();
+    expect(body.data.pagination.eventsNextCursor).toBeNull();
+  });
+
+  // ---- 2. ?since= override narrows the window -------------------------------
+
+  test("?since= narrows the observation window", async () => {
+    const productId = TRACE6_PRODUCT_WINDOW;
+    await seedTraceProduct(db, productId);
+
+    // Three observations: 1 within "recent" (last hour), 1 within "midrange"
+    // (3 days ago), 1 within "old" (10 days ago, but still within the
+    // partition range — see file-level comment for why we don't go back
+    // 40 days).
+    const now = new Date("2026-05-21T12:00:00Z");
+    const recent = new Date(now.getTime() - 1 * 60 * 60 * 1000); // 1h ago
+    const midrange = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); // 3d ago
+    const old = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000); // 10d ago
+
+    await db.insert(schema.catalogPricingObservations).values([
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "shopify:connector",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 1 }],
+        observedAt: recent,
+      },
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "shopify:connector",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 2 }],
+        observedAt: midrange,
+      },
+      {
+        productId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "shopify:connector",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 3 }],
+        observedAt: old,
+      },
+    ]);
+
+    // since = 2 days ago → excludes midrange (3d) and old (10d), keeps recent.
+    const since = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const app = buildApp({ db });
+    const res = await app.request(
+      `/catalog/products/${productId}/trace?since=${encodeURIComponent(since)}`
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      data: { pricingObservations: Array<{ tiers: unknown }> };
+    };
+    expect(body.data.pricingObservations.length).toBe(1);
+    // The kept observation is the one at amount=1 (recent).
+    const tiers = body.data.pricingObservations[0]!.tiers as Array<{
+      amount: number;
+    }>;
+    expect(tiers[0]!.amount).toBe(1);
+  });
+
+  // ---- 3. ?revisions_limit= caps the revisions list -------------------------
+
+  test("?revisions_limit=2 caps revisions and orders by ingestedAt DESC", async () => {
+    const productId = TRACE6_PRODUCT_REVISIONS;
+    await seedTraceProduct(db, productId);
+
+    const base = new Date("2026-05-21T12:00:00Z").getTime();
+    await db.insert(schema.catalogProductRevisions).values(
+      [1, 2, 3, 4, 5].map((i) => ({
+        productId,
+        tenantId: TEST_TENANT_ID,
+        valuesSnapshot: { rev: i },
+        revisionReason: `rev-${i}`,
+        // Each revision 1 hour apart; rev-5 is newest.
+        ingestedAt: new Date(base - (5 - i) * 60 * 60 * 1000),
+      }))
+    );
+
+    const app = buildApp({ db });
+    const res = await app.request(
+      `/catalog/products/${productId}/trace?revisions_limit=2`
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      data: {
+        revisions: Array<{ revisionReason: string; ingestedAt: string }>;
+        pagination: { revisionsNextCursor: string | null };
+      };
+    };
+    expect(body.data.revisions.length).toBe(2);
+    // DESC by ingestedAt → newest first (rev-5, rev-4).
+    expect(body.data.revisions[0]!.revisionReason).toBe("rev-5");
+    expect(body.data.revisions[1]!.revisionReason).toBe("rev-4");
+    // Hit the limit → a cursor is set.
+    expect(body.data.pagination.revisionsNextCursor).not.toBeNull();
+  });
+
+  // ---- 4. Revisions pagination cursor follow-up -----------------------------
+
+  test("revisions_cursor returns the next page", async () => {
+    const productId = TRACE6_PRODUCT_REVISIONS;
+    await seedTraceProduct(db, productId);
+
+    const base = new Date("2026-05-21T12:00:00Z").getTime();
+    await db.insert(schema.catalogProductRevisions).values(
+      [1, 2, 3, 4, 5].map((i) => ({
+        productId,
+        tenantId: TEST_TENANT_ID,
+        valuesSnapshot: { rev: i },
+        revisionReason: `rev-${i}`,
+        ingestedAt: new Date(base - (5 - i) * 60 * 60 * 1000),
+      }))
+    );
+
+    const app = buildApp({ db });
+    const firstRes = await app.request(
+      `/catalog/products/${productId}/trace?revisions_limit=2`
+    );
+    const firstBody = (await firstRes.json()) as {
+      data: {
+        revisions: Array<{ revisionReason: string }>;
+        pagination: { revisionsNextCursor: string | null };
+      };
+    };
+    expect(firstBody.data.revisions.map((r) => r.revisionReason)).toEqual([
+      "rev-5",
+      "rev-4",
+    ]);
+    const cursor = firstBody.data.pagination.revisionsNextCursor;
+    expect(cursor).not.toBeNull();
+
+    const secondRes = await app.request(
+      `/catalog/products/${productId}/trace?revisions_limit=2&revisions_cursor=${encodeURIComponent(
+        cursor!
+      )}`
+    );
+    const secondBody = (await secondRes.json()) as {
+      data: {
+        revisions: Array<{ revisionReason: string }>;
+        pagination: { revisionsNextCursor: string | null };
+      };
+    };
+    // Next 2 oldest: rev-3, rev-2.
+    expect(secondBody.data.revisions.map((r) => r.revisionReason)).toEqual([
+      "rev-3",
+      "rev-2",
+    ]);
+  });
+
+  // ---- 5. Cross-tenant 404 --------------------------------------------------
+
+  test("returns 404 when product belongs to a different tenant", async () => {
+    const productId = TRACE6_PRODUCT_CROSS_TENANT;
+    await seedTraceProduct(db, productId);
+    const app = buildApp({ db, tenantId: OTHER_TENANT_ID });
+    const res = await app.request(`/catalog/products/${productId}/trace`);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("NOT_FOUND");
+  });
+
+  // ---- 6. Cross-merchant 404 ------------------------------------------------
+
+  test("returns 404 when product belongs to a different merchant in the same tenant", async () => {
+    const productId = TRACE6_PRODUCT_CROSS_MERCHANT;
+    await seedTraceProduct(db, productId);
+    const app = buildApp({ db, merchantId: OTHER_MERCHANT_ID });
+    const res = await app.request(`/catalog/products/${productId}/trace`);
+    expect(res.status).toBe(404);
+  });
+
+  // ---- 7. Invalid UUID → 400 ------------------------------------------------
+
+  test("returns 400 for a non-UUID product_id", async () => {
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/not-a-uuid/trace`);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("INVALID_PRODUCT_ID");
+  });
+
+  // ---- 8. Product not found → 404 -------------------------------------------
+
+  test("returns 404 for a valid UUID with no row", async () => {
+    const app = buildApp({ db });
+    const res = await app.request(
+      `/catalog/products/99999999-9999-9999-9999-999999999999/trace`
+    );
+    expect(res.status).toBe(404);
+  });
+
+  // ---- 9. observationsByAttribute grouping ----------------------------------
+
+  test("observationsByAttribute mirrors catalog_products.values nesting", async () => {
+    const productId = TRACE6_PRODUCT_GROUPING;
+    await seedTraceProduct(db, productId, {
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [
+              {
+                source: "shopify:connector",
+                source_record_id: "shop#1",
+                value: "Shop Title",
+                confidence: 0.95,
+                observed_at: "2026-05-21T09:00:00.000Z",
+              },
+            ],
+          },
+          "magento-au": {
+            en_AU: [
+              {
+                source: "magento:connector",
+                source_record_id: "mage#1",
+                value: "Mage Title",
+                confidence: 0.9,
+                observed_at: "2026-05-21T08:00:00.000Z",
+              },
+            ],
+          },
+        },
+        brand: {
+          _unscoped: {
+            _unscoped: [
+              {
+                source: "csv:upload",
+                source_record_id: "csv#1",
+                value: "ACME",
+                confidence: 1,
+                observed_at: "2026-05-21T07:00:00.000Z",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/${productId}/trace`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      data: {
+        observationsByAttribute: Record<
+          string,
+          Record<string, Record<string, Array<{ value: unknown }>>>
+        >;
+      };
+    };
+
+    const grouped = body.data.observationsByAttribute;
+    expect(Object.keys(grouped).sort()).toEqual(["brand", "title"]);
+    // 2 channels × 1 locale on title.
+    expect(Array.isArray(grouped.title!["shopify-au"]!.en_AU)).toBe(true);
+    expect(grouped.title!["shopify-au"]!.en_AU![0]!.value).toBe("Shop Title");
+    expect(grouped.title!["magento-au"]!.en_AU![0]!.value).toBe("Mage Title");
+    // brand is _unscoped on both axes.
+    expect(grouped.brand!._unscoped!._unscoped![0]!.value).toBe("ACME");
+  });
+
 });
