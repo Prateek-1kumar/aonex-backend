@@ -7,3 +7,9 @@ export type {
   MappingOverride,
 } from "./schema/attributes.js";
 export type { CategorySchema } from "./schema/category.js";
+export type {
+  CatalogEvent,
+  NewCatalogEvent,
+  CatalogEventDlq,
+  NewCatalogEventDlq,
+} from "./schema/catalog-events.js";

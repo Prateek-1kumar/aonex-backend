@@ -1,25 +1,13 @@
 // Core types for the catalog event outbox poller/publisher pipeline.
 // See spec §19 (outbox + DLQ) and Phase 5 plan tasks 5.1-5.5.
+//
+// `CatalogEvent` is re-exported from `@aonex/db` so this package shares the
+// canonical row shape inferred from the Drizzle schema in
+// `packages/db/src/schema/catalog-events.ts`.
 
-/**
- * Row shape from the partitioned `catalog_events` table (migration 0016).
- * Field names are camelCase here; the DB columns are snake_case. The row is
- * inserted by catalog-write (Phase 3) and consumed by the outbox poller.
- *
- * `eventId` is a Postgres BIGSERIAL — represented as bigint in TS to avoid
- * silent precision loss at 2^53.
- */
-export interface CatalogEvent {
-  eventId: bigint;
-  eventType: string;
-  productId: string;
-  tenantId: string;
-  payload: Record<string, unknown>;
-  triggeredBy: string | null;
-  occurredAt: Date;
-  publishedAt: Date | null;
-  publishAttempts: number;
-}
+export type { CatalogEvent } from "@aonex/db";
+
+import type { CatalogEvent } from "@aonex/db";
 
 /**
  * Sink the poller hands claimed events to. Implementations are responsible
@@ -45,6 +33,6 @@ export interface PollerConfig {
   workerCount?: number;
   /** Promote to DLQ once `publish_attempts` reaches this. Default: 5. */
   maxAttempts?: number;
-  /** Sleep between empty-claim polls. Default: ~250ms. */
+  /** Sleep between empty-claim polls. Default: 250ms. */
   idleSleepMs?: number;
 }
