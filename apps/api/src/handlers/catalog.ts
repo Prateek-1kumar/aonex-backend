@@ -4,6 +4,10 @@ import { schema } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
 import { convertFromFacts, type SkuJson } from "@aonex/ingestion-enrichment";
 import type { CatalogRouteDeps } from "../routes/catalog.js";
+import {
+  readCatalogProductById,
+  type Consistency,
+} from "../services/new-catalog-read.js";
 
 export async function listProducts(c: Context, deps: CatalogRouteDeps): Promise<Response> {
   const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
@@ -164,6 +168,144 @@ export async function deleteProduct(c: Context, deps: CatalogRouteDeps): Promise
     return c.json({ error: { code: "NOT_FOUND", message: "Product not found" } }, 404);
   }
   return c.json({ data: { id: result[0]!.id, status: "deleted" } });
+}
+
+/**
+ * GET /products/:id — fetch a single catalog product by id.
+ *
+ * Dual-path under the `useNewCatalogSchema` feature flag (Phase 4 catalog
+ * redesign):
+ *
+ *   Flag OFF (legacy):
+ *     Reads `schema.products` joined with `productVersions` +
+ *     `productVariantVersions`. Returns the legacy shape (product fields
+ *     + `current_version` + `variants`), matching what `listProducts`
+ *     produces per row. Cross-tenant rows return 404.
+ *
+ *   Flag ON (new catalog):
+ *     Reads `schema.catalogProducts` directly. Returns the
+ *     `winning_values` JSONB as stored (full `_meta` block + per-attribute
+ *     leaves). Frontend consumers do their own per-channel/per-locale
+ *     projection; this endpoint never mutates the shape.
+ *
+ *     Query params:
+ *       - `consistency=eventual` (default) — read the cached
+ *         `winning_values` JSONB. Cheap (single row), but lags the side
+ *         tables by up to the debounced reconciler window (~2s).
+ *       - `consistency=strong` — JOIN `catalog_pricing_current` and
+ *         `catalog_inventory_current` on `product_id`, replacing the
+ *         `winning_values.pricing` and `winning_values.inventory` leaves
+ *         with the live side-table rows. Higher latency. Use when the
+ *         caller cannot tolerate reconciler lag (e.g. admin "after-edit"
+ *         re-read flows).
+ *
+ *     Response always includes a `consistency` field stamped with the
+ *     mode that was honored ("eventual" or "strong"). Any other value for
+ *     the `?consistency` param (typo, garbage) returns 400 — fail-loud
+ *     beats silently degrading to eventual on a misspelled `?consistency=strng`.
+ *
+ *   Cross-tenant safety (both paths): we return 404, never 403 or empty
+ *   200, when the row exists but belongs to a different tenant — to avoid
+ *   leaking existence across tenants.
+ *
+ *   Note: `?consistency=strong` is honored ONLY when the feature flag is
+ *   ON. Under the legacy flag-OFF path the param is ignored (the legacy
+ *   schema has no debounced projection to bypass).
+ */
+export async function getProductById(c: Context, deps: CatalogRouteDeps): Promise<Response> {
+  const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+  const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+  const productId = c.req.param("id") as string;
+
+  if (deps.useNewCatalogSchema) {
+    // ---- New-schema path -------------------------------------------------
+    // Validate `?consistency` query param: only "strong" or "eventual" (or
+    // omitted, which defaults to "eventual") are accepted. Anything else
+    // is a 400 — we fail loud on malformed queries rather than silently
+    // falling back, so callers don't ship a buggy `?consistency=eventul`
+    // (typo) and then wonder why their reads lag.
+    const rawConsistency = c.req.query("consistency");
+    if (
+      rawConsistency !== undefined &&
+      rawConsistency !== "strong" &&
+      rawConsistency !== "eventual"
+    ) {
+      return c.json(
+        {
+          error: {
+            code: "INVALID_QUERY",
+            message:
+              "consistency must be one of: 'strong', 'eventual' (or omitted)",
+          },
+        },
+        400
+      );
+    }
+    const consistency: Consistency =
+      rawConsistency === "strong" ? "strong" : "eventual";
+
+    const view = await readCatalogProductById(deps.db, tenantId, productId, {
+      consistency,
+    });
+    if (!view) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Product not found" } },
+        404
+      );
+    }
+    // Note: catalog_products has merchant_id too. Currently we scope by
+    // tenant only inside the helper (matches `listProducts` semantics for
+    // legacy: tenant + merchant). Enforce merchant boundary here so a
+    // tenant-admin acting on behalf of merchant A can't fetch merchant B.
+    if (view.merchant_id !== merchantId) {
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Product not found" } },
+        404
+      );
+    }
+    return c.json({ data: view });
+  }
+
+  // ---- Legacy path -----------------------------------------------------
+  // Mirrors what `listProducts` produces per row: product + current_version
+  // + variants. No rich-only-mode image recompute here — the single-row
+  // endpoint isn't a list-card render target, and the `/sku` endpoint
+  // already serves that need on-demand.
+  const product = await deps.db.query.products.findFirst({
+    where: (p, { and, eq }) =>
+      and(
+        eq(p.id, productId),
+        eq(p.tenantId, tenantId),
+        eq(p.merchantId, merchantId)
+      ),
+  });
+  if (!product || product.status === "deleted") {
+    return c.json(
+      { error: { code: "NOT_FOUND", message: "Product not found" } },
+      404
+    );
+  }
+
+  const version = product.currentVersionId
+    ? await deps.db.query.productVersions.findFirst({
+        where: (v, { eq }) => eq(v.id, product.currentVersionId as string),
+      })
+    : null;
+
+  const variants = version
+    ? await deps.db
+        .select()
+        .from(schema.productVariantVersions)
+        .where(eq(schema.productVariantVersions.productVersionId, version.id))
+    : [];
+
+  return c.json({
+    data: {
+      ...product,
+      current_version: version,
+      variants,
+    },
+  });
 }
 
 /**
