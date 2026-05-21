@@ -386,6 +386,11 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
     // matchPath comes from the identity resolver; we only assert it's not
     // "newly_created" since the exact value is owned by the resolver.
     expect(result.matchPath).not.toBe("newly_created");
+    // Variant carries price=19.99 + inventoryQuantity=8 AND the channel
+    // resolves → side-table observations MUST land. Guards against a
+    // regression where the attach path silently skips pricing/inventory.
+    expect(result.pricingObservationsWritten).toBeGreaterThan(0);
+    expect(result.inventoryObservationsWritten).toBeGreaterThan(0);
 
     // No new product row appeared.
     const after = await db
@@ -407,6 +412,52 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
       .where(eq(schema.catalogEvents.productId, seededId));
     expect(events.length).toBe(1);
     expect(events[0]!.eventType).toBe("catalog.product.updated");
+  });
+
+  test("5. resolveShopifyChannel is case-insensitive on region", async () => {
+    // Seeded channel is (shopify, "au" lowercase, "schema-tests"). A
+    // production drain runs with SHOPIFY_DEFAULT_REGION="AU" (uppercase) —
+    // case-sensitive eq() would silently miss. Prove the resolver normalizes.
+    const lowercaseRowUpperQuery = await resolveShopifyChannel(
+      db,
+      TENANT,
+      TEST_SHOP_DOMAIN,
+      "AU"
+    );
+    expect(lowercaseRowUpperQuery).not.toBeNull();
+    expect(String(lowercaseRowUpperQuery!.channelId)).toBe(TEST_CHANNEL_ID);
+
+    // Inverse: insert a channel with uppercase-stored region, query lowercase.
+    const UPPERCASE_CHANNEL_ID = "00000000-0000-0000-0000-0000000000aa";
+    const UPPERCASE_ACCOUNT_REF = "uppercase-shop";
+    await db
+      .insert(schema.channels)
+      .values({
+        channelId: UPPERCASE_CHANNEL_ID,
+        tenantId: TEST_TENANT_ID,
+        channelKind: "shopify",
+        region: "US", // uppercase, like bootstrap-channels writes
+        accountRef: UPPERCASE_ACCOUNT_REF,
+        defaultCurrency: "USD",
+        defaultLocale: "en_US",
+        displayName: "Uppercase-region test channel",
+      })
+      .onConflictDoNothing();
+
+    try {
+      const uppercaseRowLowerQuery = await resolveShopifyChannel(
+        db,
+        TENANT,
+        UPPERCASE_ACCOUNT_REF,
+        "us"
+      );
+      expect(uppercaseRowLowerQuery).not.toBeNull();
+      expect(String(uppercaseRowLowerQuery!.channelId)).toBe(UPPERCASE_CHANNEL_ID);
+    } finally {
+      await db
+        .delete(schema.channels)
+        .where(eq(schema.channels.channelId, UPPERCASE_CHANNEL_ID));
+    }
   });
 
   test("4. resolveShopifyChannel returns null when shop_domain doesn't match", async () => {

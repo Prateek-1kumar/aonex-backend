@@ -51,9 +51,8 @@ export interface DrainProcessorDeps {
   /**
    * Phase 4 catalog redesign flag. When TRUE and `marketplace === "shopify"`,
    * each newly-inserted source_artifact is also projected into the new
-   * catalog tables. Required — the composition root always supplies it;
-   * tests must pass `false` (or `true`) explicitly to keep the trust
-   * boundary tight.
+   * catalog tables. Required at the boundary so callers make the decision
+   * explicit.
    */
   useNewCatalogSchema: boolean;
   /** Optional pino logger for the catalog dual-path branch. */
@@ -94,7 +93,7 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
       // Extend lock per page (long drains).
       await job.extendLock(job.token!, 60_000);
 
-      const { inserted } = await deps.syncService.persistArtifacts({
+      const { inserted: insertedArtifacts } = await deps.syncService.persistArtifacts({
         tenantId,
         merchantId,
         marketplace,
@@ -107,7 +106,7 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
       });
 
       totalSeen += page.length;
-      totalInserted += inserted.length;
+      totalInserted += insertedArtifacts.length;
 
       // Phase 4 catalog dual-path. Per-record loop so one failure doesn't
       // poison the rest of the batch. Errors are LOGGED, not thrown —
@@ -116,11 +115,11 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
         deps.useNewCatalogSchema &&
         marketplace === "shopify" &&
         shopDomain &&
-        inserted.length > 0
+        insertedArtifacts.length > 0
       ) {
-        for (const artifact of inserted) {
+        for (const artifact of insertedArtifacts) {
           try {
-            await runNewShopifyCatalogPath({
+            const shopifyArgs: Parameters<typeof runNewShopifyCatalogPath>[0] = {
               db: deps.db,
               tenantId,
               merchantId,
@@ -129,7 +128,9 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
               region: SHOPIFY_DEFAULT_REGION,
               shopifyProduct: artifact.raw as ShopifyProduct,
               observedAt: artifact.modifiedAt ?? new Date(),
-            });
+            };
+            if (deps.logger) shopifyArgs.logger = deps.logger;
+            await runNewShopifyCatalogPath(shopifyArgs);
           } catch (err) {
             deps.logger?.warn(
               {
