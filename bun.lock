@@ -130,6 +130,7 @@
         "@aonex/types": "workspace:*",
         "drizzle-orm": "^0.36.4",
         "ioredis": "^5.4.2",
+        "pino": "^9.5.0",
       },
       "devDependencies": {
         "@types/node": "^22.10.0",
