@@ -115,6 +115,14 @@ async function cleanup(db: DrizzleClient): Promise<void> {
   await db.execute(
     sql`ALTER TABLE catalog_product_revisions ENABLE TRIGGER trg_revisions_immutable`
   );
+  // Identity-policy side-effects must be cleared before catalog_products
+  // (identity_log has FK to catalog_products.product_id).
+  await db
+    .delete(schema.identityLog)
+    .where(eq(schema.identityLog.tenantId, TEST_TENANT_ID));
+  await db
+    .delete(schema.reviewTasks)
+    .where(eq(schema.reviewTasks.tenantId, TEST_TENANT_ID));
   await db
     .delete(schema.catalogProducts)
     .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
@@ -505,5 +513,77 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     const payload = ev.payload as Record<string, unknown>;
     expect(payload.productId).toBe(result.productId);
     expect(payload.matchPath).toBe("newly_created");
+  });
+
+  test("8. attach branch consults identity-policy gate (smoke)", async () => {
+    // Seed a priority-1 rule for shopify:* so the policy gate accepts a
+    // single-source gtin update. This rule is scoped to TEST_ACTOR (cleaned
+    // up in afterAll) and lives alongside the default catch-all.
+    await db.insert(schema.sourcePriority).values({
+      tenantId: null,
+      attributeCode: null,
+      sourceGlob: "shopify:*",
+      channelScope: null,
+      priority: 1,
+      rulesVersion: 1,
+      actor: TEST_ACTOR
+    });
+
+    // Seed an existing product without a gtin so the attach path applies a
+    // new identity value via the policy gate.
+    const seedGtin = "08000000000008";
+    const seed = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: `seed:wiring-08`,
+        identity: { mpn: "MPN-08", brand: "Acme", identity_strength: 0.9 },
+        status: "active",
+        values: {}
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const seededId = seed[0]!.productId;
+
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: adapterOutput({
+        observations: [
+          obs({
+            sourceRecordId: "gid://shopify/Product/T8",
+            value: "Wiring Smoke"
+          })
+        ],
+        // mpn+brand match the seeded product → attach path. gtin is new →
+        // policy gate applies the update.
+        identityHint: {
+          gtin: seedGtin,
+          mpn: "MPN-08",
+          brand: "Acme",
+          targetIsVariant: false
+        }
+      }),
+      actor: "shopify:connector"
+    });
+
+    expect(result.created).toBe(false);
+    expect(result.productId).toBe(seededId);
+
+    // The policy gate must have left a footprint: an identity_log row for
+    // the gtin update (deep behaviour is covered in identity-policy.test.ts;
+    // this just verifies the wiring is reached).
+    const logs = await db
+      .select()
+      .from(schema.identityLog)
+      .where(
+        and(
+          eq(schema.identityLog.productId, seededId),
+          eq(schema.identityLog.identityField, "gtin")
+        )
+      );
+    expect(logs.length).toBeGreaterThanOrEqual(1);
+    expect(logs[0]!.newValue).toBe(seedGtin);
   });
 });

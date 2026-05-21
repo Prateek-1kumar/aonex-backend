@@ -35,6 +35,10 @@ import type {
 } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
 import { resolveIdentity, type IdentityMatchPath } from "./identity-resolver.js";
+import {
+  applyIdentityObservation,
+  type IdentityField
+} from "./identity-policy.js";
 import { projectSync, type ProjectSyncResult } from "./reconciler/sync.js";
 
 // ---- Public types ----------------------------------------------------------
@@ -259,6 +263,46 @@ export async function writeAdapterOutput(
             }
           })
           .where(eq(schema.catalogProducts.productId, productId));
+      }
+
+      // Identity update policy gate (Task 3.7, spec §6.1). For each identity
+      // field present in the hint, route through `applyIdentityObservation`.
+      // The gate enforces:
+      //   - single priority-1 source can update gtin/mpn unless another
+      //     priority-1 source disagrees (then FREEZE + review_task)
+      //   - 3 consecutive priority-1 observations required for brand /
+      //     model_number
+      //   - identity_strength < 0.7 freezes any update
+      //   - auto-unfreeze after 5 consecutive matching observations
+      //
+      // We pull source / sourceRecordId / observedAt from the first
+      // observation (or pricing/inventory) in the adapter output. The CREATE
+      // branch deliberately skips this gate — first-time identity assignment
+      // has no prior state to disagree with.
+      const firstSignal =
+        adapterOutput.observations[0] ??
+        adapterOutput.pricingObservations[0] ??
+        adapterOutput.inventoryObservations[0];
+      if (firstSignal) {
+        const policySource = firstSignal.source;
+        const policySourceRecordId = firstSignal.sourceRecordId;
+        const policyObservedAt = firstSignal.observedAt;
+        const fields: IdentityField[] = ["gtin", "mpn", "brand", "model_number"];
+        for (const field of fields) {
+          const proposed = (adapterOutput.identityHint as unknown as Record<string, unknown>)[
+            field
+          ];
+          if (typeof proposed !== "string" || proposed.length === 0) continue;
+          await applyIdentityObservation({
+            db: tx as unknown as DrizzleClient,
+            productId,
+            field,
+            proposedValue: proposed,
+            source: policySource,
+            sourceRecordId: policySourceRecordId,
+            observedAt: policyObservedAt
+          });
+        }
       }
     } else {
       created = true;
