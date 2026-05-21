@@ -1,0 +1,84 @@
+{
+  "sourceUrl": "https://www.amazon.com/Nike-Pegasus-40/dp/B0CXYZ123",
+  "observedAt": "2026-05-20T11:00:00.000Z",
+  "sku": {
+    "title": "Nike Pegasus 40 Men's Road Running Shoes",
+    "brand": "Nike",
+    "gtin": null,
+    "mpn": "DV3853-001",
+    "model_number": "Pegasus 40",
+    "sku": "B0CXYZ123",
+    "description_short": "Responsive cushioning. Daily training.",
+    "description_long": "A springy ride for any run, the Peg's familiar, just-for-you feel returns to help you accomplish your goals.",
+    "highlights": ["React foam underfoot", "Air Zoom unit in forefoot"],
+    "category_path": "Clothing, Shoes & Jewelry > Men > Shoes > Athletic > Running",
+    "category_confidence": 0.95,
+    "breadcrumbs": ["Clothing, Shoes & Jewelry", "Men", "Shoes", "Athletic", "Running"],
+    "pricing": {
+      "list_price": 130,
+      "sale_price": 99.95,
+      "currency": "USD",
+      "discount_percent": 23,
+      "price_per_unit": null
+    },
+    "ratings": { "average": 4.5, "count": 1342 },
+    "seller": { "name": "Amazon.com", "is_official": true },
+    "images": [
+      {
+        "url": "https://images-na.ssl-images-amazon.com/sample.jpg",
+        "role": "hero",
+        "position": 0,
+        "alt_text": null,
+        "width": 1000,
+        "height": 1000,
+        "variant_refs": []
+      }
+    ],
+    "options": [
+      { "name": "size", "values": ["8", "9", "10", "11"] },
+      { "name": "color", "values": ["Black", "White"] }
+    ],
+    "variants": [
+      {
+        "sku": "DV3853-001-8-BLK",
+        "barcode": "00194501234567",
+        "option_values": { "size": "8", "color": "Black" },
+        "pricing": { "list_price": 130, "sale_price": 99.95, "currency": "USD" },
+        "image_urls": []
+      },
+      {
+        "sku": "DV3853-001-9-WHT",
+        "barcode": "00194501234574",
+        "option_values": { "size": "9", "color": "White" },
+        "pricing": { "list_price": 130, "sale_price": 119.95, "currency": "USD" },
+        "image_urls": []
+      }
+    ],
+    "attributes": {
+      "material": { "value": "Synthetic and textile upper", "unit": null, "source": "structured" }
+    },
+    "shipping": {
+      "free_shipping": true,
+      "shipping_cost": null,
+      "weight": { "value": 0.5, "unit": "kg" },
+      "dimensions": null
+    },
+    "warranty": null,
+    "return_policy": "30-day return",
+    "_field_confidence": {
+      "title": 0.99,
+      "brand": 0.99
+    },
+    "_field_source": {
+      "title": "structured",
+      "brand": "structured"
+    },
+    "_extraction_meta": {
+      "passes_run": ["static"],
+      "tokens_used": 0,
+      "cost_usd": 0,
+      "latency_ms": 800,
+      "escalated_to": "static"
+    }
+  }
+}
