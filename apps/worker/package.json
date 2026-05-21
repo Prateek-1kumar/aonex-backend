@@ -10,7 +10,8 @@
     "lint": "eslint src/",
     "dev": "bun --env-file=../../.env run --hot src/index.ts",
     "start": "bun --env-file=../../.env run src/index.ts",
-    "seed:source-priority": "bun --env-file=../../.env run scripts/seed-source-priority.ts"
+    "seed:source-priority": "bun --env-file=../../.env run scripts/seed-source-priority.ts",
+    "bootstrap:channels": "bun --env-file=../../.env run scripts/bootstrap-channels.ts"
   },
   "dependencies": {
     "@aonex/types": "workspace:*",
