@@ -89,7 +89,7 @@
 //      the post-unmerge observation layout. Phase 4 will wire
 //      `enqueueReconcilerJob` at the tail of merge/unmerge.
 
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { TenantId } from "@aonex/types";
 import { projectSync } from "./reconciler/sync.js";
@@ -119,6 +119,68 @@ export interface MergeProductsResult {
   pricingObservationsMoved: number;
   inventoryObservationsMoved: number;
   variantsReparented: number;
+}
+
+/**
+ * Typed observation filter for `splitProduct` (spec §18.2).
+ *
+ * Semantics: ALL specified fields must match (AND across set fields). An empty
+ * filter (no fields set) is rejected — splits must always identify the
+ * observations to move. Use `mergeProducts` for the inverse "collapse two
+ * products" operation; there is no "move everything to a new product" path.
+ *
+ * Filter scope per field:
+ *   - `sources` — applied to BOTH `values` JSONB observations and side-table
+ *     rows (matches `source` column / `source` field).
+ *   - `sourceRecordIds` — applied to both (matches `source_record_id`).
+ *   - `attributeCodes` — JSONB ONLY. Side-table rows have no attribute_code
+ *     column. If set, side-table rows are NOT moved (callers wanting to also
+ *     move pricing/inventory must split via source/channel/locale).
+ *   - `valueEquals` — JSONB ONLY (deep-equal on stored observation `value`).
+ *   - `channelCodes` — JSONB ONLY (matches the channel-coordinate string key
+ *     in `values[attr][channel][locale]`). Side-tables key channels by uuid;
+ *     to filter side-tables by channel use `channelIds`.
+ *   - `channelIds` — side-table rows ONLY (uuid match on `channel_id`).
+ *   - `localeCodes` — applied to both (matches the locale JSONB key AND the
+ *     `locale` text column on pricing rows).
+ */
+export interface ObservationFilter {
+  sources?: string[];
+  sourceRecordIds?: string[];
+  attributeCodes?: string[];
+  valueEquals?: unknown;
+  channelCodes?: string[];
+  channelIds?: string[];
+  localeCodes?: string[];
+}
+
+export interface SplitProductInput {
+  db: DrizzleClient;
+  tenantId: TenantId;
+  sourceProductId: string;
+  observationFilter: ObservationFilter;
+  newIdentity: {
+    primaryIdentifier: string;
+    identity: Record<string, unknown>;
+    family?: string | null;
+    status?: string; // default 'draft'
+  };
+  actor: string;
+  rationale: string;
+  /** Stamped onto `projectSync` for the winning_values recompute. Defaults to 1. */
+  rulesVersion?: number;
+}
+
+export interface SplitProductResult {
+  sourceProductId: string;
+  newProductId: string;
+  /** Both manual_split revisions written in the txn (source + new). */
+  splitRevisionIds: { source: number; new: number };
+  eventId: number;
+  lineageId: number;
+  observationsMoved: number;
+  pricingObservationsMoved: number;
+  inventoryObservationsMoved: number;
 }
 
 export interface UnmergeProductInput {
@@ -520,6 +582,506 @@ export async function mergeProducts(
       pricingObservationsMoved,
       inventoryObservationsMoved,
       variantsReparented
+    };
+  });
+}
+
+// ---- splitProduct ----------------------------------------------------------
+//
+// Spec §18.2. Splits a product by MOVING observations matching a typed filter
+// from source → newly created product. The cardinal invariant:
+//   NEVER physically move revisions. They stay attached to their origin
+//   product_id forever — moving them would corrupt the immutability guarantee.
+//
+// Design decisions (encoded in the function; tests in merge.test.ts §S1–§S10):
+//
+//   1. Filter contract: `ObservationFilter` (see type) — ALL set fields must
+//      match (AND). Empty filter throws at the boundary; "split everything"
+//      is ambiguous and the caller should use mergeProducts or another route.
+//      Filter scoping per field: see the `ObservationFilter` jsdoc.
+//
+//   2. Advisory locks: acquire `pg_advisory_xact_lock(hashtext(sourceProductId))`.
+//      The new product doesn't exist at lock-acquire time. The new uuid will
+//      be issued via `defaultRandom()` on insert; no concurrent lock needed
+//      for an unborn row.
+//
+//   3. Tenant guard: source must belong to tenantId. The new product inherits
+//      source's tenant and merchant. We DO NOT permit cross-tenant splits.
+//
+//   4. Identity / strength: split is admin-driven; the caller decides the new
+//      product's identity. We don't gate via identity-policy. (Contrast with
+//      catalog-write.ts which gates on identity_strength.)
+//
+//   5. Variants: in v1 the new product's `parent_product_id` is null. If
+//      source has variants, this function does NOT auto-split variants. The
+//      admin should call splitProduct repeatedly per variant if needed.
+//
+//   6. Revision rows:
+//        - Source gets a new `revision_reason='manual_split'` row with
+//          `diff = { operation:"split", new_product_id, split_filter, actor,
+//          rationale }`. This satisfies spec §18.2 step 5 ("Append
+//          revision_reason='manual_split' rows on both source and new").
+//        - New gets a `revision_reason='manual_split'` row with
+//          `diff = { operation:"split", origin, split_filter, lineage_pointer
+//          { source_revision: <source's manual_split revision id> } }`. The
+//          `lineage_pointer` is spec §18.2 step 6 ("New product's first
+//          revision carries lineage_pointer to source").
+//
+//   7. `_current` table cleanup: delete ALL of source's pricing/inventory
+//      `_current` rows. Filter-aware deletion is complex (a `_current` row
+//      synthesises from the latest observation per (channel, locale, location)
+//      and would have to be reconstructed if some — but not all — of the
+//      backing observations moved). Match merge's decision 11 — the async-
+//      debounced reconciler rebuilds. New product has no `_current` rows to
+//      delete (just created).
+//
+//   8. Recompute winning_values on BOTH products: union of attribute codes
+//      touched by the move.
+//
+//   9. Event: single `catalog.product.split` carrying source + new + filter.
+//      product_id on the event row is the NEW product (so downstream consumers
+//      can subscribe to events on freshly created products).
+//
+//  10. Idempotency: splits are inherently new-product-creating, so they are
+//      NOT idempotent — calling twice with the same input creates two new
+//      products. Caller is responsible for not double-invoking. (Contrast
+//      with unmerge which IS idempotent.)
+//
+//  11. mergedFromProductId on side-table rows: that column is MERGE-specific
+//      (records the loser at merge time so unmerge can re-attach). We do
+//      NOT set it on split — the new column on a moved side-table row is
+//      just `product_id = new`. The `product_lineage` row carries the
+//      split-time provenance instead.
+
+function isObservationFilterEmpty(f: ObservationFilter): boolean {
+  return (
+    (f.sources == null || f.sources.length === 0) &&
+    (f.sourceRecordIds == null || f.sourceRecordIds.length === 0) &&
+    (f.attributeCodes == null || f.attributeCodes.length === 0) &&
+    f.valueEquals === undefined &&
+    (f.channelCodes == null || f.channelCodes.length === 0) &&
+    (f.channelIds == null || f.channelIds.length === 0) &&
+    (f.localeCodes == null || f.localeCodes.length === 0)
+  );
+}
+
+/**
+ * AND-match a single JSONB observation against the filter. Per design decision
+ * 1, ALL set fields must match. Empty fields are skipped (don't constrain).
+ */
+function matchesValuesObservation(
+  filter: ObservationFilter,
+  attr: string,
+  channel: string,
+  locale: string,
+  observation: StoredObservation
+): boolean {
+  if (filter.attributeCodes && filter.attributeCodes.length > 0) {
+    if (!filter.attributeCodes.includes(attr)) return false;
+  }
+  if (filter.channelCodes && filter.channelCodes.length > 0) {
+    if (!filter.channelCodes.includes(channel)) return false;
+  }
+  if (filter.localeCodes && filter.localeCodes.length > 0) {
+    if (!filter.localeCodes.includes(locale)) return false;
+  }
+  if (filter.sources && filter.sources.length > 0) {
+    if (!filter.sources.includes(observation.source)) return false;
+  }
+  if (filter.sourceRecordIds && filter.sourceRecordIds.length > 0) {
+    if (!filter.sourceRecordIds.includes(observation.source_record_id)) {
+      return false;
+    }
+  }
+  if (filter.valueEquals !== undefined) {
+    // Deep-equal via JSON canonicalization. Adequate for stored observation
+    // values (jsonb round-trip is canonical for our shape).
+    if (JSON.stringify(observation.value) !== JSON.stringify(filter.valueEquals)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export async function splitProduct(
+  input: SplitProductInput
+): Promise<SplitProductResult> {
+  const {
+    db,
+    tenantId,
+    sourceProductId,
+    observationFilter,
+    newIdentity,
+    actor,
+    rationale,
+    rulesVersion = 1
+  } = input;
+
+  if (isObservationFilterEmpty(observationFilter)) {
+    throw new Error(
+      "splitProduct: observationFilter is empty — must specify at least one of sources, sourceRecordIds, attributeCodes, valueEquals, channelCodes, channelIds, localeCodes"
+    );
+  }
+
+  return db.transaction(async (txRaw) => {
+    const tx = txRaw as unknown as DrizzleClient;
+
+    // 1. Advisory lock on source. The new uuid is issued at insert-time and
+    //    no other transaction can possibly hold a lock on it.
+    await lockProducts(tx, [sourceProductId]);
+
+    // 2. Load source under the lock. Tenant guard.
+    const sourceRows = await tx
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceProductId));
+    const source = sourceRows[0];
+    if (!source) {
+      throw new Error(`splitProduct: source ${sourceProductId} not found`);
+    }
+    if (source.tenantId !== (tenantId as unknown as string)) {
+      throw new Error(
+        `splitProduct: source ${sourceProductId} does not belong to tenant ${tenantId}`
+      );
+    }
+
+    // 3. Partition source.values into (kept, moved). The kept set stays on
+    //    source; the moved set becomes the new product's initial values.
+    const sourceValues = (source.values ?? {}) as ValuesJson;
+    const keptValues: ValuesJson = {};
+    const movedValues: ValuesJson = {};
+    const touchedAttributes = new Set<string>();
+    let observationsMoved = 0;
+
+    for (const [attr, byChannel] of Object.entries(sourceValues)) {
+      if (!byChannel || typeof byChannel !== "object") continue;
+      for (const [channel, byLocale] of Object.entries(byChannel)) {
+        if (!byLocale || typeof byLocale !== "object") continue;
+        for (const [locale, observations] of Object.entries(byLocale)) {
+          if (!Array.isArray(observations)) continue;
+          for (const observation of observations) {
+            if (!observation || typeof observation !== "object") continue;
+            if (
+              matchesValuesObservation(
+                observationFilter,
+                attr,
+                channel,
+                locale,
+                observation as StoredObservation
+              )
+            ) {
+              const leaf = ensureLeaf(movedValues, attr, channel, locale);
+              leaf.push(observation as StoredObservation);
+              touchedAttributes.add(attr);
+              observationsMoved++;
+            } else {
+              const leaf = ensureLeaf(keptValues, attr, channel, locale);
+              leaf.push(observation as StoredObservation);
+            }
+          }
+        }
+      }
+    }
+
+    // 4. Persist source.values (the kept observations).
+    await tx
+      .update(schema.catalogProducts)
+      .set({ values: keptValues as Record<string, unknown> })
+      .where(eq(schema.catalogProducts.productId, sourceProductId));
+
+    // 5. Insert the new product row. Same tenant + merchant as source.
+    const newInserted = await tx
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: source.tenantId,
+        merchantId: source.merchantId,
+        parentProductId: null,
+        primaryIdentifier: newIdentity.primaryIdentifier,
+        identity: newIdentity.identity,
+        family: newIdentity.family ?? null,
+        status: newIdentity.status ?? "draft",
+        values: movedValues as Record<string, unknown>
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const newProductId = newInserted[0]!.productId;
+
+    // 6. Move side-table rows. The filter scoping per design decision 1:
+    //    - sources, sourceRecordIds, channelIds, localeCodes apply.
+    //    - attributeCodes / valueEquals / channelCodes do NOT (they are
+    //      jsonb-content-specific or coordinate-only).
+    //
+    //    If attributeCodes is set, side-tables are NOT moved. This is the
+    //    documented v1 behaviour — attribute-level splits don't affect
+    //    pricing/inventory because those rows lack an attribute_code column.
+    let pricingObservationsMoved = 0;
+    let inventoryObservationsMoved = 0;
+
+    const attributeCodesSet =
+      observationFilter.attributeCodes != null &&
+      observationFilter.attributeCodes.length > 0;
+    const valueEqualsSet = observationFilter.valueEquals !== undefined;
+    const sideTableEligible = !attributeCodesSet && !valueEqualsSet;
+
+    if (sideTableEligible) {
+      // Build typed Drizzle predicates per side-table. We use `inArray` for
+      // the IN-list filters rather than raw `ANY()` because the underlying
+      // pg driver does not auto-cast a JS array as a Postgres text/uuid array
+      // through tagged-template parameter binding.
+      const pricingPredicates: SQL[] = [
+        eq(schema.catalogPricingObservations.productId, sourceProductId)
+      ];
+      if (observationFilter.sources && observationFilter.sources.length > 0) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.source,
+            observationFilter.sources
+          )
+        );
+      }
+      if (
+        observationFilter.sourceRecordIds &&
+        observationFilter.sourceRecordIds.length > 0
+      ) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.sourceRecordId,
+            observationFilter.sourceRecordIds
+          )
+        );
+      }
+      if (
+        observationFilter.channelIds &&
+        observationFilter.channelIds.length > 0
+      ) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.channelId,
+            observationFilter.channelIds
+          )
+        );
+      }
+      if (
+        observationFilter.localeCodes &&
+        observationFilter.localeCodes.length > 0
+      ) {
+        pricingPredicates.push(
+          inArray(
+            schema.catalogPricingObservations.locale,
+            observationFilter.localeCodes
+          )
+        );
+      }
+
+      const movedPricing = await tx
+        .update(schema.catalogPricingObservations)
+        .set({ productId: newProductId })
+        .where(and(...pricingPredicates))
+        .returning({
+          observationId: schema.catalogPricingObservations.observationId
+        });
+      pricingObservationsMoved = movedPricing.length;
+
+      // Inventory side-table has no `locale` column, so localeCodes is a
+      // pricing-only narrow.
+      const inventoryPredicates: SQL[] = [
+        eq(schema.catalogInventoryObservations.productId, sourceProductId)
+      ];
+      if (observationFilter.sources && observationFilter.sources.length > 0) {
+        inventoryPredicates.push(
+          inArray(
+            schema.catalogInventoryObservations.source,
+            observationFilter.sources
+          )
+        );
+      }
+      if (
+        observationFilter.sourceRecordIds &&
+        observationFilter.sourceRecordIds.length > 0
+      ) {
+        inventoryPredicates.push(
+          inArray(
+            schema.catalogInventoryObservations.sourceRecordId,
+            observationFilter.sourceRecordIds
+          )
+        );
+      }
+      if (
+        observationFilter.channelIds &&
+        observationFilter.channelIds.length > 0
+      ) {
+        inventoryPredicates.push(
+          inArray(
+            schema.catalogInventoryObservations.channelId,
+            observationFilter.channelIds
+          )
+        );
+      }
+
+      const movedInv = await tx
+        .update(schema.catalogInventoryObservations)
+        .set({ productId: newProductId })
+        .where(and(...inventoryPredicates))
+        .returning({
+          observationId: schema.catalogInventoryObservations.observationId
+        });
+      inventoryObservationsMoved = movedInv.length;
+    }
+
+    // 7. Delete source's pricing/inventory _current rows (decision 7). Async
+    //    reconciler will rebuild from observation layout.
+    await tx
+      .delete(schema.catalogPricingCurrent)
+      .where(eq(schema.catalogPricingCurrent.productId, sourceProductId));
+    await tx
+      .delete(schema.catalogInventoryCurrent)
+      .where(eq(schema.catalogInventoryCurrent.productId, sourceProductId));
+
+    // 8. Recompute winning_values on BOTH products for the union of touched
+    //    attributes (decision 8).
+    if (touchedAttributes.size > 0) {
+      const attrs = Array.from(touchedAttributes);
+      await projectSync({
+        db: tx,
+        productId: sourceProductId,
+        affectedAttributes: attrs,
+        rulesVersion
+      });
+      await projectSync({
+        db: tx,
+        productId: newProductId,
+        affectedAttributes: attrs,
+        rulesVersion
+      });
+    }
+
+    // 9. Append revision row on source first (decision 6) so we can capture
+    //    its revisionId as the new product's lineage_pointer.source_revision.
+    const sourceAfterRows = await tx
+      .select({
+        values: schema.catalogProducts.values,
+        winningValues: schema.catalogProducts.winningValues
+      })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceProductId))
+      .limit(1);
+    const sourceAfterRow = sourceAfterRows[0]!;
+
+    const sourceRevInserted = await tx
+      .insert(schema.catalogProductRevisions)
+      .values({
+        productId: sourceProductId,
+        tenantId,
+        valuesSnapshot: (sourceAfterRow.values ?? {}) as Record<string, unknown>,
+        winningSnapshot: (sourceAfterRow.winningValues ?? null) as
+          | Record<string, unknown>
+          | null,
+        diff: {
+          operation: "split",
+          new_product_id: newProductId,
+          split_filter: observationFilter as unknown as Record<string, unknown>,
+          actor,
+          rationale
+        },
+        revisionReason: "manual_split",
+        sourceKind: "split",
+        sourceRecordId: null,
+        rawPayload: null,
+        observedAt: new Date(),
+        actor
+      })
+      .returning({
+        revisionId: schema.catalogProductRevisions.revisionId
+      });
+    const sourceRevisionId = sourceRevInserted[0]!.revisionId;
+
+    // 10. Append revision row on new product with lineage_pointer (spec §18.2 step 6).
+    const newAfterRows = await tx
+      .select({
+        values: schema.catalogProducts.values,
+        winningValues: schema.catalogProducts.winningValues
+      })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, newProductId))
+      .limit(1);
+    const newAfterRow = newAfterRows[0]!;
+
+    const newRevInserted = await tx
+      .insert(schema.catalogProductRevisions)
+      .values({
+        productId: newProductId,
+        tenantId,
+        valuesSnapshot: (newAfterRow.values ?? {}) as Record<string, unknown>,
+        winningSnapshot: (newAfterRow.winningValues ?? null) as
+          | Record<string, unknown>
+          | null,
+        diff: {
+          operation: "split",
+          origin: sourceProductId,
+          split_filter: observationFilter as unknown as Record<string, unknown>,
+          lineage_pointer: {
+            source_revision: sourceRevisionId
+          },
+          actor,
+          rationale
+        },
+        revisionReason: "manual_split",
+        sourceKind: "split",
+        sourceRecordId: null,
+        rawPayload: null,
+        observedAt: new Date(),
+        actor
+      })
+      .returning({
+        revisionId: schema.catalogProductRevisions.revisionId
+      });
+    const newRevisionId = newRevInserted[0]!.revisionId;
+
+    // 11. product_lineage row: operation='split', productId=new, origin=source.
+    const lineageInserted = await tx
+      .insert(schema.productLineage)
+      .values({
+        productId: newProductId,
+        originProductId: sourceProductId,
+        operation: "split",
+        splitFilter: observationFilter as unknown as Record<string, unknown>,
+        rationale,
+        actor
+      })
+      .returning({ lineageId: schema.productLineage.lineageId });
+    const lineageId = lineageInserted[0]!.lineageId;
+
+    // 12. Outbox event — single `catalog.product.split` (decision 9). product_id
+    //     on the event row is the NEW product.
+    const eventInserted = await tx
+      .insert(schema.catalogEvents)
+      .values({
+        eventType: "catalog.product.split",
+        productId: newProductId,
+        tenantId,
+        payload: {
+          sourceProductId,
+          newProductId,
+          splitFilter: observationFilter as unknown as Record<string, unknown>,
+          actor,
+          rationale,
+          lineageId,
+          sourceRevisionId,
+          newRevisionId
+        },
+        triggeredBy: actor
+      })
+      .returning({ eventId: schema.catalogEvents.eventId });
+    const eventId = eventInserted[0]!.eventId;
+
+    return {
+      sourceProductId,
+      newProductId,
+      splitRevisionIds: { source: sourceRevisionId, new: newRevisionId },
+      eventId,
+      lineageId,
+      observationsMoved,
+      pricingObservationsMoved,
+      inventoryObservationsMoved
     };
   });
 }

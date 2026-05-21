@@ -29,7 +29,7 @@ import {
   ensureTestTenant
 } from "@aonex/db/testing";
 import type { TenantId } from "@aonex/types";
-import { mergeProducts, unmergeProduct } from "./merge.js";
+import { mergeProducts, splitProduct, unmergeProduct } from "./merge.js";
 
 const TENANT = TEST_TENANT_ID as unknown as TenantId;
 const TEST_ACTOR = "test:catalog-merge";
@@ -1067,5 +1067,789 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       expect((e as Error).message).toMatch(/non-empty/i);
     }
     expect(threwEmpty).toBe(true);
+  });
+});
+
+// =============================================================================
+// splitProduct tests (plan §3.9, spec §18.2)
+// =============================================================================
+//
+// Splits create a NEW product row and MOVE observations matching a typed
+// filter from source → new. Crucially, the source's revisions are NEVER moved
+// (per spec §18.2 — moving revisions would corrupt the immutability guarantee).
+// "Full history" of the new product is a UNION of (revisions WHERE product_id
+// = new) ∪ (revisions WHERE product_id = source AND matches(filter)) — but
+// since a revision row has no per-observation breakdown, the filter only
+// distinguishes at the source-of-truth level. See test 8 for the union query.
+
+describe("splitProduct (plan §3.9, spec §18.2)", () => {
+  let db: DrizzleClient;
+
+  beforeAll(async () => {
+    db = await connectTestDb();
+    await ensureTestTenant(db);
+    await ensureTestMerchant(db);
+    await ensureTestChannel(db);
+    await ensureTestInventoryLocation(db);
+    await cleanup(db);
+    await seedRules(db);
+  });
+
+  afterAll(async () => {
+    await cleanup(db);
+    await closeTestDb();
+  });
+
+  test("S1. simple source-based split: observations move, side-tables move, lineage + revisions + event", async () => {
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-1-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [
+              obsRow("flipkart:link", "Flipkart Title", "fk-rec-1"),
+              obsRow("amazon:link", "Amazon Title", "az-rec-1")
+            ]
+          }
+        }
+      }
+    });
+
+    // Seed pricing/inventory side-table rows attached to source. Two rows: one
+    // from amazon:link (should move with the split) + one from flipkart:link
+    // (should stay).
+    await db.insert(schema.catalogPricingObservations).values([
+      {
+        productId: sourceId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "amazon:link",
+        sourceRecordId: "az-pricing-1",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 19.99 }],
+        observedAt: new Date("2026-05-21T10:00:00Z")
+      },
+      {
+        productId: sourceId,
+        tenantId: TEST_TENANT_ID,
+        channelId: TEST_CHANNEL_ID,
+        locale: "en_AU",
+        source: "flipkart:link",
+        sourceRecordId: "fk-pricing-1",
+        currency: "AUD",
+        tiers: [{ kind: "list", amount: 17.99 }],
+        observedAt: new Date("2026-05-21T10:00:00Z")
+      }
+    ]);
+    await db.insert(schema.catalogInventoryObservations).values({
+      productId: sourceId,
+      tenantId: TEST_TENANT_ID,
+      channelId: TEST_CHANNEL_ID,
+      locationId: TEST_LOCATION_ID,
+      qty: 5,
+      source: "amazon:link",
+      sourceRecordId: "az-inv-1",
+      observedAt: new Date("2026-05-21T10:00:00Z")
+    });
+
+    // Pre-split revision count on source — must be unchanged after split
+    // (except for the +1 manual_split revision).
+    const sourceRevsBefore = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, sourceId));
+    const sourceRevsBeforeCount = sourceRevsBefore.length;
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: { sources: ["amazon:link"] },
+      newIdentity: {
+        primaryIdentifier: "split-1-new",
+        identity: { brand: "AmazonSpinoff" },
+        status: "draft"
+      },
+      actor: "test:steward",
+      rationale: "amazon variant should be its own product"
+    });
+
+    expect(result.sourceProductId).toBe(sourceId);
+    expect(result.newProductId).not.toBe(sourceId);
+    expect(result.observationsMoved).toBe(1);
+    expect(result.pricingObservationsMoved).toBe(1);
+    expect(result.inventoryObservationsMoved).toBe(1);
+
+    // Source.values: only flipkart observation left.
+    const sourceRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceId));
+    const sourceLeaf = (sourceRows[0]!.values as Record<string, any>).title["shopify-au"]
+      .en_AU as StoredObservation[];
+    expect(sourceLeaf.length).toBe(1);
+    expect(sourceLeaf[0]!.source).toBe("flipkart:link");
+
+    // New product exists with the amazon observation.
+    const newRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.newProductId));
+    expect(newRows.length).toBe(1);
+    const newRow = newRows[0]!;
+    expect(newRow.primaryIdentifier).toBe("split-1-new");
+    expect(newRow.tenantId).toBe(TEST_TENANT_ID);
+    expect(newRow.merchantId).toBe(TEST_MERCHANT_ID);
+    expect(newRow.status).toBe("draft");
+    const newLeaf = (newRow.values as Record<string, any>).title["shopify-au"]
+      .en_AU as StoredObservation[];
+    expect(newLeaf.length).toBe(1);
+    expect(newLeaf[0]!.source).toBe("amazon:link");
+    expect(newLeaf[0]!.source_record_id).toBe("az-rec-1");
+
+    // Side-table rows: amazon moved, flipkart stays.
+    const newPricing = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.productId, result.newProductId));
+    expect(newPricing.length).toBe(1);
+    expect(newPricing[0]!.source).toBe("amazon:link");
+    // mergedFromProductId stays null on split (it's merge-specific).
+    expect(newPricing[0]!.mergedFromProductId).toBeNull();
+
+    const remainingPricing = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.productId, sourceId));
+    expect(remainingPricing.length).toBe(1);
+    expect(remainingPricing[0]!.source).toBe("flipkart:link");
+
+    const newInv = await db
+      .select()
+      .from(schema.catalogInventoryObservations)
+      .where(eq(schema.catalogInventoryObservations.productId, result.newProductId));
+    expect(newInv.length).toBe(1);
+
+    // product_lineage row: operation='split', productId=new, origin=source.
+    const lineage = await db
+      .select()
+      .from(schema.productLineage)
+      .where(eq(schema.productLineage.lineageId, result.lineageId));
+    expect(lineage.length).toBe(1);
+    expect(lineage[0]!.operation).toBe("split");
+    expect(lineage[0]!.productId).toBe(result.newProductId);
+    expect(lineage[0]!.originProductId).toBe(sourceId);
+    expect(lineage[0]!.splitFilter).toEqual({ sources: ["amazon:link"] });
+    expect(lineage[0]!.rationale).toBe("amazon variant should be its own product");
+    expect(lineage[0]!.actor).toBe("test:steward");
+
+    // Revision rows: one on source (manual_split), one on new (manual_split with lineage_pointer).
+    const sourceRevsAfter = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, sourceId));
+    // Exactly one new revision added (the manual_split one).
+    expect(sourceRevsAfter.length).toBe(sourceRevsBeforeCount + 1);
+    const sourceSplitRev = sourceRevsAfter.find(
+      (r) => r.revisionReason === "manual_split"
+    );
+    expect(sourceSplitRev).toBeDefined();
+    const sourceDiff = sourceSplitRev!.diff as Record<string, any>;
+    expect(sourceDiff.operation).toBe("split");
+    expect(sourceDiff.new_product_id).toBe(result.newProductId);
+    expect(sourceDiff.split_filter).toEqual({ sources: ["amazon:link"] });
+    expect(sourceDiff.actor).toBe("test:steward");
+    expect(sourceDiff.rationale).toBe("amazon variant should be its own product");
+
+    const newRevs = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, result.newProductId));
+    expect(newRevs.length).toBe(1);
+    const newRev = newRevs[0]!;
+    expect(newRev.revisionReason).toBe("manual_split");
+    const newDiff = newRev.diff as Record<string, any>;
+    expect(newDiff.operation).toBe("split");
+    expect(newDiff.origin).toBe(sourceId);
+    expect(newDiff.split_filter).toEqual({ sources: ["amazon:link"] });
+    // lineage_pointer: spec §18.2 requires "first revision carries lineage_pointer to source".
+    expect(newDiff.lineage_pointer).toBeDefined();
+    expect(newDiff.lineage_pointer.source_revision).toBe(result.splitRevisionIds.source);
+
+    expect(result.splitRevisionIds.source).toBe(sourceSplitRev!.revisionId);
+    expect(result.splitRevisionIds.new).toBe(newRev.revisionId);
+
+    // Outbox event.
+    const events = await db
+      .select()
+      .from(schema.catalogEvents)
+      .where(eq(schema.catalogEvents.eventId, result.eventId));
+    expect(events.length).toBe(1);
+    expect(events[0]!.eventType).toBe("catalog.product.split");
+    expect(events[0]!.productId).toBe(result.newProductId);
+    const payload = events[0]!.payload as Record<string, unknown>;
+    expect(payload.sourceProductId).toBe(sourceId);
+    expect(payload.newProductId).toBe(result.newProductId);
+    expect(payload.splitFilter).toEqual({ sources: ["amazon:link"] });
+    expect(payload.actor).toBe("test:steward");
+    expect(payload.lineageId).toBe(result.lineageId);
+  });
+
+  test("S2. sourceRecordIds filter: only matching record observations move", async () => {
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-2-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [
+              obsRow("amazon:link", "Amazon A", "sku-A"),
+              obsRow("amazon:link", "Amazon B", "sku-B")
+            ]
+          }
+        }
+      }
+    });
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: { sourceRecordIds: ["sku-A"] },
+      newIdentity: {
+        primaryIdentifier: "split-2-new",
+        identity: { brand: "Spinoff" }
+      },
+      actor: TEST_ACTOR,
+      rationale: "sku-A should split"
+    });
+
+    expect(result.observationsMoved).toBe(1);
+
+    const sourceRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceId));
+    const sourceLeaf = (sourceRows[0]!.values as Record<string, any>).title["shopify-au"]
+      .en_AU as StoredObservation[];
+    expect(sourceLeaf.length).toBe(1);
+    expect(sourceLeaf[0]!.source_record_id).toBe("sku-B");
+
+    const newRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.newProductId));
+    const newLeaf = (newRows[0]!.values as Record<string, any>).title["shopify-au"]
+      .en_AU as StoredObservation[];
+    expect(newLeaf.length).toBe(1);
+    expect(newLeaf[0]!.source_record_id).toBe("sku-A");
+  });
+
+  test("S3. attributeCodes filter: only that attribute moves; pricing/inventory NOT moved (per design)", async () => {
+    // When attributeCodes is set, the filter is jsonb-content-specific; the
+    // side-tables don't carry attribute_code, so we cannot meaningfully apply
+    // the filter to them. We therefore leave side-table rows in place. This
+    // tests the documented design decision.
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-3-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [obsRow("amazon:link", "Title Obs", "sku-1")]
+          }
+        },
+        brand: {
+          "shopify-au": {
+            en_AU: [obsRow("amazon:link", "Brand Obs", "sku-1")]
+          }
+        }
+      }
+    });
+
+    await db.insert(schema.catalogPricingObservations).values({
+      productId: sourceId,
+      tenantId: TEST_TENANT_ID,
+      channelId: TEST_CHANNEL_ID,
+      locale: "en_AU",
+      source: "amazon:link",
+      sourceRecordId: "sku-1",
+      currency: "AUD",
+      tiers: [{ kind: "list", amount: 9.99 }],
+      observedAt: new Date("2026-05-21T10:00:00Z")
+    });
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: { attributeCodes: ["title"] },
+      newIdentity: {
+        primaryIdentifier: "split-3-new",
+        identity: { brand: "Spinoff" }
+      },
+      actor: TEST_ACTOR,
+      rationale: "only title attribute"
+    });
+
+    expect(result.observationsMoved).toBe(1);
+    // Pricing NOT moved — attributeCodes filter is jsonb-content-specific
+    // and side-tables have no attribute_code column to filter on.
+    expect(result.pricingObservationsMoved).toBe(0);
+    expect(result.inventoryObservationsMoved).toBe(0);
+
+    const sourceRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceId));
+    const sourceValues = sourceRows[0]!.values as Record<string, any>;
+    // title leaf empty/removed; brand still present.
+    const titleLeaf = sourceValues.title?.["shopify-au"]?.en_AU as StoredObservation[] | undefined;
+    expect(titleLeaf == null || titleLeaf.length === 0).toBe(true);
+    expect(sourceValues.brand["shopify-au"].en_AU.length).toBe(1);
+
+    const newRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.newProductId));
+    const newValues = newRows[0]!.values as Record<string, any>;
+    expect(newValues.title["shopify-au"].en_AU.length).toBe(1);
+    expect(newValues.brand).toBeUndefined();
+
+    // Pricing stays on source.
+    const pricing = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.productId, sourceId));
+    expect(pricing.length).toBe(1);
+  });
+
+  test("S4. combined filter (sources AND channelCodes): only matching observations move", async () => {
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-4-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [
+              obsRow("amazon:link", "Amazon-AU", "az-au-1"),
+              obsRow("flipkart:link", "Flipkart-AU", "fk-au-1")
+            ]
+          },
+          "amazon-us": {
+            en_US: [obsRow("amazon:link", "Amazon-US", "az-us-1")]
+          }
+        }
+      }
+    });
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: {
+        sources: ["amazon:link"],
+        channelCodes: ["amazon-us"]
+      },
+      newIdentity: {
+        primaryIdentifier: "split-4-new",
+        identity: { brand: "Spinoff" }
+      },
+      actor: TEST_ACTOR,
+      rationale: "amazon-us only"
+    });
+
+    expect(result.observationsMoved).toBe(1);
+
+    const sourceRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceId));
+    const sourceValues = sourceRows[0]!.values as Record<string, any>;
+    // Source keeps both AU observations.
+    expect(sourceValues.title["shopify-au"].en_AU.length).toBe(2);
+    // amazon-us leaf is now empty/missing on source.
+    const usLeaf = sourceValues.title?.["amazon-us"]?.en_US as StoredObservation[] | undefined;
+    expect(usLeaf == null || usLeaf.length === 0).toBe(true);
+
+    const newRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.newProductId));
+    const newValues = newRows[0]!.values as Record<string, any>;
+    expect(newValues.title["amazon-us"].en_US.length).toBe(1);
+  });
+
+  test("S5. empty filter throws clear error", async () => {
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-5-source",
+      values: {
+        title: {
+          "shopify-au": { en_AU: [obsRow("amazon:link", "X", "x")] }
+        }
+      }
+    });
+
+    let threw = false;
+    try {
+      await splitProduct({
+        db,
+        tenantId: TENANT,
+        sourceProductId: sourceId,
+        observationFilter: {},
+        newIdentity: {
+          primaryIdentifier: "split-5-new",
+          identity: {}
+        },
+        actor: TEST_ACTOR,
+        rationale: "empty filter"
+      });
+    } catch (e) {
+      threw = true;
+      expect((e as Error).message).toMatch(/empty.*filter|filter.*empty|no filter/i);
+    }
+    expect(threw).toBe(true);
+  });
+
+  test("S6. cross-tenant guard: sourceProductId in tenant A; calling with tenant B throws", async () => {
+    // Re-use the synthetic OTHER_TENANT pattern from test 6 in the merge suite.
+    const OTHER_TENANT = "00000000-0000-0000-0000-0000000000ee";
+    const OTHER_MERCHANT = "00000000-0000-0000-0000-0000000000ed";
+    await db.execute(sql`
+      INSERT INTO tenants (id, name)
+      VALUES (${OTHER_TENANT}::uuid, 'Other Tenant Split Test')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    await db.execute(sql`
+      INSERT INTO merchants (id, tenant_id, email, password_hash, display_name)
+      VALUES (${OTHER_MERCHANT}::uuid, ${OTHER_TENANT}::uuid, 'mt-split@test.invalid', 'x', 'Other Merchant ST')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    const otherSource = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: OTHER_TENANT,
+        merchantId: OTHER_MERCHANT,
+        primaryIdentifier: "split-6-other-source",
+        identity: {},
+        status: "active",
+        values: {
+          title: {
+            "shopify-au": { en_AU: [obsRow("amazon:link", "X", "x")] }
+          }
+        }
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const otherSourceId = otherSource[0]!.productId;
+
+    let threw = false;
+    try {
+      await splitProduct({
+        db,
+        tenantId: TENANT, // wrong tenant
+        sourceProductId: otherSourceId,
+        observationFilter: { sources: ["amazon:link"] },
+        newIdentity: {
+          primaryIdentifier: "split-6-new",
+          identity: {}
+        },
+        actor: TEST_ACTOR,
+        rationale: "cross-tenant"
+      });
+    } catch (e) {
+      threw = true;
+      expect((e as Error).message).toMatch(/tenant/i);
+    }
+    expect(threw).toBe(true);
+
+    // Cleanup.
+    await db
+      .delete(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, otherSourceId));
+    await db.execute(
+      sql`DELETE FROM merchants WHERE id = ${OTHER_MERCHANT}::uuid`
+    );
+    await db.execute(
+      sql`DELETE FROM tenants WHERE id = ${OTHER_TENANT}::uuid`
+    );
+  });
+
+  test("S7. revisions stay attached to source — only a new manual_split row is added (no physical moves)", async () => {
+    // Seed a source product with a couple of existing ingest revisions, then
+    // split. Assert that pre-existing revisions are still attached to the
+    // source (NOT moved to the new product). Only delta: +1 manual_split
+    // revision on source, +1 manual_split revision on new.
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-7-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [
+              obsRow("amazon:link", "Amazon", "az-1"),
+              obsRow("flipkart:link", "Flipkart", "fk-1")
+            ]
+          }
+        }
+      }
+    });
+
+    // Manually insert a couple of "ingest" revision rows that pre-date the
+    // split. These should NEVER be moved.
+    const ingestRev1 = await db
+      .insert(schema.catalogProductRevisions)
+      .values({
+        productId: sourceId,
+        tenantId: TEST_TENANT_ID,
+        valuesSnapshot: {},
+        winningSnapshot: null,
+        diff: { kind: "synthetic-ingest-1" },
+        revisionReason: "ingest_observation",
+        sourceKind: "adapter",
+        sourceRecordId: "az-1",
+        rawPayload: null,
+        observedAt: new Date("2026-05-19T10:00:00Z"),
+        actor: TEST_ACTOR
+      })
+      .returning({ revisionId: schema.catalogProductRevisions.revisionId });
+    const ingestRev2 = await db
+      .insert(schema.catalogProductRevisions)
+      .values({
+        productId: sourceId,
+        tenantId: TEST_TENANT_ID,
+        valuesSnapshot: {},
+        winningSnapshot: null,
+        diff: { kind: "synthetic-ingest-2" },
+        revisionReason: "ingest_observation",
+        sourceKind: "adapter",
+        sourceRecordId: "fk-1",
+        rawPayload: null,
+        observedAt: new Date("2026-05-19T10:00:00Z"),
+        actor: TEST_ACTOR
+      })
+      .returning({ revisionId: schema.catalogProductRevisions.revisionId });
+
+    const preSplitSourceRevIds = new Set([
+      ingestRev1[0]!.revisionId,
+      ingestRev2[0]!.revisionId
+    ]);
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: { sources: ["amazon:link"] },
+      newIdentity: {
+        primaryIdentifier: "split-7-new",
+        identity: { brand: "Amazon Spinoff" }
+      },
+      actor: TEST_ACTOR,
+      rationale: "history preservation test"
+    });
+
+    // The pre-existing revisions are still on the source — they were NOT
+    // physically moved to the new product.
+    const sourceRevsAfter = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, sourceId));
+    const sourceRevIds = new Set(sourceRevsAfter.map((r) => r.revisionId));
+    for (const id of preSplitSourceRevIds) {
+      expect(sourceRevIds.has(id)).toBe(true);
+    }
+    // New product has only its own manual_split revision (not the ingest rows).
+    const newRevs = await db
+      .select()
+      .from(schema.catalogProductRevisions)
+      .where(eq(schema.catalogProductRevisions.productId, result.newProductId));
+    expect(newRevs.length).toBe(1);
+    expect(preSplitSourceRevIds.has(newRevs[0]!.revisionId)).toBe(false);
+  });
+
+  test("S8. full-history union query: revisions for new ∪ revisions on source (matching filter at the source-of-truth level)", async () => {
+    // The spec defines "full history" of the new product as the union of:
+    //   - revisions WHERE product_id = new (forward history from split point)
+    //   - revisions WHERE product_id = source AND matches(split_filter)
+    //     (history that logically belongs to new but stays attached to origin)
+    //
+    // v1 limitation: a revision row has no per-observation breakdown, so the
+    // filter cannot truly distinguish at the revision level. The union query
+    // we ship returns ALL revisions of source + all revisions of new and lets
+    // the consumer decide. We exercise the union query here.
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-8-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [
+              obsRow("amazon:link", "Amazon", "az-1"),
+              obsRow("flipkart:link", "Flipkart", "fk-1")
+            ]
+          }
+        }
+      }
+    });
+    await db.insert(schema.catalogProductRevisions).values({
+      productId: sourceId,
+      tenantId: TEST_TENANT_ID,
+      valuesSnapshot: {},
+      diff: { kind: "synthetic" },
+      revisionReason: "ingest_observation",
+      sourceKind: "adapter",
+      sourceRecordId: "az-1",
+      observedAt: new Date("2026-05-19T10:00:00Z"),
+      actor: TEST_ACTOR
+    });
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: { sources: ["amazon:link"] },
+      newIdentity: {
+        primaryIdentifier: "split-8-new",
+        identity: {}
+      },
+      actor: TEST_ACTOR,
+      rationale: "union query test"
+    });
+
+    // "Full history" union — see the runbook for the canonical query.
+    const fullHistory = await db.execute(sql`
+      SELECT revision_id, product_id, revision_reason
+      FROM catalog_product_revisions
+      WHERE product_id = ${result.newProductId}::uuid
+      UNION ALL
+      SELECT revision_id, product_id, revision_reason
+      FROM catalog_product_revisions
+      WHERE product_id = ${sourceId}::uuid
+      ORDER BY revision_id
+    `);
+
+    // Expected: 1 synthetic ingest on source + 1 manual_split on source + 1 manual_split on new = 3.
+    expect(fullHistory.rows.length).toBe(3);
+    const reasons = (fullHistory.rows as Array<{ revision_reason: string }>).map(
+      (r) => r.revision_reason
+    );
+    expect(reasons.filter((r) => r === "manual_split").length).toBe(2);
+    expect(reasons.filter((r) => r === "ingest_observation").length).toBe(1);
+  });
+
+  test("S9. _current rows cleared on source after split (async reconciler rebuilds)", async () => {
+    // Per design decision 8: rather than filter-aware deletion of _current rows
+    // (which is complex), we delete ALL of source's pricing/inventory _current
+    // rows. The async-debounced reconciler rebuilds from observations.
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-9-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [obsRow("amazon:link", "A", "az-1")]
+          }
+        }
+      }
+    });
+
+    await db.insert(schema.catalogPricingObservations).values({
+      productId: sourceId,
+      tenantId: TEST_TENANT_ID,
+      channelId: TEST_CHANNEL_ID,
+      locale: "en_AU",
+      source: "amazon:link",
+      sourceRecordId: "az-1",
+      currency: "AUD",
+      tiers: [{ kind: "list", amount: 9.99 }],
+      observedAt: new Date("2026-05-21T10:00:00Z")
+    });
+    await db.insert(schema.catalogPricingCurrent).values({
+      productId: sourceId,
+      channelId: TEST_CHANNEL_ID,
+      locale: "en_AU",
+      source: "amazon:link",
+      currency: "AUD",
+      tiers: [{ kind: "list", amount: 9.99 }],
+      primaryAmount: "9.99",
+      observedAt: new Date("2026-05-21T10:00:00Z")
+    });
+    await db.insert(schema.catalogInventoryCurrent).values({
+      productId: sourceId,
+      channelId: TEST_CHANNEL_ID,
+      locationId: TEST_LOCATION_ID,
+      qty: 4,
+      source: "amazon:link",
+      observedAt: new Date("2026-05-21T10:00:00Z")
+    });
+
+    await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: { sources: ["amazon:link"] },
+      newIdentity: {
+        primaryIdentifier: "split-9-new",
+        identity: {}
+      },
+      actor: TEST_ACTOR,
+      rationale: "current cleanup"
+    });
+
+    const sourcePricingCurrent = await db
+      .select()
+      .from(schema.catalogPricingCurrent)
+      .where(eq(schema.catalogPricingCurrent.productId, sourceId));
+    expect(sourcePricingCurrent.length).toBe(0);
+    const sourceInvCurrent = await db
+      .select()
+      .from(schema.catalogInventoryCurrent)
+      .where(eq(schema.catalogInventoryCurrent.productId, sourceId));
+    expect(sourceInvCurrent.length).toBe(0);
+  });
+
+  test("S10. winning_values recomputed on both products after split (premium winner moves with observation)", async () => {
+    // Source has two title observations:
+    //   - default:connector "Default Title" (low priority — wins absent better)
+    //   - premium:connector "Premium Title" (high priority — currently winner)
+    // We split out the premium observation. After split:
+    //   - source.winning_values.title should equal "Default Title".
+    //   - new.winning_values.title should equal "Premium Title".
+    const sourceId = await seedProduct(db, {
+      primaryIdentifier: "split-10-source",
+      values: {
+        title: {
+          "shopify-au": {
+            en_AU: [
+              obsRow("default:connector", "Default Title", "d-1"),
+              obsRow("premium:connector", "Premium Title", "p-1")
+            ]
+          }
+        }
+      }
+    });
+
+    const result = await splitProduct({
+      db,
+      tenantId: TENANT,
+      sourceProductId: sourceId,
+      observationFilter: { sources: ["premium:connector"] },
+      newIdentity: {
+        primaryIdentifier: "split-10-new",
+        identity: {}
+      },
+      actor: TEST_ACTOR,
+      rationale: "wv recompute test"
+    });
+
+    const sourceRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, sourceId));
+    expect(
+      (sourceRows[0]!.winningValues as Record<string, any>).title["shopify-au"].en_AU
+    ).toBe("Default Title");
+
+    const newRows = await db
+      .select()
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.newProductId));
+    expect(
+      (newRows[0]!.winningValues as Record<string, any>).title["shopify-au"].en_AU
+    ).toBe("Premium Title");
   });
 });
