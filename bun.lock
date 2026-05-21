@@ -125,6 +125,20 @@
       "name": "@aonex/catalog-proposed-diffs",
       "version": "0.0.0",
     },
+    "packages/catalog/source-adapters": {
+      "name": "@aonex/catalog-source-adapters",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/db": "workspace:*",
+        "@aonex/ingestion-enrichment": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
+        "@aonex/types": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "^22.10.0",
+        "typescript": "^5.7.0",
+      },
+    },
     "packages/connector-gateway": {
       "name": "@aonex/connector-gateway",
       "version": "0.1.0",
@@ -383,6 +397,8 @@
     "@aonex/catalog-proposed-diffs": ["@aonex/catalog-proposed-diffs@workspace:packages/catalog/proposed-diffs"],
 
     "@aonex/catalog-service": ["@aonex/catalog-service@workspace:packages/catalog/catalog-service"],
+
+    "@aonex/catalog-source-adapters": ["@aonex/catalog-source-adapters@workspace:packages/catalog/source-adapters"],
 
     "@aonex/connector-gateway": ["@aonex/connector-gateway@workspace:packages/connector-gateway"],
 
