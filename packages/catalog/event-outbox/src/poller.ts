@@ -46,7 +46,8 @@
 //   publishers/redis-streams.ts). The poller does NOT add a second layer; it
 //   trusts the publisher's `published` count and `failed[]` per-event reports.
 
-import { sql, type SQL } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+import type { Logger } from "pino";
 import type { CatalogEvent, DrizzleClient } from "@aonex/db";
 import type { PollerConfig, Publisher } from "./types.js";
 
@@ -54,19 +55,26 @@ const DEFAULT_BATCH_SIZE = 100;
 const DEFAULT_WORKER_COUNT = 4;
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_IDLE_SLEEP_MS = 250;
+/** Brief pause between non-empty partial batches — avoids hammering when the
+ *  queue is mostly drained but not empty. See runLoop() below. */
+const PARTIAL_BATCH_BREATHER_MS = 50;
 
-/** Minimal logger contract — accepts an optional bag of structured fields. */
-export interface Logger {
-  info(msg: string, ctx?: Record<string, unknown>): void;
-  warn(msg: string, ctx?: Record<string, unknown>): void;
-  error(msg: string, ctx?: Record<string, unknown>): void;
-}
+export type { Logger };
 
-const NOOP_LOGGER: Logger = {
+/**
+ * A no-op pino-compatible logger used when callers don't pass one.
+ * Cast through `unknown` because pino's `Logger` is a rich type with
+ * `child()`, `level`, EventEmitter members etc.; we only need the
+ * level-method shape at runtime.
+ */
+const NOOP_LOGGER = {
   info: () => {},
   warn: () => {},
-  error: () => {}
-};
+  error: () => {},
+  debug: () => {},
+  trace: () => {},
+  fatal: () => {}
+} as unknown as Logger;
 
 export interface PollerOptions extends PollerConfig {
   db: DrizzleClient;
@@ -169,10 +177,13 @@ function makePollerWorker(id: number, opts: PollerOptions): PollerWorker {
         // back (Drizzle re-throws). Log + back off so a transient DB blip
         // doesn't spin-lock the loop. Spec leaves error policy implicit; we
         // treat it as an idle cycle.
-        logger.error("poller.cycle_failed", {
-          workerId: id,
-          error: err instanceof Error ? err.message : String(err)
-        });
+        logger.error(
+          {
+            workerId: id,
+            error: err instanceof Error ? err.message : String(err)
+          },
+          "poller.cycle_failed"
+        );
         claimedCount = 0;
       }
       if (claimedCount === 0) {
@@ -184,7 +195,7 @@ function makePollerWorker(id: number, opts: PollerOptions): PollerWorker {
         // queue is mostly drained but not empty. A full batch loops
         // immediately so a backlog drains as fast as possible.
         if (!state.running) break;
-        await sleep(Math.min(idleSleepMs, 50));
+        await sleep(Math.min(idleSleepMs, PARTIAL_BATCH_BREATHER_MS));
       }
       // Full batch → loop immediately (no sleep).
     }
@@ -237,11 +248,10 @@ async function pollOnce(deps: PollOnceDeps): Promise<number> {
     // atomically. RETURNING * gives us post-update rows so the new
     // publish_attempts value is what the DLQ-threshold check below sees.
     //
-    // event_id alone is sufficient in the UPDATE WHERE because BIGSERIAL is
-    // globally unique across partitions — even though the PK is composite
-    // (event_id, occurred_at). The planner uses the partition-pruned PK
-    // index efficiently for this lookup (confirmed empirically — see the
-    // partition index check in catalog-events.test.ts).
+    // The UPDATE WHERE uses the composite PK `(event_id, occurred_at)` so
+    // Postgres can prune to the relevant partition(s). `catalog_events` is
+    // RANGE-partitioned on occurred_at and its PK is composite — supplying
+    // only event_id would force a scan across every partition.
     const claimedRes = await tx.execute(sql`
       WITH claimed AS (
         SELECT event_id, occurred_at
@@ -287,23 +297,29 @@ async function pollOnce(deps: PollOnceDeps): Promise<number> {
     // We treat publisher.publish's contract as "events not in `failed` and
     // counted in published OR silently deduplicated" — either way the row is
     // safe to mark `published_at` because no further attempts are warranted.
-    const successIds: number[] = [];
+    const successPairs: { eventId: number; occurredAt: Date }[] = [];
     for (const row of rows) {
       if (!failedMap.has(String(row.eventId))) {
-        successIds.push(Number(row.eventId));
+        successPairs.push({
+          eventId: Number(row.eventId),
+          occurredAt: row.occurredAt
+        });
       }
     }
-    if (successIds.length > 0) {
-      // event_id IN (...) is sufficient (see note above about BIGSERIAL global
-      // uniqueness). One UPDATE per cycle — batches into a single round-trip.
-      const placeholders = sql.join(
-        successIds.map((id) => sql`${id}`),
+    if (successPairs.length > 0) {
+      // Include occurred_at so the UPDATE can prune to the relevant partition(s).
+      // Mirror the claim CTE's `(event_id, occurred_at) IN (...)` shape.
+      const successValues = sql.join(
+        successPairs.map(
+          (p) =>
+            sql`(${p.eventId}::bigint, ${p.occurredAt.toISOString()}::timestamptz)`
+        ),
         sql`, `
       );
       await tx.execute(sql`
         UPDATE catalog_events
         SET published_at = now()
-        WHERE event_id IN (${placeholders})
+        WHERE (event_id, occurred_at) IN (${successValues})
       `);
     }
 
@@ -315,9 +331,14 @@ async function pollOnce(deps: PollOnceDeps): Promise<number> {
     // ON CONFLICT DO NOTHING on catalog_events_dlq.event_id makes the DLQ
     // insert idempotent — a re-run after a crash between DLQ-insert and tx
     // commit won't double-insert.
+    // Index rows by event id once so the failure loop is O(N+M) instead of
+    // O(N*M). Stringifying both keys insulates against bigint-vs-number drift.
+    const rowById = new Map<string, CatalogEvent>(
+      rows.map((r) => [String(r.eventId), r])
+    );
     let dlqdThisCycle = 0;
     for (const failure of publishRes.failed) {
-      const row = rows.find((r) => String(r.eventId) === String(failure.event.eventId));
+      const row = rowById.get(String(failure.event.eventId));
       if (!row) continue;
       if (row.publishAttempts >= maxAttempts) {
         await tx.execute(sql`
@@ -337,19 +358,25 @@ async function pollOnce(deps: PollOnceDeps): Promise<number> {
     stats.dlqd += dlqdThisCycle;
 
     if (publishRes.failed.length > 0 || dlqdThisCycle > 0) {
-      logger.warn("poller.cycle_partial", {
-        workerId,
-        claimed: rows.length,
-        published: publishRes.published,
-        failed: publishRes.failed.length,
-        dlqd: dlqdThisCycle
-      });
+      logger.warn(
+        {
+          workerId,
+          claimed: rows.length,
+          published: publishRes.published,
+          failed: publishRes.failed.length,
+          dlqd: dlqdThisCycle
+        },
+        "poller.cycle_partial"
+      );
     } else {
-      logger.info("poller.cycle_ok", {
-        workerId,
-        claimed: rows.length,
-        published: publishRes.published
-      });
+      logger.info(
+        {
+          workerId,
+          claimed: rows.length,
+          published: publishRes.published
+        },
+        "poller.cycle_ok"
+      );
     }
 
     return rows.length;
@@ -403,7 +430,3 @@ function normalizeRow(raw: RawClaimedRow): CatalogEvent {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-// Re-export the SQL type for downstream test files that want to spy on
-// constructed queries. Internal; not part of the public barrel.
-export type { SQL };
