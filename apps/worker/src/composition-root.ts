@@ -20,6 +20,10 @@ import { makeIngestionSpineProcessor } from "./processors/ingestion-spine.proces
 import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
+import {
+  startReconcilerWorkers,
+  type ReconcilerWorkerHandle,
+} from "./jobs/reconciler-async.js";
 
 export interface WorkerContainer {
   env: Env;
@@ -33,7 +37,7 @@ export interface WorkerContainer {
   stop(): Promise<void>;
 }
 
-export function buildContainer(env: Env): WorkerContainer {
+export async function buildContainer(env: Env): Promise<WorkerContainer> {
   const logger = pino({ level: env.LOG_LEVEL });
 
   // Phase 4 catalog redesign — resolve the feature flag once and log it
@@ -172,6 +176,23 @@ export function buildContainer(env: Env): WorkerContainer {
     );
   }
 
+  // Phase 4.6 — per-tenant reconciler workers. Discovery happens at boot;
+  // new tenants between deploys won't get a worker until restart (v1).
+  // Gated by `useNewCatalogSchema` — with the flag OFF this is a no-op and
+  // the recon queues stay silent.
+  const reconcilerHandles: ReconcilerWorkerHandle[] = await startReconcilerWorkers(
+    { db: db.client, connection: redis, logger },
+    { useNewCatalogSchema: catalogUseNewSchema }
+  );
+  for (const h of reconcilerHandles) {
+    h.worker.on("completed", (job) =>
+      logger.info({ jobId: job.id, queue: h.worker.name, tenantId: h.tenantId }, "job.completed")
+    );
+    h.worker.on("failed", (job, err) =>
+      logger.error({ jobId: job?.id, queue: h.worker.name, tenantId: h.tenantId, err }, "job.failed")
+    );
+  }
+
   return {
     env,
     useNewCatalogSchema: catalogUseNewSchema,
@@ -187,7 +208,8 @@ export function buildContainer(env: Env): WorkerContainer {
         triggerWorker.close(true),
         cronWorker.close(true),
         ...(linkExtractWorker ? [linkExtractWorker.close(true)] : []),
-        ...(spineWorker ? [spineWorker.close(true)] : [])
+        ...(spineWorker ? [spineWorker.close(true)] : []),
+        ...reconcilerHandles.map((h) => h.worker.close(true))
       ]);
       await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), ingestionSpineQueue.close(), cronQueue.close()]);
       await redis.quit();
@@ -196,6 +218,6 @@ export function buildContainer(env: Env): WorkerContainer {
   };
 }
 
-export function buildContainerFromEnv(): WorkerContainer {
+export async function buildContainerFromEnv(): Promise<WorkerContainer> {
   return buildContainer(parseEnv());
 }
