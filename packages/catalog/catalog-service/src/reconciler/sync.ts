@@ -24,14 +24,14 @@
 // named `_meta` would already be illegal. Future iterations may promote
 // this to a dedicated column if read patterns demand it.
 
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import {
   RECONCILER_VERSION,
   pickWinner,
-  type PickWinnerObservation,
-  type SourcePriorityRule
+  type PickWinnerObservation
 } from "./pick-winner.js";
+import { deepEqual, loadActiveRules } from "./_internal.js";
 
 // ---- Public types ----------------------------------------------------------
 
@@ -112,33 +112,6 @@ function toPickWinnerObservation(o: ValuesObservation): PickWinnerObservation {
   };
 }
 
-/** Deep-equal good enough for our JSONB winning-value comparison. */
-function deepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (a === null || b === null) return false;
-  if (typeof a !== typeof b) return false;
-  if (typeof a !== "object") return false;
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  if (Array.isArray(a)) {
-    const arrB = b as unknown[];
-    if (a.length !== arrB.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], arrB[i])) return false;
-    }
-    return true;
-  }
-  const objA = a as Record<string, unknown>;
-  const objB = b as Record<string, unknown>;
-  const ka = Object.keys(objA);
-  const kb = Object.keys(objB);
-  if (ka.length !== kb.length) return false;
-  for (const k of ka) {
-    if (!Object.prototype.hasOwnProperty.call(objB, k)) return false;
-    if (!deepEqual(objA[k], objB[k])) return false;
-  }
-  return true;
-}
-
 // ---- Public API ------------------------------------------------------------
 
 /**
@@ -183,47 +156,14 @@ export async function projectSync(
     const valuesJson = (row.values ?? {}) as ValuesJson;
     const priorWinningValues = (row.winningValues ?? {}) as WinningValuesJson;
 
-    // 3. Load active rules for this tenant + relevant attributes. A rule
-    //    applies if:
-    //      - effective_to IS NULL (still active)
-    //      - tenant_id IS NULL (global) OR matches this tenant
-    //      - attribute_code IS NULL (all attrs) OR is in affectedAttributes
-    const ruleRows =
-      affectedAttributes.length === 0
-        ? []
-        : await tx
-            .select({
-              ruleId: schema.sourcePriority.ruleId,
-              attributeCode: schema.sourcePriority.attributeCode,
-              sourceGlob: schema.sourcePriority.sourceGlob,
-              channelScope: schema.sourcePriority.channelScope,
-              priority: schema.sourcePriority.priority
-            })
-            .from(schema.sourcePriority)
-            .where(
-              and(
-                isNull(schema.sourcePriority.effectiveTo),
-                or(
-                  isNull(schema.sourcePriority.tenantId),
-                  eq(schema.sourcePriority.tenantId, row.tenantId)
-                ),
-                or(
-                  isNull(schema.sourcePriority.attributeCode),
-                  inArray(
-                    schema.sourcePriority.attributeCode,
-                    affectedAttributes
-                  )
-                )
-              )
-            );
-
-    const rules: SourcePriorityRule[] = ruleRows.map((r) => ({
-      ruleId: r.ruleId,
-      attributeCode: r.attributeCode,
-      sourceGlob: r.sourceGlob,
-      channelScope: r.channelScope,
-      priority: r.priority
-    }));
+    // 3. Load active rules for this tenant + relevant attributes. Shared
+    //    helper handles the filter shape (single eq vs inArray) and the
+    //    empty-attributes short-circuit.
+    const rules = await loadActiveRules(
+      tx as unknown as DrizzleClient,
+      row.tenantId,
+      affectedAttributes
+    );
 
     // 4. Walk each affected attribute. Build the new `winning_values` block
     //    incrementally so we keep prior projections for any attribute we did

@@ -265,6 +265,48 @@ describe("pickWinner (plan §3.3)", () => {
     });
   });
 
+  test("returned `observation` is reference-equal to the winning input observation", () => {
+    // Callers (async-debounced reconciler) rely on `result.observation`
+    // being === the input observation so they can recover side-channel
+    // fields without re-deriving identity from (source, observedAt) —
+    // which is ambiguous when two observations share both.
+    const shopifyObs = obs(
+      "shopify:connector",
+      "shopify-value",
+      new Date("2026-05-01")
+    );
+    const csvObs = obs("csv:upload", "csv-value", new Date("2026-05-02"));
+    const observations = [shopifyObs, csvObs];
+    const rules: SourcePriorityRule[] = [
+      {
+        ruleId: 70,
+        attributeCode: null,
+        sourceGlob: "shopify:*",
+        channelScope: null,
+        priority: 1
+      },
+      {
+        ruleId: 71,
+        attributeCode: null,
+        sourceGlob: "csv:*",
+        channelScope: null,
+        priority: 3
+      }
+    ];
+
+    const winner = pickWinner({
+      observations,
+      rules,
+      channel: "_unscoped",
+      attributeCode: "title"
+    });
+
+    expect(winner).not.toBeNull();
+    // Reference equality — NOT deep equality.
+    expect(winner!.observation).toBe(shopifyObs);
+    expect(winner!.observation).not.toBe(csvObs);
+  });
+
   test("channel-scope glob does not match unrelated channel", () => {
     // Rule scoped to ebay-* must NOT match shopify-store-au, so the matching
     // observation gets no rule and falls to effective Infinity.
