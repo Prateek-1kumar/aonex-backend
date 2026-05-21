@@ -42,8 +42,15 @@
 //      — Drizzle's nested-transaction semantics save-point safely.
 //   5. Per-tenant alerting (spec §6.1) — for v1 we emit a single console.warn
 //      per freeze. Observability wiring lands in Phase 5.
+//   6. Auto-unfreeze filtering compares the observation's `observed_at` to the
+//      freeze row's `applied_at` (not `observed_at`-vs-`observed_at`). This is
+//      a deliberate v1 simplification: the ingest pipeline's observed→applied
+//      skew is seconds-not-days, and the 5-consecutive threshold absorbs that
+//      noise. The trade-off is that backfilled observations with old
+//      `observed_at` values will be excluded from unfreeze counting — that is
+//      the safer default (avoid unfreezing on stale signals).
 
-import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { loadActiveRules } from "./reconciler/_internal.js";
 import { globMatch, type SourcePriorityRule } from "./reconciler/pick-winner.js";
@@ -197,6 +204,12 @@ function findConflictingPriorityOne(
 /**
  * Find the applied_at of the most recent freeze identity_log row for this
  * product+field. Returns null if no prior freeze.
+ *
+ * Predicate pushed into SQL via LIKE 'freeze%' rather than fetching the last N
+ * rows and filtering client-side: a product can accumulate many non-freeze
+ * rows after a freeze (auto-unfreeze + apply rows from `single_priority_one_source`)
+ * so any fixed in-memory window risks missing the freeze and silently
+ * regressing to all-time counting.
  */
 async function lastFreezeAppliedAt(
   tx: DrizzleClient,
@@ -204,26 +217,18 @@ async function lastFreezeAppliedAt(
   field: IdentityField
 ): Promise<Date | null> {
   const rows = await tx
-    .select({
-      appliedAt: schema.identityLog.appliedAt,
-      rationale: schema.identityLog.rationale
-    })
+    .select({ appliedAt: schema.identityLog.appliedAt })
     .from(schema.identityLog)
     .where(
       and(
         eq(schema.identityLog.productId, productId),
         eq(schema.identityLog.identityField, field),
-        isNotNull(schema.identityLog.rationale)
+        sql`${schema.identityLog.rationale} LIKE 'freeze%'`
       )
     )
     .orderBy(desc(schema.identityLog.appliedAt))
-    .limit(20);
-  for (const r of rows) {
-    if (r.rationale && r.rationale.startsWith("freeze")) {
-      return r.appliedAt;
-    }
-  }
-  return null;
+    .limit(1);
+  return rows[0]?.appliedAt ?? null;
 }
 
 /**
@@ -252,6 +257,12 @@ async function tryAutoUnfreeze(
   // from catalog-write's attach branch.
   let count = 0;
   for (const obs of observations) {
+    // We compare the observation's observed_at to the freeze's applied_at — a
+    // deliberate v1 simplification. Observed-vs-applied skew is bounded by the
+    // ingest pipeline's latency (seconds, not days) and the auto-unfreeze
+    // threshold of 5 absorbs that noise. Backfilled observations with very old
+    // observed_at will be excluded; that's the safer default (don't accidentally
+    // unfreeze on stale data).
     if (freezeAt && Date.parse(obs.observed_at) <= freezeAt.getTime()) continue;
     if (!isPriorityOne(rules, field, obs.source)) continue;
     if (typeof obs.value !== "string") continue;
@@ -264,10 +275,9 @@ async function tryAutoUnfreeze(
   // risk is bounded by `>= AUTO_UNFREEZE_CONSECUTIVE` being a strict
   // threshold — an extra count only ever triggers unfreeze faster, which is
   // acceptable for the rare case where catalog-write pre-writes.
-  if (
-    isPriorityOne(rules, field, incoming.source) &&
-    currentValue !== null
-  ) {
+  // (currentValue is non-null here — the early return at function entry
+  // already excluded the null case.)
+  if (isPriorityOne(rules, field, incoming.source)) {
     // Only add 1 if no existing observation has this source_record_id (would
     // mean catalog-write already pushed it).
     const alreadyPushed = observations.some(
@@ -301,6 +311,13 @@ async function tryAutoUnfreeze(
 
 // ---- Public API ------------------------------------------------------------
 
+const VALID_FIELDS: ReadonlySet<IdentityField> = new Set<IdentityField>([
+  "gtin",
+  "mpn",
+  "brand",
+  "model_number"
+]);
+
 /**
  * Apply an identity observation through the policy gate. Returns whether the
  * observation was applied to `catalog_products.identity` and whether the
@@ -320,7 +337,22 @@ export async function applyIdentityObservation(
     observedAt
   } = input;
 
-  return db.transaction(async (tx) => {
+  // Boundary guards — catch caller bugs early rather than write malformed
+  // identity_log rows or run a no-op gate.
+  if (!VALID_FIELDS.has(field)) {
+    throw new Error(`applyIdentityObservation: invalid field "${field}"`);
+  }
+  if (!proposedValue || proposedValue.length === 0) {
+    throw new Error(
+      "applyIdentityObservation: proposedValue must be a non-empty string"
+    );
+  }
+
+  return db.transaction(async (txRaw) => {
+    // Hoist the DrizzleClient cast once per transaction — matches
+    // async-debounced.ts:300 convention. Drizzle's transaction handle is
+    // structurally a subset of DrizzleClient; the cast is safe.
+    const tx = txRaw as unknown as DrizzleClient;
     // 1. Load product row.
     const rows = await tx
       .select({
@@ -355,17 +387,13 @@ export async function applyIdentityObservation(
 
     // 2. Load active source_priority rules for this field. Using the same
     //    helper as the reconciler so semantics are aligned.
-    const rules = await loadActiveRules(
-      tx as unknown as DrizzleClient,
-      tenantId,
-      [field]
-    );
+    const rules = await loadActiveRules(tx, tenantId, [field]);
 
     // 3. If the product is currently frozen, attempt auto-unfreeze. If we
     //    don't unfreeze here, the call is a no-op (identity blocked).
     if (row.status === FROZEN_STATUS) {
       const unfrozen = await tryAutoUnfreeze(
-        tx as unknown as DrizzleClient,
+        tx,
         productId,
         tenantId,
         field,
@@ -381,20 +409,17 @@ export async function applyIdentityObservation(
 
     // 4. Strength gate: identity_strength < 0.7 freezes any identity update.
     if (strength < STRENGTH_FREEZE_THRESHOLD) {
-      const { logId } = await freeze(
-        tx as unknown as DrizzleClient,
-        {
-          productId,
-          tenantId,
-          field,
-          currentValue,
-          incomingValue: proposedValue,
-          source,
-          sourceRecordId,
-          observedAt,
-          rationale: "freeze_identity_strength_low"
-        }
-      );
+      const { logId } = await freeze(tx, {
+        productId,
+        tenantId,
+        field,
+        currentValue,
+        incomingValue: proposedValue,
+        source,
+        sourceRecordId,
+        observedAt,
+        rationale: "freeze_identity_strength_low"
+      });
       return { applied: false, frozen: true, identityLogId: logId };
     }
 
@@ -422,21 +447,18 @@ export async function applyIdentityObservation(
         proposedValue
       );
       if (conflict) {
-        const { logId, reviewTaskId } = await freezeWithReviewTask(
-          tx as unknown as DrizzleClient,
-          {
-            productId,
-            tenantId,
-            merchantId,
-            field,
-            currentValue,
-            incomingValue: proposedValue,
-            incomingSource: source,
-            sourceRecordId,
-            observedAt,
-            conflict
-          }
-        );
+        const { logId, reviewTaskId } = await freezeWithReviewTask(tx, {
+          productId,
+          tenantId,
+          merchantId,
+          field,
+          currentValue,
+          incomingValue: proposedValue,
+          incomingSource: source,
+          sourceRecordId,
+          observedAt,
+          conflict
+        });
         const result: ApplyIdentityObservationResult = {
           applied: false,
           frozen: true,
@@ -447,21 +469,18 @@ export async function applyIdentityObservation(
       }
 
       // Apply the update.
-      const logId = await applyUpdate(
-        tx as unknown as DrizzleClient,
-        {
-          productId,
-          tenantId,
-          field,
-          identity,
-          oldValue: currentValue,
-          newValue: proposedValue,
-          source,
-          sourceRecordId,
-          observedAt,
-          rationale: "single_priority_one_source"
-        }
-      );
+      const logId = await applyUpdate(tx, {
+        productId,
+        tenantId,
+        field,
+        identity,
+        oldValue: currentValue,
+        newValue: proposedValue,
+        source,
+        sourceRecordId,
+        observedAt,
+        rationale: "single_priority_one_source"
+      });
       return { applied: true, frozen: false, identityLogId: logId };
     }
 
@@ -494,21 +513,18 @@ export async function applyIdentityObservation(
       return { applied: false, frozen: false };
     }
 
-    const logId = await applyUpdate(
-      tx as unknown as DrizzleClient,
-      {
-        productId,
-        tenantId,
-        field,
-        identity,
-        oldValue: currentValue,
-        newValue: proposedValue,
-        source,
-        sourceRecordId,
-        observedAt,
-        rationale: "three_consecutive_priority_one_observations"
-      }
-    );
+    const logId = await applyUpdate(tx, {
+      productId,
+      tenantId,
+      field,
+      identity,
+      oldValue: currentValue,
+      newValue: proposedValue,
+      source,
+      sourceRecordId,
+      observedAt,
+      rationale: "three_consecutive_priority_one_observations"
+    });
     return { applied: true, frozen: false, identityLogId: logId };
   });
 }
@@ -599,9 +615,10 @@ async function freeze(
     throw new Error("applyIdentityObservation: identity_log freeze insert returned no row");
   }
   // Per-tenant alerting (spec §6.1): v1 emits a log line per freeze. Real
-  // paging integration lands in Phase 5 observability.
+  // paging integration lands in Phase 5 observability. The incoming value is
+  // included so on-call has the disputed signal without a second DB hop.
   console.warn(
-    `[catalog-identity-policy] FREEZE product=${args.productId} field=${args.field} rationale=${args.rationale}`
+    `[catalog-identity-policy] FREEZE product=${args.productId} field=${args.field} rationale=${args.rationale} incomingValue=${args.incomingValue} currentValue=${args.currentValue ?? "<null>"}`
   );
   return { logId };
 }
