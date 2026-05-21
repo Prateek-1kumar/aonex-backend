@@ -175,6 +175,8 @@ There is **no `unsplit` operation in v1.** Splits are designed to be permanent â
 - **Merge inverse.** Run `mergeProducts(sourceProductId, [newProductId], actor, rationale)` to merge the new product back into source. Caveat: a new lineage row will appear; the original `operation='split'` row stays for the audit trail.
 - **Manual SQL.** Re-INSERT specific observations via raw SQL. Requires DBA approval and an incident ticket. Side-table rows can be moved back by `UPDATE catalog_pricing_observations SET product_id = '<source>' WHERE product_id = '<new>'` (similar for inventory). Revision rows must NOT be touched.
 
+> **Composition hazard.** If the source product was previously the winner of a `mergeProducts` call and you split observations that were originally moved in by that merge, a subsequent `unmergeProduct` of the original merge will NOT restore those split-off observations to the original loser â€” they'll stay on the post-split new product. Plan splits AFTER unmerge-window expiry, or accept the new lineage as authoritative.
+
 ## Record-keeping
 
 Append this entry to the incident log (`docs/incidents/...` or your team's equivalent):
