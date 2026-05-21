@@ -4,8 +4,9 @@
   "include": ["src/**/*"],
   "references": [
     { "path": "../../db" },
+    { "path": "../../types" },
     { "path": "../../lib-utils" },
-    { "path": "../../multi-source-reconciler" },
-    { "path": "../../schema-validator" }
+    { "path": "../source-adapters" },
+    { "path": "../../multi-source-reconciler" }
   ]
 }
