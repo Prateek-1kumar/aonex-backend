@@ -110,11 +110,14 @@
       "name": "@aonex/catalog-service",
       "version": "0.0.0",
       "dependencies": {
+        "@aonex/catalog-source-adapters": "workspace:*",
         "@aonex/db": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
         "@aonex/multi-source-reconciler": "workspace:*",
-        "@aonex/schema-validator": "workspace:*",
+        "@aonex/types": "workspace:*",
+        "bullmq": "^5.34.5",
         "drizzle-orm": "^0.36.4",
+        "ioredis": "^5.4.2",
       },
     },
     "packages/catalog/product-versions": {

@@ -10,3 +10,12 @@ export type {
   IdentityResolverResult,
   IdentityMatchPath
 } from "./identity-resolver.js";
+
+export { pickWinner, globMatch, RECONCILER_VERSION } from "./reconciler/pick-winner.js";
+export type {
+  PickWinnerInput,
+  PickWinnerObservation,
+  PickWinnerResult,
+  SourcePriorityRule,
+  WinnerExplanation
+} from "./reconciler/pick-winner.js";
