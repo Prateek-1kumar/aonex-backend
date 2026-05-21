@@ -18,6 +18,10 @@
 //   - One Stream + one consumer group per worker process. Sharding/scale-out
 //     happens by running multiple worker processes with the SAME group
 //     name and DIFFERENT consumer names — Redis distributes entries.
+//   - Failure logs are NOT rate-limited; a permanently-down webhook produces
+//     one warn line per event. Operators with monitoring can wire log
+//     rate-limits in their log pipeline. Future: in-process throttling
+//     per-tenant.
 //
 // Idempotency (spec §19.1):
 //   Each event carries an `eventId`. Consumers dedupe by `eventId`. The
@@ -65,8 +69,18 @@ const DEFAULT_GROUP_NAME = "catalog-webhook-consumer";
 const DEFAULT_POLL_BLOCK_MS = 5_000;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BASE_BACKOFF_MS = 1_000;
-/** Cap exponential backoff sleep to keep stop() responsive. */
-const MAX_BACKOFF_MS = 30_000;
+/** Default per-request HTTP timeout for webhook POSTs. */
+const DEFAULT_HTTP_TIMEOUT_MS = 15_000;
+/** Default XREADGROUP COUNT — max entries fetched per poll. */
+const DEFAULT_BATCH_SIZE = 10;
+/**
+ * Cap exponential backoff sleep to keep stop() responsive.
+ *
+ * Caps single-sleep latency. With v1 default maxAttempts=3 + baseBackoffMs=1000,
+ * total backoff is bounded at 1+2 ≈ 3s; the cap matters only if operator
+ * raises maxAttempts.
+ */
+const MAX_BACKOFF_MS = 10_000;
 
 export interface WebhookConsumerDeps {
   db: DrizzleClient;
@@ -89,6 +103,10 @@ export interface WebhookConsumerOptions {
   maxAttempts?: number;
   /** Base backoff in ms. Default 1000. */
   baseBackoffMs?: number;
+  /** Per-request HTTP timeout in ms (AbortSignal). Default 15000. */
+  httpTimeoutMs?: number;
+  /** XREADGROUP COUNT — max stream entries per poll. Default 10. */
+  batchSize?: number;
   /**
    * HTTP fetch implementation. Default global fetch. Tests inject a stub
    * to assert request shape + simulate failures without touching the
@@ -111,8 +129,10 @@ export interface WebhookConsumerStats {
 
 export interface WebhookConsumerHandle {
   /**
-   * Begin the read-loop. Idempotent — calling twice is a no-op (the second
-   * call returns silently, the loop keeps running).
+   * Begin the read-loop. Idempotent within a single lifecycle — once
+   * `stop()` has been called, restart is not supported (construct a new
+   * consumer). Calling `start()` twice before `stop()` is a no-op: the
+   * second call returns silently and the loop keeps running.
    */
   start(): void;
   /**
@@ -204,9 +224,10 @@ async function abortableSleep(
  * POST `body` to `url` with retries.
  *
  * Retry policy:
- *   - 5xx response and network-level errors (fetch throws) → retry up to
- *     `maxAttempts` total attempts, sleeping `base * 2^(n-1)` ms between
- *     attempts plus 0-100ms jitter, capped at MAX_BACKOFF_MS.
+ *   - 5xx response and network-level errors (fetch throws, incl. timeouts
+ *     via AbortSignal.timeout → AbortError) → retry up to `maxAttempts`
+ *     total attempts, sleeping `base * 2^(n-1)` ms between attempts plus
+ *     0-100ms jitter, capped at MAX_BACKOFF_MS.
  *   - 4xx response → no retry (caller bug). Surface as failed.
  *   - 2xx/3xx → success on first valid response.
  */
@@ -215,10 +236,19 @@ async function deliverWithRetries(args: {
   body: unknown;
   maxAttempts: number;
   baseBackoffMs: number;
+  httpTimeoutMs: number;
   fetchImpl: typeof fetch;
   aborted: () => boolean;
 }): Promise<DeliveryResult> {
-  const { url, body, maxAttempts, baseBackoffMs, fetchImpl, aborted } = args;
+  const {
+    url,
+    body,
+    maxAttempts,
+    baseBackoffMs,
+    httpTimeoutMs,
+    fetchImpl,
+    aborted
+  } = args;
   const serialized = JSON.stringify(body);
   let lastReason = "";
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -229,7 +259,11 @@ async function deliverWithRetries(args: {
       const res = await fetchImpl(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: serialized
+        body: serialized,
+        // AbortSignal.timeout throws an AbortError if the request exceeds
+        // httpTimeoutMs. The catch below normalizes this to a network-style
+        // reason and counts it as retryable.
+        signal: AbortSignal.timeout(httpTimeoutMs)
       });
       if (res.status >= 200 && res.status < 300) {
         return { success: true, attempts: attempt };
@@ -284,6 +318,8 @@ export function makeWebhookConsumer(
   );
   const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const baseBackoffMs = options.baseBackoffMs ?? DEFAULT_BASE_BACKOFF_MS;
+  const httpTimeoutMs = options.httpTimeoutMs ?? DEFAULT_HTTP_TIMEOUT_MS;
+  const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
   const fetchImpl = options.fetchImpl ?? fetch;
 
   const stats: WebhookConsumerStats = {
@@ -309,8 +345,14 @@ export function makeWebhookConsumer(
         "MKSTREAM"
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("BUSYGROUP")) return; // already created — fine
+      // ioredis surfaces the redis reply text verbatim in err.message; the
+      // canonical reply for an already-existing group is
+      // `BUSYGROUP Consumer Group name already exists`. Anchor at line-start
+      // (with optional whitespace) + word boundary to avoid false positives
+      // from substrings inside arbitrary error text.
+      const isBusyGroup =
+        err instanceof Error && /^\s*BUSYGROUP\b/i.test(err.message);
+      if (isBusyGroup) return; // already created — fine
       throw err;
     }
   }
@@ -383,15 +425,41 @@ export function makeWebhookConsumer(
       payload
     };
 
-    for (const w of rows) {
-      const result = await deliverWithRetries({
-        url: w.url,
-        body,
-        maxAttempts,
-        baseBackoffMs,
-        fetchImpl,
-        aborted
-      });
+    // Deliveries to different webhook rows for the same tenant are
+    // independent — run them concurrently. `allSettled` so one webhook's
+    // unexpected throw doesn't block siblings; per-row failure already
+    // returns a `DeliveryResult` via the catch inside `deliverWithRetries`,
+    // so the `rejected` branch here is truly defensive (shouldn't fire).
+    const settlements = await Promise.allSettled(
+      rows.map((w) =>
+        deliverWithRetries({
+          url: w.url,
+          body,
+          maxAttempts,
+          baseBackoffMs,
+          httpTimeoutMs,
+          fetchImpl,
+          aborted
+        }).then((result) => ({ w, result }))
+      )
+    );
+    for (const s of settlements) {
+      if (s.status === "rejected") {
+        stats.failed++;
+        const msg =
+          s.reason instanceof Error ? s.reason.message : String(s.reason);
+        stats.lastErr = `deliver:${msg}`;
+        logger?.warn(
+          {
+            eventId: f.eventId,
+            eventType: f.eventType,
+            reason: msg
+          },
+          "webhook.failed"
+        );
+        continue;
+      }
+      const { w, result } = s.value;
       if (result.success) {
         stats.delivered++;
         logger?.debug(
@@ -439,7 +507,7 @@ export function makeWebhookConsumer(
           groupName,
           consumerName,
           "COUNT",
-          10,
+          batchSize,
           "BLOCK",
           pollBlockMs,
           "STREAMS",

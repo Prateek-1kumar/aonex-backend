@@ -375,6 +375,87 @@ describe("makeWebhookConsumer — retry semantics", () => {
     expect(consumer.stats().lastErr).toBe("http_400");
   });
 
+  test("HTTP timeout is treated as a network error and retries until maxAttempts then fails", async () => {
+    const tenantId = freshTenantId();
+    const stream = freshStreamName();
+    const group = freshGroupName(stream);
+    await insertWebhook({
+      tenantId,
+      url: "https://example.test/timeout",
+      eventTypes: ["catalog.product.created"]
+    });
+
+    await publishEvent(redis, {
+      stream,
+      eventId: String(Date.now()),
+      eventType: "catalog.product.created",
+      productId: randomUUID(),
+      tenantId,
+      payload: {}
+    });
+
+    // Build a fetch impl that delays indefinitely, but respects the abort
+    // signal forwarded by the consumer (AbortSignal.timeout). When the
+    // signal fires, reject with an AbortError to mirror real fetch behavior.
+    const calls: FetchCall[] = [];
+    const fetchImpl = (async (
+      input: string | URL | Request,
+      init?: RequestInit
+    ): Promise<Response> => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+      calls.push({ url, body: undefined });
+      const signal = init?.signal;
+      return new Promise<Response>((_resolve, reject) => {
+        if (signal?.aborted) {
+          const err = new Error("The operation was aborted");
+          err.name = "AbortError";
+          reject(err);
+          return;
+        }
+        signal?.addEventListener(
+          "abort",
+          () => {
+            const err = new Error("The operation was aborted");
+            err.name = "AbortError";
+            reject(err);
+          },
+          { once: true }
+        );
+      });
+    }) as unknown as typeof fetch;
+
+    const consumer = makeWebhookConsumer(
+      { db, connection: redis, logger: makeQuietLogger() },
+      {
+        streamName: stream,
+        groupName: group,
+        pollBlockMs: 100,
+        fetchImpl,
+        baseBackoffMs: 10,
+        maxAttempts: 3,
+        httpTimeoutMs: 100
+      }
+    );
+    consumer.start();
+    try {
+      const ok = await waitFor(() => consumer.stats().failed === 1, 5000);
+      expect(ok).toBe(true);
+    } finally {
+      await consumer.stop();
+    }
+
+    // 3 attempts before giving up.
+    expect(calls.length).toBe(3);
+    expect(consumer.stats().delivered).toBe(0);
+    expect(consumer.stats().failed).toBe(1);
+    expect(consumer.stats().lastErr).toMatch(/^network:/);
+  });
+
   test("network error retries until success", async () => {
     const tenantId = freshTenantId();
     const stream = freshStreamName();
