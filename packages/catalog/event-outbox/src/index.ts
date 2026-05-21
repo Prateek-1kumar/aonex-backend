@@ -19,7 +19,6 @@ export {
   DEFAULT_THRESHOLDS,
   DEFAULT_TTL_SECONDS,
   getCurrentThrottleLevel,
-  getCurrentThrottleSignal,
   measureAndPublishBackpressure
 } from "./backpressure.js";
 export type {

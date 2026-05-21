@@ -98,6 +98,9 @@ export const DEFAULT_KEY_PREFIX = "catalog:event-outbox:throttle";
  * 10-30s cadence keeps the key fresh, but a stuck measurement loop
  * does not leave stale data pinning adapter workers indefinitely —
  * after one minute of silence we revert to fail-open "none".
+ *
+ * Task 5.6 wires the measurement loop on a 10s cadence; the 60s TTL
+ * gives 6× headroom for transient measurement stalls.
  */
 export const DEFAULT_TTL_SECONDS = 60;
 
@@ -330,15 +333,12 @@ export async function getCurrentThrottleSignal(
 
   try {
     const parsed = JSON.parse(raw) as ThrottleSignal & {
-      measuredAt: string | Date;
+      measuredAt: string;
     };
     // Rehydrate Date — JSON.stringify produced an ISO string.
     return {
       ...parsed,
-      measuredAt:
-        parsed.measuredAt instanceof Date
-          ? parsed.measuredAt
-          : new Date(parsed.measuredAt)
+      measuredAt: new Date(parsed.measuredAt)
     };
   } catch (err: unknown) {
     (logger ?? NOOP_LOGGER).warn(

@@ -15,7 +15,6 @@ import {
   afterAll,
   afterEach,
   beforeAll,
-  beforeEach,
   describe,
   expect,
   test
@@ -47,6 +46,10 @@ const TEST_KEY_PREFIX = `test:catalog:event-outbox:throttle:${randomUUID()}`;
 
 let db: DrizzleClient;
 let redis: IORedis;
+// Each test pushes the tenants / Redis keys it created into these lists,
+// and `afterEach` drains them. We don't SCAN-and-delete by prefix because
+// Bun's redis client doesn't expose a batched scan; explicit tracking is
+// simpler and faster anyway.
 const tenantsToCleanup: string[] = [];
 const keysToCleanup: string[] = [];
 
@@ -59,12 +62,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await closeTestDb();
   await redis.quit();
-});
-
-beforeEach(() => {
-  // Each test will push the keys it created into this list. We don't
-  // SCAN-and-delete by prefix because Bun's redis client doesn't expose a
-  // batched scan; explicit tracking is simpler and faster anyway.
 });
 
 afterEach(async () => {
@@ -361,17 +358,54 @@ describe("getCurrentThrottleLevel", () => {
     expect(level).toBe("soft");
   });
 
-  test("returns 'none' (fail-open) when stored JSON is corrupt", async () => {
+  test("returns 'none' (fail-open) when stored JSON is corrupt; logger is optional", async () => {
     const tenantId = freshTenantId();
     const key = trackKey(tenantId);
     await redis.set(key, "this-is-not-json", "EX", 30);
 
+    // No logger passed — must still fail open silently.
     const level = await getCurrentThrottleLevel(
       redis,
       tenantId,
       TEST_KEY_PREFIX
     );
     expect(level).toBe("none");
+  });
+
+  test("emits a single warn entry through the supplied logger on corrupt JSON", async () => {
+    const tenantId = freshTenantId();
+    const key = trackKey(tenantId);
+    await redis.set(key, "not-json", "EX", 60);
+
+    // Minimal spy: capture every `warn` call. Cast through `unknown`
+    // because pino's `Logger` is a rich type; the implementation only
+    // touches `.warn` on the corrupt-JSON path.
+    const warnCalls: Array<{ obj: unknown; msg: unknown }> = [];
+    const spyLogger = {
+      info: () => {},
+      warn: (obj: unknown, msg: unknown) => {
+        warnCalls.push({ obj, msg });
+      },
+      error: () => {},
+      debug: () => {},
+      trace: () => {},
+      fatal: () => {}
+    } as unknown as Parameters<typeof getCurrentThrottleLevel>[3];
+
+    const level = await getCurrentThrottleLevel(
+      redis,
+      tenantId,
+      TEST_KEY_PREFIX,
+      spyLogger
+    );
+
+    expect(level).toBe("none");
+    expect(warnCalls).toHaveLength(1);
+    expect(warnCalls[0]!.msg).toBe("catalog.outbox.backpressure_corrupt_signal");
+    const obj = warnCalls[0]!.obj as { key: string; error: string };
+    expect(obj.key).toBe(key);
+    expect(typeof obj.error).toBe("string");
+    expect(obj.error.length).toBeGreaterThan(0);
   });
 });
 
