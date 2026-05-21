@@ -24,6 +24,7 @@ import {
   startReconcilerWorkers,
   type ReconcilerWorkerHandle,
 } from "./jobs/reconciler-async.js";
+import { startOutboxPoller, type OutboxHandle } from "./jobs/outbox-poller.js";
 
 export interface WorkerContainer {
   env: Env;
@@ -193,6 +194,16 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     );
   }
 
+  // Phase 5.6 — outbox poller workers + backpressure measurement interval.
+  // Gated by `useNewCatalogSchema` — with the flag OFF this is a no-op and
+  // the outbox stays silent (returns null). The handle (when present) owns
+  // 4 poller worker loops + a 10s backpressure interval; its `stop()` is
+  // awaited during graceful shutdown below.
+  const outboxHandle: OutboxHandle | null = await startOutboxPoller(
+    { db: db.client, connection: redis, logger },
+    { useNewCatalogSchema: catalogUseNewSchema }
+  );
+
   return {
     env,
     useNewCatalogSchema: catalogUseNewSchema,
@@ -209,7 +220,8 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         cronWorker.close(true),
         ...(linkExtractWorker ? [linkExtractWorker.close(true)] : []),
         ...(spineWorker ? [spineWorker.close(true)] : []),
-        ...reconcilerHandles.map((h) => h.worker.close(true))
+        ...reconcilerHandles.map((h) => h.worker.close(true)),
+        ...(outboxHandle ? [outboxHandle.stop()] : [])
       ]);
       await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), ingestionSpineQueue.close(), cronQueue.close()]);
       await redis.quit();
