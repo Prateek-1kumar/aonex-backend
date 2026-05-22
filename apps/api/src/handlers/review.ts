@@ -368,7 +368,7 @@ export async function getTaskEvidence(c: Context, deps: ReviewRouteDeps): Promis
       where: (d, { eq }) => eq(d.id, task.proposedDiffId!),
     });
     if (diff?.sourceFactSetId) {
-      const factSet = await deps.db.query.extractedFactSets.findFirst({
+      const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
         where: (f, { eq }) => eq(f.id, diff.sourceFactSetId),
       });
       if (factSet?.artifactId) {

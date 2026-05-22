@@ -1,5 +1,13 @@
-// HLD §9 / §20 — extraction_runs, extracted_fact_sets, extracted_facts.
-// "Persist source_artifacts and extracted_facts before touching catalog tables" (HLD §2.4).
+// Phase 9 reframing (catalog redesign Task 9.2) — link_ingestion_trace_runs,
+// link_ingestion_trace_sets, link_ingestion_trace_facts.
+//
+// These tables are transient evidence of LLM extraction during link ingestion,
+// NOT canonical catalog state. The catalog_products side tables (winning_values,
+// catalog_pricing_current, etc.) are the source of truth.
+//
+// 14-day retention is enforced by the daily link-trace-cleanup job
+// (apps/worker/src/jobs/link-trace-cleanup.ts).
+//
 // Idempotency key: UNIQUE on (artifact_id, extractor_version, mapper_version, policy_version_id).
 
 import {
@@ -23,9 +31,13 @@ import { extractionMethodEnum, extractionRunStatusEnum } from "./enums.js";
  * HLD §9 / §20 — one row per extraction attempt per artifact.
  * UNIQUE on (artifact_id, extractor_version, mapper_version, policy_version_id)
  * makes re-runs idempotent — the duplicate insert is skipped.
+ *
+ * DB table: link_ingestion_trace_runs (renamed from extraction_runs in migration 0021).
+ * Index names (idx_extraction_runs_*, uq_extraction_runs_*) preserved from before
+ * the rename — cosmetic rename deferred (would require ACCESS EXCLUSIVE lock).
  */
-export const extractionRuns = pgTable(
-  "extraction_runs",
+export const linkIngestionTraceRuns = pgTable(
+  "link_ingestion_trace_runs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     artifactId: uuid("artifact_id")
@@ -62,14 +74,16 @@ export const extractionRuns = pgTable(
 
 /**
  * HLD §9 / §20 — the set of extracted facts produced by one extraction run.
+ *
+ * DB table: link_ingestion_trace_sets (renamed from extracted_fact_sets in migration 0021).
  */
-export const extractedFactSets = pgTable(
-  "extracted_fact_sets",
+export const linkIngestionTraceSets = pgTable(
+  "link_ingestion_trace_sets",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     extractionRunId: uuid("extraction_run_id")
       .notNull()
-      .references(() => extractionRuns.id, { onDelete: "cascade" }),
+      .references(() => linkIngestionTraceRuns.id, { onDelete: "cascade" }),
     artifactId: uuid("artifact_id").notNull(),
     tenantId: uuid("tenant_id").notNull(),
     merchantId: uuid("merchant_id").notNull(),
@@ -85,14 +99,16 @@ export const extractedFactSets = pgTable(
  * raw_key: the source field name (e.g. "vendor").
  * canonical_path: null until the Semantic Mapper assigns it.
  * source_pointer: JSONPath into rawData (e.g. "$.variants[0].barcode").
+ *
+ * DB table: link_ingestion_trace_facts (renamed from extracted_facts in migration 0021).
  */
-export const extractedFacts = pgTable(
-  "extracted_facts",
+export const linkIngestionTraceFacts = pgTable(
+  "link_ingestion_trace_facts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     factSetId: uuid("fact_set_id")
       .notNull()
-      .references(() => extractedFactSets.id, { onDelete: "cascade" }),
+      .references(() => linkIngestionTraceSets.id, { onDelete: "cascade" }),
     tenantId: uuid("tenant_id").notNull(),
     rawKey: varchar("raw_key", { length: 200 }).notNull(),
     /** Assigned by the Semantic Mapper — null = unmapped */
@@ -123,9 +139,31 @@ export const extractedFacts = pgTable(
   })
 );
 
-export type ExtractionRun = typeof extractionRuns.$inferSelect;
-export type NewExtractionRun = typeof extractionRuns.$inferInsert;
-export type ExtractedFactSet = typeof extractedFactSets.$inferSelect;
-export type NewExtractedFactSet = typeof extractedFactSets.$inferInsert;
-export type ExtractedFactRow = typeof extractedFacts.$inferSelect;
-export type NewExtractedFact = typeof extractedFacts.$inferInsert;
+export type LinkIngestionTraceRun = typeof linkIngestionTraceRuns.$inferSelect;
+export type NewLinkIngestionTraceRun = typeof linkIngestionTraceRuns.$inferInsert;
+export type LinkIngestionTraceSet = typeof linkIngestionTraceSets.$inferSelect;
+export type NewLinkIngestionTraceSet = typeof linkIngestionTraceSets.$inferInsert;
+export type LinkIngestionTraceFactRow = typeof linkIngestionTraceFacts.$inferSelect;
+export type NewLinkIngestionTraceFact = typeof linkIngestionTraceFacts.$inferInsert;
+
+// ---------------------------------------------------------------------------
+// Back-compat aliases — deprecated, remove in a future cleanup pass.
+// ---------------------------------------------------------------------------
+/** @deprecated Use linkIngestionTraceRuns */
+export const extractionRuns = linkIngestionTraceRuns;
+/** @deprecated Use linkIngestionTraceSets */
+export const extractedFactSets = linkIngestionTraceSets;
+/** @deprecated Use linkIngestionTraceFacts */
+export const extractedFacts = linkIngestionTraceFacts;
+/** @deprecated Use LinkIngestionTraceRun */
+export type ExtractionRun = LinkIngestionTraceRun;
+/** @deprecated Use NewLinkIngestionTraceRun */
+export type NewExtractionRun = NewLinkIngestionTraceRun;
+/** @deprecated Use LinkIngestionTraceSet */
+export type ExtractedFactSet = LinkIngestionTraceSet;
+/** @deprecated Use NewLinkIngestionTraceSet */
+export type NewExtractedFactSet = NewLinkIngestionTraceSet;
+/** @deprecated Use LinkIngestionTraceFactRow */
+export type ExtractedFactRow = LinkIngestionTraceFactRow;
+/** @deprecated Use NewLinkIngestionTraceFact */
+export type NewExtractedFact = NewLinkIngestionTraceFact;

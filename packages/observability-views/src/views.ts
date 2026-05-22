@@ -74,7 +74,7 @@ export const VIEW_DEFINITIONS: Record<ObservabilityViewName, string> = {
       er.policy_version_id,
       date_trunc('day', er.created_at) AS day,
       count(*)::int AS run_count
-    FROM extraction_runs er
+    FROM link_ingestion_trace_runs er
     WHERE er.created_at > now() - interval '14 days'
     GROUP BY er.extractor_version, er.mapper_version, er.policy_version_id, date_trunc('day', er.created_at)
   `,

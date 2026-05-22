@@ -299,7 +299,7 @@ async function persistExtractionRun(
   factSet: ExtractedFactSet
 ): Promise<string> {
   const [row] = await input.db
-    .insert(schema.extractionRuns)
+    .insert(schema.linkIngestionTraceRuns)
     .values({
       artifactId,
       tenantId: input.tenantId,
@@ -312,10 +312,10 @@ async function persistExtractionRun(
       completedAt: new Date()
     })
     .onConflictDoNothing()
-    .returning({ id: schema.extractionRuns.id });
+    .returning({ id: schema.linkIngestionTraceRuns.id });
   if (row) return row.id;
 
-  const existing = await input.db.query.extractionRuns.findFirst({
+  const existing = await input.db.query.linkIngestionTraceRuns.findFirst({
     where: (r, { and, eq }) =>
       and(
         eq(r.artifactId, artifactId),
@@ -333,20 +333,20 @@ async function persistFactSet(
   artifactId: string,
   extractionRunId: string
 ): Promise<string> {
-  const existing = await input.db.query.extractedFactSets.findFirst({
+  const existing = await input.db.query.linkIngestionTraceSets.findFirst({
     where: (fs, { eq }) => eq(fs.extractionRunId, extractionRunId)
   });
   if (existing) return existing.id;
 
   const [row] = await input.db
-    .insert(schema.extractedFactSets)
+    .insert(schema.linkIngestionTraceSets)
     .values({
       extractionRunId,
       artifactId,
       tenantId: input.tenantId,
       merchantId: input.merchantId
     })
-    .returning({ id: schema.extractedFactSets.id });
+    .returning({ id: schema.linkIngestionTraceSets.id });
   if (!row) throw new Error("Failed to persist fact_set");
   return row.id;
 }
@@ -357,11 +357,11 @@ async function persistFacts(
   facts: ReadonlyArray<ExtractedFact>
 ): Promise<void> {
   if (facts.length === 0) return;
-  const existing = await input.db.query.extractedFacts.findFirst({
+  const existing = await input.db.query.linkIngestionTraceFacts.findFirst({
     where: (f, { eq }) => eq(f.factSetId, factSetId)
   });
   if (existing) return;
-  await input.db.insert(schema.extractedFacts).values(
+  await input.db.insert(schema.linkIngestionTraceFacts).values(
     facts.map((f) => ({
       factSetId,
       tenantId: input.tenantId,

@@ -130,7 +130,7 @@ async function seedProductVersion(
 
   // extraction_runs
   await db
-    .insert(schema.extractionRuns)
+    .insert(schema.linkIngestionTraceRuns)
     .values({
       id: extractionRunId,
       artifactId,
@@ -145,7 +145,7 @@ async function seedProductVersion(
 
   // extracted_fact_sets
   await db
-    .insert(schema.extractedFactSets)
+    .insert(schema.linkIngestionTraceSets)
     .values({
       id: factSetId,
       extractionRunId,
@@ -157,7 +157,7 @@ async function seedProductVersion(
 
   // extracted_facts — title
   await db
-    .insert(schema.extractedFacts)
+    .insert(schema.linkIngestionTraceFacts)
     .values({
       factSetId,
       tenantId: TENANT,
@@ -174,7 +174,7 @@ async function seedProductVersion(
   // extracted_facts — brand (optional)
   if (brand) {
     await db
-      .insert(schema.extractedFacts)
+      .insert(schema.linkIngestionTraceFacts)
       .values({
         factSetId,
         tenantId: TENANT,
@@ -192,7 +192,7 @@ async function seedProductVersion(
   // extracted_facts — gtin (optional)
   if (gtin) {
     await db
-      .insert(schema.extractedFacts)
+      .insert(schema.linkIngestionTraceFacts)
       .values({
         factSetId,
         tenantId: TENANT,
@@ -313,14 +313,14 @@ async function cleanupLegacyRows(db: DrizzleClient): Promise<void> {
     .delete(schema.proposedDiffs)
     .where(eq(schema.proposedDiffs.tenantId, TENANT));
   await db
-    .delete(schema.extractedFacts)
-    .where(eq(schema.extractedFacts.tenantId, TENANT));
+    .delete(schema.linkIngestionTraceFacts)
+    .where(eq(schema.linkIngestionTraceFacts.tenantId, TENANT));
   await db
-    .delete(schema.extractedFactSets)
-    .where(eq(schema.extractedFactSets.tenantId, TENANT));
+    .delete(schema.linkIngestionTraceSets)
+    .where(eq(schema.linkIngestionTraceSets.tenantId, TENANT));
   await db
-    .delete(schema.extractionRuns)
-    .where(eq(schema.extractionRuns.tenantId, TENANT));
+    .delete(schema.linkIngestionTraceRuns)
+    .where(eq(schema.linkIngestionTraceRuns.tenantId, TENANT));
   await db
     .delete(schema.sourceArtifacts)
     .where(eq(schema.sourceArtifacts.tenantId, TENANT));

@@ -249,7 +249,7 @@ async function resolveChannelForMerchant(
 }
 
 interface ExtractedContext {
-  facts: typeof schema.extractedFacts.$inferSelect[];
+  facts: typeof schema.linkIngestionTraceFacts.$inferSelect[];
   /** raw_data from the source_artifact linked via the fact_set's artifact_id. */
   sourceArtifactRawData: Record<string, unknown> | null;
   /** The source_artifact UUID (for rawPayload provenance). */
@@ -283,14 +283,14 @@ async function fetchExtractedContext(
   // Step 2: fetch fact_set to get artifact_id, and fetch extracted_facts in parallel
   const [factSetRows, facts] = await Promise.all([
     db
-      .select({ artifactId: schema.extractedFactSets.artifactId })
-      .from(schema.extractedFactSets)
-      .where(eq(schema.extractedFactSets.id, factSetId))
+      .select({ artifactId: schema.linkIngestionTraceSets.artifactId })
+      .from(schema.linkIngestionTraceSets)
+      .where(eq(schema.linkIngestionTraceSets.id, factSetId))
       .limit(1),
     db
       .select()
-      .from(schema.extractedFacts)
-      .where(eq(schema.extractedFacts.factSetId, factSetId))
+      .from(schema.linkIngestionTraceFacts)
+      .where(eq(schema.linkIngestionTraceFacts.factSetId, factSetId))
   ]);
 
   const artifactId = factSetRows[0]?.artifactId ?? null;
@@ -323,7 +323,7 @@ async function fetchExtractedContext(
 function buildAdapterOutput(
   pv: typeof schema.productVersions.$inferSelect,
   channel: { channelId: ChannelId; channelCode: string } | null,
-  _facts: typeof schema.extractedFacts.$inferSelect[],
+  _facts: typeof schema.linkIngestionTraceFacts.$inferSelect[],
   // facts are included for forward compatibility; v1 derives observations
   // from typed product_version columns, not from raw facts. The facts
   // parameter is intentionally unused in this version — a v2 backfill can

@@ -86,11 +86,11 @@ export async function listProducts(c: Context, deps: CatalogRouteDeps): Promise<
       // Single query: all image_url / images facts for every stale row.
       const factRows = await deps.db
         .select()
-        .from(schema.extractedFacts)
+        .from(schema.linkIngestionTraceFacts)
         .where(
           and(
-            inArray(schema.extractedFacts.factSetId, factSetIds),
-            inArray(schema.extractedFacts.rawKey, ["image_url", "images"])
+            inArray(schema.linkIngestionTraceFacts.factSetId, factSetIds),
+            inArray(schema.linkIngestionTraceFacts.rawKey, ["image_url", "images"])
           )
         );
 
@@ -378,9 +378,9 @@ export async function getProductProvenance(c: Context, deps: CatalogRouteDeps): 
           er.extractor_version,
           er.mapper_version,
           sa.source_type
-        FROM extracted_facts ef
-        JOIN extracted_fact_sets efs ON efs.id = ef.fact_set_id
-        JOIN extraction_runs er ON er.id = efs.extraction_run_id
+        FROM link_ingestion_trace_facts ef
+        JOIN link_ingestion_trace_sets efs ON efs.id = ef.fact_set_id
+        JOIN link_ingestion_trace_runs er ON er.id = efs.extraction_run_id
         JOIN source_artifacts sa ON sa.id = er.artifact_id
         JOIN proposed_diffs pd ON pd.source_fact_set_id = efs.id
         WHERE pd.id = ${version.proposedDiffId}
@@ -511,8 +511,8 @@ export async function getProductSku(c: Context, deps: CatalogRouteDeps): Promise
   try {
     const factRows = await deps.db
       .select()
-      .from(schema.extractedFacts)
-      .where(eq(schema.extractedFacts.factSetId, diff.sourceFactSetId));
+      .from(schema.linkIngestionTraceFacts)
+      .where(eq(schema.linkIngestionTraceFacts.factSetId, diff.sourceFactSetId));
 
     const facts = factRows.map((r) => ({
       rawKey: r.rawKey,
@@ -530,13 +530,13 @@ export async function getProductSku(c: Context, deps: CatalogRouteDeps): Promise
     }));
 
     // Recover sourceUrl from the diff's source artifact (via extraction_run).
-    const factSet = await deps.db.query.extractedFactSets.findFirst({
+    const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
       where: (f, { eq }) => eq(f.id, diff.sourceFactSetId as string),
     });
     let finalUrl = "";
     let ogImage: string | null = null;
     if (factSet?.extractionRunId) {
-      const run = await deps.db.query.extractionRuns.findFirst({
+      const run = await deps.db.query.linkIngestionTraceRuns.findFirst({
         where: (r, { eq }) => eq(r.id, factSet.extractionRunId),
       });
       if (run?.artifactId) {

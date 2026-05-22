@@ -423,7 +423,7 @@ export function extractWinningValue(
 async function fetchFactsForProduct(
   db: DrizzleClient,
   productId: string
-): Promise<typeof schema.extractedFacts.$inferSelect[]> {
+): Promise<typeof schema.linkIngestionTraceFacts.$inferSelect[]> {
   // Step 1: find the backfill revision and extract product_version_id from raw_payload
   const revRows = await db.execute<{ product_version_id: string | null }>(
     sql`
@@ -462,8 +462,8 @@ async function fetchFactsForProduct(
   // Step 4: fetch facts
   const facts = await db
     .select()
-    .from(schema.extractedFacts)
-    .where(eq(schema.extractedFacts.factSetId, factSetId));
+    .from(schema.linkIngestionTraceFacts)
+    .where(eq(schema.linkIngestionTraceFacts.factSetId, factSetId));
 
   return facts;
 }
