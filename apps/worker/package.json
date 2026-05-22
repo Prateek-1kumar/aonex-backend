@@ -13,7 +13,8 @@
     "seed:source-priority": "bun --env-file=../../.env run scripts/seed-source-priority.ts",
     "bootstrap:channels": "bun --env-file=../../.env run scripts/bootstrap-channels.ts",
     "replay:dlq": "bun --env-file=../../.env run scripts/replay-dlq.ts",
-    "product:debug": "bun --env-file=../../.env run scripts/product-debug.ts"
+    "product:debug": "bun --env-file=../../.env run scripts/product-debug.ts",
+    "backfill:catalog": "bun --env-file=../../.env run scripts/backfill-catalog.ts"
   },
   "dependencies": {
     "@aonex/types": "workspace:*",

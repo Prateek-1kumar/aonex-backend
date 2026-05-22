@@ -65,6 +65,13 @@ export interface WriteAdapterOutputInput {
    * iff the AdapterOutput carries pricing or inventory observations.
    */
   channelCodeToId?: Record<string, ChannelId>;
+  /**
+   * Override the revision_reason written to catalog_product_revisions.
+   * When omitted, defaults to "create" for new products and "new_source"
+   * for existing ones. The backfill script passes "migration_backfill" so
+   * revision provenance is clearly tagged.
+   */
+  reasonOverride?: string;
 }
 
 export type WriteMatchPath = IdentityMatchPath | "newly_created";
@@ -179,7 +186,8 @@ export async function writeAdapterOutput(
     actor,
     rulesVersion = 1,
     observationCap = DEFAULT_OBSERVATION_CAP,
-    channelCodeToId
+    channelCodeToId,
+    reasonOverride
   } = input;
 
   const hasSideTableObservations =
@@ -562,7 +570,7 @@ export async function writeAdapterOutput(
           unknown
         > | null,
         diff: diffBlock,
-        revisionReason: created ? "create" : "new_source",
+        revisionReason: reasonOverride ?? (created ? "create" : "new_source"),
         sourceKind: sourceKindForRevision,
         sourceRecordId: sourceRecordIdForRevision,
         rawPayload: adapterOutput.rawPayload as Record<string, unknown> | null,
