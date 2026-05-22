@@ -1,4 +1,15 @@
 #!/usr/bin/env bun
+// HISTORICAL ARTIFACT — Phase 7 backfill tooling.
+//
+// This script was used during the Phase 7 (Backfill + dual-write soak) window
+// to migrate legacy product_versions data into the new catalog_products schema.
+// After Phase 8 cutover renamed legacy tables to _legacy_* and Phase 9.1 dropped
+// them, this script no longer has runnable purpose — its source tables are gone.
+//
+// Kept in-tree as an audit artifact (Drizzle schemas for legacy tables still
+// exist in packages/db/src/schema/products.ts to support the type references).
+// DO NOT RUN against production post-cutover.
+//
 // Run: bun --env-file=../../.env run scripts/backfill-catalog.ts \
 //        --tenant-id <uuid> [options]
 //

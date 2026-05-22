@@ -1,8 +1,8 @@
 // Tests for the outbox poller spawner (Task 5.6).
 //
-// Verifies the wiring boundary owned by this module: feature-flag gating,
-// poller-worker spawn, immediate-kick + interval-driven backpressure
-// measurement, and graceful shutdown.
+// Verifies the wiring boundary owned by this module: poller-worker spawn,
+// immediate-kick + interval-driven backpressure measurement, and graceful
+// shutdown.
 //
 // Real Postgres + real Redis. Postgres URL defaults to the dev DB used by
 // `connectTestDb`; Redis URL defaults to redis://localhost:6379. Each test
@@ -173,58 +173,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-describe("startOutboxPoller — feature flag gate", () => {
-  test("flag OFF returns null, no Redis activity, no DB activity", async () => {
-    const logs: { level: string; obj: unknown; msg: string }[] = [];
-    const logger = {
-      info: (obj: unknown, msg?: string) =>
-        logs.push({ level: "info", obj, msg: msg ?? "" }),
-      warn: (obj: unknown, msg?: string) =>
-        logs.push({ level: "warn", obj, msg: msg ?? "" }),
-      error: (obj: unknown, msg?: string) =>
-        logs.push({ level: "error", obj, msg: msg ?? "" })
-    } as unknown as Logger;
-
-    // Use a fresh connection so we can quit it without affecting the
-    // outer `redis` instance. (Strictly speaking we don't expect the
-    // spawner to touch it, but isolation makes the assertion clean.)
-    const isolatedConnection = new IORedis(REDIS_URL, {
-      maxRetriesPerRequest: null
-    });
-    try {
-      // Pre-clear the global key so we can assert it stays absent.
-      await isolatedConnection.del(GLOBAL_THROTTLE_KEY);
-
-      const handle = await startOutboxPoller(
-        { db, connection: isolatedConnection, logger },
-        { useNewCatalogSchema: false }
-      );
-
-      expect(handle).toBeNull();
-
-      // The "gated by feature flag" log was emitted.
-      const gateLog = logs.find((l) => l.msg.includes("gated by feature flag"));
-      expect(gateLog).toBeDefined();
-
-      // The "Outbox poller workers started" log was NOT emitted.
-      const startedLog = logs.find(
-        (l) => l.msg === "Outbox poller workers started"
-      );
-      expect(startedLog).toBeUndefined();
-
-      // Backpressure signal was NOT written (no immediate kick when gated).
-      // Allow a tiny window in case anything is queued, then check the key.
-      await sleep(50);
-      const throttle = await isolatedConnection.get(GLOBAL_THROTTLE_KEY);
-      expect(throttle).toBeNull();
-    } finally {
-      await isolatedConnection.quit();
-    }
-  });
-});
-
 describe("startOutboxPoller — happy path", () => {
-  test("flag ON spawns workers + interval, returns a handle", async () => {
+  test("spawns workers + interval, returns a handle", async () => {
     const logger = makeQuietLogger();
     const streamName = freshStreamName();
 
@@ -233,7 +183,6 @@ describe("startOutboxPoller — happy path", () => {
       handle = await startOutboxPoller(
         { db, connection: redis, logger },
         {
-          useNewCatalogSchema: true,
           streamName,
           // Slow the interval down so tests are deterministic — the
           // immediate kick is the assertion target here.
@@ -268,7 +217,6 @@ describe("startOutboxPoller — happy path", () => {
       handle = await startOutboxPoller(
         { db, connection: redis, logger },
         {
-          useNewCatalogSchema: true,
           streamName,
           backpressureIntervalMs: 60_000
         }
@@ -319,7 +267,6 @@ describe("startOutboxPoller — happy path", () => {
       handle = await startOutboxPoller(
         { db, connection: redis, logger },
         {
-          useNewCatalogSchema: true,
           streamName,
           backpressureIntervalMs: 100,
           publisher: noopPublisher
@@ -357,7 +304,6 @@ describe("startOutboxPoller — happy path", () => {
     const handle = await startOutboxPoller(
       { db, connection: redis, logger },
       {
-        useNewCatalogSchema: true,
         streamName,
         backpressureIntervalMs: 100
       }

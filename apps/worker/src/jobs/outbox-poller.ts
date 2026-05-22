@@ -2,15 +2,13 @@
 //
 // Spawns the multi-worker outbox poller (`@aonex/catalog-event-outbox` —
 // `makePoller`) at boot alongside a 10-second backpressure measurement
-// interval. Gated by `useNewCatalogSchema` — with the flag OFF this is a
-// no-op (returns `null`) and there is no observable Redis or DB activity
-// from this module.
+// interval.
 //
 // Lifecycle:
 //   - Called from `buildContainer` (apps/worker/src/composition-root.ts).
-//   - Returns an `OutboxHandle | null` that the container stashes; on
-//     `stop()` the container invokes `handle.stop()` which clears the
-//     interval and stops each PollerWorker loop in parallel.
+//   - Returns an `OutboxHandle` that the container stashes; on `stop()` the
+//     container invokes `handle.stop()` which clears the interval and stops
+//     each PollerWorker loop in parallel.
 //
 // Backpressure cadence — design notes:
 //   - 10s interval matches spec §19.1 / task 5.4 sizing (TTL = 60s, so a
@@ -23,15 +21,6 @@
 //     window, but one we can close cheaply.
 //   - Per-tenant measurement is deferred. v1 publishes only the global
 //     cross-tenant aggregate (the `_global` sentinel suffix).
-//
-// Null vs empty-array sentinel:
-//   `startReconcilerWorkers` returns `[]` when gated off because the
-//   caller iterates over the handles to wire BullMQ listeners — an empty
-//   array is the most natural "nothing to do" value there. This module
-//   returns a single composite handle (workers + interval + publisher),
-//   not an array, so the analogous "nothing" value is `null`. The
-//   composition root checks for null with the conditional spread
-//   `...(outboxHandle ? [outboxHandle.stop()] : [])`.
 
 import IORedis from "ioredis";
 import type { Logger } from "pino";
@@ -55,20 +44,6 @@ export interface StartOutboxDeps {
 }
 
 export interface StartOutboxOptions {
-  /**
-   * When true (default), gates spawning behind `useNewCatalogSchema`.
-   * With the flag OFF, returns `null` with no observable side-effect
-   * (no Redis activity, no DB activity). Set to false to bypass the
-   * gate entirely — useful for tests that want to exercise the
-   * spawn path without the flag.
-   */
-  gated?: boolean;
-  /**
-   * Resolved catalog-redesign feature flag value (read by the composition
-   * root via `useNewCatalogSchema(env)` and forwarded here). Only
-   * consulted when `gated !== false`.
-   */
-  useNewCatalogSchema?: boolean;
   /** Number of poller workers. Default 4 (spec §19.1). */
   workerCount?: number;
   /** Redis Stream name for published events. Default `catalog.events`. */
@@ -92,8 +67,7 @@ export interface OutboxHandle {
 /**
  * Boot the outbox poller workers + backpressure measurement interval.
  *
- * Returns `null` when gated off (no work was started). Otherwise returns
- * a handle the caller must `stop()` on graceful shutdown.
+ * Returns a handle the caller must `stop()` on graceful shutdown.
  *
  * Error handling:
  *   - Backpressure tick failures are logged and swallowed; a single DB
@@ -106,17 +80,8 @@ export interface OutboxHandle {
 export async function startOutboxPoller(
   deps: StartOutboxDeps,
   options: StartOutboxOptions = {}
-): Promise<OutboxHandle | null> {
+): Promise<OutboxHandle> {
   const { db, connection, logger } = deps;
-  const gated = options.gated !== false;
-
-  if (gated && options.useNewCatalogSchema === false) {
-    logger?.info(
-      { useNewCatalogSchema: false },
-      "Outbox poller gated by feature flag — skipping"
-    );
-    return null;
-  }
 
   const workerCount = options.workerCount ?? DEFAULT_WORKER_COUNT;
   const streamName = options.streamName ?? DEFAULT_STREAM_NAME;

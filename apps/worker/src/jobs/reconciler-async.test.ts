@@ -4,11 +4,13 @@
 // local Redis. The spawner queries `tenants.status = 'active'` and creates
 // one BullMQ Worker per row via `makeReconcilerWorker`. Tests close every
 // spawned worker to avoid leaking Redis connections between cases.
+//
+// The feature-flag gate (useNewCatalogSchema) was removed in Phase 9.3
+// dead-code cleanup — the flag no longer exists and the spawner always runs.
 
-import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, inArray, sql } from "drizzle-orm";
 import IORedis from "ioredis";
-import type { Logger } from "pino";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
@@ -57,56 +59,6 @@ async function seedTenant(
   return inserted[0]!.id;
 }
 
-describe("startReconcilerWorkers — feature flag gate", () => {
-  let db: DrizzleClient;
-  let connection: IORedis;
-  let logs: { level: string; obj: unknown; msg: string }[];
-  let logger: {
-    info: (obj: unknown, msg?: string) => void;
-    error: (obj: unknown, msg?: string) => void;
-    warn: (obj: unknown, msg?: string) => void;
-  };
-
-  beforeAll(async () => {
-    db = await connectTestDb();
-    connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
-  });
-
-  afterAll(async () => {
-    await connection.quit();
-    await closeTestDb();
-  });
-
-  afterEach(() => {
-    logs = [];
-  });
-
-  test("flag OFF returns [] without querying tenants", async () => {
-    logs = [];
-    logger = {
-      info: (obj, msg) => logs.push({ level: "info", obj, msg: msg ?? "" }),
-      error: (obj, msg) => logs.push({ level: "error", obj, msg: msg ?? "" }),
-      warn: (obj, msg) => logs.push({ level: "warn", obj, msg: msg ?? "" }),
-    };
-
-    // Spy on db.select to prove discovery is skipped. We can't easily monkey-
-    // patch the Drizzle proxy, so instead we assert the "gated by feature flag"
-    // log message fired AND no "Reconciler worker spawned" log was emitted.
-    const handles = await startReconcilerWorkers(
-      { db, connection, logger: logger as unknown as Logger },
-      { useNewCatalogSchema: false }
-    );
-    expect(handles).toEqual([]);
-
-    const gateLog = logs.find((l) =>
-      l.msg.includes("gated by feature flag")
-    );
-    expect(gateLog).toBeDefined();
-    const spawnLog = logs.find((l) => l.msg === "Reconciler worker spawned");
-    expect(spawnLog).toBeUndefined();
-  });
-});
-
 describe("startReconcilerWorkers — discovery + spawn", () => {
   let db: DrizzleClient;
   let connection: IORedis;
@@ -135,7 +87,7 @@ describe("startReconcilerWorkers — discovery + spawn", () => {
     try {
       handles = await startReconcilerWorkers(
         { db, connection },
-        { useNewCatalogSchema: true }
+        {}
       );
 
       const tenantIds = new Set(handles.map((h) => h.tenantId));
@@ -164,7 +116,7 @@ describe("startReconcilerWorkers — discovery + spawn", () => {
     try {
       handles = await startReconcilerWorkers(
         { db, connection },
-        { useNewCatalogSchema: true }
+        {}
       );
       const tenantIds = new Set(handles.map((h) => h.tenantId));
       expect(tenantIds.has(tenantSuspended)).toBe(false);
@@ -203,7 +155,7 @@ describe("startReconcilerWorkers — discovery + spawn", () => {
 
       const handles = await startReconcilerWorkers(
         { db: tx, connection },
-        { useNewCatalogSchema: true }
+        {}
       );
       try {
         expect(handles).toEqual([]);
@@ -232,7 +184,7 @@ describe("startReconcilerWorkers — discovery + spawn", () => {
     try {
       handles = await startReconcilerWorkers(
         { db, connection },
-        { useNewCatalogSchema: true, concurrency: 8 }
+        { concurrency: 8 }
       );
       const ours = handles.find((h) => h.tenantId === tenantId);
       expect(ours).toBeDefined();
@@ -251,7 +203,7 @@ describe("startReconcilerWorkers — discovery + spawn", () => {
     try {
       handles = await startReconcilerWorkers(
         { db, connection },
-        { useNewCatalogSchema: true }
+        {}
       );
       const ours = handles.find((h) => h.tenantId === tenantId);
       expect(ours).toBeDefined();
