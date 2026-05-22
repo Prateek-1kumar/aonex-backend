@@ -52,6 +52,17 @@ export interface LinkExtractProcessorDeps {
    * the trust boundary tight.
    */
   useNewCatalogSchema: boolean;
+  /**
+   * Phase 7 soak dual-write flag. When TRUE and `useNewCatalogSchema` is also
+   * TRUE, the processor writes to BOTH the new catalog schema AND the legacy
+   * path (instead of returning early after the new-schema write). This enables
+   * parity comparison during the 7-day soak window (Task 7.5). After Phase 8
+   * cutover, set this to FALSE — legacy writes stop.
+   *
+   * Has no effect when `useNewCatalogSchema` is FALSE (the two flags are
+   * logically AND-ed).
+   */
+  useDualWrite: boolean;
 }
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
@@ -426,16 +437,22 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         },
       });
 
-      return {
-        artifactId,
-        factsCount: factSet.facts.length,
-        suggestedCategory: structuredResult.structured.category.path,
-        categoryConfidence: structuredResult.structured.category.confidence,
-        estimatedCostUsd: llmMeta.estimatedCostUsd,
-        productId: writeResult.productId,
-        created: writeResult.created,
-        matchPath: writeResult.matchPath,
-      };
+      // Phase 7 soak: when dual-write is ON, fall through to the legacy path
+      // so both schemas are written. When dual-write is OFF (normal new-schema
+      // mode or post-cutover Phase 8), return here and skip legacy entirely.
+      if (!deps.useDualWrite) {
+        return {
+          artifactId,
+          factsCount: factSet.facts.length,
+          suggestedCategory: structuredResult.structured.category.path,
+          categoryConfidence: structuredResult.structured.category.confidence,
+          estimatedCostUsd: llmMeta.estimatedCostUsd,
+          productId: writeResult.productId,
+          created: writeResult.created,
+          matchPath: writeResult.matchPath,
+        };
+      }
+      // Dual-write: intentionally fall through to legacy path below.
     }
 
     // ── Step 4 (LEGACY): Persist canonical proposal / catalog version ──
