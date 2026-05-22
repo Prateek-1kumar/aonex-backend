@@ -522,7 +522,10 @@ describe("validate-backfill (Task 7.2)", () => {
       expect(report.totalScanned).toBeGreaterThanOrEqual(1);
       // All backfilled products should pass
       expect(report.totalFailed).toBe(0);
+      expect(report.totalErrors).toBe(0);
       expect(report.totalPassed).toBe(report.totalScanned);
+      // Invariant: totalScanned === totalPassed + totalFailed + totalErrors
+      expect(report.totalPassed + report.totalFailed + report.totalErrors).toBe(report.totalScanned);
       expect(Object.keys(report.failuresByField)).toHaveLength(0);
       expect(report.sampleFailures).toHaveLength(0);
       expect(report.generatedAt).toBeTruthy();
@@ -607,7 +610,10 @@ describe("validate-backfill (Task 7.2)", () => {
 
         // Extra allowed-delta keys should not cause failures
         expect(report.totalFailed).toBe(0);
+        expect(report.totalErrors).toBe(0);
         expect(report.totalPassed).toBe(report.totalScanned);
+        // Invariant: totalScanned === totalPassed + totalFailed + totalErrors
+        expect(report.totalPassed + report.totalFailed + report.totalErrors).toBe(report.totalScanned);
         expect(Object.keys(report.failuresByField)).toHaveLength(0);
       } finally {
         // Restore winning_values
