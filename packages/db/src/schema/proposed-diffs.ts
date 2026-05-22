@@ -16,7 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants.js";
 import { merchants } from "./merchants.js";
-import { linkIngestionTraceSets as extractedFactSets } from "./link-ingestion-trace.js";
+import { linkIngestionTraceSets } from "./link-ingestion-trace.js";
 import { policyVersions } from "./policy.js";
 import { proposedDiffStatusEnum, actorTypeEnum } from "./enums.js";
 
@@ -37,7 +37,7 @@ export const proposedDiffs = pgTable(
       .references(() => merchants.id, { onDelete: "restrict" }),
     sourceFactSetId: uuid("source_fact_set_id")
       .notNull()
-      .references(() => extractedFactSets.id, { onDelete: "restrict" }),
+      .references(() => linkIngestionTraceSets.id, { onDelete: "restrict" }),
     /** Null until dedup identifies an existing product to merge/update */
     productId: uuid("product_id"),
     /** "create" | "update" | "merge" */

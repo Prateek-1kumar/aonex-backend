@@ -52,7 +52,7 @@ export async function editAndApprove(
   if (edit.newCanonicalPath) {
     // 2. Walk the chain to get the source URL for domain extraction:
     //    reviewTask.proposedDiffId → proposedDiffs.sourceFactSetId
-    //    → extractedFactSets.artifactId → sourceArtifacts.sourceExternalId
+    //    → linkIngestionTraceSets.artifactId → sourceArtifacts.sourceExternalId
     let sourceExternalId = "";
 
     const diff = await ctx.db.query.proposedDiffs.findFirst({
