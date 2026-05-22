@@ -47,7 +47,7 @@ import { createDb, schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import { convertFromFacts } from "@aonex/ingestion-enrichment";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
-import { writeFile } from "node:fs/promises";
+import { writeFile, rename } from "node:fs/promises";
 
 // ---- Types -----------------------------------------------------------------
 
@@ -72,11 +72,15 @@ export interface ValidationReport {
   tenantId: string;
   totalScanned: number;
   totalPassed: number;
+  /** Products with at least one DATA LOSS issue (REQUIRED_FIELDS). */
   totalFailed: number;
+  /** Products that failed to compare due to DB / SkuJson errors. */
+  totalErrors: number;
   failuresByField: Record<string, number>;
   /** First 5 failing products per field, merged into a deduplicated list. */
   sampleFailures: ProductValidationResult[];
   generatedAt: string;
+  // Invariant: totalScanned === totalPassed + totalFailed + totalErrors
 }
 
 interface ParsedArgs {
@@ -341,6 +345,20 @@ export function comparePricing(
   return { equal: true };
 }
 
+/**
+ * Images comparison is deferred in v1 (see Task 7.1 deferral). Returning
+ * `{ equal: true }` here keeps the comparison interface uniform with the other
+ * comparators and makes it explicit that no comparison happened — vs. silently
+ * omitting images from the field loop.
+ *
+ * TODO(phase-7+): when backfill writes image observations, implement
+ * URL-set equality comparison here.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function compareImages(_legacyImages: unknown, _newImages: unknown): { equal: boolean } {
+  return { equal: true };
+}
+
 // ---- winning_values projection helper --------------------------------------
 
 /**
@@ -551,10 +569,10 @@ async function validateProduct(
   }
 
   // --- images: SKIPPED in v1 ---
-  // Images comparison is deferred — consistent with Task 7.1 deferral.
-  // The canonical attribute code for image arrays is not yet defined in
-  // attribute_definitions. Validation would produce false positives because
-  // the backfill intentionally writes no image data to winning_values.
+  // compareImages() exists as a typed slot (see the stub above) but is not
+  // called here. The backfill intentionally writes no image data to
+  // winning_values, so calling it now would produce false positives.
+  // See Task 7.1 deferral for the canonical attribute code discussion.
 
   return {
     product_id: productId,
@@ -618,10 +636,13 @@ export async function runValidation(
 
   log(`Found ${productIds.length} backfilled products for tenant=${tenantId}`);
 
-  // Apply sample rate (deterministic: use every 1/sampleRate-th product by index)
+  // Apply sample rate — deterministic stride sampling: keep every (1/sampleRate)-th
+  // product by index. This is reproducible across runs with the same args (unlike
+  // Math.random), which lets operators confirm the same subset from a CI log.
   if (sampleRate < 1.0) {
-    productIds = productIds.filter((_, i) => Math.random() < sampleRate);
-    log(`Sampled down to ${productIds.length} products at rate=${sampleRate}`);
+    const stride = Math.floor(1 / sampleRate);
+    productIds = productIds.filter((_, i) => i % stride === 0);
+    log(`Sampled down to ${productIds.length} products at rate=${sampleRate} (stride=${stride})`);
   }
 
   // Apply limit
@@ -636,6 +657,7 @@ export async function runValidation(
   let totalScanned = 0;
   let totalPassed = 0;
   let totalFailed = 0;
+  let totalErrors = 0;
   const failuresByField: Record<string, number> = {};
 
   const REQUIRED_FIELDS = ["title", "brand", "gtin", "primary_pricing"];
@@ -683,18 +705,24 @@ export async function runValidation(
     if (result.pass) {
       totalPassed++;
     } else {
-      totalFailed++;
+      // Distinguish runtime errors (_runtime_error) from data-loss failures
+      const isRuntimeError = result.failures.some((f) => f.field === "_runtime_error");
+      if (isRuntimeError) {
+        totalErrors++;
+      } else {
+        totalFailed++;
 
-      // Accumulate per-field counts and samples
-      for (const f of result.failures) {
-        if (REQUIRED_FIELDS.includes(f.field)) {
-          failuresByField[f.field] = (failuresByField[f.field] ?? 0) + 1;
+        // Accumulate per-field counts and samples
+        for (const f of result.failures) {
+          if (REQUIRED_FIELDS.includes(f.field)) {
+            failuresByField[f.field] = (failuresByField[f.field] ?? 0) + 1;
 
-          const bucket = sampleFailuresByField.get(f.field) ?? [];
-          if (bucket.length < 5 && !bucket.some((r) => r.product_id === result.product_id)) {
-            bucket.push(result);
+            const bucket = sampleFailuresByField.get(f.field) ?? [];
+            if (bucket.length < 5 && !bucket.some((r) => r.product_id === result.product_id)) {
+              bucket.push(result);
+            }
+            sampleFailuresByField.set(f.field, bucket);
           }
-          sampleFailuresByField.set(f.field, bucket);
         }
       }
     }
@@ -717,12 +745,13 @@ export async function runValidation(
     totalScanned,
     totalPassed,
     totalFailed,
+    totalErrors,
     failuresByField,
     sampleFailures,
     generatedAt: new Date().toISOString()
   };
 
-  log(`Validation complete: tenant=${tenantId} scanned=${totalScanned} passed=${totalPassed} failed=${totalFailed}`);
+  log(`Validation complete: tenant=${tenantId} scanned=${totalScanned} passed=${totalPassed} failed=${totalFailed} errors=${totalErrors}`);
   if (totalFailed > 0) {
     warn(`Required-field losses detected. failuresByField=${JSON.stringify(failuresByField)}`);
     warn(`images comparison skipped, see Task 7.1 limitations`);
@@ -772,18 +801,20 @@ async function main(): Promise<void> {
       totalScanned: report.totalScanned,
       totalPassed: report.totalPassed,
       totalFailed: report.totalFailed,
+      totalErrors: report.totalErrors,
       failuresByField: report.failuresByField,
       sampleFailures: report.sampleFailures,
       generatedAt: report.generatedAt
     }, null, 2));
 
-    // Write full JSON report if --output specified
+    // Write full JSON report if --output specified.
+    // Use a write-to-tmp-then-rename pattern so a killed process cannot leave
+    // a truncated file at the final path. rename() is atomic on POSIX
+    // (same filesystem), so readers always see a complete file or nothing.
     if (args.outputPath) {
-      await writeFile(
-        args.outputPath,
-        JSON.stringify(report, null, 2),
-        "utf-8"
-      );
+      const tmpPath = `${args.outputPath}.tmp`;
+      await writeFile(tmpPath, JSON.stringify(report, null, 2), "utf-8");
+      await rename(tmpPath, args.outputPath);
       // eslint-disable-next-line no-console
       console.log(`[validate-backfill] Full report written to ${args.outputPath}`);
     }
