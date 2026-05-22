@@ -47,6 +47,19 @@ export const ConnectionId = {
   }
 };
 
+// ---------- ChannelId --------------------------------------------------
+declare const channelIdBrand: unique symbol;
+export type ChannelId = string & { readonly [channelIdBrand]: true };
+
+export const ChannelId = {
+  parse(input: unknown): ChannelId {
+    return uuidSchema.parse(input) as ChannelId;
+  },
+  unsafeFrom(value: string): ChannelId {
+    return value as ChannelId;
+  }
+};
+
 // ---------- ArtifactId -------------------------------------------------
 declare const artifactIdBrand: unique symbol;
 export type ArtifactId = string & { readonly [artifactIdBrand]: true };

@@ -232,7 +232,10 @@ export function buildContainer(env: Env): ApiContainer {
     })
   );
   protectedApp.route("/review", reviewRoutes({ db: db.client, audit }));
-  protectedApp.route("/catalog", catalogRoutes({ db: db.client }));
+  protectedApp.route(
+    "/catalog",
+    catalogRoutes({ db: db.client })
+  );
   app.route("/api", protectedApp);
 
   return {

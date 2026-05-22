@@ -20,6 +20,11 @@ import { makeIngestionSpineProcessor } from "./processors/ingestion-spine.proces
 import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
+import {
+  startReconcilerWorkers,
+  type ReconcilerWorkerHandle,
+} from "./jobs/reconciler-async.js";
+import { startOutboxPoller, type OutboxHandle } from "./jobs/outbox-poller.js";
 
 export interface WorkerContainer {
   env: Env;
@@ -27,8 +32,9 @@ export interface WorkerContainer {
   stop(): Promise<void>;
 }
 
-export function buildContainer(env: Env): WorkerContainer {
+export async function buildContainer(env: Env): Promise<WorkerContainer> {
   const logger = pino({ level: env.LOG_LEVEL });
+
   const db = createDb(env.DATABASE_URL, { max: 30 });
   const redis = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
@@ -59,7 +65,13 @@ export function buildContainer(env: Env): WorkerContainer {
 
   const drainWorker = new Worker(
     QUEUE.NANGO_DRAIN,
-    makeDrainProcessor({ db: db.client, audit, gateway, syncService }),
+    makeDrainProcessor({
+      db: db.client,
+      audit,
+      gateway,
+      syncService,
+      logger,
+    }),
     {
       connection: redis,
       concurrency: 3,
@@ -97,7 +109,11 @@ export function buildContainer(env: Env): WorkerContainer {
 
     linkExtractWorker = new Worker(
       QUEUE.LINK_EXTRACT,
-      makeLinkExtractProcessor({ db: db.client, audit, extractor }),
+      makeLinkExtractProcessor({
+        db: db.client,
+        audit,
+        extractor,
+      }),
       { connection: redis, concurrency: 5 }
     );
 
@@ -146,6 +162,27 @@ export function buildContainer(env: Env): WorkerContainer {
     );
   }
 
+  // Phase 4.6 — per-tenant reconciler workers. Discovery happens at boot;
+  // new tenants between deploys won't get a worker until restart (v1).
+  const reconcilerHandles: ReconcilerWorkerHandle[] = await startReconcilerWorkers(
+    { db: db.client, connection: redis, logger }
+  );
+  for (const h of reconcilerHandles) {
+    h.worker.on("completed", (job) =>
+      logger.info({ jobId: job.id, queue: h.worker.name, tenantId: h.tenantId }, "job.completed")
+    );
+    h.worker.on("failed", (job, err) =>
+      logger.error({ jobId: job?.id, queue: h.worker.name, tenantId: h.tenantId, err }, "job.failed")
+    );
+  }
+
+  // Phase 5.6 — outbox poller workers + backpressure measurement interval.
+  // The handle owns 4 poller worker loops + a 10s backpressure interval;
+  // its `stop()` is awaited during graceful shutdown below.
+  const outboxHandle: OutboxHandle | null = await startOutboxPoller(
+    { db: db.client, connection: redis, logger }
+  );
+
   return {
     env,
     async start() {
@@ -160,7 +197,9 @@ export function buildContainer(env: Env): WorkerContainer {
         triggerWorker.close(true),
         cronWorker.close(true),
         ...(linkExtractWorker ? [linkExtractWorker.close(true)] : []),
-        ...(spineWorker ? [spineWorker.close(true)] : [])
+        ...(spineWorker ? [spineWorker.close(true)] : []),
+        ...reconcilerHandles.map((h) => h.worker.close(true)),
+        ...(outboxHandle ? [outboxHandle.stop()] : [])
       ]);
       await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), ingestionSpineQueue.close(), cronQueue.close()]);
       await redis.quit();
@@ -169,6 +208,6 @@ export function buildContainer(env: Env): WorkerContainer {
   };
 }
 
-export function buildContainerFromEnv(): WorkerContainer {
+export async function buildContainerFromEnv(): Promise<WorkerContainer> {
   return buildContainer(parseEnv());
 }

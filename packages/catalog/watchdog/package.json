@@ -1,0 +1,28 @@
+{
+  "name": "@aonex/catalog-watchdog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@aonex/db": "workspace:*",
+    "@aonex/catalog-service": "workspace:*",
+    "bullmq": "^5.34.5",
+    "drizzle-orm": "^0.36.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "ioredis": "^5.4.2",
+    "typescript": "^5.7.0"
+  }
+}

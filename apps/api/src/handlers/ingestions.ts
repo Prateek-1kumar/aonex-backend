@@ -212,20 +212,20 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
 
   const hydrated = await Promise.all(
     artifacts.map(async (artifact) => {
-      const run = await deps.db.query.extractionRuns.findFirst({
+      const run = await deps.db.query.linkIngestionTraceRuns.findFirst({
         where: (r, { eq }) => eq(r.artifactId, artifact.id),
         orderBy: (r, { desc }) => [desc(r.createdAt)],
       });
       let factCount = 0;
       if (run) {
-        const factSet = await deps.db.query.extractedFactSets.findFirst({
+        const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
           where: (fs, { eq }) => eq(fs.extractionRunId, run.id),
         });
         if (factSet) {
           const facts = await deps.db
-            .select({ id: schema.extractedFacts.id })
-            .from(schema.extractedFacts)
-            .where(eq(schema.extractedFacts.factSetId, factSet.id));
+            .select({ id: schema.linkIngestionTraceFacts.id })
+            .from(schema.linkIngestionTraceFacts)
+            .where(eq(schema.linkIngestionTraceFacts.factSetId, factSet.id));
           factCount = facts.length;
         }
       }
@@ -284,15 +284,15 @@ export async function getIngestionTrace(c: Context, deps: IngestionsRouteDeps): 
   // the trace endpoint a thin view over the canonical extracted_facts table.
   let sku: SkuJson | null = null;
   try {
-    const factSet = await deps.db.query.extractedFactSets.findFirst({
+    const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
       where: (f, { eq }) => eq(f.artifactId, id),
       orderBy: (f, { desc }) => desc(f.createdAt),
     });
     if (factSet) {
       const factRows = await deps.db
         .select()
-        .from(schema.extractedFacts)
-        .where(eq(schema.extractedFacts.factSetId, factSet.id));
+        .from(schema.linkIngestionTraceFacts)
+        .where(eq(schema.linkIngestionTraceFacts.factSetId, factSet.id));
 
       const facts = factRows.map((r) => ({
         rawKey: r.rawKey,

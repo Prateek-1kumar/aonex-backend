@@ -1,6 +1,9 @@
 // nango.sync queue processor — reacts to "sync complete" webhooks.
 // Spawns a drain job per page rather than draining inline (the drain
 // can take minutes; we want BullMQ retries at the page level).
+//
+// The catalog projection lives in `drain.processor.ts`. nango-sync only
+// enqueues drain jobs; it does not write to the catalog itself.
 
 import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoSyncEvent, MerchantId, TenantId } from "@aonex/types";
 import type { Job, Queue } from "bullmq";

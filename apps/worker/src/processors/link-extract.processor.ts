@@ -9,9 +9,8 @@
 
 import type { Job } from "bullmq";
 import { eq, desc } from "drizzle-orm";
-import type { TenantId, MerchantId, ProductId } from "@aonex/types";
+import type { TenantId, MerchantId } from "@aonex/types";
 import { QUEUE } from "@aonex/types";
-import type { DedupeDecision } from "@aonex/ingestion-deduplicator";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { sha256Hex, domainOf } from "@aonex/lib-utils";
@@ -20,8 +19,15 @@ import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm
 import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
-import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
+import { convertFromFacts } from "@aonex/ingestion-enrichment";
+import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
 import { emitFailureReviewTask } from "../services/emit-failure-review-task.js";
+import {
+  runNewLinkCatalogPath,
+  resolveChannelByCode,
+  type RunNewLinkCatalogPathInput,
+} from "../services/new-catalog-link-path.js";
+import type { WriteAdapterOutputResult } from "@aonex/catalog-service";
 import { runSpineLink } from "./ingestion-spine.processor.js";
 
 export interface LinkExtractJobData {
@@ -37,6 +43,29 @@ export interface LinkExtractProcessorDeps {
   db: DrizzleClient;
   audit: AuditEmitter;
   extractor: LLMProductExtractor;
+  /**
+   * Overridable entry point for the new catalog write path. Defaults to the
+   * real `runNewLinkCatalogPath`. Exposed for tests so the coupling test can
+   * inject a spy without needing module-level mocking of the service module.
+   * Production code should never supply this — the default is always used.
+   */
+  _runNewLinkCatalogPath?: (input: RunNewLinkCatalogPathInput) => Promise<WriteAdapterOutputResult>;
+  /**
+   * Overridable channel resolver used in the new-schema path. Defaults to the
+   * real `resolveChannelByCode`. Exposed for tests to avoid mocking the service
+   * module (which would bleed into integration tests for that module).
+   */
+  _resolveChannelByCode?: (
+    db: DrizzleClient,
+    tenantId: TenantId,
+    channelCode: string
+  ) => Promise<{ channelId: import("@aonex/types").ChannelId; channelCode: string; defaultCurrency: string | null; defaultLocale: string | null; } | null>;
+  /**
+   * Overridable URL → channel-code mapper. Defaults to the real
+   * `channelCodeFromUrl`. Exposed for tests — same rationale as
+   * `_resolveChannelByCode` above.
+   */
+  _channelCodeFromUrl?: (url: string) => string;
 }
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
@@ -45,6 +74,14 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     // When INGESTION_SPINE_ENABLED=true, route this job through runSpineLink
     // instead of the legacy code path below. Both paths are idempotent so
     // a flag flip mid-flight is safe.
+    //
+    // NOTE on path interaction: when INGESTION_SPINE_ENABLED=true, the spine
+    // path supersedes the catalog write below — `runSpineLink` is used.
+    // The catalog write path (runNewLinkCatalogPath) is only reached when
+    // INGESTION_SPINE_ENABLED is false. The spine itself will need to be
+    // wired through `writeAdapterOutput` in a future task before the
+    // catalog cutover via the spine can complete; until then, running with
+    // the spine enabled bypasses the catalog write entirely.
     if (process.env.INGESTION_SPINE_ENABLED === "true") {
       return runSpineLink(
         { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor },
@@ -334,48 +371,41 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       return;
     }
 
-    // ── Step 4: Persist canonical proposal / catalog version ─────────
-    // Plan D Task 16: real source reliability from domain_profiles.
-    const profile = await deps.db.query.domainProfiles.findFirst({
-      where: (p, { eq }) => eq(p.domainPattern, domainOf(fetchResult.finalUrl)),
-    });
-    const sourceReliability =
-      profile?.avgConfidence != null
-        ? Math.max(0, Math.min(1, Number(profile.avgConfidence)))
-        : 0.65; // fallback when no profile exists yet
+    // ── Step 4: writeAdapterOutput ────────────────────────────────────
+    const sku = convertFromFacts(factSet.facts, fetchResult.finalUrl);
+    const _channelCode = deps._channelCodeFromUrl ?? channelCodeFromUrl;
+    const channelCode = _channelCode(fetchResult.finalUrl);
+    // resolveChannelByCode applies a curated allow-list of marketplace
+    // kinds (so e.g. "myshop-example-io" or "ebay-typo-com" don’t silently
+    // bind to a tenant’s real eBay channel) before looking up the row.
+    // Returns null when the prefix isn’t in the allow-list OR when no
+    // tenant row exists for that kind — both cases drive the strip-and-
+    // warn branch inside runNewLinkCatalogPath.
+    const _resolveChannel = deps._resolveChannelByCode ?? resolveChannelByCode;
+    const resolved = await _resolveChannel(deps.db, tenantId, channelCode);
 
-    const canonicalGtin = findFactValue(factSet.facts, "gtin");
-    const canonicalMpn =
-      findFactValue(factSet.facts, "mpn") ??
-      findFactValue(factSet.facts, "model_number");
-    const dedupeDecision = await resolveDedupe({
-      db: deps.db,
-      tenantId,
-      gtin: canonicalGtin,
-      mpn: canonicalMpn,
-    });
-
-    const catalogResult = await persistLinkCatalogPipeline({
+    const channelId = resolved?.channelId ?? null;
+    const _newPath = deps._runNewLinkCatalogPath ?? runNewLinkCatalogPath;
+    const writeResult = await _newPath({
       db: deps.db,
       tenantId,
       merchantId,
       artifactId,
       sourceUrl: fetchResult.finalUrl,
-      factSet,
-      suggestedCategory: structuredResult.structured.category.path,
-      categoryConfidence: structuredResult.structured.category.confidence,
-      extractorMeta: llmMeta,
-      dedupeDecision,
-      sourceReliability,
+      sku,
+      channelId,
+      channelCode: resolved ? resolved.channelCode : null,
+      channelDefaultCurrency: resolved?.defaultCurrency ?? null,
+      channelDefaultLocale: resolved?.defaultLocale ?? null,
     });
 
-    // Mark artifact as completed or review-gated after facts/diff persistence.
+    // Mark artifact completed — review tasks flow through `review_tasks`.
     await deps.db
       .update(schema.sourceArtifacts)
-      .set({ status: catalogResult.route === "review" ? "needs_review" : "completed" })
+      .set({ status: "completed" })
       .where(eq(schema.sourceArtifacts.id, artifactId));
 
-    // ── Step 5: Audit trail ─────────────────────────────────────────
+    // ── Step 5: Audit trail ──────────────────────────────────────────────────────────────────────────────────────────────────────
     await deps.audit.emit({
       tenantId,
       merchantId,
@@ -397,28 +427,23 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         completionTokens: llmMeta.completionTokens,
         estimatedCostUsd: llmMeta.estimatedCostUsd,
         extractorVersion: LLM_EXTRACTOR_VERSION,
-        extractionRunId: catalogResult.extractionRunId,
-        factSetId: catalogResult.factSetId,
-        proposedDiffId: catalogResult.proposedDiffId,
-        route: catalogResult.route,
-        confidenceScore: catalogResult.confidenceScore,
-        productId: catalogResult.productId,
-        productVersionId: catalogResult.productVersionId,
+        productId: writeResult.productId,
+        created: writeResult.created,
+        identityStrength: writeResult.identityStrength,
+        matchPath: writeResult.matchPath,
+        channelResolved: channelId !== null,
       },
     });
 
-    // Return the extraction result for downstream consumers
     return {
       artifactId,
       factsCount: factSet.facts.length,
       suggestedCategory: structuredResult.structured.category.path,
       categoryConfidence: structuredResult.structured.category.confidence,
       estimatedCostUsd: llmMeta.estimatedCostUsd,
-      route: catalogResult.route,
-      confidenceScore: catalogResult.confidenceScore,
-      proposedDiffId: catalogResult.proposedDiffId,
-      productId: catalogResult.productId,
-      productVersionId: catalogResult.productVersionId,
+      productId: writeResult.productId,
+      created: writeResult.created,
+      matchPath: writeResult.matchPath,
     };
   };
 }
@@ -426,49 +451,6 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
 export const PROCESSOR_QUEUE = QUEUE.LINK_EXTRACT;
 
 // ── Helpers ─────────────────────────────────────────────────────────
-
-/**
- * Resolve dedup decision by checking GTIN and MPN against product_identities.
- * Returns "merge" with the existing product ID if a match is found, else "new".
- */
-async function resolveDedupe(args: {
-  db: DrizzleClient;
-  tenantId: TenantId;
-  gtin: string | null;
-  mpn: string | null;
-}): Promise<DedupeDecision> {
-  const checks: { type: "gtin" | "mpn"; value: string }[] = [];
-  if (args.gtin) checks.push({ type: "gtin", value: args.gtin });
-  if (args.mpn) checks.push({ type: "mpn", value: args.mpn });
-  for (const c of checks) {
-    const row = await args.db.query.productIdentities.findFirst({
-      where: (i, { and, eq }) =>
-        and(
-          eq(i.tenantId, args.tenantId),
-          eq(i.identityType, c.type),
-          eq(i.identityValue, c.value)
-        ),
-    });
-    if (row) {
-      return {
-        kind: "merge",
-        productId: row.productId as ProductId,
-        reason: c.type === "gtin" ? "gtin_match" : "mpn_match",
-      };
-    }
-  }
-  return { kind: "new" };
-}
-
-/**
- * Extract the canonical string value for a raw key from an ExtractedFact array.
- * Prefers normalizedValue over extractedValue.
- */
-function findFactValue(facts: ExtractedFact[], rawKey: string): string | null {
-  const f = facts.find((x) => x.rawKey === rawKey);
-  const v = f?.normalizedValue ?? f?.extractedValue;
-  return typeof v === "string" && v.trim() ? v.trim() : null;
-}
 
 /**
  * Load required attribute keys for the given category path from

@@ -33,6 +33,3 @@ packages/db/drizzle/.snapshots/
 
 # nango
 apps/nango/.nango/
-docs/*
-!docs/superpowers/
-!docs/superpowers/**

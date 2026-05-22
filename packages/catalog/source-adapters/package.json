@@ -1,0 +1,28 @@
+{
+  "name": "@aonex/catalog-source-adapters",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@aonex/db": "workspace:*",
+    "@aonex/ingestion-enrichment": "workspace:*",
+    "@aonex/lib-utils": "workspace:*",
+    "@aonex/types": "workspace:*",
+    "csv-parse": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}
