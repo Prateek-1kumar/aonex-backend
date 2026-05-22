@@ -9,6 +9,7 @@
 //   { id, tenantId, merchantId, status, updatedAt,
 //     current_version: null,   // no legacy version concept
 //     variants: [],            // deferred per Phase 7
+//     pricing: { currency, amount } | null,  // from catalog_pricing_current
 //     _meta: { schema: "new" } // migration signal for gradual frontend transition
 //   }
 //
@@ -17,13 +18,26 @@
 //   brand → same path for brand
 //   gtin  → same path for gtin
 //
+// Pricing projection from catalog_pricing_current:
+//   Prefer the row with channelId matching the sentinel "_unscoped" channel.
+//   Because catalog_pricing_current is keyed by (productId, channelId, locale)
+//   and "channel" is a UUID FK — there is no literal "_unscoped" channelId UUID —
+//   the preference chain for the list view is:
+//     1. Row whose locale = "_unscoped" within the first channelId found
+//        (the list view is not channel-scoped; we pick ANY channel's unscoped locale
+//        to surface a representative price).
+//     2. First row ordered by observedAt DESC if no locale="_unscoped" row exists.
+//   This mirrors how the legacy `current_price` scalar was populated: one number
+//   per product for display in the grid. Strong per-channel pricing lives on
+//   the product detail page via `?consistency=strong`.
+//
 // NOTE: `current_version` is deliberately null for new-schema rows.
 // Frontends that deep-access current_version fields (e.g. images, proposed_diff_id)
 // need a Phase 9 migration to consume the new winning_values shape directly.
 // Until then, the null sentinel is the contract: a product that has
 // current_version=null in the list response was migrated to the new schema.
 
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId } from "@aonex/types";
@@ -54,6 +68,15 @@ export interface ListCatalogProductRow {
    * This mirrors the legacy field name so the response envelope is unchanged.
    */
   variants: [];
+  /**
+   * Representative pricing for the product, sourced from catalog_pricing_current.
+   * Preference chain: locale="_unscoped" row (first channel) → first row by observedAt DESC.
+   * Null if the product has no pricing row in catalog_pricing_current.
+   *
+   * NOTE: This is a single representative price for list-view display only.
+   * Per-channel pricing lives on the product detail page via `?consistency=strong`.
+   */
+  pricing: { currency: string; amount: string | null } | null;
   /**
    * Small migration signal so frontend can transition gradually.
    * Clients SHOULD check `_meta.schema` before accessing `current_version`
@@ -135,7 +158,18 @@ function extractWinningString(
  *
  * Returns rows projected into the legacy-compatible list response shape.
  * `current_version` is always null; `variants` is always [].
- * Frontend consumers that depend on those fields need a Phase 9 migration.
+ * `pricing` is populated from catalog_pricing_current (batched query, then
+ * merged in JS — same pattern as the legacy `listProducts` path which hydrates
+ * current_version per-row after the main products query).
+ *
+ * Pricing selection per product:
+ *   1. Row with locale="_unscoped" (any channel, first by channel UUID order).
+ *   2. Fallback: first row ordered by observedAt DESC.
+ * This surfaces a single representative price for list-view display. Per-channel
+ * pricing lives on the detail endpoint via `?consistency=strong`.
+ *
+ * Frontend consumers that depend on current_version / variants need a Phase 9
+ * migration.
  */
 export async function listCatalogProducts(
   db: DrizzleClient,
@@ -155,6 +189,64 @@ export async function listCatalogProducts(
     )
     .orderBy(desc(schema.catalogProducts.updatedAt));
 
+  if (rows.length === 0) {
+    return [];
+  }
+
+  // ── Batch-fetch pricing for all returned products ─────────────────────────
+  //
+  // We fetch ALL catalog_pricing_current rows for the returned product IDs in
+  // one query, then group and pick the representative row in JS. This avoids
+  // N+1 queries and is consistent with how the legacy listProducts path hydrates
+  // current_version (one batch query keyed by id, merged in JS).
+  //
+  // Picking strategy per product:
+  //   1. Prefer locale = "_unscoped" (any channel).
+  //   2. Fallback: most-recently-observed row (observedAt DESC).
+
+  const productIds = rows.map((r) => r.productId);
+
+  const pricingRows = await db
+    .select({
+      productId: schema.catalogPricingCurrent.productId,
+      locale: schema.catalogPricingCurrent.locale,
+      currency: schema.catalogPricingCurrent.currency,
+      primaryAmount: schema.catalogPricingCurrent.primaryAmount,
+      observedAt: schema.catalogPricingCurrent.observedAt,
+    })
+    .from(schema.catalogPricingCurrent)
+    .where(inArray(schema.catalogPricingCurrent.productId, productIds))
+    .orderBy(desc(schema.catalogPricingCurrent.observedAt));
+
+  // Group pricing rows by productId.
+  const pricingByProduct = new Map<
+    string,
+    { locale: string; currency: string; primaryAmount: string | null; observedAt: Date }[]
+  >();
+  for (const pr of pricingRows) {
+    const list = pricingByProduct.get(pr.productId) ?? [];
+    list.push({
+      locale: pr.locale,
+      currency: pr.currency,
+      primaryAmount: pr.primaryAmount ?? null,
+      observedAt: pr.observedAt,
+    });
+    pricingByProduct.set(pr.productId, list);
+  }
+
+  /**
+   * Pick the representative pricing row for a product.
+   * Preference: locale="_unscoped" first, then first by observedAt DESC.
+   */
+  function pickPricing(
+    candidates: { locale: string; currency: string; primaryAmount: string | null }[] | undefined
+  ): { currency: string; amount: string | null } | null {
+    if (!candidates || candidates.length === 0) return null;
+    const unscopedRow = candidates.find((c) => c.locale === "_unscoped");
+    const chosen = unscopedRow ?? candidates[0]!;
+    return { currency: chosen.currency, amount: chosen.primaryAmount };
+  }
+
   return rows.map((row): ListCatalogProductRow => {
     const wv = (row.winningValues ?? null) as Record<string, unknown> | null;
 
@@ -169,6 +261,7 @@ export async function listCatalogProducts(
       gtin: extractWinningString(wv, "gtin"),
       current_version: null,
       variants: [],
+      pricing: pickPricing(pricingByProduct.get(row.productId)),
       _meta: { schema: "new" },
     };
   });

@@ -29,6 +29,30 @@ import type { DrizzleClient } from "@aonex/db";
 import { writeFile, rename } from "node:fs/promises";
 import { runValidation } from "./validate-backfill.js";
 
+// ---- Pre-flight error -------------------------------------------------------
+
+/**
+ * Error codes for pre-flight failures.
+ *
+ * runCutover throws a CutoverPreflightError (rather than calling process.exit)
+ * so tests can assert the specific guard that fired. The CLI main() catches it
+ * and calls process.exit(1).
+ */
+export type CutoverPreflightCode =
+  | "PREFLIGHT_USE_NEW_SCHEMA_OFF"
+  | "PREFLIGHT_DUAL_WRITE_ON"
+  | "PREFLIGHT_BACKFILL_INCOMPLETE"
+  | "PREFLIGHT_NOT_DRAINED";
+
+export class CutoverPreflightError extends Error {
+  readonly code: CutoverPreflightCode;
+  constructor(code: CutoverPreflightCode, message: string) {
+    super(message);
+    this.name = "CutoverPreflightError";
+    this.code = code;
+  }
+}
+
 // ---- Types -----------------------------------------------------------------
 
 export interface CutoverDeps {
@@ -269,12 +293,12 @@ export async function runCutover(
 
   // 1a. CATALOG_USE_NEW_SCHEMA must be true.
   if (!deps.useNewCatalogSchema) {
-    err(
+    const msg =
       "CATALOG_USE_NEW_SCHEMA is not true. " +
       "The new schema must be active before cutover. " +
-      "Set CATALOG_USE_NEW_SCHEMA=true and restart all app instances first."
-    );
-    process.exit(1);
+      "Set CATALOG_USE_NEW_SCHEMA=true and restart all app instances first.";
+    err(msg);
+    throw new CutoverPreflightError("PREFLIGHT_USE_NEW_SCHEMA_OFF", msg);
   }
 
   // 1b. CATALOG_DUAL_WRITE should be false (warn if still on).
@@ -286,8 +310,9 @@ export async function runCutover(
       "then re-run this script."
     );
     if (!force) {
-      err("Aborting: useDualWrite=true without --force. Flip CATALOG_DUAL_WRITE=false first.");
-      process.exit(1);
+      const msg = "Aborting: useDualWrite=true without --force. Flip CATALOG_DUAL_WRITE=false first.";
+      err(msg);
+      throw new CutoverPreflightError("PREFLIGHT_DUAL_WRITE_ON", msg);
     }
     warn("--force passed: continuing despite CATALOG_DUAL_WRITE=true (operator takes ownership).");
   }
@@ -305,25 +330,25 @@ export async function runCutover(
     .limit(1);
 
   if (cursorRows.length === 0) {
-    err(
+    const msg =
       `No completed backfill cursor found for tenant=${tenantId}. ` +
       "The backfill must complete before cutover (backfill_cursor.completed_at IS NOT NULL). " +
-      "Run: bun scripts/backfill-catalog.ts --tenant-id <uuid>"
-    );
-    process.exit(1);
+      "Run: bun scripts/backfill-catalog.ts --tenant-id <uuid>";
+    err(msg);
+    throw new CutoverPreflightError("PREFLIGHT_BACKFILL_INCOMPLETE", msg);
   }
 
   log(`Pre-flight passed: backfill cursor complete at ${cursorRows[0]!.completedAt!.toISOString()}`);
 
   // 1d. BullMQ drain confirmation (operator asserts this manually).
   if (!confirmDrained && !dryRun) {
-    err(
+    const msg =
       "Missing --confirm-drained flag. " +
       "You must manually verify all BullMQ in-flight jobs are drained " +
       "(no pending link-extract / drain jobs writing to legacy tables) " +
-      "before proceeding. Then re-run with --confirm-drained."
-    );
-    process.exit(1);
+      "before proceeding. Then re-run with --confirm-drained.";
+    err(msg);
+    throw new CutoverPreflightError("PREFLIGHT_NOT_DRAINED", msg);
   }
 
   // ── Step 2: Validation final check ────────────────────────────────────────
@@ -398,7 +423,10 @@ export async function runCutover(
 
   if (toRename.length === 0 && report.alreadyRenamedTables.length === legacyTablePairs.length) {
     log("All legacy tables are already renamed. Cutover was previously completed.");
-    report.renamedTables = report.alreadyRenamedTables;
+    // renamedTables stays [] — nothing was renamed THIS run.
+    // alreadyRenamedTables carries the full list of pairs detected as already done.
+    // Callers should check alreadyRenamedTables.length === legacyTablePairs.length
+    // as the idempotency signal.
     return report;
   }
 
@@ -535,6 +563,11 @@ async function main(): Promise<void> {
       ...(report.validationSummary ? { validationSummary: report.validationSummary } : {}),
     }, null, 2));
   } catch (runErr) {
+    if (runErr instanceof CutoverPreflightError) {
+      // Pre-flight failures are already logged inside runCutover.
+      // Exit 1 is the signal for "bad input / pre-flight failed."
+      process.exit(1);
+    }
     err(`Unexpected error: ${runErr instanceof Error ? runErr.message : String(runErr)}`);
     process.exit(2);
   } finally {
