@@ -29,6 +29,14 @@ export const backfillCursor = pgTable(
     totalFailed:                    integer("total_failed").notNull().default(0)
   },
   (t) => ({
+    // Note: the migration SQL declares this as a partial index with
+    // WHERE completed_at IS NULL (so only active/in-progress cursors are
+    // indexed). Drizzle ORM does not support partial index WHERE predicates
+    // in this version of drizzle-orm/pg-core — the .where() API is not
+    // available on IndexBuilder. The migration SQL is the source of truth;
+    // this Drizzle definition is used for SELECT typing only and diverges
+    // intentionally. Do not add .where() here without first verifying it
+    // is available in the project's drizzle-orm version.
     activeIdx: index("idx_backfill_cursor_active").on(t.startedAt)
   })
 );
