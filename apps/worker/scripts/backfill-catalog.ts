@@ -24,7 +24,7 @@
 //    deriving "backfill" from the actor prefix "backfill:product_versions".
 //  - rawPayload: per plan §7.1 step 5, revision.raw_payload references the
 //    source_artifact's raw_data. The backfill navigates the FK chain
-//    (proposedDiffId → sourceFactSetId → extractedFactSets.artifactId →
+//    (proposedDiffId → sourceFactSetId → linkIngestionTraceSets.artifactId →
 //    source_artifacts.rawData) and wraps it with provenance metadata
 //    (source_artifact_id, product_version_id, proposed_diff_id, etc.).
 //  - Inventory observations: skipped for v1 — legacy product_versions did

@@ -61,10 +61,10 @@ export async function listProducts(c: Context, deps: CatalogRouteDeps): Promise<
   );
 
   // Rich-only mode: when persisted images is empty (rows promoted before
-  // the image-leak fix), recompute thumbnails from extractedFacts so the
-  // list view lights up without re-ingesting. We do this in a single batched
-  // query for all stale rows to keep the list endpoint O(1) DB roundtrips
-  // regardless of product count.
+  // the image-leak fix), recompute thumbnails from linkIngestionTraceFacts so
+  // the list view lights up without re-ingesting. We do this in a single
+  // batched query for all stale rows to keep the list endpoint O(1) DB
+  // roundtrips regardless of product count.
   const staleRows = hydrated.filter(
     (r) =>
       r.current_version &&
@@ -472,7 +472,7 @@ export async function getProductProvenance(c: Context, deps: CatalogRouteDeps): 
  * GET /products/:id/sku — rebuild the rich SkuJson for a catalog product.
  *
  * Walks: product → currentVersionId → proposedDiff → sourceFactSet →
- * extractedFacts → convertFromFacts(facts, sourceUrl). Computed on-demand
+ * linkIngestionTraceFacts → convertFromFacts(facts, sourceUrl). Computed on-demand
  * (rather than persisted on product_versions) so no DB migration is needed
  * and the rendering always reflects the latest enrichment logic.
  */
