@@ -13,11 +13,6 @@
 // Tenant discovery is STATIC at startup (v1). A tenant created between
 // deploys won't get a worker until the next restart. Phase 5+ will add a
 // dynamic discovery watcher (planned, not in this task).
-//
-// Feature-flag gated: when `useNewCatalogSchema` is false the function
-// returns [] without consulting Redis or the DB — this matches the
-// drain-processor / link-extract-processor dual-path conventions and keeps
-// the recon queues silent until the catalog redesign is live for the deploy.
 
 import { eq } from "drizzle-orm";
 import type IORedis from "ioredis";
@@ -39,19 +34,6 @@ export interface StartReconcilerWorkersOptions {
    * this is the concurrency WITHIN one tenant's worker, not across tenants.
    */
   concurrency?: number;
-  /**
-   * When true (default), gates spawning behind `useNewCatalogSchema`. With
-   * the flag OFF, returns [] with no observable side-effect (no DB read, no
-   * Redis activity). Set to false to bypass the gate entirely — useful for
-   * tests that want to exercise the discovery path without the flag.
-   */
-  gated?: boolean;
-  /**
-   * Resolved catalog-redesign feature flag value (read by the composition
-   * root via `useNewCatalogSchema(env)` and forwarded here). Only consulted
-   * when `gated !== false`.
-   */
-  useNewCatalogSchema?: boolean;
 }
 
 export interface ReconcilerWorkerHandle {
@@ -69,26 +51,13 @@ export interface ReconcilerWorkerHandle {
  * the writer-side dual path is also tenant-aware.
  *
  * Empty tenants table (or zero active rows) is a clean no-op: returns [].
- *
- * Gating: when `gated !== false` AND `useNewCatalogSchema === false`, returns
- * [] without touching the DB. This is the v1 behaviour — Phase 5 will allow
- * per-tenant ramp-up.
  */
 export async function startReconcilerWorkers(
   deps: StartReconcilerWorkersDeps,
   options: StartReconcilerWorkersOptions = {}
 ): Promise<ReconcilerWorkerHandle[]> {
   const { db, connection, logger } = deps;
-  const gated = options.gated !== false;
   const concurrency = options.concurrency;
-
-  if (gated && options.useNewCatalogSchema === false) {
-    logger?.info(
-      { useNewCatalogSchema: false },
-      "Reconciler workers gated by feature flag — skipping"
-    );
-    return [];
-  }
 
   const activeTenants = await db
     .select({ tenantId: schema.tenants.id })

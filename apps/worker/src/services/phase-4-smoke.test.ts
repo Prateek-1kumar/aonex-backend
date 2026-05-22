@@ -297,7 +297,7 @@ describe("Phase 4 integration smoke (Task 4.7)", () => {
 
     const handles = await startReconcilerWorkers(
       { db, connection },
-      { useNewCatalogSchema: true }
+      {}
     );
     try {
       expect(handles.length).toBeGreaterThanOrEqual(1);

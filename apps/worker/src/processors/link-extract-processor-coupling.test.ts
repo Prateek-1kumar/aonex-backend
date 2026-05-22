@@ -15,8 +15,8 @@
 //   ./ingestion-spine.processor.js  — not imported by other tests
 //
 // Functions that ARE used at runtime by other tests are injected through the
-// _channelCodeFromUrl, _resolveChannelByCode, _runNewLinkCatalogPath, and
-// _persistLinkCatalogPipeline optional dep fields added in the Option-a refactor.
+// _channelCodeFromUrl, _resolveChannelByCode, and _runNewLinkCatalogPath
+// optional dep fields added in the Option-a refactor.
 //
 // What this test verifies:
 //   When the REAL makeLinkExtractProcessor factory runs, execution reaches
