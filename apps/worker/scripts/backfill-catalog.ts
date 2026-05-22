@@ -47,6 +47,14 @@
 //    The backfill uses confidence=0.7 as the default for observations from
 //    typed product_version columns (title=0.8, gtin=0.9, others=0.7).
 //    Per-observation confidence is what landed — no schema change in this task.
+//  - SPEC DEVIATION v1 limitation: catalog_pricing_observations does not have
+//    a unique constraint on (source, source_record_id). As a result, idempotent
+//    re-runs (via --from-scratch) DOUBLE pricing rows in that side table.
+//    Canonical observations in catalog_products.values are correctly deduped
+//    (writeAdapterOutput uses ON CONFLICT DO UPDATE for those). Pricing dedup
+//    (ON CONFLICT) is deferred to a future migration that adds the constraint.
+//    Operators should avoid --from-scratch on tenants with live pricing data
+//    until that migration lands.
 //
 // Exit codes:
 //   0  Success (or dry-run completed)
@@ -227,6 +235,7 @@ async function resolveChannelForMerchant(
     })
     .from(schema.channels)
     .where(eq(schema.channels.tenantId, tenantId))
+    .orderBy(schema.channels.channelId)
     .limit(1);
 
   const row = rows[0];
@@ -471,6 +480,34 @@ function buildAdapterOutput(
 
 // ---- runBackfill (exported for tests) -------------------------------------
 
+/**
+ * Backfill the new catalog schema from legacy `product_versions` +
+ * `extracted_facts` rows for a single tenant.
+ *
+ * **Idempotency**: re-running for the same `product_version` is a no-op.
+ * Canonical observations are deduped inside `writeAdapterOutput` using
+ * `(source, source_record_id, attribute_code)` uniqueness — re-running
+ * produces no new observation rows. Pricing observations are NOT deduped
+ * (no unique constraint on the side table in v1); see the spec-deviations
+ * header for details.
+ *
+ * **Resumability**: progress is persisted in the `backfill_cursor` table
+ * (one row per tenant). Each batch advances the cursor to the highest
+ * successfully-processed `product_version` UUID. On restart, the query
+ * resumes from `WHERE pv.id > lastProductVersionIdProcessed`.
+ *
+ * **`dryRun` semantics**: observations and catalog rows are NOT written.
+ * The cursor is NOT updated. Logs describe what _would_ be written.
+ *
+ * **`fromScratch` semantics**: the cursor row's counters, `lastId`, and
+ * `startedAt` are reset (via UPDATE SET) before processing begins. The row
+ * itself is retained (UPSERT on initial insert). Implies a full re-scan.
+ *
+ * **`completed: false` in result**: the limit was hit before all
+ * `product_versions` were exhausted; the run did NOT reach EOF.
+ *
+ * @returns {@link BackfillResult} — summary counters and completion flag.
+ */
 export async function runBackfill(
   deps: BackfillDeps,
   options: BackfillOptions
@@ -537,6 +574,7 @@ export async function runBackfill(
           totalProcessed: 0,
           totalSkipped: 0,
           totalFailed: 0,
+          startedAt: new Date(),
           updatedAt: new Date()
         })
         .where(eq(schema.backfillCursor.tenantId, tenantId));
@@ -549,6 +587,16 @@ export async function runBackfill(
   let batchCompleted = false;
 
   // ---- 2. Main batch loop --------------------------------------------
+  // Accumulate all failed IDs across the entire run for the final summary.
+  const allFailedIds: string[] = [];
+
+  // channelCache: persisted across batches so the same merchantId is only
+  // looked up once per run (avoids redundant DB round-trips).
+  const channelCache = new Map<
+    string,
+    { channelId: ChannelId; channelCode: string } | null
+  >();
+
   while (true) {
     const effectiveBatch =
       limitRemaining !== undefined
@@ -585,16 +633,16 @@ export async function runBackfill(
       break;
     }
 
-    // Pre-resolve channel per merchant (cache within this batch run)
-    const channelCache = new Map<
-      string,
-      { channelId: ChannelId; channelCode: string } | null
-    >();
+    // Per-batch tracking for safe cursor advancement.
+    // maxSuccessId: highest UUID that succeeded in this batch (cursor advances here).
+    // failedIds: IDs that failed — kept below cursor for operator retry.
+    let maxSuccessId: string | null = null;
+    const failedIdsThisBatch: string[] = [];
 
     for (const { pv } of batch) {
       const merchantId = pv.merchantId;
 
-      // Resolve channel (once per merchantId)
+      // Resolve channel (once per merchantId across all batches)
       if (!channelCache.has(merchantId)) {
         const ch = await resolveChannelForMerchant(db, tenantId, merchantId);
         channelCache.set(merchantId, ch);
@@ -618,7 +666,7 @@ export async function runBackfill(
       if (dryRun) {
         log(`  [DRY-RUN] would write product_version ${pv.id}: ${adapterOutput.observations.length} obs, ${adapterOutput.pricingObservations.length} pricing, identityHint=${JSON.stringify(adapterOutput.identityHint)}`);
         totalProcessed++;
-        lastId = pv.id;
+        maxSuccessId = pv.id;
         continue;
       }
 
@@ -649,13 +697,35 @@ export async function runBackfill(
           totalSkipped++;
           log(`  product_version ${pv.id}: skipped (fully deduped, productId=${result.productId})`);
         }
+        // Only advance the success cursor on actual success.
+        maxSuccessId = pv.id;
       } catch (err) {
         totalFailed++;
+        failedIdsThisBatch.push(pv.id);
         warn(`product_version ${pv.id} failed: ${err instanceof Error ? err.message : String(err)}`);
-        // Continue — don't halt the whole backfill on a single error
+        // Do NOT advance maxSuccessId — failed rows stay below cursor for retry.
+        // Continue — don't halt the whole backfill on a single error.
       }
+    }
 
-      lastId = pv.id;
+    // Accumulate failed IDs for the final run summary.
+    allFailedIds.push(...failedIdsThisBatch);
+    if (failedIdsThisBatch.length > 0) {
+      warn(`batch failed IDs: ${JSON.stringify(failedIdsThisBatch)}`);
+    }
+
+    // Determine how far to advance the cursor.
+    // - Common case: at least one row succeeded → advance to maxSuccessId.
+    //   Failed rows below that point are logged above and available for retry.
+    // - Pathological case: all rows in the batch failed → advance past them
+    //   to prevent an infinite loop. Log loudly so operators can investigate.
+    const batchMaxId = batch[batch.length - 1]!.pv.id;
+    if (maxSuccessId !== null) {
+      lastId = maxSuccessId;
+    } else {
+      // All rows failed — advance past the batch to avoid looping forever.
+      warn(`all rows in batch failed, advancing cursor past them to avoid infinite loop; failed: ${JSON.stringify(failedIdsThisBatch)}`);
+      lastId = batchMaxId;
     }
 
     // Update cursor after each batch (skip if dry-run)
@@ -672,8 +742,9 @@ export async function runBackfill(
         .where(eq(schema.backfillCursor.tenantId, tenantId));
     }
 
-    // Progress log every batch
-    if ((totalProcessed + totalSkipped + totalFailed) % 100 === 0) {
+    // Progress log every 100 rows (guard against spurious log at total=0)
+    const total = totalProcessed + totalSkipped + totalFailed;
+    if (total > 0 && total % 100 === 0) {
       log(`Progress: processed=${totalProcessed} skipped=${totalSkipped} failed=${totalFailed}`);
     }
 
@@ -712,6 +783,9 @@ export async function runBackfill(
   log(
     `Summary: tenant=${tenantId} processed=${totalProcessed} skipped=${totalSkipped} failed=${totalFailed} completed=${batchCompleted} dryRun=${dryRun}`
   );
+  if (allFailedIds.length > 0) {
+    warn(`Run completed with ${allFailedIds.length} failed product_version(s). Retry these IDs manually: ${JSON.stringify(allFailedIds)}`);
+  }
 
   return {
     tenantId,
