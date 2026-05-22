@@ -9,7 +9,7 @@ import { buildGateway, PostgresConnectionRegistry } from "@aonex/connector-gatew
 import { createNangoClient } from "@aonex/connector-gateway/adapters/nango";
 import { SyncService } from "./services/sync-service.js";
 import { PostgresAuditEmitter } from "@aonex/audit";
-import { parseEnv, QUEUE, useNewCatalogSchema, type Env } from "@aonex/types";
+import { parseEnv, QUEUE, useNewCatalogSchema, useDualWrite, type Env } from "@aonex/types";
 
 import { makeNangoAuthProcessor } from "./processors/nango-auth.processor.js";
 import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
@@ -34,6 +34,12 @@ export interface WorkerContainer {
    * boundary in this composition root.
    */
   useNewCatalogSchema: boolean;
+  /**
+   * Phase 7 soak dual-write flag, resolved once at boot. When true (and
+   * useNewCatalogSchema is also true), processors write to both the new
+   * catalog schema AND the legacy schema simultaneously.
+   */
+  useDualWrite: boolean;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -42,11 +48,11 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
   const logger = pino({ level: env.LOG_LEVEL });
 
   // Phase 4 catalog redesign — resolve the feature flag once and log it
-  // so ops can confirm flag state at boot. The flag is NOT yet read by
-  // any downstream processor (wiring lands in Phase 4.2+); this just
-  // makes it available on the container.
+  // so ops can confirm flag state at boot.
+  // Phase 7 soak — also resolve the dual-write flag.
   const catalogUseNewSchema = useNewCatalogSchema(env);
-  logger.info({ useNewCatalogSchema: catalogUseNewSchema }, "Catalog feature flag");
+  const catalogDualWrite = useDualWrite(env);
+  logger.info({ useNewCatalogSchema: catalogUseNewSchema, useDualWrite: catalogDualWrite }, "Catalog feature flags");
 
   const db = createDb(env.DATABASE_URL, { max: 30 });
   const redis = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
@@ -128,6 +134,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         audit,
         extractor,
         useNewCatalogSchema: catalogUseNewSchema,
+        useDualWrite: catalogDualWrite,
       }),
       { connection: redis, concurrency: 5 }
     );
@@ -207,6 +214,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
   return {
     env,
     useNewCatalogSchema: catalogUseNewSchema,
+    useDualWrite: catalogDualWrite,
     async start() {
       logger.info({ env: env.NODE_ENV }, "worker.starting");
     },
