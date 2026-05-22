@@ -16,7 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants.js";
 import { merchants } from "./merchants.js";
-import { extractedFactSets } from "./extraction.js";
+import { linkIngestionTraceSets as extractedFactSets } from "./link-ingestion-trace.js";
 import { policyVersions } from "./policy.js";
 import { proposedDiffStatusEnum, actorTypeEnum } from "./enums.js";
 

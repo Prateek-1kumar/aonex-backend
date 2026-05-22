@@ -77,7 +77,7 @@ export async function persistExtractionRun(
   policyVersionId: string
 ): Promise<string> {
   const [created] = await db
-    .insert(schema.extractionRuns)
+    .insert(schema.linkIngestionTraceRuns)
     .values({
       artifactId: args.artifactId,
       tenantId: args.tenantId,
@@ -90,11 +90,11 @@ export async function persistExtractionRun(
       completedAt: new Date(),
     })
     .onConflictDoNothing()
-    .returning({ id: schema.extractionRuns.id });
+    .returning({ id: schema.linkIngestionTraceRuns.id });
 
   if (created) return created.id;
 
-  const existing = await db.query.extractionRuns.findFirst({
+  const existing = await db.query.linkIngestionTraceRuns.findFirst({
     where: (r, { and, eq }) =>
       and(
         eq(r.artifactId, args.artifactId),
@@ -111,20 +111,20 @@ export async function persistFactSet(
   db: DrizzleClient,
   args: { extractionRunId: string; artifactId: ArtifactId; tenantId: TenantId; merchantId: MerchantId }
 ): Promise<string> {
-  const existing = await db.query.extractedFactSets.findFirst({
+  const existing = await db.query.linkIngestionTraceSets.findFirst({
     where: (fs, { eq }) => eq(fs.extractionRunId, args.extractionRunId),
   });
   if (existing) return existing.id;
 
   const [created] = await db
-    .insert(schema.extractedFactSets)
+    .insert(schema.linkIngestionTraceSets)
     .values({
       extractionRunId: args.extractionRunId,
       artifactId: args.artifactId,
       tenantId: args.tenantId,
       merchantId: args.merchantId,
     })
-    .returning({ id: schema.extractedFactSets.id });
+    .returning({ id: schema.linkIngestionTraceSets.id });
 
   if (!created) throw new Error("Failed to persist extracted fact set");
   return created.id;
@@ -136,12 +136,12 @@ export async function persistFacts(
   factSetId: string,
   facts: ExtractedFact[]
 ): Promise<void> {
-  const existing = await db.query.extractedFacts.findFirst({
+  const existing = await db.query.linkIngestionTraceFacts.findFirst({
     where: (f, { eq }) => eq(f.factSetId, factSetId),
   });
   if (existing || facts.length === 0) return;
 
-  await db.insert(schema.extractedFacts).values(
+  await db.insert(schema.linkIngestionTraceFacts).values(
     facts.map((fact) => ({
       factSetId,
       tenantId,

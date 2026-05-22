@@ -314,7 +314,7 @@ const STATUS_ORDER: Record<FieldStatus, number> = {
 async function fetchFactsForProduct(
   db: DrizzleClient,
   productId: string
-): Promise<typeof schema.extractedFacts.$inferSelect[]> {
+): Promise<typeof schema.linkIngestionTraceFacts.$inferSelect[]> {
   const revRows = await db.execute<{ product_version_id: string | null }>(
     sql`
       SELECT raw_payload->>'product_version_id' AS product_version_id
@@ -349,8 +349,8 @@ async function fetchFactsForProduct(
 
   return db
     .select()
-    .from(schema.extractedFacts)
-    .where(eq(schema.extractedFacts.factSetId, factSetId));
+    .from(schema.linkIngestionTraceFacts)
+    .where(eq(schema.linkIngestionTraceFacts.factSetId, factSetId));
 }
 
 /**
