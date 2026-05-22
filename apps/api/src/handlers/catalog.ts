@@ -8,11 +8,23 @@ import {
   readCatalogProductById,
   type Consistency,
 } from "../services/new-catalog-read.js";
+import { listCatalogProducts } from "../services/new-catalog-list.js";
 
 export async function listProducts(c: Context, deps: CatalogRouteDeps): Promise<Response> {
   const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
   const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
 
+  // ---- New-schema path (Phase 8 prereq A) ---------------------------------
+  // When the flag is ON, read from catalog_products and project into a
+  // legacy-compatible response shape. `current_version` will be null and
+  // `variants` will be [] for all migrated products — see new-catalog-list.ts
+  // for the documented contract and Phase 9 migration path.
+  if (deps.useNewCatalogSchema) {
+    const hydrated = await listCatalogProducts(deps.db, { tenantId, merchantId });
+    return c.json({ data: { products: hydrated } });
+  }
+
+  // ---- Legacy path --------------------------------------------------------
   const products = await deps.db
     .select()
     .from(schema.products)

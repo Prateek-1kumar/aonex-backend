@@ -685,23 +685,23 @@ describe("GET /products/:id parity — flag ON vs OFF (Task 7.5)", () => {
 });
 
 // ===========================================================================
-// Suite 2: GET /products parity — listProducts handler.
+// Suite 2: GET /products parity — listProducts handler (Phase 8 update).
 // ===========================================================================
 //
-// FINDING: `listProducts` always reads from `schema.products` regardless of
-// the `useNewCatalogSchema` flag. The flag is passed to `catalogRoutes` but
-// `listProducts` ignores it (no branch on deps.useNewCatalogSchema). Both
-// flag=true and flag=false return the same response (legacy product list).
+// Phase 7 FINDING (now RESOLVED in Phase 8 Task 8.1):
+//   listProducts previously read from `schema.products` unconditionally.
+//   Phase 8 prereq A wired the new-schema dual path: when
+//   useNewCatalogSchema=true, the handler reads from catalog_products.
 //
-// PARITY OUTCOME: trivially identical — same code path runs. This is documented
-// as a known limitation of Phase 7 soak: the `/products` list endpoint does NOT
-// yet serve from the new schema. Full list parity (from catalog_products) is
-// scheduled for Phase 8 cutover work (Phase 7 soak follow-up — Task 8.x).
+// CURRENT BEHAVIOR (Phase 8+):
+//   - Flag OFF → reads from schema.products (legacy path, unchanged).
+//   - Flag ON  → reads from catalog_products (new path, Phase 8 prereq A).
 //
-// TEST PURPOSE: verify that the flag does NOT accidentally break the list endpoint
-// (regression guard), and that both flags return the same product IDs.
+// PARITY NOTE: the two paths now serve DIFFERENT product sets (each reads
+// from its own table). The parity tests below document the new correct
+// behavior rather than requiring identical results from both flags.
 
-describe("GET /products parity — listProducts flag-invariant (Task 7.5)", () => {
+describe("GET /products parity — listProducts dual-path (Phase 8, Task 8.1)", () => {
   let db: DrizzleClient;
 
   beforeAll(async () => {
@@ -720,8 +720,10 @@ describe("GET /products parity — listProducts flag-invariant (Task 7.5)", () =
     await closeTestDb();
   });
 
-  test("list returns the same product IDs regardless of flag (listProducts ignores the flag)", async () => {
+  test("flag OFF reads from schema.products, flag ON reads from catalog_products", async () => {
+    // Seed one legacy product (schema.products) and one new product (catalog_products).
     await seedLegacyProduct(db);
+    await seedNewProduct(db, { title: "New-Schema Widget" });
 
     const appOff = buildApp({ db, useNewCatalogSchema: false });
     const appOn  = buildApp({ db, useNewCatalogSchema: true });
@@ -737,21 +739,18 @@ describe("GET /products parity — listProducts flag-invariant (Task 7.5)", () =
     const bodyOff = (await resOff.json()) as { data: { products: Array<{ id: string }> } };
     const bodyOn  = (await resOn.json()) as { data: { products: Array<{ id: string }> } };
 
-    const idsOff = bodyOff.data.products.map((p) => p.id).sort();
-    const idsOn  = bodyOn.data.products.map((p) => p.id).sort();
-
-    // Both paths return the same set of product IDs (from schema.products).
-    expect(idsOn).toEqual(idsOff);
-
-    // The seeded legacy product must appear in both.
+    // Flag OFF: legacy product appears, new product absent (reads schema.products).
+    const idsOff = bodyOff.data.products.map((p) => p.id);
     expect(idsOff).toContain(PARITY_LEGACY_PRODUCT_ID);
-    expect(idsOn).toContain(PARITY_LEGACY_PRODUCT_ID);
+    expect(idsOff).not.toContain(PARITY_NEW_PRODUCT_ID);
+
+    // Flag ON: new product appears, legacy product absent (reads catalog_products).
+    const idsOn = bodyOn.data.products.map((p) => p.id);
+    expect(idsOn).toContain(PARITY_NEW_PRODUCT_ID);
+    expect(idsOn).not.toContain(PARITY_LEGACY_PRODUCT_ID);
   });
 
-  test("list does NOT include catalog_products rows (new schema not yet wired to list)", async () => {
-    // Only seed the NEW product (no legacy products row for this merchant beyond the one
-    // that may exist from other test seeds — we rely on the fact that PARITY_NEW_PRODUCT_ID
-    // only exists in catalog_products, not in schema.products).
+  test("flag ON — list includes catalog_products rows (Phase 8 prereq A wired)", async () => {
     await seedNewProduct(db, { title: "New-Only Widget" });
 
     const appOn = buildApp({ db, useNewCatalogSchema: true });
@@ -761,10 +760,8 @@ describe("GET /products parity — listProducts flag-invariant (Task 7.5)", () =
     const body = (await res.json()) as { data: { products: Array<{ id: string }> } };
     const ids = body.data.products.map((p) => p.id);
 
-    // Confirm: the new-schema product ID does NOT appear in the list response
-    // (listProducts only reads schema.products). This is the documented
-    // "list parity gap" for Phase 7 — flagged for future resolution.
-    expect(ids).not.toContain(PARITY_NEW_PRODUCT_ID);
+    // Phase 8: new-schema product IS now included when flag=true.
+    expect(ids).toContain(PARITY_NEW_PRODUCT_ID);
   });
 });
 
