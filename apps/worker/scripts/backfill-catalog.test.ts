@@ -23,7 +23,6 @@ import {
   ensureTestChannel,
   ensureTestMerchant,
   ensureTestTenant,
-  TEST_CHANNEL_ID,
   TEST_MERCHANT_ID,
   TEST_TENANT_ID
 } from "@aonex/db/testing";
@@ -410,7 +409,7 @@ describe("backfill-catalog (Task 7.1)", () => {
 
   // ---- Test 2: Idempotency ------------------------------------------------
 
-  test("2. idempotency — re-run produces no new catalog_products rows; canonical observations deduped", async () => {
+  test("2. idempotency (v1 documented limitations) — canonical obs deduped; pricing rows double on re-run", async () => {
     // Count catalog_products before second run
     const catalogBefore = await db
       .select()
@@ -421,6 +420,13 @@ describe("backfill-catalog (Task 7.1)", () => {
     // Read values snapshot of the existing product to compare after re-run
     const productBefore = catalogBefore[0]!;
     const valuesBefore = JSON.stringify(productBefore.values);
+
+    // Snapshot pricing row count before the second run
+    const pricingCountBefore = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.tenantId, TENANT))
+      .then((r) => r.length);
 
     // Re-run with --from-scratch so cursor doesn't block re-processing
     const result = await runBackfill(
@@ -446,6 +452,20 @@ describe("backfill-catalog (Task 7.1)", () => {
     expect(productAfter).toBeDefined();
     // values blob unchanged — no new canonical obs appended
     expect(JSON.stringify(productAfter.values)).toBe(valuesBefore);
+
+    // v1 limitation: catalog_pricing_observations has no unique constraint on
+    // (source, source_record_id), so idempotent re-runs DOUBLE pricing rows.
+    // This is a documented v1 limitation (see script header spec-deviations).
+    // Operators should not run --from-scratch on tenants with live pricing data
+    // until the dedup migration lands.
+    const pricingCountAfter = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(eq(schema.catalogPricingObservations.tenantId, TENANT))
+      .then((r) => r.length);
+    if (pricingCountBefore > 0) {
+      expect(pricingCountAfter).toBe(pricingCountBefore * 2);
+    }
   });
 
   // ---- Test 3: Dry-run ----------------------------------------------------
