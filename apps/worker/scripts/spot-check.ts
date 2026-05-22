@@ -45,6 +45,7 @@ import {
   comparePricing,
   extractWinningValue
 } from "./validate-backfill.js";
+// CROSS-APP: relative path into apps/api — update if api is ever extracted to a package.
 import { readProductTrace, PRODUCT_NOT_FOUND } from "../../api/src/services/new-catalog-trace.js";
 import type { ProductTraceResult } from "../../api/src/services/new-catalog-trace.js";
 
@@ -121,7 +122,7 @@ Required:
 Options:
   --sample-size <n>       Number of products to sample. Default 100, max 1000.
   --output <path>         Write HTML report here. Default ./spot-check-report.html.
-  --seed <n>              Integer seed for deterministic sampling (Postgres setseed).
+  --seed <n>              Integer (any value) seed for deterministic sampling (Postgres setseed).
                           Default: non-deterministic (Date.now()).
   --help, -h              Print this and exit.
 
@@ -144,6 +145,20 @@ function parsePositiveInt(name: string, raw: string): number {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) {
     throw new Error(`${name} must be a positive integer; got: ${raw}`);
+  }
+  return n;
+}
+
+/**
+ * Parse any safe integer (positive, zero, or negative).
+ * Used for --seed because Postgres setseed() accepts the full [-1, 1] range
+ * and seed=0 is a meaningful value (the default Postgres state).
+ */
+function parseAnyInt(rawArg: string, name: string): number {
+  const raw = rawArg.trim();
+  const n = Number(raw);
+  if (!Number.isFinite(n) || !Number.isSafeInteger(n)) {
+    throw new Error(`${name} must be an integer (any value); got: ${rawArg}`);
   }
   return n;
 }
@@ -198,7 +213,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       i += consumed - 1;
     } else if (arg === "--seed" || arg.startsWith("--seed=")) {
       const { value, consumed } = take(argv, "--seed", i);
-      seed = parsePositiveInt("--seed", value);
+      seed = parseAnyInt(value, "--seed");
       i += consumed - 1;
     } else {
       throw new Error(`Unknown flag: ${arg}`);
@@ -677,14 +692,14 @@ function renderHtml(report: SpotCheckReport): string {
 <div class="summary">
   <p>Tenant: <code>${escapeHtml(report.tenantId)}</code></p>
   <p>Generated: ${escapeHtml(report.generatedAt)}</p>
-  <p>Sample size: ${report.sampleSize} (sampled: ${report.totalSampled})</p>
-  <p>Seed: ${report.seed}</p>
-  <p>All-match: ${report.allMatch} &nbsp;&middot;&nbsp; Differences: ${report.withDiffs} &nbsp;&middot;&nbsp; Possible losses: ${report.withLosses}</p>
+  <p>Sample size: ${String(report.sampleSize)} (sampled: ${String(report.totalSampled)})</p>
+  <p>Seed: ${String(report.seed)}</p>
+  <p>All-match: ${String(report.allMatch)} &nbsp;&middot;&nbsp; Differences: ${String(report.withDiffs)} &nbsp;&middot;&nbsp; Possible losses: ${String(report.withLosses)}</p>
 </div>
 <div class="pin-toc">
-  <a href="#with-losses">Losses (${losses.length})</a>
-  <a href="#with-diffs">Diffs (${diffs.length})</a>
-  <a href="#all-match">Match (${matches.length})</a>
+  <a href="#with-losses">Losses (${String(losses.length)})</a>
+  <a href="#with-diffs">Diffs (${String(diffs.length)})</a>
+  <a href="#all-match">Match (${String(matches.length)})</a>
 </div>
 
 ${renderSection("with-losses", "Possible losses", losses.length, losses)}
