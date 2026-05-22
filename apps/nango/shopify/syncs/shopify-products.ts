@@ -112,7 +112,7 @@ const sync = createSync({
     do {
       // https://shopify.dev/docs/api/admin-graphql/2024-10/queries/products
       const res = await nango.post<GraphQLResponse>({
-        endpoint: '/admin/api/2024-10/graphql.json',
+        endpoint: '/admin/api/2026-04/graphql.json',
         data: { query: PRODUCTS_QUERY, variables: { after: cursor ?? null, filter } },
         retries: 3
       });

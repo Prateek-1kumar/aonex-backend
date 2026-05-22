@@ -24,6 +24,7 @@ export const EnvSchema = z.object({
 
   // Nango Connect UI base URL — where merchants land to connect their store
   NANGO_CONNECT_BASE_URL: z.string().url().default('https://connect.nango.dev'),
+  EBAY_API_BASE_URL: z.string().url().default('https://api.ebay.com'),
 
   // JWT — HS256, ≥32 bytes
   JWT_SECRET: z.string().min(32),

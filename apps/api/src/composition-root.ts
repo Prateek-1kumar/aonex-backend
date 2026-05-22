@@ -11,7 +11,16 @@ import IORedis from "ioredis";
 import pino from "pino";
 import { Queue } from "bullmq";
 import { createDb } from "@aonex/db";
-import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoProxyShopifyTransport, PostgresConnectionRegistry } from "@aonex/connector-gateway";
+import {
+  buildGateway,
+  type ConnectorAdapterPhase1,
+  ShopifyAdapter,
+  ConnectorGateway,
+  NangoProxyShopifyTransport,
+  NangoProxyEbayTransport,
+  EbayAdapter,
+  PostgresConnectionRegistry
+} from "@aonex/connector-gateway";
 import { PostgresAuditEmitter } from "@aonex/audit";
 import { parseEnv, QUEUE, type Env } from "@aonex/types";
 import { SystemClock } from "@aonex/lib-utils";
@@ -29,6 +38,7 @@ import { webhookRoutes } from "./routes/webhooks.js";
 import { syncRoutes } from "./routes/sync.js";
 import { healthRoutes } from "./routes/health.js";
 import { shopifyRoutes } from "./routes/shopify.js";
+import { ebayRoutes } from "./routes/ebay.js";
 import { swaggerRoutes } from "./routes/swagger.js";
 import { ingestionsRoutes } from "./routes/ingestions.js";
 import { reviewRoutes } from "./routes/review.js";
@@ -77,10 +87,18 @@ export function buildContainer(env: Env): ApiContainer {
       nangoSecretKey: env.NANGO_SECRET_KEY
     })
   });
+  const ebayAdapter = new EbayAdapter({
+    nangoConnectBaseUrl: env.NANGO_CONNECT_BASE_URL,
+    transport: new NangoProxyEbayTransport({
+      nangoHost: env.NANGO_HOST,
+      nangoSecretKey: env.NANGO_SECRET_KEY,
+      ebayApiBaseUrl: env.EBAY_API_BASE_URL
+    })
+  });
   const connectorGateway = new ConnectorGateway({
     lookup: connectionRegistry,
     nango: gateway,
-    marketplaceAdapters: { shopify: shopifyAdapter }
+    marketplaceAdapters: { shopify: shopifyAdapter, ebay: ebayAdapter }
   });
   const audit = new PostgresAuditEmitter(db.client);
   const jwt = new JwtService({ secret: env.JWT_SECRET, clock: SystemClock });
@@ -192,6 +210,14 @@ export function buildContainer(env: Env): ApiContainer {
   protectedApp.route(
     "/marketplaces/shopify",
     shopifyRoutes({
+      gateway: connectorGateway,
+      audit,
+      queues: { [QUEUE.NANGO_TRIGGER]: nangoTriggerQueue }
+    })
+  );
+  protectedApp.route(
+    "/marketplaces/ebay",
+    ebayRoutes({
       gateway: connectorGateway,
       audit,
       queues: { [QUEUE.NANGO_TRIGGER]: nangoTriggerQueue }
