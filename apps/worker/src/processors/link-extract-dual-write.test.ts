@@ -6,10 +6,13 @@
 // these tests verify the branching logic by inspecting which write functions
 // were called per flag state.
 //
-// The approach: inject thin spy implementations of `runNewLinkCatalogPath`
-// and `persistLinkCatalogPipeline` via a wrapper function that exercises
-// the same conditional as the processor. This keeps the test fast, pure, and
-// deterministic — no DB, no network.
+// Two layers of coverage:
+//   1. These four logic-proof tests via `exerciseBranching` — fast, pure, fully
+//      isolated. Document the intended flag semantics.
+//   2. One coupling test in link-extract-processor-coupling.test.ts that calls
+//      the REAL `makeLinkExtractProcessor` factory with both flags ON and asserts
+//      BOTH write functions are called. This closes the gap where an inversion
+//      of the condition in the real processor would not be caught here.
 
 import { describe, expect, test } from "bun:test";
 

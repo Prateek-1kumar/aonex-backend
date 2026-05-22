@@ -22,12 +22,18 @@ import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
 import { convertFromFacts } from "@aonex/ingestion-enrichment";
 import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
-import { persistLinkCatalogPipeline } from "../services/link-catalog-pipeline.js";
+import {
+  persistLinkCatalogPipeline,
+  type PersistLinkCatalogInput,
+  type PersistLinkCatalogResult,
+} from "../services/link-catalog-pipeline.js";
 import { emitFailureReviewTask } from "../services/emit-failure-review-task.js";
 import {
   runNewLinkCatalogPath,
   resolveChannelByCode,
+  type RunNewLinkCatalogPathInput,
 } from "../services/new-catalog-link-path.js";
+import type { WriteAdapterOutputResult } from "@aonex/catalog-service";
 import { runSpineLink } from "./ingestion-spine.processor.js";
 
 export interface LinkExtractJobData {
@@ -63,6 +69,35 @@ export interface LinkExtractProcessorDeps {
    * logically AND-ed).
    */
   useDualWrite: boolean;
+  /**
+   * Overridable entry point for the new catalog write path. Defaults to the
+   * real `runNewLinkCatalogPath`. Exposed for tests so the coupling test can
+   * inject a spy without needing module-level mocking of the service module.
+   * Production code should never supply this — the default is always used.
+   */
+  _runNewLinkCatalogPath?: (input: RunNewLinkCatalogPathInput) => Promise<WriteAdapterOutputResult>;
+  /**
+   * Overridable entry point for the legacy catalog pipeline. Defaults to the
+   * real `persistLinkCatalogPipeline`. Exposed for tests — same rationale as
+   * `_runNewLinkCatalogPath` above.
+   */
+  _persistLinkCatalogPipeline?: (input: PersistLinkCatalogInput) => Promise<PersistLinkCatalogResult>;
+  /**
+   * Overridable channel resolver used in the new-schema path. Defaults to the
+   * real `resolveChannelByCode`. Exposed for tests to avoid mocking the service
+   * module (which would bleed into integration tests for that module).
+   */
+  _resolveChannelByCode?: (
+    db: DrizzleClient,
+    tenantId: TenantId,
+    channelCode: string
+  ) => Promise<{ channelId: import("@aonex/types").ChannelId; channelCode: string; defaultCurrency: string | null; defaultLocale: string | null; } | null>;
+  /**
+   * Overridable URL → channel-code mapper. Defaults to the real
+   * `channelCodeFromUrl`. Exposed for tests — same rationale as
+   * `_resolveChannelByCode` above.
+   */
+  _channelCodeFromUrl?: (url: string) => string;
 }
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
@@ -376,17 +411,20 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     // unchanged so a flag flip mid-flight is safe.
     if (deps.useNewCatalogSchema) {
       const sku = convertFromFacts(factSet.facts, fetchResult.finalUrl);
-      const channelCode = channelCodeFromUrl(fetchResult.finalUrl);
+      const _channelCode = deps._channelCodeFromUrl ?? channelCodeFromUrl;
+      const channelCode = _channelCode(fetchResult.finalUrl);
       // resolveChannelByCode applies a curated allow-list of marketplace
       // kinds (so e.g. "myshop-example-io" or "ebay-typo-com" don't silently
       // bind to a tenant's real eBay channel) before looking up the row.
       // Returns null when the prefix isn't in the allow-list OR when no
       // tenant row exists for that kind — both cases drive the strip-and-
       // warn branch inside runNewLinkCatalogPath.
-      const resolved = await resolveChannelByCode(deps.db, tenantId, channelCode);
+      const _resolveChannel = deps._resolveChannelByCode ?? resolveChannelByCode;
+      const resolved = await _resolveChannel(deps.db, tenantId, channelCode);
 
       const channelId = resolved?.channelId ?? null;
-      const writeResult = await runNewLinkCatalogPath({
+      const _newPath = deps._runNewLinkCatalogPath ?? runNewLinkCatalogPath;
+      const writeResult = await _newPath({
         db: deps.db,
         tenantId,
         merchantId,
@@ -476,7 +514,8 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       mpn: canonicalMpn,
     });
 
-    const catalogResult = await persistLinkCatalogPipeline({
+    const _legacyPath = deps._persistLinkCatalogPipeline ?? persistLinkCatalogPipeline;
+    const catalogResult = await _legacyPath({
       db: deps.db,
       tenantId,
       merchantId,
