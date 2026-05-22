@@ -122,7 +122,7 @@ function normalizeLegacy(body: {
     cv?.basePrice != null
       ? parseFloat(cv.basePrice).toFixed(4)
       : null;
-  const currency = cv?.currency ?? null;
+  const currency = cv?.currency != null ? cv.currency.toUpperCase() : null;
   return {
     parity_id: body.data.id,
     title: cv?.title ?? null,
@@ -205,7 +205,7 @@ function normalizeNew(body: {
         if (raw != null) amount = parseFloat(String(raw)).toFixed(4);
       }
       if (currency && amount !== null) {
-        primary_pricing = { currency: String(currency), amount };
+        primary_pricing = { currency: String(currency).toUpperCase(), amount };
         break;
       }
     }
@@ -356,10 +356,16 @@ async function fullCleanup(db: DrizzleClient): Promise<void> {
     .delete(schema.catalogProducts)
     .where(eq(schema.catalogProducts.productId, PARITY_NEW_PRODUCT_ID));
 
-  // Legacy product row (no version seeded, so just DELETE products).
-  await db.execute(
-    sql`DELETE FROM products WHERE id = ${PARITY_LEGACY_PRODUCT_ID}`
-  );
+  // Legacy rows: product_version (if seeded in test 1e) + products row.
+  // The immutability trigger blocks DELETE on product_versions, so we use
+  // session_replication_role = 'replica' within a transaction (same bypass
+  // used in GDPR purge — see triggers.sql).
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL session_replication_role = 'replica'`);
+    await tx.execute(sql`UPDATE products SET current_version_id = NULL WHERE id = ${PARITY_LEGACY_PRODUCT_ID}`);
+    await tx.execute(sql`DELETE FROM product_versions WHERE id = ${PARITY_LEGACY_VERSION_ID}`);
+    await tx.execute(sql`DELETE FROM products WHERE id = ${PARITY_LEGACY_PRODUCT_ID}`);
+  });
 }
 
 // ===========================================================================
@@ -549,7 +555,111 @@ describe("GET /products/:id parity — flag ON vs OFF (Task 7.5)", () => {
     expect(bodyOn.error.code).toBe("NOT_FOUND");
   });
 
-  // ---- 1e. winning_values consistency field is always present on new-schema --
+  // ---- 1e. Pricing parity: both schemas have pricing, currency case-insensitive -
+  //
+  // Seeds BOTH the legacy product_version (with basePrice + currency='aud') AND
+  // the new catalog_products row (with primary_currency='AUD'). Asserts that
+  // normalizedOn.primary_pricing deep-equals normalizedOff.primary_pricing after
+  // normalization (both sides uppercased) — proving case-insensitive currency match.
+  //
+  // This is the only required-field pricing parity test: when BOTH sides carry
+  // pricing, the normalized amounts and currencies must agree exactly. The sub-case
+  // intentionally seeds legacy with lowercase 'aud' and new with uppercase 'AUD'
+  // to verify the toUpperCase normalization in both normalizers.
+
+  test("1e: required-field pricing agrees when both schemas have pricing (case-insensitive currency)", async () => {
+    // Seed legacy product WITH a product_version carrying basePrice + currency='aud'.
+    await seedLegacyProduct(db);
+
+    // The product_versions table requires a valid proposed_diffs FK, and there is
+    // an INSERT trigger (trg_check_product_version_diff) that validates the diff
+    // status ∈ {approved, auto_approved}. proposed_diffs itself requires a long FK
+    // chain (→ extracted_fact_sets → extraction_runs → source_artifacts).
+    //
+    // For test seeding we use SET LOCAL session_replication_role = 'replica' inside
+    // a transaction — the documented pattern in triggers.sql (GDPR purge uses the
+    // same technique). This bypasses FK constraints AND the immutability trigger
+    // within the transaction scope only.
+    await db.transaction(async (tx) => {
+      // SET LOCAL applies only for this transaction.
+      await tx.execute(sql`SET LOCAL session_replication_role = 'replica'`);
+
+      // Insert the product_version directly (bypasses proposed_diff FK + INSERT trigger).
+      await tx.execute(sql`
+        INSERT INTO product_versions (
+          id, product_id, proposed_diff_id, tenant_id, merchant_id,
+          title, brand, gtin, base_price, currency,
+          confidence_score, attributes_json, schema_version,
+          created_at
+        ) VALUES (
+          ${PARITY_LEGACY_VERSION_ID},
+          ${PARITY_LEGACY_PRODUCT_ID},
+          ${PARITY_PROPOSED_DIFF_ID},
+          ${TEST_TENANT_ID},
+          ${TEST_MERCHANT_ID},
+          'Parity Priced Widget',
+          'ParityBrand',
+          '09876543210987',
+          '49.9900',
+          'aud',
+          '0.9500',
+          '{}',
+          '1',
+          NOW()
+        )
+        ON CONFLICT (id) DO NOTHING
+      `);
+
+      // Point the products row at this version.
+      await tx.execute(sql`
+        UPDATE products
+          SET current_version_id = ${PARITY_LEGACY_VERSION_ID}
+          WHERE id = ${PARITY_LEGACY_PRODUCT_ID}
+      `);
+    });
+
+    // Seed new-schema product with uppercase 'AUD' currency (deliberate case mismatch).
+    await seedNewProduct(db, {
+      title: "Parity Priced Widget",
+      brand: "ParityBrand",
+      gtin: "09876543210987",
+      priceCurrency: "AUD",   // uppercase — opposite case to legacy 'aud'
+      priceAmount: 49.99,
+    });
+
+    const appOff = buildApp({ db, useNewCatalogSchema: false });
+    const appOn  = buildApp({ db, useNewCatalogSchema: true });
+
+    const resOff = await appOff.request(`/catalog/products/${PARITY_LEGACY_PRODUCT_ID}`);
+    const resOn  = await appOn.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+
+    expect(resOff.status).toBe(200);
+    expect(resOn.status).toBe(200);
+
+    const bodyOff = (await resOff.json()) as Parameters<typeof normalizeLegacy>[0];
+    const bodyOn  = (await resOn.json()) as Parameters<typeof normalizeNew>[0];
+
+    const normalizedOff = normalizeLegacy(bodyOff);
+    const normalizedOn  = normalizeNew(bodyOn);
+
+    // Both sides must produce a non-null primary_pricing.
+    expect(normalizedOff.primary_pricing).not.toBeNull();
+    expect(normalizedOn.primary_pricing).not.toBeNull();
+
+    // After normalization (toUpperCase on currency, toFixed(4) on amount),
+    // the two primary_pricing objects must be deeply equal.
+    expect(normalizedOn.primary_pricing).toEqual(normalizedOff.primary_pricing);
+
+    // Explicitly confirm the normalised currency is uppercase regardless of source case.
+    expect(normalizedOff.primary_pricing?.currency).toBe("AUD");
+    expect(normalizedOn.primary_pricing?.currency).toBe("AUD");
+
+    // Explicitly confirm amounts agree at 4dp.
+    expect(normalizedOff.primary_pricing?.amount).toBe("49.9900");
+    expect(normalizedOn.primary_pricing?.amount).toBe("49.9900");
+  });
+
+  // ---- 1f. winning_values consistency field is always present on new-schema --
 
   test("new-schema response always includes consistency field; legacy never does", async () => {
     await seedLegacyProduct(db);
@@ -586,7 +696,7 @@ describe("GET /products/:id parity — flag ON vs OFF (Task 7.5)", () => {
 // PARITY OUTCOME: trivially identical — same code path runs. This is documented
 // as a known limitation of Phase 7 soak: the `/products` list endpoint does NOT
 // yet serve from the new schema. Full list parity (from catalog_products) is
-// scheduled for a later phase.
+// scheduled for Phase 8 cutover work (Phase 7 soak follow-up — Task 8.x).
 //
 // TEST PURPOSE: verify that the flag does NOT accidentally break the list endpoint
 // (regression guard), and that both flags return the same product IDs.
