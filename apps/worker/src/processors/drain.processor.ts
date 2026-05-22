@@ -55,6 +55,17 @@ export interface DrainProcessorDeps {
    * explicit.
    */
   useNewCatalogSchema: boolean;
+  /**
+   * Phase 7 soak dual-write flag. When TRUE and `useNewCatalogSchema` is also
+   * TRUE, the processor writes to BOTH the new catalog schema AND the legacy
+   * `persistArtifacts` path (so the legacy tables get populated in parallel
+   * during the soak window). When FALSE (normal new-schema mode or post-Phase-8
+   * cutover), legacy writes are skipped entirely after the new-schema write.
+   *
+   * Has no effect when `useNewCatalogSchema` is FALSE — the two flags are
+   * logically AND-ed. Mirrors the pattern in link-extract.processor.ts.
+   */
+  useDualWrite: boolean;
   /** Optional pino logger for the catalog dual-path branch. */
   logger?: Logger;
 }
@@ -93,30 +104,48 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
       // Extend lock per page (long drains).
       await job.extendLock(job.token!, 60_000);
 
-      const { inserted: insertedArtifacts } = await deps.syncService.persistArtifacts({
-        tenantId,
-        merchantId,
-        marketplace,
-        syncJobRunId,
-        records: page.map((r) => ({
-          externalId: r.externalId,
-          raw: r.raw,
-          ...(r.modifiedAt ? { modifiedAt: r.modifiedAt } : {})
-        }))
-      });
-
       totalSeen += page.length;
-      totalInserted += insertedArtifacts.length;
 
-      // Phase 4 catalog dual-path. Per-record loop so one failure doesn't
-      // poison the rest of the batch. Errors are LOGGED, not thrown —
-      // see file-header comment for the rationale.
+      // ── Phase 8 cutover gate ─────────────────────────────────────────────
+      // When useNewCatalogSchema=true AND useDualWrite=false (post-cutover),
+      // we skip persistArtifacts (legacy path) entirely and write only to the
+      // new catalog. The new-schema path runs FIRST so that if it throws the
+      // drain is retried clean (no partial legacy write was committed).
+      //
+      // When useDualWrite=true (Phase 7 soak window), both paths run so the
+      // legacy tables stay populated for parity checks.
+      //
+      // When useNewCatalogSchema=false, neither new-schema branch is entered —
+      // only the legacy persistArtifacts runs (original pre-Phase-4 behavior).
+      //
+      // Mirrors the branching pattern in link-extract.processor.ts.
+
       if (
         deps.useNewCatalogSchema &&
         marketplace === "shopify" &&
-        shopDomain &&
-        insertedArtifacts.length > 0
+        shopDomain
       ) {
+        // --- New-schema path (runs first, always, when flag ON) ---
+        // We need the source_artifact ids to pass to runNewShopifyCatalogPath.
+        // When useDualWrite=false we run persistArtifacts solely to get the
+        // artifact rows (dedup logic lives there), then skip the legacy catalog
+        // write below. When useDualWrite=true we fall through to the legacy
+        // persistArtifacts block so it updates syncJobRuns as usual.
+        const { inserted: insertedArtifacts } = await deps.syncService.persistArtifacts({
+          tenantId,
+          merchantId,
+          marketplace,
+          syncJobRunId,
+          records: page.map((r) => ({
+            externalId: r.externalId,
+            raw: r.raw,
+            ...(r.modifiedAt ? { modifiedAt: r.modifiedAt } : {})
+          }))
+        });
+
+        totalInserted += insertedArtifacts.length;
+
+        // Per-record new-catalog write (swallow-and-warn per file-header rationale).
         for (const artifact of insertedArtifacts) {
           try {
             const shopifyArgs: Parameters<typeof runNewShopifyCatalogPath>[0] = {
@@ -140,10 +169,45 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
                 merchantId,
                 tenantId,
               },
-              "Shopify catalog dual-path write failed (drain continues)"
+              "shopify.new_catalog.failed"
             );
           }
         }
+
+        // Post-cutover (useDualWrite=false): skip legacy catalog writes entirely.
+        if (!deps.useDualWrite) {
+          continue;
+        }
+
+        // Dual-write: fall through to legacy persistArtifacts below (it will
+        // dedup on checksum, so the re-insert is a no-op for rows we just
+        // inserted above — the counts are already correct).
+      }
+
+      // ── Legacy path ──────────────────────────────────────────────────────
+      // Runs when:
+      //   (a) useNewCatalogSchema=false (original behavior), OR
+      //   (b) useNewCatalogSchema=true AND useDualWrite=true (Phase 7 soak).
+      // In case (b) the new-schema branch above already called persistArtifacts
+      // and the re-insert below is a no-op (checksum dedup). We accept the
+      // extra round-trip to keep the branching logic simple and symmetric
+      // with link-extract.processor.ts.
+      const { inserted: legacyInserted } = await deps.syncService.persistArtifacts({
+        tenantId,
+        merchantId,
+        marketplace,
+        syncJobRunId,
+        records: page.map((r) => ({
+          externalId: r.externalId,
+          raw: r.raw,
+          ...(r.modifiedAt ? { modifiedAt: r.modifiedAt } : {})
+        }))
+      });
+
+      if (!deps.useNewCatalogSchema) {
+        // Only count inserts here when the new-schema path did not already
+        // count them above (avoids double-counting in dual-write mode).
+        totalInserted += legacyInserted.length;
       }
     }
 

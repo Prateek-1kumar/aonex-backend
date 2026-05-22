@@ -90,6 +90,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
       gateway,
       syncService,
       useNewCatalogSchema: catalogUseNewSchema,
+      useDualWrite: catalogDualWrite,
       logger,
     }),
     {

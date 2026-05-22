@@ -427,3 +427,176 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     expect(body.error.code).toBe("INVALID_QUERY");
   });
 });
+
+// ===========================================================================
+// GET /products — listProducts new-schema path (Phase 8 prereq A, Task 8.1)
+// ===========================================================================
+//
+// Verifies the new dual-path in listProducts: when `useNewCatalogSchema=true`,
+// the handler reads from `catalog_products` and projects into the
+// legacy-compatible envelope (id, title, brand, gtin, status, updated_at,
+// current_version=null, variants=[], _meta.schema="new").
+//
+// Test strategy: use the same buildApp/seedNewProduct helpers from above.
+// Each test seeds catalog_products rows and exercises the list endpoint.
+
+// Stable UUIDs for list-path tests (distinct from getById tests above).
+const LIST_PRODUCT_A = "33333333-3333-3333-3333-333333333301";
+const LIST_PRODUCT_B = "33333333-3333-3333-3333-333333333302";
+
+/**
+ * winning_values shape for a product with known title/brand/gtin.
+ * Mirrors the backfill output shape:
+ *   { attr: { _unscoped: { _unscoped: { value: "..." } } } }
+ */
+function makeWinningValues(fields: {
+  title?: string;
+  brand?: string;
+  gtin?: string;
+}): Record<string, unknown> {
+  const result: Record<string, unknown> = { _meta: { reconciler_version: 1 } };
+  for (const [attr, val] of Object.entries(fields)) {
+    if (val !== undefined) {
+      result[attr] = { _unscoped: { _unscoped: { value: val } } };
+    }
+  }
+  return result;
+}
+
+describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", () => {
+  let db: DrizzleClient;
+
+  beforeAll(async () => {
+    db = await connectTestDb();
+    await ensureTestTenant(db);
+    await ensureTestMerchant(db);
+    await ensureTestChannel(db);
+  });
+
+  beforeEach(async () => {
+    // Clean up list-test rows
+    for (const id of [LIST_PRODUCT_A, LIST_PRODUCT_B]) {
+      await db
+        .delete(schema.catalogProducts)
+        .where(eq(schema.catalogProducts.productId, id));
+    }
+  });
+
+  afterAll(async () => {
+    for (const id of [LIST_PRODUCT_A, LIST_PRODUCT_B]) {
+      await db
+        .delete(schema.catalogProducts)
+        .where(eq(schema.catalogProducts.productId, id));
+    }
+    await closeTestDb();
+  });
+
+  // ---- 1. Flag ON — new product appears in list with projected fields -----
+
+  test("flag ON — seeded catalog_products row appears with projected title/brand/gtin/status", async () => {
+    await seedNewProduct(
+      db,
+      LIST_PRODUCT_A,
+      makeWinningValues({ title: "Widget Pro", brand: "Acme", gtin: "12345678" })
+    );
+
+    const app = buildApp({ db, useNewCatalogSchema: true });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as {
+      data: {
+        products: Array<{
+          id: string;
+          title: string | null;
+          brand: string | null;
+          gtin: string | null;
+          status: string;
+          current_version: unknown;
+          variants: unknown[];
+          _meta: { schema: string };
+        }>;
+      };
+    };
+
+    const found = body.data.products.find((p) => p.id === LIST_PRODUCT_A);
+    expect(found).toBeTruthy();
+    expect(found!.title).toBe("Widget Pro");
+    expect(found!.brand).toBe("Acme");
+    expect(found!.gtin).toBe("12345678");
+    expect(found!.status).toBe("active");
+    // Contract: current_version is null for new-schema rows.
+    expect(found!.current_version).toBeNull();
+    // Contract: variants is [] for new-schema rows (deferred per Phase 7).
+    expect(found!.variants).toEqual([]);
+    // Migration signal.
+    expect(found!._meta.schema).toBe("new");
+  });
+
+  // ---- 2. Flag ON — empty list when no catalog_products rows -------------
+
+  test("flag ON — returns empty products array when no catalog_products rows exist", async () => {
+    // Don't seed anything for this merchant in this test.
+    const app = buildApp({ db, useNewCatalogSchema: true });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as { data: { products: unknown[] } };
+    // May contain rows seeded in other tests that weren't cleaned; assert
+    // that the specific test IDs are absent rather than expecting empty.
+    const ids = body.data.products.map((p) => (p as { id: string }).id);
+    expect(ids).not.toContain(LIST_PRODUCT_A);
+    expect(ids).not.toContain(LIST_PRODUCT_B);
+  });
+
+  // ---- 3. Flag ON — cross-tenant isolation (requester as OTHER_TENANT) ---
+
+  test("flag ON — catalog_products seeded under TEST_TENANT_ID not visible to other tenant", async () => {
+    await seedNewProduct(
+      db,
+      LIST_PRODUCT_A,
+      makeWinningValues({ title: "Tenant A Widget" })
+    );
+
+    // Request as OTHER_TENANT_ID — should not see TEST_TENANT_ID's rows.
+    const app = buildApp({
+      db,
+      useNewCatalogSchema: true,
+      tenantId: OTHER_TENANT_ID,
+    });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as { data: { products: Array<{ id: string }> } };
+    const ids = body.data.products.map((p) => p.id);
+    expect(ids).not.toContain(LIST_PRODUCT_A);
+  });
+
+  // ---- 4. Flag OFF — legacy path unchanged (regression guard) ------------
+
+  test("flag OFF — list still reads from legacy products table (regression)", async () => {
+    // Seed a legacy product (no current_version).
+    await db.insert(schema.products).values({
+      id: LEGACY_PRODUCT_ID,
+      tenantId: TEST_TENANT_ID,
+      merchantId: TEST_MERCHANT_ID,
+      status: "active",
+    });
+
+    const app = buildApp({ db, useNewCatalogSchema: false });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as { data: { products: Array<{ id: string }> } };
+    const ids = body.data.products.map((p) => p.id);
+    expect(ids).toContain(LEGACY_PRODUCT_ID);
+
+    // Legacy products must NOT appear with _meta.schema="new"
+    const legacyRow = body.data.products.find((p) => p.id === LEGACY_PRODUCT_ID);
+    expect(legacyRow).toBeTruthy();
+    expect("_meta" in legacyRow!).toBe(false);
+
+    // Cleanup
+    await db.execute(sql`DELETE FROM products WHERE id = ${LEGACY_PRODUCT_ID}`);
+  });
+});
