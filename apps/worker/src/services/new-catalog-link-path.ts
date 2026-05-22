@@ -1,7 +1,4 @@
-// New-schema link ingestion path (Task 4.2).
-//
-// Runs ONLY when `useNewCatalogSchema` is on. The legacy path
-// (`persistLinkCatalogPipeline`) is gated separately in the processor.
+// Link ingestion path — catalog write (Task 4.2).
 //
 // Responsibilities:
 //   1. Resolve the channel row for a given URL via `resolveChannelByCode`

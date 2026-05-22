@@ -72,12 +72,9 @@ function buildApp(opts: {
     c.set("merchantId", opts.merchantId ?? TEST_MERCHANT_ID);
     await next();
   });
-  // The provenance trace endpoint is part of the new-schema admin surface.
-  // It is wired ONLY when `useNewCatalogSchema=true`. We always pass true
-  // here because every test in this file exercises the new endpoint.
   root.route(
     "/catalog",
-    catalogRoutes({ db: opts.db, useNewCatalogSchema: true })
+    catalogRoutes({ db: opts.db })
   );
   return root;
 }

@@ -1,8 +1,7 @@
 // Surfaces ingestion-time failures (HTTP block, captcha wall, no-data, duplicate
 // artifact) into review_tasks so the Anomaly Lab UI shows them instead of
-// dropping them silently. Runs at points in link-extract.processor.ts that
-// return BEFORE persistLinkCatalogPipeline creates a proposed_diff — hence the
-// nullable proposed_diff_id (migration 0003).
+// dropping them silently. Runs at early-return points in link-extract.processor.ts
+// before the catalog write path — hence the nullable proposed_diff_id (migration 0003).
 
 import { schema, type DrizzleClient } from "@aonex/db";
 import { clusterKey } from "@aonex/ingestion-policy-engine";

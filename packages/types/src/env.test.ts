@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ZodError } from "zod";
-import { parseEnv, useNewCatalogSchema, useDualWrite } from "./env.js";
+import { parseEnv } from "./env.js";
 
 /**
  * Build a minimal-valid env object for tests. The EnvSchema has many
@@ -20,52 +20,18 @@ function baseEnv(overrides: Record<string, string> = {}): NodeJS.ProcessEnv {
   } as NodeJS.ProcessEnv;
 }
 
-describe("CATALOG_USE_NEW_SCHEMA env flag", () => {
-  test("string 'true' parses to boolean true", () => {
-    const env = parseEnv(baseEnv({ CATALOG_USE_NEW_SCHEMA: "true" }));
-    expect(env.CATALOG_USE_NEW_SCHEMA).toBe(true);
-    expect(useNewCatalogSchema(env)).toBe(true);
-  });
-
-  test("string 'false' parses to boolean false", () => {
-    const env = parseEnv(baseEnv({ CATALOG_USE_NEW_SCHEMA: "false" }));
-    expect(env.CATALOG_USE_NEW_SCHEMA).toBe(false);
-    expect(useNewCatalogSchema(env)).toBe(false);
-  });
-
-  test("missing key defaults to false", () => {
+describe("parseEnv", () => {
+  test("parses valid env", () => {
     const env = parseEnv(baseEnv());
-    expect(env.CATALOG_USE_NEW_SCHEMA).toBe(false);
-    expect(useNewCatalogSchema(env)).toBe(false);
+    expect(env.NODE_ENV).toBe("test");
   });
 
-  test("invalid value throws ZodError (no silent coercion)", () => {
-    expect(() => parseEnv(baseEnv({ CATALOG_USE_NEW_SCHEMA: "yes" }))).toThrow(ZodError);
-    expect(() => parseEnv(baseEnv({ CATALOG_USE_NEW_SCHEMA: "1" }))).toThrow(ZodError);
-  });
-});
-
-describe("CATALOG_DUAL_WRITE env flag", () => {
-  test("string 'true' parses to boolean true", () => {
-    const env = parseEnv(baseEnv({ CATALOG_DUAL_WRITE: "true" }));
-    expect(env.CATALOG_DUAL_WRITE).toBe(true);
-    expect(useDualWrite(env)).toBe(true);
+  test("throws ZodError on invalid NODE_ENV", () => {
+    expect(() => parseEnv(baseEnv({ NODE_ENV: "bad" }))).toThrow(ZodError);
   });
 
-  test("string 'false' parses to boolean false", () => {
-    const env = parseEnv(baseEnv({ CATALOG_DUAL_WRITE: "false" }));
-    expect(env.CATALOG_DUAL_WRITE).toBe(false);
-    expect(useDualWrite(env)).toBe(false);
-  });
-
-  test("missing key defaults to false", () => {
+  test("defaults LOG_LEVEL to info", () => {
     const env = parseEnv(baseEnv());
-    expect(env.CATALOG_DUAL_WRITE).toBe(false);
-    expect(useDualWrite(env)).toBe(false);
-  });
-
-  test("invalid value throws ZodError (no silent coercion)", () => {
-    expect(() => parseEnv(baseEnv({ CATALOG_DUAL_WRITE: "yes" }))).toThrow(ZodError);
-    expect(() => parseEnv(baseEnv({ CATALOG_DUAL_WRITE: "1" }))).toThrow(ZodError);
+    expect(env.LOG_LEVEL).toBe("info");
   });
 });

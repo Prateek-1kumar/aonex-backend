@@ -1,13 +1,16 @@
-// Tests for the catalog handler dual-path GET /products/:id (Task 4.4).
+// Tests for the catalog handler GET /products/:id (new-schema path).
 //
 // Strategy: build a real Hono app using `catalogRoutes(deps)`, prepend a
 // tiny middleware that stamps `tenantId` / `merchantId` on the context
 // (so we don't need JWT machinery), then exercise it via `app.request()`.
 // Database is the real dev DB via `@aonex/db/testing`.
+//
+// Phase 9.3: legacy-path flag tests removed (dead code). All tests now
+// exercise the new-schema catalog_products path unconditionally.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
@@ -36,21 +39,12 @@ const OTHER_TENANT_ID = "00000000-0000-0000-0000-0000000000ff";
 // row to a 404 (per `getProductById`'s explicit check).
 const OTHER_MERCHANT_ID = "00000000-0000-0000-0000-0000000000fe";
 
-// Stable UUIDs for the legacy-path seed (separate from any production data).
-// We deliberately seed a product with NO current_version_id — that
-// exercises the legacy handler path's "no version" branch (current_version
-// = null, variants = []) without needing to spin up the heavy
-// proposed_diffs / extracted_fact_sets / policy_versions chain that an
-// approved version requires.
-const LEGACY_PRODUCT_ID = "11111111-1111-1111-1111-111111111101";
-
 // Stable UUIDs for the new-catalog seed.
 const NEW_PRODUCT_ID = "22222222-2222-2222-2222-222222222201";
 const NEW_PRODUCT_ID_STRONG = "22222222-2222-2222-2222-222222222202";
 
 function buildApp(opts: {
   db: DrizzleClient;
-  useNewCatalogSchema: boolean;
   tenantId?: string;
   merchantId?: string;
 }): Hono {
@@ -64,10 +58,7 @@ function buildApp(opts: {
   });
   root.route(
     "/catalog",
-    catalogRoutes({
-      db: opts.db,
-      useNewCatalogSchema: opts.useNewCatalogSchema,
-    })
+    catalogRoutes({ db: opts.db })
   );
   return root;
 }
@@ -87,28 +78,6 @@ async function fullCleanup(db: DrizzleClient): Promise<void> {
       .delete(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, id));
   }
-
-  // Legacy-path tables: clean by id. We only seed `products` (no version,
-  // no variants), so the cleanup is just one DELETE.
-  await db.execute(sql`DELETE FROM products WHERE id = ${LEGACY_PRODUCT_ID}`);
-}
-
-async function seedLegacyProduct(db: DrizzleClient): Promise<void> {
-  // We deliberately seed a `products` row with NO currentVersionId. That
-  // exercises the legacy handler's "no version" branch (current_version =
-  // null, variants = []) WITHOUT requiring the full
-  // proposed_diff → policy_version → extracted_fact_set chain that an
-  // approved product_version FK demands. The legacy path's response shape
-  // contract (product fields + current_version + variants) is what we're
-  // asserting here — not the version contents themselves. The
-  // legacy/canonical-truth flow is exercised end-to-end elsewhere
-  // (catalog-service integration tests).
-  await db.insert(schema.products).values({
-    id: LEGACY_PRODUCT_ID,
-    tenantId: TEST_TENANT_ID,
-    merchantId: TEST_MERCHANT_ID,
-    status: "active",
-  });
 }
 
 async function seedNewProduct(
@@ -128,7 +97,7 @@ async function seedNewProduct(
   });
 }
 
-describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
+describe("GET /products/:id — catalog handler (new-schema path)", () => {
   let db: DrizzleClient;
 
   beforeAll(async () => {
@@ -147,36 +116,9 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     await closeTestDb();
   });
 
-  // ---- 1. Flag OFF — legacy path -----------------------------------------
+  // ---- 1. Eventual (default) -------------------------------------------
 
-  test("flag OFF — returns legacy product + current_version + variants shape", async () => {
-    await seedLegacyProduct(db);
-
-    const app = buildApp({ db, useNewCatalogSchema: false });
-    const res = await app.request(`/catalog/products/${LEGACY_PRODUCT_ID}`);
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      data: {
-        id: string;
-        tenantId: string;
-        current_version: unknown;
-        variants: unknown[];
-      };
-    };
-    expect(body.data.id).toBe(LEGACY_PRODUCT_ID);
-    expect(body.data.tenantId).toBe(TEST_TENANT_ID);
-    // No version seeded — handler returns current_version=null + variants=[].
-    expect(body.data.current_version).toBeNull();
-    expect(Array.isArray(body.data.variants)).toBe(true);
-    expect(body.data.variants).toEqual([]);
-    // Legacy path doesn't emit `winning_values` or `consistency`.
-    expect("winning_values" in body.data).toBe(false);
-    expect("consistency" in body.data).toBe(false);
-  });
-
-  // ---- 2. Flag ON — eventual (default) -----------------------------------
-
-  test("flag ON, default (eventual) — returns winning_values JSONB as stored", async () => {
+  test("default (eventual) — returns winning_values JSONB as stored", async () => {
     const winningValues = {
       _meta: {
         reconciler_version: 1,
@@ -196,7 +138,7 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     };
     await seedNewProduct(db, NEW_PRODUCT_ID, winningValues);
 
-    const app = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
     const res = await app.request(`/catalog/products/${NEW_PRODUCT_ID}`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -223,9 +165,9 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     expect(pricing._primary._unscoped.source).toBe("cached");
   });
 
-  // ---- 3. Flag ON — strong -----------------------------------------------
+  // ---- 2. Strong consistency -----------------------------------------------
 
-  test("flag ON, ?consistency=strong — overlays catalog_pricing_current + catalog_inventory_current onto reconciler-shape nested objects", async () => {
+  test("?consistency=strong — overlays catalog_pricing_current + catalog_inventory_current onto reconciler-shape nested objects", async () => {
     // Seed the cached winning_values with the SAME nested shape the
     // reconciler writes: { [channelId]: { [locale|locKey]: <leaf> } }.
     // Strong mode must overlay-by-key, not replace wholesale, so we use
@@ -291,7 +233,7 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
       observedAt: new Date("2026-05-21T01:00:00Z"),
     });
 
-    const app = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
     const res = await app.request(
       `/catalog/products/${NEW_PRODUCT_ID_STRONG}?consistency=strong`
     );
@@ -354,9 +296,9 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     expect(body.data.winning_values._meta).toBeTruthy();
   });
 
-  // ---- 4. Cross-tenant 404 -----------------------------------------------
+  // ---- 3. Cross-tenant 404 -----------------------------------------------
 
-  test("flag ON — returns 404 when product belongs to a different tenant", async () => {
+  test("returns 404 when product belongs to a different tenant", async () => {
     await seedNewProduct(db, NEW_PRODUCT_ID, {
       _meta: {},
       title: { _primary: { _unscoped: { value: "Owner A" } } },
@@ -365,7 +307,6 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     // Requester identifies as a DIFFERENT tenant.
     const app = buildApp({
       db,
-      useNewCatalogSchema: true,
       tenantId: OTHER_TENANT_ID,
     });
     const res = await app.request(`/catalog/products/${NEW_PRODUCT_ID}`);
@@ -374,9 +315,9 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
-  // ---- 4b. Cross-merchant 404 -------------------------------------------
+  // ---- 3b. Cross-merchant 404 -------------------------------------------
 
-  test("flag ON — returns 404 when product belongs to a different merchant in the same tenant", async () => {
+  test("returns 404 when product belongs to a different merchant in the same tenant", async () => {
     // Seed under TEST_TENANT_ID + TEST_MERCHANT_ID, then request as the
     // SAME tenant but a DIFFERENT merchant. The helper's tenant filter
     // would still let this row through (it's the right tenant), so the
@@ -390,7 +331,6 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
 
     const app = buildApp({
       db,
-      useNewCatalogSchema: true,
       // Same tenant, different merchant. We don't have to seed
       // OTHER_MERCHANT_ID into `merchants` because it's only used to
       // identify the *requester* — no FK is touched on the request path.
@@ -402,10 +342,10 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
-  // ---- 5. Not found ------------------------------------------------------
+  // ---- 4. Not found ------------------------------------------------------
 
-  test("flag ON — returns 404 for an unknown product id", async () => {
-    const app = buildApp({ db, useNewCatalogSchema: true });
+  test("returns 404 for an unknown product id", async () => {
+    const app = buildApp({ db });
     const res = await app.request(
       "/catalog/products/99999999-9999-9999-9999-999999999999"
     );
@@ -414,11 +354,11 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
-  // ---- 6. Invalid consistency value → 400 -------------------------------
+  // ---- 5. Invalid consistency value → 400 -------------------------------
 
-  test("flag ON — returns 400 for an invalid ?consistency value", async () => {
+  test("returns 400 for an invalid ?consistency value", async () => {
     await seedNewProduct(db, NEW_PRODUCT_ID, { _meta: {} });
-    const app = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
     const res = await app.request(
       `/catalog/products/${NEW_PRODUCT_ID}?consistency=garbage`
     );
@@ -432,10 +372,12 @@ describe("GET /products/:id — dual-path catalog handler (Task 4.4)", () => {
 // GET /products — listProducts new-schema path (Phase 8 prereq A, Task 8.1)
 // ===========================================================================
 //
-// Verifies the new dual-path in listProducts: when `useNewCatalogSchema=true`,
-// the handler reads from `catalog_products` and projects into the
-// legacy-compatible envelope (id, title, brand, gtin, status, updated_at,
-// current_version=null, variants=[], _meta.schema="new").
+// Verifies the listProducts handler reads from `catalog_products` and projects
+// into the legacy-compatible envelope (id, title, brand, gtin, status,
+// updated_at, current_version=null, variants=[], _meta.schema="new").
+//
+// Phase 9.3: legacy-path flag tests removed. All tests exercise the
+// new-schema path unconditionally.
 //
 // Test strategy: use the same buildApp/seedNewProduct helpers from above.
 // Each test seeds catalog_products rows and exercises the list endpoint.
@@ -463,7 +405,7 @@ function makeWinningValues(fields: {
   return result;
 }
 
-describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", () => {
+describe("GET /products — listProducts (new-schema path)", () => {
   let db: DrizzleClient;
 
   beforeAll(async () => {
@@ -494,16 +436,16 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     await closeTestDb();
   });
 
-  // ---- 1. Flag ON — new product appears in list with projected fields -----
+  // ---- 1. New product appears in list with projected fields ---------------
 
-  test("flag ON — seeded catalog_products row appears with projected title/brand/gtin/status", async () => {
+  test("seeded catalog_products row appears with projected title/brand/gtin/status", async () => {
     await seedNewProduct(
       db,
       LIST_PRODUCT_A,
       makeWinningValues({ title: "Widget Pro", brand: "Acme", gtin: "12345678" })
     );
 
-    const app = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
     const res = await app.request("/catalog/products");
     expect(res.status).toBe(200);
 
@@ -536,11 +478,11 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     expect(found!._meta.schema).toBe("new");
   });
 
-  // ---- 2. Flag ON — empty list when no catalog_products rows -------------
+  // ---- 2. Empty list when no catalog_products rows -----------------------
 
-  test("flag ON — returns empty products array when no catalog_products rows exist", async () => {
+  test("returns empty products array when no catalog_products rows exist", async () => {
     // Don't seed anything for this merchant in this test.
-    const app = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
     const res = await app.request("/catalog/products");
     expect(res.status).toBe(200);
 
@@ -552,9 +494,9 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     expect(ids).not.toContain(LIST_PRODUCT_B);
   });
 
-  // ---- 3. Flag ON — cross-tenant isolation (requester as OTHER_TENANT) ---
+  // ---- 3. Cross-tenant isolation (requester as OTHER_TENANT) -------------
 
-  test("flag ON — catalog_products seeded under TEST_TENANT_ID not visible to other tenant", async () => {
+  test("catalog_products seeded under TEST_TENANT_ID not visible to other tenant", async () => {
     await seedNewProduct(
       db,
       LIST_PRODUCT_A,
@@ -564,7 +506,6 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     // Request as OTHER_TENANT_ID — should not see TEST_TENANT_ID's rows.
     const app = buildApp({
       db,
-      useNewCatalogSchema: true,
       tenantId: OTHER_TENANT_ID,
     });
     const res = await app.request("/catalog/products");
@@ -575,9 +516,9 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     expect(ids).not.toContain(LIST_PRODUCT_A);
   });
 
-  // ---- 3b. Flag ON — pricing field from catalog_pricing_current ----------
+  // ---- 3b. Pricing field from catalog_pricing_current --------------------
 
-  test("flag ON — response row includes pricing.currency and pricing.amount from catalog_pricing_current", async () => {
+  test("response row includes pricing.currency and pricing.amount from catalog_pricing_current", async () => {
     // Seed a catalog_products row + a matching catalog_pricing_current row.
     await seedNewProduct(
       db,
@@ -599,7 +540,7 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
       observedAt: new Date("2026-05-22T00:00:00Z"),
     });
 
-    const app = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
     const res = await app.request("/catalog/products");
     expect(res.status).toBe(200);
 
@@ -619,9 +560,9 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     expect(found!.pricing!.amount).toBe("19.99");
   });
 
-  // ---- 3c. Flag ON — pricing null when no catalog_pricing_current row -----
+  // ---- 3c. Pricing null when no catalog_pricing_current row ---------------
 
-  test("flag ON — pricing is null when no catalog_pricing_current row exists", async () => {
+  test("pricing is null when no catalog_pricing_current row exists", async () => {
     // Seed product only — no pricing row.
     await seedNewProduct(
       db,
@@ -629,7 +570,7 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
       makeWinningValues({ title: "Unpriced Widget" })
     );
 
-    const app = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
     const res = await app.request("/catalog/products");
     expect(res.status).toBe(200);
 
@@ -642,31 +583,4 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     expect(found!.pricing).toBeNull();
   });
 
-  // ---- 4. Flag OFF — legacy path unchanged (regression guard) ------------
-
-  test("flag OFF — list still reads from legacy products table (regression)", async () => {
-    // Seed a legacy product (no current_version).
-    await db.insert(schema.products).values({
-      id: LEGACY_PRODUCT_ID,
-      tenantId: TEST_TENANT_ID,
-      merchantId: TEST_MERCHANT_ID,
-      status: "active",
-    });
-
-    const app = buildApp({ db, useNewCatalogSchema: false });
-    const res = await app.request("/catalog/products");
-    expect(res.status).toBe(200);
-
-    const body = (await res.json()) as { data: { products: Array<{ id: string }> } };
-    const ids = body.data.products.map((p) => p.id);
-    expect(ids).toContain(LEGACY_PRODUCT_ID);
-
-    // Legacy products must NOT appear with _meta.schema="new"
-    const legacyRow = body.data.products.find((p) => p.id === LEGACY_PRODUCT_ID);
-    expect(legacyRow).toBeTruthy();
-    expect("_meta" in legacyRow!).toBe(false);
-
-    // Cleanup
-    await db.execute(sql`DELETE FROM products WHERE id = ${LEGACY_PRODUCT_ID}`);
-  });
 });

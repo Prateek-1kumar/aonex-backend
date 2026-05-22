@@ -13,7 +13,7 @@ import { Queue } from "bullmq";
 import { createDb } from "@aonex/db";
 import { buildGateway, type ConnectorAdapterPhase1, ShopifyAdapter, ConnectorGateway, NangoProxyShopifyTransport, PostgresConnectionRegistry } from "@aonex/connector-gateway";
 import { PostgresAuditEmitter } from "@aonex/audit";
-import { parseEnv, QUEUE, useNewCatalogSchema, type Env } from "@aonex/types";
+import { parseEnv, QUEUE, type Env } from "@aonex/types";
 import { SystemClock } from "@aonex/lib-utils";
 
 import { JwtService } from "./services/jwt.js";
@@ -37,12 +37,6 @@ import { catalogRoutes } from "./routes/catalog.js";
 export interface ApiContainer {
   app: Hono;
   env: Env;
-  /**
-   * Phase 4 catalog redesign flag, resolved once at boot. Downstream
-   * code reads this field instead of `process.env` to keep the trust
-   * boundary in this composition root.
-   */
-  useNewCatalogSchema: boolean;
   shutdown: () => Promise<void>;
 }
 
@@ -70,13 +64,6 @@ export function buildContainer(env: Env): ApiContainer {
       censor: "[REDACTED]"
     }
   });
-
-  // Phase 4 catalog redesign — resolve the feature flag once and log it
-  // so ops can confirm flag state at boot. The flag is NOT yet read by
-  // any downstream code (wiring lands in Phase 4.2+); this just makes
-  // it available on the container.
-  const catalogUseNewSchema = useNewCatalogSchema(env);
-  logger.info({ useNewCatalogSchema: catalogUseNewSchema }, "Catalog feature flag");
 
   const db = createDb(env.DATABASE_URL);
   const redis = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
@@ -221,14 +208,13 @@ export function buildContainer(env: Env): ApiContainer {
   protectedApp.route("/review", reviewRoutes({ db: db.client, audit }));
   protectedApp.route(
     "/catalog",
-    catalogRoutes({ db: db.client, useNewCatalogSchema: catalogUseNewSchema })
+    catalogRoutes({ db: db.client })
   );
   app.route("/api", protectedApp);
 
   return {
     app,
     env,
-    useNewCatalogSchema: catalogUseNewSchema,
     shutdown: async () => {
       await Promise.all([
         nangoAuthQueue.close(),
