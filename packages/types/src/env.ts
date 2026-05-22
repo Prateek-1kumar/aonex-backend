@@ -65,37 +65,6 @@ export const EnvSchema = z.object({
   SCRAPINGBEE_API_KEY: z.string().min(1).optional(),
   // Per-ingestion USD ceiling for paid escalations (default $0.05 in cost-ceiling.ts).
   EXTRACTION_COST_CEILING_USD: z.coerce.number().positive().optional(),
-
-  /**
-   * Phase 4 feature flag for the catalog redesign. When true, new
-   * ingestion/read paths use the new catalog schema. Legacy path remains
-   * the default until Phase 7 cutover. Strict string enum so a typo
-   * (e.g. "yes", "1") fails loud at startup.
-   */
-  CATALOG_USE_NEW_SCHEMA: z
-    .enum(["true", "false"])
-    .default("false")
-    .transform((v) => v === "true"),
-
-  /**
-   * Phase 7 soak flag for the catalog redesign dual-write path.
-   *
-   * When CATALOG_USE_NEW_SCHEMA=true AND CATALOG_DUAL_WRITE=true, processors
-   * write to BOTH the legacy schema (product_versions, etc.) AND the new
-   * catalog schema simultaneously. This enables parity comparison via Phase 7.5
-   * parity tests and validates that the Phase 7.2 backfill holds under live
-   * ingestion.
-   *
-   * After cutover (Phase 8): set CATALOG_DUAL_WRITE=false — legacy writes stop
-   * and only the new schema path runs.
-   *
-   * Note: CATALOG_DUAL_WRITE without CATALOG_USE_NEW_SCHEMA is a no-op;
-   * the two flags are logically AND-ed in the processors.
-   */
-  CATALOG_DUAL_WRITE: z
-    .enum(["true", "false"])
-    .default("false")
-    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -106,24 +75,4 @@ export type Env = z.infer<typeof EnvSchema>;
  */
 export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return EnvSchema.parse(source);
-}
-
-/**
- * Phase 4 catalog redesign — typed accessor for the
- * `CATALOG_USE_NEW_SCHEMA` flag. Reads from the parsed `Env` (no direct
- * `process.env` access) so composition roots stay the single trust
- * boundary for ambient config.
- */
-export function useNewCatalogSchema(env: Env): boolean {
-  return env.CATALOG_USE_NEW_SCHEMA;
-}
-
-/**
- * Phase 7 soak — typed accessor for the `CATALOG_DUAL_WRITE` flag.
- * Returns true only when CATALOG_DUAL_WRITE=true is explicitly set.
- * Meaningful only when useNewCatalogSchema(env) is also true; the two
- * flags are AND-ed in each processor.
- */
-export function useDualWrite(env: Env): boolean {
-  return env.CATALOG_DUAL_WRITE;
 }

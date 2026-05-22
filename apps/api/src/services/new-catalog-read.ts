@@ -1,9 +1,8 @@
 // New-schema catalog single-product reader (Task 4.4).
 //
-// Runs ONLY when `useNewCatalogSchema` is on — the legacy
-// `schema.products` reader stays the default path in the handler. This
-// helper is intentionally read-only and side-effect-free; it returns a
-// plain JSON-able object that the handler relays directly via `c.json`.
+// Reads from `catalog_products`. Phase 9.3: this is now the ONLY read path
+// (legacy flag removed). Intentionally read-only and side-effect-free;
+// returns a plain JSON-able object that the handler relays directly via `c.json`.
 //
 // Consistency modes:
 //

@@ -1,6 +1,6 @@
-// New-schema Shopify ingestion path (Task 4.3).
+// Shopify ingestion path — catalog write (Task 4.3).
 //
-// Runs ONLY when `useNewCatalogSchema` is on. The Nango → drain →
+// The Nango → drain →
 // `source_artifacts` write is the system of record for the raw payload; this
 // helper is invoked for each NEWLY-inserted artifact (i.e. not a checksum
 // dedup hit) to project that payload into the new catalog tables.

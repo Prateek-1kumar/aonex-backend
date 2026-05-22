@@ -9,11 +9,7 @@
 //   winner → source_priority rule that picked it → underlying observation
 //   → source artifact id → (Phase 5+) raw payload pointer.
 //
-// Wiring contract: the route is mounted ONLY when
-// `useNewCatalogSchema=true` on the catalog routes deps. Under the
-// legacy flag-OFF surface there's no `winning_values` or rule-driven
-// projection to trace, so the endpoint returns 404 (same as
-// "route not found" — Hono falls through to its default 404 handler).
+// Wiring contract: the route is always mounted (Phase 9.3: flag removed).
 //
 // Auth / safety:
 //   - tenantId + merchantId come from the JWT-stamped context vars

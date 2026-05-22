@@ -1,4 +1,9 @@
 #!/usr/bin/env bun
+// HISTORICAL ARTIFACT — Phase 9.3 closed the catalog redesign.
+// This script was executed ONCE during Phase 8.4 to rename legacy tables.
+// It is retained for audit purposes only and SHOULD NOT be run again.
+// The CATALOG_USE_NEW_SCHEMA and CATALOG_DUAL_WRITE env vars no longer exist.
+//
 // Run: bun --env-file=../../.env run scripts/cutover.ts \
 //        --tenant-id <uuid> --confirm-drained [options]
 //
@@ -12,11 +17,6 @@
 //   3. CATALOG_DUAL_WRITE=false (flipped + worker restarted BEFORE running cutover).
 //   4. BullMQ in-flight jobs drained (no pending link-extract / drain jobs).
 //   5. RDS snapshot taken (rollback insurance).
-//
-// TWO-STEP DEPLOY:
-//   Step 1. Deploy app config with CATALOG_DUAL_WRITE=false, restart worker.
-//           Drain BullMQ jobs (verify queues empty in Redis).
-//   Step 2. Run: bun scripts/cutover.ts --tenant-id <uuid> --confirm-drained
 //
 // Exit codes:
 //   0  Cutover succeeded (or dry-run completed)
@@ -58,13 +58,13 @@ export class CutoverPreflightError extends Error {
 export interface CutoverDeps {
   db: DrizzleClient;
   /**
-   * Whether CATALOG_USE_NEW_SCHEMA is currently true.
-   * Read from env at startup; injected for testability.
+   * HISTORICAL: always true post Phase 9.3 (flag removed from env schema).
+   * Retained for backward compatibility with tests only.
    */
   useNewCatalogSchema: boolean;
   /**
-   * Whether CATALOG_DUAL_WRITE is currently true.
-   * Should be false before cutover — verified in pre-flight.
+   * HISTORICAL: always false post Phase 9.3 (flag removed from env schema).
+   * Retained for backward compatibility with tests only.
    */
   useDualWrite: boolean;
 }
@@ -535,8 +535,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const useNewCatalogSchema = process.env.CATALOG_USE_NEW_SCHEMA === "true";
-  const useDualWrite = process.env.CATALOG_DUAL_WRITE === "true";
+  // Post Phase 9.3: flags removed. Hardcode to post-cutover values.
+  const useNewCatalogSchema = true;
+  const useDualWrite = false;
 
   const { client, close } = createDb(databaseUrl);
   try {

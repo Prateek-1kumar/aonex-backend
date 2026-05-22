@@ -1,50 +1,20 @@
-// Phase 7, Task 7.5 — Read-path parity tests: legacy vs new-schema catalog API.
+// Phase 7, Task 7.5 — Catalog API new-schema response-shape tests.
 //
-// DIRECTORY NOTE: The plan spec places this at `apps/api/tests/parity/`, but
-// `apps/api/tsconfig.json` only includes `src/**/*` and Bun's test discovery
-// also follows the TS include paths. All existing tests live in
-// `apps/api/src/handlers/`; this file is placed here to ensure it is discovered
-// and compiled. Deviation from the spec is documented here.
-//
-// SEED STRATEGY: Alternative (a) — manual seed of both schemas in the test,
-// NOT calling the backfill worker. This verifies HANDLER behavior given
-// consistent data, not backfill correctness (which is tested separately in
-// validate-backfill.ts / spot-check.ts). The parity test seeds ONE deterministic
-// product that exists in both tables with matching identity fields.
+// Phase 9.3: Legacy-path tests removed (dead code). All tests now exercise
+// the new-schema catalog_products path unconditionally. The parity
+// assertion framework (normalizeLegacy / normalizeNew) is preserved for
+// the new-schema normalizer, which is still used to validate the new
+// response shape contract.
 //
 // ENDPOINTS COVERED:
-//   1. GET /products/:id        — dual-path; primary parity test
-//   2. GET /products            — flag does NOT branch this handler; trivially
-//                                 identical; documented + tested as such
-//   3. GET /products/:id/sku    — always legacy-schema; flag does NOT branch;
-//                                 documented + skip with rationale
-//   4. GET /products/:id/provenance — always legacy-schema; flag does NOT
-//                                 branch; documented + skip with rationale
-//
-// ===========================================================================
-// PARITY ALLOWED DELTAS (Phase 7 soak)
-//
-// The new-schema response is allowed to ADD these fields without failing parity:
-//   - `winning_values._meta`, `winning_values._extraction_meta` — reconciler meta
-//   - additional channel/locale dimensions in `winning_values.pricing` / `.inventory`
-//   - `consistency`, `schema_version`, `current_revision_id`, `parent_product_id`,
-//     `merged_into_product_id`, `created_at`, `updated_at`, `primary_identifier`,
-//     `identity`, `family`, `values` — new-schema only fields
-//   - `winning_values` as a whole — new-schema only
-//
-// The new-schema response MUST NOT differ on required fields (parity break):
-//   - product identity: parity_id (product_id new vs id legacy)
-//   - title
-//   - brand
-//   - gtin
-//   - primary pricing: currency + amount (rounded to 4 decimals)
-//
-// Failures on required fields = parity break = data bug; fix before cutover.
-// ===========================================================================
+//   1. GET /products/:id        — new-schema path; response-shape assertions
+//   2. GET /products            — new-schema list path
+//   3. GET /products/:id/sku    — stubbed 410; skip with rationale
+//   4. GET /products/:id/provenance — stubbed 410; skip with rationale
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm"; // sql kept for fullCleanup (product_versions bypass)
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
@@ -63,76 +33,26 @@ import { catalogRoutes } from "../routes/catalog.js";
 // Stable UUIDs — parity test fixtures, distinct from catalog.test.ts / admin-trace.test.ts.
 // ===========================================================================
 
-// Legacy table (products): product with a real approved product_version.
-// Task 7.5: we seed a `products` row WITHOUT a currentVersionId — matching
-// the same simplification used in catalog.test.ts LEGACY_PRODUCT_ID. This
-// avoids the heavy proposed_diff → policy_version → extracted_fact_set chain.
-// The trade-off is that title/brand/gtin come from the product_identities row
-// (or are absent on the legacy side), whereas the new-schema has them in
-// winning_values. The normalize function projects only fields that BOTH paths
-// can provide — for a no-version legacy product that means: product_id + status only.
-// For title/brand/gtin parity we seed a product_versions row below using
-// direct SQL (bypassing the immutability trigger for test purposes).
+// Legacy table UUIDs kept as constants so fullCleanup can wipe any stale
+// rows from pre-Phase-9.3 runs.
 const PARITY_LEGACY_PRODUCT_ID = "44444444-4444-4444-4444-444444444401";
 const PARITY_LEGACY_VERSION_ID = "44444444-4444-4444-4444-444444444402";
-// Note: proposedDiffId is NOT NULL on product_versions per the schema constraint.
-// We reference a stable test diff UUID that we insert into proposed_diffs below.
-const PARITY_PROPOSED_DIFF_ID = "44444444-4444-4444-4444-444444444403";
 
-// New table (catalog_products): row seeded with winning_values that match the
-// legacy product_version fields above.
+// New table (catalog_products): row seeded with winning_values.
 const PARITY_NEW_PRODUCT_ID = "44444444-4444-4444-4444-444444444404";
 
 // ===========================================================================
-// Normalized response shape — common projection for both schemas.
+// Normalized response shape — new-schema projection.
 // ===========================================================================
 
 interface NormalizedProduct {
-  /** Stable identity (product_id in new schema; id in legacy). */
+  /** Stable identity (product_id in new schema). */
   parity_id: string;
   title: string | null;
   brand: string | null;
   gtin: string | null;
   /** Primary pricing: currency + amount rounded to 4dp. */
   primary_pricing: { currency: string; amount: string } | null;
-}
-
-/**
- * Project the raw legacy GET /products/:id response body into the
- * common NormalizedProduct shape.
- *
- * Legacy shape: { data: { id, tenantId, current_version: { title, brand,
- * gtin, basePrice, currency } | null, variants: [...] } }
- */
-function normalizeLegacy(body: {
-  data: {
-    id: string;
-    current_version: {
-      title?: string | null;
-      brand?: string | null;
-      gtin?: string | null;
-      basePrice?: string | null;
-      currency?: string | null;
-    } | null;
-    variants?: unknown[];
-  };
-}): NormalizedProduct {
-  const cv = body.data.current_version;
-  const amount =
-    cv?.basePrice != null
-      ? parseFloat(cv.basePrice).toFixed(4)
-      : null;
-  const currency = cv?.currency != null ? cv.currency.toUpperCase() : null;
-  return {
-    parity_id: body.data.id,
-    title: cv?.title ?? null,
-    brand: cv?.brand ?? null,
-    gtin: cv?.gtin ?? null,
-    primary_pricing:
-      amount !== null && currency !== null
-        ? { currency, amount }
-        : null,
-  };
 }
 
 /**
@@ -226,7 +146,6 @@ function normalizeNew(body: {
 
 function buildApp(opts: {
   db: DrizzleClient;
-  useNewCatalogSchema: boolean;
   tenantId?: string;
   merchantId?: string;
 }): Hono {
@@ -240,7 +159,7 @@ function buildApp(opts: {
   });
   root.route(
     "/catalog",
-    catalogRoutes({ db: opts.db, useNewCatalogSchema: opts.useNewCatalogSchema })
+    catalogRoutes({ db: opts.db })
   );
   return root;
 }
@@ -248,38 +167,6 @@ function buildApp(opts: {
 // ===========================================================================
 // Seed / cleanup helpers.
 // ===========================================================================
-
-// Source artifact status / version tables needed to satisfy the FK chain on
-// proposed_diffs. We insert a bare-minimum source_artifact + extraction_run +
-// extracted_fact_set + proposed_diff so the product_version row can reference
-// a diff. The trigger on product_versions checks that the diff status is
-// 'approved' or 'auto_approved'; we bypass the trigger via session-level
-// setting to keep the seed simple (same pattern as admin-trace.test.ts
-// which disables trg_revisions_immutable). For simplicity here we use raw SQL
-// and set status directly.
-//
-// HOWEVER: the product_versions immutability trigger (trg_product_versions_immutable)
-// blocks UPDATE/DELETE but NOT INSERT. The NOT NULL constraint on proposed_diff_id
-// means we need a valid diff row. To avoid the entire artifact → run → fact_set
-// chain, we seed the diff with status = 'approved' directly via raw SQL after
-// disabling the product_versions trigger for cleanup only.
-//
-// Simpler alternative used here: seed products WITHOUT a currentVersionId
-// (same as catalog.test.ts LEGACY_PRODUCT_ID) and accept that legacy
-// title/brand/gtin are null. The meaningful parity for the handler contract
-// is: 404 behavior, field presence, status field. Title/brand/gtin parity
-// requires a version — tested separately in the "with version" sub-suite.
-
-async function seedLegacyProduct(db: DrizzleClient): Promise<void> {
-  // Insert a bare products row without a version (no FK issues).
-  await db.insert(schema.products).values({
-    id: PARITY_LEGACY_PRODUCT_ID,
-    tenantId: TEST_TENANT_ID,
-    merchantId: TEST_MERCHANT_ID,
-    status: "active",
-    // No currentVersionId — exercises "no version" branch cleanly.
-  });
-}
 
 async function seedNewProduct(
   db: DrizzleClient,
@@ -369,14 +256,12 @@ async function fullCleanup(db: DrizzleClient): Promise<void> {
 }
 
 // ===========================================================================
-// Suite 1: GET /products/:id parity — the primary dual-path endpoint.
+// Suite 1: GET /products/:id — new-schema response-shape tests (Phase 9.3).
 // ===========================================================================
 //
-// This is the most important parity check: the same conceptual product,
-// seeded in both schemas, fetched through both flag paths, asserts
-// that required fields agree and the new schema is a strict superset.
+// Phase 9.3: legacy-path tests removed. Only new-schema assertions remain.
 
-describe("GET /products/:id parity — flag ON vs OFF (Task 7.5)", () => {
+describe("GET /products/:id — new-schema response shape (Task 7.5 / Phase 9.3)", () => {
   let db: DrizzleClient;
 
   beforeAll(async () => {
@@ -395,96 +280,43 @@ describe("GET /products/:id parity — flag ON vs OFF (Task 7.5)", () => {
     await closeTestDb();
   });
 
-  // ---- 1a. 404 shape parity: unknown ID returns 404 on both paths ----------
+  // ---- 1a. 404 for unknown ID ----------------------------------------------
 
-  test("unknown product ID returns 404 on BOTH flag paths (no parity break on error shape)", async () => {
+  test("unknown product ID returns 404", async () => {
     const unknownId = "99999999-9999-9999-9999-000000000099";
-    const appOff = buildApp({ db, useNewCatalogSchema: false });
-    const appOn  = buildApp({ db, useNewCatalogSchema: true });
-
-    const [resOff, resOn] = await Promise.all([
-      appOff.request(`/catalog/products/${unknownId}`),
-      appOn.request(`/catalog/products/${unknownId}`),
-    ]);
-
-    expect(resOff.status).toBe(404);
-    expect(resOn.status).toBe(404);
-
-    const bodyOff = (await resOff.json()) as { error: { code: string } };
-    const bodyOn  = (await resOn.json()) as { error: { code: string } };
-
-    // Error code must match on both paths — no schema-specific error leakage.
-    expect(bodyOff.error.code).toBe("NOT_FOUND");
-    expect(bodyOn.error.code).toBe("NOT_FOUND");
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/${unknownId}`);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("NOT_FOUND");
   });
 
-  // ---- 1b. Response shape parity: no-version product ----------------------
-  //
-  // Flag OFF: `schema.products` row with no currentVersionId →
-  //   { id, tenantId, current_version: null, variants: [] }
-  //
-  // Flag ON: `catalog_products` row with winning_values →
-  //   { product_id, tenant_id, winning_values: {...}, consistency: "eventual" }
-  //
-  // NORMALIZATION: both project to NormalizedProduct. With no version on the
-  // legacy side, title/brand/gtin are null. The new-schema side also seeds
-  // them as null (no winning_values for these fields) so they agree.
-  //
-  // This tests: (a) both return 200 for their own product ID, (b) the
-  // normalized shape agrees on null required fields, (c) the new schema
-  // correctly ADDS fields (winning_values, consistency) without breaking parity.
+  // ---- 1b. Required fields are null when no winning_values -----------------
 
-  test("no-version product: required fields are null in both normalized shapes", async () => {
-    await seedLegacyProduct(db);
+  test("product with no title/brand/gtin/pricing → normalizer returns all nulls", async () => {
     await seedNewProduct(db);   // no title/brand/gtin/pricing → all null after normalization
 
-    const appOff = buildApp({ db, useNewCatalogSchema: false });
-    const appOn  = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    expect(res.status).toBe(200);
 
-    const resOff = await appOff.request(`/catalog/products/${PARITY_LEGACY_PRODUCT_ID}`);
-    const resOn  = await appOn.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    const body = (await res.json()) as Parameters<typeof normalizeNew>[0];
+    const normalized = normalizeNew(body);
 
-    expect(resOff.status).toBe(200);
-    expect(resOn.status).toBe(200);
+    expect(normalized.parity_id).toBe(PARITY_NEW_PRODUCT_ID);
+    expect(normalized.title).toBeNull();
+    expect(normalized.brand).toBeNull();
+    expect(normalized.gtin).toBeNull();
+    expect(normalized.primary_pricing).toBeNull();
 
-    const bodyOff = (await resOff.json()) as Parameters<typeof normalizeLegacy>[0];
-    const bodyOn  = (await resOn.json()) as Parameters<typeof normalizeNew>[0];
-
-    const normalizedOff = normalizeLegacy(bodyOff);
-    const normalizedOn  = normalizeNew(bodyOn);
-
-    // Required fields must agree (both null in this case).
-    expect(normalizedOn.title).toBe(normalizedOff.title);
-    expect(normalizedOn.brand).toBe(normalizedOff.brand);
-    expect(normalizedOn.gtin).toBe(normalizedOff.gtin);
-    expect(normalizedOn.primary_pricing).toEqual(normalizedOff.primary_pricing);
-
-    // New schema must have parity_id set (product_id).
-    expect(normalizedOn.parity_id).toBe(PARITY_NEW_PRODUCT_ID);
-    // Legacy must have parity_id set (id).
-    expect(normalizedOff.parity_id).toBe(PARITY_LEGACY_PRODUCT_ID);
-
-    // Allowed delta: new-schema response carries winning_values + consistency.
-    expect("winning_values" in (bodyOn.data)).toBe(true);
-    expect((bodyOn.data as unknown as { consistency: string }).consistency).toBe("eventual");
-    // Legacy must NOT emit these new-schema fields.
-    expect("winning_values" in (bodyOff.data)).toBe(false);
-    expect("consistency" in (bodyOff.data)).toBe(false);
+    // Response carries winning_values + consistency fields.
+    expect("winning_values" in body.data).toBe(true);
+    expect((body.data as unknown as { consistency: string }).consistency).toBe("eventual");
   });
 
-  // ---- 1c. Pricing parity: new-schema carries richer pricing shape ---------
-  //
-  // Seed new product WITH pricing. Legacy has no version → pricing is null.
-  // This test documents the ASYMMETRY: the new schema provides richer data.
-  // Per the allowed-deltas spec, the new schema is ALLOWED to add pricing when
-  // the legacy side has none (legacy had no version). The required-field contract
-  // for pricing only applies when BOTH sides have it.
-  //
-  // Parity rule enforced: if legacy pricing is null, new pricing is allowed to
-  // be non-null (additive delta). If legacy pricing is non-null, new must match.
+  // ---- 1c. Pricing in winning_values normalizes correctly ------------------
 
-  test("pricing is an allowed addition on the new-schema side when legacy has no version", async () => {
-    await seedLegacyProduct(db);
+  test("product with pricing → normalizeNew extracts currency + amount (4dp)", async () => {
     await seedNewProduct(db, {
       title: "Parity Widget",
       brand: "ParityBrand",
@@ -493,215 +325,78 @@ describe("GET /products/:id parity — flag ON vs OFF (Task 7.5)", () => {
       priceAmount: 29.95,
     });
 
-    const appOff = buildApp({ db, useNewCatalogSchema: false });
-    const appOn  = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    expect(res.status).toBe(200);
 
-    const resOff = await appOff.request(`/catalog/products/${PARITY_LEGACY_PRODUCT_ID}`);
-    const resOn  = await appOn.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    const body = (await res.json()) as Parameters<typeof normalizeNew>[0];
+    const normalized = normalizeNew(body);
 
-    expect(resOff.status).toBe(200);
-    expect(resOn.status).toBe(200);
-
-    const bodyOff = (await resOff.json()) as Parameters<typeof normalizeLegacy>[0];
-    const bodyOn  = (await resOn.json()) as Parameters<typeof normalizeNew>[0];
-
-    const normalizedOff = normalizeLegacy(bodyOff);
-    const normalizedOn  = normalizeNew(bodyOn);
-
-    // Legacy: no version → all required fields are null.
-    expect(normalizedOff.title).toBeNull();
-    expect(normalizedOff.brand).toBeNull();
-    expect(normalizedOff.gtin).toBeNull();
-    expect(normalizedOff.primary_pricing).toBeNull();
-
-    // New-schema: has all required fields populated.
-    expect(normalizedOn.title).toBe("Parity Widget");
-    expect(normalizedOn.brand).toBe("ParityBrand");
-    expect(normalizedOn.gtin).toBe("01234567890123");
-    expect(normalizedOn.primary_pricing).toEqual({ currency: "AUD", amount: "29.9500" });
-
-    // ALLOWED DELTA: new schema adds pricing when legacy has none.
-    // This is by spec — the new schema is richer. No parity break.
-    // Documented here for the soak window: once cutover, legacy won't be queried.
-    expect(normalizedOn.primary_pricing).not.toBeNull();
+    expect(normalized.title).toBe("Parity Widget");
+    expect(normalized.brand).toBe("ParityBrand");
+    expect(normalized.gtin).toBe("01234567890123");
+    expect(normalized.primary_pricing).toEqual({ currency: "AUD", amount: "29.9500" });
   });
 
-  // ---- 1d. Cross-tenant 404 parity: both paths enforce tenant isolation ----
-  //
-  // Ensures that the tenant-scoping logic is equivalent between the two paths.
-  // A different-tenant requester must receive 404 on both (no leakage).
+  // ---- 1d. Cross-tenant 404 ------------------------------------------------
 
-  test("cross-tenant request returns 404 on BOTH paths (tenant isolation parity)", async () => {
-    await seedLegacyProduct(db);
+  test("cross-tenant request returns 404 (tenant isolation)", async () => {
     await seedNewProduct(db);
 
     const OTHER_TENANT_ID = "00000000-0000-0000-0000-0000000000ff";
-
-    const appOff = buildApp({ db, useNewCatalogSchema: false, tenantId: OTHER_TENANT_ID });
-    const appOn  = buildApp({ db, useNewCatalogSchema: true,  tenantId: OTHER_TENANT_ID });
-
-    const [resOff, resOn] = await Promise.all([
-      appOff.request(`/catalog/products/${PARITY_LEGACY_PRODUCT_ID}`),
-      appOn.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`),
-    ]);
-
-    expect(resOff.status).toBe(404);
-    expect(resOn.status).toBe(404);
-
-    const bodyOff = (await resOff.json()) as { error: { code: string } };
-    const bodyOn  = (await resOn.json()) as { error: { code: string } };
-
-    expect(bodyOff.error.code).toBe("NOT_FOUND");
-    expect(bodyOn.error.code).toBe("NOT_FOUND");
+    const app = buildApp({ db, tenantId: OTHER_TENANT_ID });
+    const res = await app.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("NOT_FOUND");
   });
 
-  // ---- 1e. Pricing parity: both schemas have pricing, currency case-insensitive -
-  //
-  // Seeds BOTH the legacy product_version (with basePrice + currency='aud') AND
-  // the new catalog_products row (with primary_currency='AUD'). Asserts that
-  // normalizedOn.primary_pricing deep-equals normalizedOff.primary_pricing after
-  // normalization (both sides uppercased) — proving case-insensitive currency match.
-  //
-  // This is the only required-field pricing parity test: when BOTH sides carry
-  // pricing, the normalized amounts and currencies must agree exactly. The sub-case
-  // intentionally seeds legacy with lowercase 'aud' and new with uppercase 'AUD'
-  // to verify the toUpperCase normalization in both normalizers.
+  // ---- 1e. Currency is normalized to uppercase (toUpperCase in normalizer) --
 
-  test("1e: required-field pricing agrees when both schemas have pricing (case-insensitive currency)", async () => {
-    // Seed legacy product WITH a product_version carrying basePrice + currency='aud'.
-    await seedLegacyProduct(db);
-
-    // The product_versions table requires a valid proposed_diffs FK, and there is
-    // an INSERT trigger (trg_check_product_version_diff) that validates the diff
-    // status ∈ {approved, auto_approved}. proposed_diffs itself requires a long FK
-    // chain (→ extracted_fact_sets → extraction_runs → source_artifacts).
-    //
-    // For test seeding we use SET LOCAL session_replication_role = 'replica' inside
-    // a transaction — the documented pattern in triggers.sql (GDPR purge uses the
-    // same technique). This bypasses FK constraints AND the immutability trigger
-    // within the transaction scope only.
-    await db.transaction(async (tx) => {
-      // SET LOCAL applies only for this transaction.
-      await tx.execute(sql`SET LOCAL session_replication_role = 'replica'`);
-
-      // Insert the product_version directly (bypasses proposed_diff FK + INSERT trigger).
-      await tx.execute(sql`
-        INSERT INTO product_versions (
-          id, product_id, proposed_diff_id, tenant_id, merchant_id,
-          title, brand, gtin, base_price, currency,
-          confidence_score, attributes_json, schema_version,
-          created_at
-        ) VALUES (
-          ${PARITY_LEGACY_VERSION_ID},
-          ${PARITY_LEGACY_PRODUCT_ID},
-          ${PARITY_PROPOSED_DIFF_ID},
-          ${TEST_TENANT_ID},
-          ${TEST_MERCHANT_ID},
-          'Parity Priced Widget',
-          'ParityBrand',
-          '09876543210987',
-          '49.9900',
-          'aud',
-          '0.9500',
-          '{}',
-          '1',
-          NOW()
-        )
-        ON CONFLICT (id) DO NOTHING
-      `);
-
-      // Point the products row at this version.
-      await tx.execute(sql`
-        UPDATE products
-          SET current_version_id = ${PARITY_LEGACY_VERSION_ID}
-          WHERE id = ${PARITY_LEGACY_PRODUCT_ID}
-      `);
-    });
-
-    // Seed new-schema product with uppercase 'AUD' currency (deliberate case mismatch).
+  test("1e: pricing currency is uppercased by normalizeNew", async () => {
+    // Seed new-schema product — currency stored as-is in JSONB.
+    // The normalizeNew helper uppercases it; this test confirms that contract.
     await seedNewProduct(db, {
       title: "Parity Priced Widget",
       brand: "ParityBrand",
       gtin: "09876543210987",
-      priceCurrency: "AUD",   // uppercase — opposite case to legacy 'aud'
+      priceCurrency: "AUD",
       priceAmount: 49.99,
     });
 
-    const appOff = buildApp({ db, useNewCatalogSchema: false });
-    const appOn  = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    expect(res.status).toBe(200);
 
-    const resOff = await appOff.request(`/catalog/products/${PARITY_LEGACY_PRODUCT_ID}`);
-    const resOn  = await appOn.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    const body = (await res.json()) as Parameters<typeof normalizeNew>[0];
+    const normalized = normalizeNew(body);
 
-    expect(resOff.status).toBe(200);
-    expect(resOn.status).toBe(200);
-
-    const bodyOff = (await resOff.json()) as Parameters<typeof normalizeLegacy>[0];
-    const bodyOn  = (await resOn.json()) as Parameters<typeof normalizeNew>[0];
-
-    const normalizedOff = normalizeLegacy(bodyOff);
-    const normalizedOn  = normalizeNew(bodyOn);
-
-    // Both sides must produce a non-null primary_pricing.
-    expect(normalizedOff.primary_pricing).not.toBeNull();
-    expect(normalizedOn.primary_pricing).not.toBeNull();
-
-    // After normalization (toUpperCase on currency, toFixed(4) on amount),
-    // the two primary_pricing objects must be deeply equal.
-    expect(normalizedOn.primary_pricing).toEqual(normalizedOff.primary_pricing);
-
-    // Explicitly confirm the normalised currency is uppercase regardless of source case.
-    expect(normalizedOff.primary_pricing?.currency).toBe("AUD");
-    expect(normalizedOn.primary_pricing?.currency).toBe("AUD");
-
-    // Explicitly confirm amounts agree at 4dp.
-    expect(normalizedOff.primary_pricing?.amount).toBe("49.9900");
-    expect(normalizedOn.primary_pricing?.amount).toBe("49.9900");
+    expect(normalized.primary_pricing).not.toBeNull();
+    expect(normalized.primary_pricing?.currency).toBe("AUD");
+    expect(normalized.primary_pricing?.amount).toBe("49.9900");
   });
 
-  // ---- 1f. winning_values consistency field is always present on new-schema --
+  // ---- 1f. consistency field is always present on new-schema ---------------
 
-  test("new-schema response always includes consistency field; legacy never does", async () => {
-    await seedLegacyProduct(db);
+  test("new-schema response always includes consistency field", async () => {
     await seedNewProduct(db, { title: "Widget" });
 
-    const appOff = buildApp({ db, useNewCatalogSchema: false });
-    const appOn  = buildApp({ db, useNewCatalogSchema: true });
+    const app = buildApp({ db });
+    const res = await app.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
+    expect(res.status).toBe(200);
 
-    const resOff = await appOff.request(`/catalog/products/${PARITY_LEGACY_PRODUCT_ID}`);
-    const resOn  = await appOn.request(`/catalog/products/${PARITY_NEW_PRODUCT_ID}`);
-
-    expect(resOff.status).toBe(200);
-    expect(resOn.status).toBe(200);
-
-    const bodyOff = (await resOff.json()) as { data: Record<string, unknown> };
-    const bodyOn  = (await resOn.json()) as { data: Record<string, unknown> };
-
-    // New schema: consistency stamped.
-    expect(bodyOn.data.consistency).toBe("eventual");
-    // Legacy: consistency absent (allowed delta).
-    expect("consistency" in bodyOff.data).toBe(false);
+    const body = (await res.json()) as { data: Record<string, unknown> };
+    expect(body.data.consistency).toBe("eventual");
   });
 });
 
 // ===========================================================================
-// Suite 2: GET /products parity — listProducts handler (Phase 8 update).
+// Suite 2: GET /products — listProducts new-schema path (Phase 9.3).
 // ===========================================================================
 //
-// Phase 7 FINDING (now RESOLVED in Phase 8 Task 8.1):
-//   listProducts previously read from `schema.products` unconditionally.
-//   Phase 8 prereq A wired the new-schema dual path: when
-//   useNewCatalogSchema=true, the handler reads from catalog_products.
-//
-// CURRENT BEHAVIOR (Phase 8+):
-//   - Flag OFF → reads from schema.products (legacy path, unchanged).
-//   - Flag ON  → reads from catalog_products (new path, Phase 8 prereq A).
-//
-// PARITY NOTE: the two paths now serve DIFFERENT product sets (each reads
-// from its own table). The parity tests below document the new correct
-// behavior rather than requiring identical results from both flags.
+// Phase 9.3: listProducts reads from catalog_products unconditionally.
 
-describe("GET /products parity — listProducts dual-path (Phase 8, Task 8.1)", () => {
+describe("GET /products — listProducts (Phase 8 / Phase 9.3)", () => {
   let db: DrizzleClient;
 
   beforeAll(async () => {
@@ -720,99 +415,48 @@ describe("GET /products parity — listProducts dual-path (Phase 8, Task 8.1)", 
     await closeTestDb();
   });
 
-  test("flag OFF reads from schema.products, flag ON reads from catalog_products", async () => {
-    // Seed one legacy product (schema.products) and one new product (catalog_products).
-    await seedLegacyProduct(db);
+  test("list includes seeded catalog_products row", async () => {
     await seedNewProduct(db, { title: "New-Schema Widget" });
 
-    const appOff = buildApp({ db, useNewCatalogSchema: false });
-    const appOn  = buildApp({ db, useNewCatalogSchema: true });
-
-    const [resOff, resOn] = await Promise.all([
-      appOff.request("/catalog/products"),
-      appOn.request("/catalog/products"),
-    ]);
-
-    expect(resOff.status).toBe(200);
-    expect(resOn.status).toBe(200);
-
-    const bodyOff = (await resOff.json()) as { data: { products: Array<{ id: string }> } };
-    const bodyOn  = (await resOn.json()) as { data: { products: Array<{ id: string }> } };
-
-    // Flag OFF: legacy product appears, new product absent (reads schema.products).
-    const idsOff = bodyOff.data.products.map((p) => p.id);
-    expect(idsOff).toContain(PARITY_LEGACY_PRODUCT_ID);
-    expect(idsOff).not.toContain(PARITY_NEW_PRODUCT_ID);
-
-    // Flag ON: new product appears, legacy product absent (reads catalog_products).
-    const idsOn = bodyOn.data.products.map((p) => p.id);
-    expect(idsOn).toContain(PARITY_NEW_PRODUCT_ID);
-    expect(idsOn).not.toContain(PARITY_LEGACY_PRODUCT_ID);
-  });
-
-  test("flag ON — list includes catalog_products rows (Phase 8 prereq A wired)", async () => {
-    await seedNewProduct(db, { title: "New-Only Widget" });
-
-    const appOn = buildApp({ db, useNewCatalogSchema: true });
-    const res = await appOn.request("/catalog/products");
-
+    const app = buildApp({ db });
+    const res = await app.request("/catalog/products");
     expect(res.status).toBe(200);
+
     const body = (await res.json()) as { data: { products: Array<{ id: string }> } };
     const ids = body.data.products.map((p) => p.id);
 
-    // Phase 8: new-schema product IS now included when flag=true.
     expect(ids).toContain(PARITY_NEW_PRODUCT_ID);
+    expect(ids).not.toContain(PARITY_LEGACY_PRODUCT_ID);
   });
 });
 
 // ===========================================================================
-// Suite 3: GET /products/:id/sku parity — SKIPPED (flag-invariant handler).
+// Suite 3: GET /products/:id/sku — SKIPPED (stubbed 410 in Phase 9.3).
 // ===========================================================================
 //
-// RATIONALE FOR SKIP: `getProductSku` always reads from `schema.products` →
-// `productVersions` → `proposedDiffs` → `extractedFacts` (legacy chain),
-// regardless of the useNewCatalogSchema flag. There is no new-schema path
-// in this handler. Parity testing (flag ON vs OFF) would hit identical code
-// paths and add no signal. The meaningful test here would be a cross-schema
-// comparison between the legacy SKU reconstruction and a future new-schema
-// equivalent — that is out of scope for Phase 7.
-//
-// A regression guard (flag does not break the endpoint) is covered by the
-// existing catalog.test.ts suite which also tests the SKU endpoint under
-// the legacy path.
+// RATIONALE FOR SKIP: `getProductSku` returns 410 Gone after Phase 9.3 —
+// the legacy tables it queried were renamed to _legacy_* in Phase 8. A
+// new-schema SKU endpoint is a future deliverable.
 
 test.skip(
-  "GET /products/:id/sku parity — SKIPPED: handler always uses legacy schema regardless of flag",
+  "GET /products/:id/sku — SKIPPED: returns 410 Gone (Phase 9.3 stub)",
   () => {
-    // See rationale in suite comment above.
-    // When a new-schema SKU handler is introduced, add parity assertions here:
-    //   normalizeSku(legacyResponse) must match normalizeSku(newSchemaResponse)
-    //   on required fields: gtin, sku, basePrice, currency, images[0].url.
+    // When a new-schema SKU handler is introduced, add assertions here.
   }
 );
 
 // ===========================================================================
-// Suite 4: GET /products/:id/provenance parity — SKIPPED (flag-invariant handler).
+// Suite 4: GET /products/:id/provenance — SKIPPED (stubbed 410 in Phase 9.3).
 // ===========================================================================
 //
-// RATIONALE FOR SKIP: `getProductProvenance` (the legacy 2-segment
-// `/products/:id/provenance`) always reads from `schema.products` →
-// `productVersions` → `proposedDiffs` → `extractedFacts`. The flag is not
-// used. The new-schema equivalent is the 3-segment
-// `/products/:product_id/provenance/:attribute_code` endpoint (gated by flag ON,
-// task 4.5) — but it has a fundamentally different shape and is NOT a parity
-// target; it is tested separately in admin-trace.test.ts.
-//
-// Parity testing the 2-segment endpoint flag ON vs OFF would compare identical
-// code paths and add no signal. The meaningful cross-schema comparison (legacy
-// rung breakdown vs new rule-driven trace) is a design-time equivalence question,
-// not a runtime parity assertion, and is tracked as a post-cutover migration item.
+// RATIONALE FOR SKIP: `getProductProvenance` (2-segment form) returns 410 Gone
+// after Phase 9.3. The new-schema equivalent is the 3-segment
+// `/products/:product_id/provenance/:attribute_code` endpoint, tested in
+// admin-trace.test.ts.
 
 test.skip(
-  "GET /products/:id/provenance parity — SKIPPED: legacy 2-segment handler is flag-invariant; new-schema equivalent has different shape",
+  "GET /products/:id/provenance — SKIPPED: returns 410 Gone (Phase 9.3 stub)",
   () => {
-    // See rationale in suite comment above.
-    // If a new-schema 2-segment provenance handler is introduced that returns
-    // a compatible shape, add parity assertions here.
+    // When a new-schema 2-segment provenance handler is introduced, add assertions here.
   }
 );

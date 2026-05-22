@@ -1,9 +1,8 @@
 // New-schema catalog list reader (Phase 8, Task 8.1 prereq A).
 //
-// Runs ONLY when `useNewCatalogSchema` is on in `listProducts`. This service
-// reads from `catalog_products` and projects rows into the legacy-compatible
+// Reads from `catalog_products` and projects rows into the legacy-compatible
 // list response shape so frontend consumers see the same envelope without
-// a breaking contract change.
+// a breaking contract change. Phase 9.3: this is now the ONLY list path.
 //
 // Legacy-compatible shape per row:
 //   { id, tenantId, merchantId, status, updatedAt,

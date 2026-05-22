@@ -19,11 +19,9 @@
 // _persistLinkCatalogPipeline optional dep fields added in the Option-a refactor.
 //
 // What this test verifies:
-//   When the REAL makeLinkExtractProcessor factory receives
-//   useNewCatalogSchema=true and useDualWrite=true, execution reaches BOTH
-//   the new-schema write path AND the legacy write path. A condition inversion
-//   in the real processor (e.g. `if (deps.useDualWrite)` instead of
-//   `if (!deps.useDualWrite)`) would make this test fail.
+//   When the REAL makeLinkExtractProcessor factory runs, execution reaches
+//   the new-schema write path (runNewLinkCatalogPath). The legacy path and
+//   dual-write path have been removed in Phase 9.3.
 
 import { describe, expect, mock, test } from "bun:test";
 
@@ -87,18 +85,6 @@ mock.module("@aonex/ingestion-enrichment", () => ({
   convertFromFacts: mock(() => FAKE_SKU),
 }));
 
-// Safe: not imported by any other test file directly
-// Mocking prevents the module from loading its own broken import of
-// `applyApprovedDiff` from @aonex/catalog-service (pre-existing issue: that
-// export doesn't exist in the current src/index.ts, causing a SyntaxError when
-// the module is evaluated). The _persistLinkCatalogPipeline dep field means
-// persistLinkCatalogPipeline is never actually called in this test anyway.
-mock.module("../services/link-catalog-pipeline.js", () => ({
-  persistLinkCatalogPipeline: mock(async () => {
-    throw new Error("unexpected: module-level persistLinkCatalogPipeline called in coupling test");
-  }),
-}));
-
 // Safe: not imported by any other test file
 mock.module("../services/emit-failure-review-task.js", () => ({
   emitFailureReviewTask: mock(async () => {}),
@@ -111,16 +97,15 @@ mock.module("./ingestion-spine.processor.js", () => ({
 
 // ── Test ─────────────────────────────────────────────────────────────────────
 
-describe("link-extract processor: real factory coupling (Task 7.3 review fix)", () => {
+describe("link-extract processor: real factory coupling (Phase 9.3)", () => {
   test(
-    "real makeLinkExtractProcessor: useNewSchema=true, dualWrite=true → both write fns called",
+    "real makeLinkExtractProcessor: new-schema write path is called",
     async () => {
       // Dynamic import so the mock.module() stubs above take effect before
       // the processor's transitive deps are resolved.
       const { makeLinkExtractProcessor } = await import("./link-extract.processor.js");
 
       let newPathCalled = false;
-      let legacyPathCalled = false;
 
       // Minimal chainable DB stub that satisfies the processor's call shapes.
       const noopUpdate = { set: () => ({ where: () => Promise.resolve([]) }) };
@@ -136,8 +121,6 @@ describe("link-extract processor: real factory coupling (Task 7.3 review fix)", 
         insert: () => noopInsert,
         update: () => noopUpdate,
         query: {
-          domainProfiles: { findFirst: async () => null },
-          productIdentities: { findFirst: async () => null },
           categorySchemas: { findFirst: async () => null },
         },
       } as unknown as import("@aonex/db").DrizzleClient;
@@ -167,13 +150,10 @@ describe("link-extract processor: real factory coupling (Task 7.3 review fix)", 
         db: stubDb,
         audit: stubAudit,
         extractor: stubExtractor,
-        useNewCatalogSchema: true,
-        useDualWrite: true,
         // Injected stubs for functions that are used at runtime by other test
         // files — injecting avoids module-level mocking that would bleed.
         _channelCodeFromUrl: () => "unknown-channel",
         _resolveChannelByCode: async () => null,
-        // Spy stubs for the two write paths — these are what we assert on.
         _runNewLinkCatalogPath: async () => {
           newPathCalled = true;
           return {
@@ -182,16 +162,6 @@ describe("link-extract processor: real factory coupling (Task 7.3 review fix)", 
             identityStrength: "gtin",
             matchPath: "new",
           } as unknown as import("@aonex/catalog-service").WriteAdapterOutputResult;
-        },
-        _persistLinkCatalogPipeline: async () => {
-          legacyPathCalled = true;
-          return {
-            extractionRunId: "run-001",
-            factSetId: "fs-001",
-            proposedDiffId: null,
-            route: "auto_approve" as const,
-            confidenceScore: 0.9,
-          };
         },
       });
 
@@ -208,7 +178,7 @@ describe("link-extract processor: real factory coupling (Task 7.3 review fix)", 
       >;
 
       // Ensure the spine env var is off — otherwise the processor shortcuts to
-      // runSpineLink and never reaches the dual-write section.
+      // runSpineLink and never reaches the write path.
       const origSpineFlag = process.env.INGESTION_SPINE_ENABLED;
       process.env.INGESTION_SPINE_ENABLED = "false";
       try {
@@ -219,7 +189,6 @@ describe("link-extract processor: real factory coupling (Task 7.3 review fix)", 
       }
 
       expect(newPathCalled).toBe(true);
-      expect(legacyPathCalled).toBe(true);
     }
   );
 });

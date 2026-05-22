@@ -9,7 +9,7 @@ import { buildGateway, PostgresConnectionRegistry } from "@aonex/connector-gatew
 import { createNangoClient } from "@aonex/connector-gateway/adapters/nango";
 import { SyncService } from "./services/sync-service.js";
 import { PostgresAuditEmitter } from "@aonex/audit";
-import { parseEnv, QUEUE, useNewCatalogSchema, useDualWrite, type Env } from "@aonex/types";
+import { parseEnv, QUEUE, type Env } from "@aonex/types";
 
 import { makeNangoAuthProcessor } from "./processors/nango-auth.processor.js";
 import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
@@ -28,31 +28,12 @@ import { startOutboxPoller, type OutboxHandle } from "./jobs/outbox-poller.js";
 
 export interface WorkerContainer {
   env: Env;
-  /**
-   * Phase 4 catalog redesign flag, resolved once at boot. Downstream
-   * code reads this field instead of `process.env` to keep the trust
-   * boundary in this composition root.
-   */
-  useNewCatalogSchema: boolean;
-  /**
-   * Phase 7 soak dual-write flag, resolved once at boot. When true (and
-   * useNewCatalogSchema is also true), processors write to both the new
-   * catalog schema AND the legacy schema simultaneously.
-   */
-  useDualWrite: boolean;
   start(): Promise<void>;
   stop(): Promise<void>;
 }
 
 export async function buildContainer(env: Env): Promise<WorkerContainer> {
   const logger = pino({ level: env.LOG_LEVEL });
-
-  // Phase 4 catalog redesign — resolve the feature flag once and log it
-  // so ops can confirm flag state at boot.
-  // Phase 7 soak — also resolve the dual-write flag.
-  const catalogUseNewSchema = useNewCatalogSchema(env);
-  const catalogDualWrite = useDualWrite(env);
-  logger.info({ useNewCatalogSchema: catalogUseNewSchema, useDualWrite: catalogDualWrite }, "Catalog feature flags");
 
   const db = createDb(env.DATABASE_URL, { max: 30 });
   const redis = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
@@ -89,8 +70,6 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
       audit,
       gateway,
       syncService,
-      useNewCatalogSchema: catalogUseNewSchema,
-      useDualWrite: catalogDualWrite,
       logger,
     }),
     {
@@ -134,8 +113,6 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         db: db.client,
         audit,
         extractor,
-        useNewCatalogSchema: catalogUseNewSchema,
-        useDualWrite: catalogDualWrite,
       }),
       { connection: redis, concurrency: 5 }
     );
@@ -187,11 +164,8 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
 
   // Phase 4.6 — per-tenant reconciler workers. Discovery happens at boot;
   // new tenants between deploys won't get a worker until restart (v1).
-  // Gated by `useNewCatalogSchema` — with the flag OFF this is a no-op and
-  // the recon queues stay silent.
   const reconcilerHandles: ReconcilerWorkerHandle[] = await startReconcilerWorkers(
-    { db: db.client, connection: redis, logger },
-    { useNewCatalogSchema: catalogUseNewSchema }
+    { db: db.client, connection: redis, logger }
   );
   for (const h of reconcilerHandles) {
     h.worker.on("completed", (job) =>
@@ -203,19 +177,14 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
   }
 
   // Phase 5.6 — outbox poller workers + backpressure measurement interval.
-  // Gated by `useNewCatalogSchema` — with the flag OFF this is a no-op and
-  // the outbox stays silent (returns null). The handle (when present) owns
-  // 4 poller worker loops + a 10s backpressure interval; its `stop()` is
-  // awaited during graceful shutdown below.
+  // The handle owns 4 poller worker loops + a 10s backpressure interval;
+  // its `stop()` is awaited during graceful shutdown below.
   const outboxHandle: OutboxHandle | null = await startOutboxPoller(
-    { db: db.client, connection: redis, logger },
-    { useNewCatalogSchema: catalogUseNewSchema }
+    { db: db.client, connection: redis, logger }
   );
 
   return {
     env,
-    useNewCatalogSchema: catalogUseNewSchema,
-    useDualWrite: catalogDualWrite,
     async start() {
       logger.info({ env: env.NODE_ENV }, "worker.starting");
     },
