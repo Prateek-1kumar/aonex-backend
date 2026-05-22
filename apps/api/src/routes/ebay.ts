@@ -60,12 +60,8 @@ export function ebayRoutes(deps: EbayRouteDeps): Hono {
 
   app.get('/inventory', async (c) => {
     const merchantId = MerchantId.unsafeFrom(ctxGet(c as any, 'merchantId'));
-    const result = await deps.gateway.listRecords({
-      merchantId,
-      marketplace: 'ebay',
-      model: 'ebay-inventory-items'
-    });
-    return c.json({ data: result.page.records });
+    const products = await deps.gateway.listProducts(merchantId, 'ebay');
+    return c.json({ data: products });
   });
 
   app.get('/orders', async (c) => {
