@@ -473,21 +473,24 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     await ensureTestChannel(db);
   });
 
-  beforeEach(async () => {
-    // Clean up list-test rows
+  /** Clean up list-test rows (catalog_products + pricing side table). */
+  async function cleanListTestRows(): Promise<void> {
+    // pricing side table first (FK on product_id is not declared in Drizzle but
+    // the underlying DB may have it — delete in safe order regardless).
     for (const id of [LIST_PRODUCT_A, LIST_PRODUCT_B]) {
+      await db
+        .delete(schema.catalogPricingCurrent)
+        .where(eq(schema.catalogPricingCurrent.productId, id));
       await db
         .delete(schema.catalogProducts)
         .where(eq(schema.catalogProducts.productId, id));
     }
-  });
+  }
+
+  beforeEach(cleanListTestRows);
 
   afterAll(async () => {
-    for (const id of [LIST_PRODUCT_A, LIST_PRODUCT_B]) {
-      await db
-        .delete(schema.catalogProducts)
-        .where(eq(schema.catalogProducts.productId, id));
-    }
+    await cleanListTestRows();
     await closeTestDb();
   });
 
@@ -570,6 +573,73 @@ describe("GET /products — listProducts new-schema path (Phase 8 prereq A)", ()
     const body = (await res.json()) as { data: { products: Array<{ id: string }> } };
     const ids = body.data.products.map((p) => p.id);
     expect(ids).not.toContain(LIST_PRODUCT_A);
+  });
+
+  // ---- 3b. Flag ON — pricing field from catalog_pricing_current ----------
+
+  test("flag ON — response row includes pricing.currency and pricing.amount from catalog_pricing_current", async () => {
+    // Seed a catalog_products row + a matching catalog_pricing_current row.
+    await seedNewProduct(
+      db,
+      LIST_PRODUCT_A,
+      makeWinningValues({ title: "Priced Widget", brand: "PriceCo" })
+    );
+
+    // Seed pricing for LIST_PRODUCT_A using TEST_CHANNEL_ID (available from
+    // beforeAll's ensureTestChannel). locale="_unscoped" is preferred by the
+    // picking strategy in listCatalogProducts.
+    await db.insert(schema.catalogPricingCurrent).values({
+      productId: LIST_PRODUCT_A,
+      channelId: TEST_CHANNEL_ID,
+      locale: "_unscoped",
+      source: "test",
+      currency: "AUD",
+      tiers: [{ price: 19.99, currency: "AUD" }],
+      primaryAmount: "19.99",
+      observedAt: new Date("2026-05-22T00:00:00Z"),
+    });
+
+    const app = buildApp({ db, useNewCatalogSchema: true });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as {
+      data: {
+        products: Array<{
+          id: string;
+          pricing: { currency: string; amount: string | null } | null;
+        }>;
+      };
+    };
+
+    const found = body.data.products.find((p) => p.id === LIST_PRODUCT_A);
+    expect(found).toBeTruthy();
+    expect(found!.pricing).not.toBeNull();
+    expect(found!.pricing!.currency).toBe("AUD");
+    expect(found!.pricing!.amount).toBe("19.99");
+  });
+
+  // ---- 3c. Flag ON — pricing null when no catalog_pricing_current row -----
+
+  test("flag ON — pricing is null when no catalog_pricing_current row exists", async () => {
+    // Seed product only — no pricing row.
+    await seedNewProduct(
+      db,
+      LIST_PRODUCT_B,
+      makeWinningValues({ title: "Unpriced Widget" })
+    );
+
+    const app = buildApp({ db, useNewCatalogSchema: true });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as {
+      data: { products: Array<{ id: string; pricing: unknown }> };
+    };
+
+    const found = body.data.products.find((p) => p.id === LIST_PRODUCT_B);
+    expect(found).toBeTruthy();
+    expect(found!.pricing).toBeNull();
   });
 
   // ---- 4. Flag OFF — legacy path unchanged (regression guard) ------------

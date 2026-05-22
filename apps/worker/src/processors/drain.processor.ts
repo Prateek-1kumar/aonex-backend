@@ -120,12 +120,17 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
       //
       // Mirrors the branching pattern in link-extract.processor.ts.
 
+      // Track whether the new-schema block already counted this page's inserts.
+      // When true, the legacy path's count is skipped to avoid double-counting.
+      // When false (new-schema skipped, or dual-write ON), legacy is authoritative.
+      let countedByNewSchema = false;
+
       if (
         deps.useNewCatalogSchema &&
         marketplace === "shopify" &&
         shopDomain
       ) {
-        // --- New-schema path (runs first, always, when flag ON) ---
+        // --- New-schema path (runs first, always, when flag ON + Shopify) ---
         // We need the source_artifact ids to pass to runNewShopifyCatalogPath.
         // When useDualWrite=false we run persistArtifacts solely to get the
         // artifact rows (dedup logic lives there), then skip the legacy catalog
@@ -175,23 +180,38 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
         }
 
         // Post-cutover (useDualWrite=false): skip legacy catalog writes entirely.
+        // The new-schema block already counted the inserts; mark so the legacy
+        // path below does not double-count.
         if (!deps.useDualWrite) {
+          countedByNewSchema = true;
           continue;
         }
 
         // Dual-write: fall through to legacy persistArtifacts below (it will
         // dedup on checksum, so the re-insert is a no-op for rows we just
-        // inserted above — the counts are already correct).
+        // inserted above — the counts are already correct in totalInserted).
+        // Legacy path does NOT re-count (countedByNewSchema stays false here
+        // because we want the legacy path to be the authoritative count in
+        // dual-write mode — the new-schema count above may differ from legacy
+        // due to checksum dedup on the re-insert).
+        //
+        // Reset totalInserted contribution from above: in dual-write mode the
+        // legacy persistArtifacts is the canonical insert path; its count is used.
+        totalInserted -= insertedArtifacts.length;
       }
 
       // ── Legacy path ──────────────────────────────────────────────────────
       // Runs when:
       //   (a) useNewCatalogSchema=false (original behavior), OR
-      //   (b) useNewCatalogSchema=true AND useDualWrite=true (Phase 7 soak).
+      //   (b) useNewCatalogSchema=true AND useDualWrite=true (Phase 7 soak), OR
+      //   (c) useNewCatalogSchema=true AND non-Shopify or missing shopDomain.
       // In case (b) the new-schema branch above already called persistArtifacts
       // and the re-insert below is a no-op (checksum dedup). We accept the
       // extra round-trip to keep the branching logic simple and symmetric
       // with link-extract.processor.ts.
+      // In case (c) — non-Shopify marketplace — the legacy path is the only
+      // write, and its count MUST be recorded so syncJobRuns.records_added
+      // is correct for ebay/amazon/etc drains.
       const { inserted: legacyInserted } = await deps.syncService.persistArtifacts({
         tenantId,
         merchantId,
@@ -204,9 +224,15 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
         }))
       });
 
-      if (!deps.useNewCatalogSchema) {
-        // Only count inserts here when the new-schema path did not already
-        // count them above (avoids double-counting in dual-write mode).
+      // Count legacy inserts UNLESS the new-schema block already counted them
+      // and skipped the legacy path (countedByNewSchema=true, set only when
+      // useDualWrite=false after a successful new-schema write). This guards:
+      //   - Non-Shopify drains with flag ON: new-schema block never ran →
+      //     countedByNewSchema=false → legacy count is used (correct).
+      //   - Dual-write (Shopify, flag ON): countedByNewSchema stays false →
+      //     legacy count is used (canonical, no double-count).
+      //   - Flag OFF: countedByNewSchema=false → legacy count is used.
+      if (!countedByNewSchema) {
         totalInserted += legacyInserted.length;
       }
     }

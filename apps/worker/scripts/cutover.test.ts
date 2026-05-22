@@ -26,7 +26,7 @@ import {
 } from "@aonex/db/testing";
 import { schema } from "@aonex/db";
 import { eq, and, isNotNull } from "drizzle-orm";
-import { runCutover, type CutoverDeps, type CutoverOptions } from "./cutover.js";
+import { runCutover, CutoverPreflightError, type CutoverDeps, type CutoverOptions } from "./cutover.js";
 
 // ── Test table configuration ─────────────────────────────────────────────────
 
@@ -143,25 +143,16 @@ describe("cutover script (Phase 8, Task 8.1)", () => {
 
   // ── 1. Pre-flight rejects when useNewCatalogSchema=false ─────────────────
 
-  test("pre-flight exits 1 when useNewCatalogSchema=false", async () => {
+  test("pre-flight throws PREFLIGHT_USE_NEW_SCHEMA_OFF when flag is false", async () => {
     const deps = makeDeps(db, { useNewCatalogSchema: false });
     const opts = makeOptions();
 
-    // process.exit(1) in pre-flight is tested by asserting the thrown error
-    // or mocking. Since bun:test doesn't intercept process.exit, we verify
-    // the guard by calling with a mock exit that throws — but that requires
-    // monkey-patching which is fragile. Instead we assert the condition inline:
-    // runCutover would call process.exit(1) on this input. We verify the
-    // pre-flight guard is present in the source and the test logs document
-    // the expected behavior. The actual exit-code test is covered by the
-    // --dry-run safety test which exercises all pre-flight conditions.
-    //
-    // For deterministic test isolation, we test the guard by confirming
-    // that the condition triggers (useNewCatalogSchema=false → error path).
-    expect(deps.useNewCatalogSchema).toBe(false);
-    // The actual behavior: runCutover calls process.exit(1). We document
-    // this rather than intercepting process.exit.
-    // Verify the guard exists in the exported function's logic.
+    // runCutover now throws CutoverPreflightError instead of calling process.exit,
+    // so we can assert the specific guard that fired.
+    await expect(runCutover(deps, opts)).rejects.toMatchObject({
+      name: "CutoverPreflightError",
+      code: "PREFLIGHT_USE_NEW_SCHEMA_OFF",
+    });
   });
 
   // ── 2. Dry-run is safe (no tables renamed) ────────────────────────────────
@@ -225,10 +216,14 @@ describe("cutover script (Phase 8, Task 8.1)", () => {
     // Second run: same options. Source tables are gone; target tables exist.
     const report2 = await runCutover(makeDeps(db), makeOptions());
 
-    // Second run should detect all pairs as already renamed.
-    expect(report2.renamedTables).toHaveLength(2);  // alreadyRenamedTables shows count
+    // renamedTables must be [] — nothing was renamed THIS run.
+    // alreadyRenamedTables carries the full list of pairs detected as already done.
+    expect(report2.renamedTables).toHaveLength(0);
     expect(report2.alreadyRenamedTables).toHaveLength(2);
-    // Nothing newly renamed.
+    // Idempotency signal: alreadyRenamedTables.length === legacyTablePairs.length.
+    expect(report2.alreadyRenamedTables.map((p) => p.from).sort()).toEqual(
+      [TEST_TABLE_ALPHA, TEST_TABLE_BETA].sort()
+    );
     // Source tables still absent.
     expect(await tableExists(db, TEST_TABLE_ALPHA)).toBe(false);
     expect(await tableExists(db, TEST_TABLE_BETA)).toBe(false);
@@ -261,34 +256,37 @@ describe("cutover script (Phase 8, Task 8.1)", () => {
 
   // ── 6. confirmDrained guard ───────────────────────────────────────────────
 
-  test("pre-flight: missing --confirm-drained is an error (verifies guard in options)", async () => {
-    // We can't intercept process.exit here, so we verify the guard is present
-    // by asserting the option's default value and that the guard condition
-    // matches the implementation.
-    const opts = makeOptions({ confirmDrained: false });
-    expect(opts.confirmDrained).toBe(false);
-    // The runCutover implementation calls process.exit(1) when
-    // confirmDrained=false && dryRun=false. The dry-run escape hatch
-    // bypasses this gate (dryRun=true skips all mutations including the gate).
-    // This is tested structurally — intercepting process.exit requires
-    // a more invasive mock than we want in fast unit tests.
+  test("pre-flight throws PREFLIGHT_NOT_DRAINED when confirmDrained=false", async () => {
+    // confirmDrained=false (without dryRun) should trigger the operator gate.
+    const deps = makeDeps(db);
+    const opts = makeOptions({ confirmDrained: false, dryRun: false });
+
+    await expect(runCutover(deps, opts)).rejects.toMatchObject({
+      name: "CutoverPreflightError",
+      code: "PREFLIGHT_NOT_DRAINED",
+    });
   });
 
   // ── 7. Backfill cursor guard ──────────────────────────────────────────────
 
-  test("pre-flight: uncompleted backfill cursor causes exit 1 (guard documented)", async () => {
-    // This test verifies the guard exists in the implementation by removing
-    // the completed_at from the cursor row and documenting the expected behavior.
-    // (Actual process.exit interception is out of scope for unit tests.)
+  test("pre-flight throws PREFLIGHT_BACKFILL_INCOMPLETE when cursor has no completed_at", async () => {
+    // Null-out the completed_at so the guard fires.
     await db.execute(sql`
       UPDATE backfill_cursor SET completed_at = NULL WHERE tenant_id = ${TEST_TENANT_ID}
     `);
-    // At this point, runCutover({ tenantId: TEST_TENANT_ID, ... }) would call
-    // process.exit(1) because no completed cursor row exists.
-    // Restore for other tests.
-    await db.execute(sql`
-      UPDATE backfill_cursor SET completed_at = NOW() WHERE tenant_id = ${TEST_TENANT_ID}
-    `);
-    expect(true).toBe(true); // guard documented above
+    try {
+      const deps = makeDeps(db);
+      const opts = makeOptions();
+
+      await expect(runCutover(deps, opts)).rejects.toMatchObject({
+        name: "CutoverPreflightError",
+        code: "PREFLIGHT_BACKFILL_INCOMPLETE",
+      });
+    } finally {
+      // Restore for subsequent tests (afterAll also sets this, but belt-and-suspenders).
+      await db.execute(sql`
+        UPDATE backfill_cursor SET completed_at = NOW() WHERE tenant_id = ${TEST_TENANT_ID}
+      `);
+    }
   });
 });
