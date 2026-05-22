@@ -58,3 +58,6 @@ export * from "./catalog-events.js";
 
 // Catalog redesign Phase 5 — per-tenant webhook subscriptions
 export * from "./tenant-webhooks.js";
+
+// Catalog redesign Phase 7 — resumable backfill cursor
+export * from "./backfill-cursor.js";

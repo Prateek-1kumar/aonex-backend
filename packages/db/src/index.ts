@@ -17,3 +17,7 @@ export type {
   TenantWebhook,
   NewTenantWebhook,
 } from "./schema/tenant-webhooks.js";
+export type {
+  BackfillCursor,
+  NewBackfillCursor,
+} from "./schema/backfill-cursor.js";
