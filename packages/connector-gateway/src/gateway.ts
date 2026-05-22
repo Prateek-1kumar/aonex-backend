@@ -8,7 +8,6 @@
 // Adding Amazon = register AmazonAdapter in marketplaceAdapters.
 
 import { GatewayError, type MerchantId, type Marketplace, type TenantId, type ConnectionId } from '@aonex/types';
-import type { ConnectionContext, MarketplaceLiveAdapter, ProviderProduct } from './adapters/shopify/adapter.js';
 import type {
   InventoryRecord,
   OAuthUrlResult,
@@ -20,7 +19,12 @@ import type {
   DrainOptions,
   CanonicalProductRecord,
   SyncStatus,
-  TokenHealthResult
+  TokenHealthResult,
+  ConnectionContext,
+  MarketplaceLiveAdapter,
+  ProviderProduct,
+  ListRecordsInput,
+  ListRecordsResult
 } from './contract/index.js';
 
 export interface ConnectionLifecycleAdapter {
@@ -35,6 +39,7 @@ export interface ConnectionLifecycleAdapter {
     opts?: DrainOptions
   ): AsyncIterable<CanonicalProductRecord[]>;
   getSyncStatus(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<SyncStatus>;
+  listRecords(input: ListRecordsInput): Promise<ListRecordsResult>;
 }
 
 export interface ConnectionLookupAdapter {
@@ -148,5 +153,9 @@ export class ConnectorGateway {
 
   async getSyncStatus(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<SyncStatus> {
     return this.deps.nango.getSyncStatus(input);
+  }
+
+  async listRecords(input: ListRecordsInput): Promise<ListRecordsResult> {
+    return this.deps.nango.listRecords(input);
   }
 }

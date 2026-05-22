@@ -5,6 +5,7 @@
 import type { Marketplace } from "@aonex/types";
 import type { CanonicalProductRecord } from "../../../contract/records.js";
 import { normalizeShopifyProduct } from "./shopify.js";
+import { normalizeEbayRecord } from "./ebay.js";
 
 export type Normalizer = (
   raw: Record<string, unknown>,
@@ -12,8 +13,8 @@ export type Normalizer = (
 ) => CanonicalProductRecord;
 
 const REGISTRY: Partial<Record<Marketplace, Normalizer>> = {
-  shopify: normalizeShopifyProduct
-  // amazon, ebay, walmart, etsy — added per HLD phase
+  shopify: normalizeShopifyProduct,
+  ebay: normalizeEbayRecord
 };
 
 export function normalizerFor(marketplace: Marketplace): Normalizer {

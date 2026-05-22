@@ -7,45 +7,21 @@
 // happens here without touching any business code.
 
 import type { OAuthUrlResult, CreateOAuthUrlInput, InventoryRecord } from '../../contract/index.js';
-import { GatewayError, type GatewayErrorKind, type Marketplace, type MerchantId } from '@aonex/types';
+import type {
+  ConnectionContext,
+  ProviderProduct,
+  ListProductsInput,
+  GetInventoryByConnectionInput,
+  MarketplaceLiveAdapter
+} from '../../contract/provider-adapter.js';
+import { GatewayError, type GatewayErrorKind } from '@aonex/types';
 
-const SHOPIFY_API_VERSION = '2025-01';
-
-export interface ConnectionContext {
-  tenantId: string;
-  merchantId: MerchantId;
-  marketplace: Marketplace;
-  /** Nango providerConnectionId — passed as Connection-Id to the proxy. */
-  connectionId: string;
-}
-
-export interface ProviderProduct {
-  externalId: string;
-  raw: unknown;
-}
-
-export interface ListProductsInput {
-  connection: ConnectionContext;
-  limit?: number;
-  maxPages?: number;
-}
-
-export interface GetInventoryByConnectionInput {
-  connection: ConnectionContext;
-  externalProductId: string;
-}
+const SHOPIFY_API_VERSION = '2026-04';
 
 export interface ShopifyAdapterConfig {
   /** Nango Connect UI base URL — where merchants land to connect their store. */
   nangoConnectBaseUrl: string;
   transport: ShopifyTransport;
-}
-
-export interface MarketplaceLiveAdapter {
-  createOAuthUrl(input: CreateOAuthUrlInput): Promise<OAuthUrlResult>;
-  healthCheck(input: { connection: ConnectionContext }): Promise<boolean>;
-  listProducts(input: ListProductsInput): Promise<ProviderProduct[]>;
-  getInventory(input: GetInventoryByConnectionInput): Promise<readonly InventoryRecord[]>;
 }
 
 export interface ShopifyTransport {

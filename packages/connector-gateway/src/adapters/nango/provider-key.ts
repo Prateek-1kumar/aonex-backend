@@ -7,7 +7,7 @@ import type { Marketplace } from "@aonex/types";
 const TO_NANGO: Record<Marketplace, string> = {
   shopify: "shopify",
   amazon: "amazon-selling-partner",
-  ebay: "ebay",
+  ebay: "ebay-sandbox",
   walmart: "walmart",
   etsy: "etsy"
 };
@@ -28,7 +28,7 @@ export function fromProviderKey(providerKey: string): Marketplace | null {
 export const SYNC_NAMES: Record<Marketplace, readonly string[]> = {
   shopify: ["shopify-products"],
   amazon: ["amazon-catalog-items"],
-  ebay: ["ebay-inventory-items"],
+  ebay: ["ebay-inventory-items", "ebay-orders", "ebay-offers"],
   walmart: [],
   etsy: []
 };

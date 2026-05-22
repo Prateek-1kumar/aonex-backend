@@ -15,6 +15,7 @@ export * from "./write.js";
 export * from "./admin.js";
 export * from "./webhook.js";
 export * from "./inventory.js";
+export * from "./provider-adapter.js";
 
 /**
  * Full HLD §17 ConnectorAdapter shape — read + admin + webhook

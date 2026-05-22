@@ -118,7 +118,7 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
   async listRecords(input: ListRecordsInput): Promise<ListRecordsResult> {
     const conn = await this.requireConnection(input.merchantId, input.marketplace);
     const provider = toProviderKey(input.marketplace);
-    const model = SYNC_NAMES[input.marketplace][0];
+    const model = input.model ?? SYNC_NAMES[input.marketplace][0];
     if (!model) {
       throw new GatewayError("validation_failed", `No sync model for ${input.marketplace}`);
     }

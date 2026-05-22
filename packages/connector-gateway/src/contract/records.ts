@@ -38,6 +38,8 @@ export interface RecordPage<T = CanonicalProductRecord> {
 export interface ListRecordsInput {
   merchantId: MerchantId;
   marketplace: Marketplace;
+  /** Nango sync model name. Defaults to SYNC_NAMES[marketplace][0] if omitted. */
+  model?: string;
   /** Incremental drain bound — skip records modified before this. */
   modifiedAfter?: Date;
   cursor?: string;
