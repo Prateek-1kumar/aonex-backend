@@ -18,6 +18,15 @@
 //  - reasonOverride: Option A — extended writeAdapterOutput with optional
 //    `reasonOverride` parameter so backfill revisions are tagged
 //    'migration_backfill' without a separate INSERT.
+//  - sourceOverride: Option A — extended writeAdapterOutput with optional
+//    `sourceOverride` parameter so revision.source_kind is written as
+//    "legacy:product_versions" (plan §7.1 step 5 literal) rather than
+//    deriving "backfill" from the actor prefix "backfill:product_versions".
+//  - rawPayload: per plan §7.1 step 5, revision.raw_payload references the
+//    source_artifact's raw_data. The backfill navigates the FK chain
+//    (proposedDiffId → sourceFactSetId → extractedFactSets.artifactId →
+//    source_artifacts.rawData) and wraps it with provenance metadata
+//    (source_artifact_id, product_version_id, proposed_diff_id, etc.).
 //  - Inventory observations: skipped for v1 — legacy product_versions did
 //    not track per-version inventory quantities.
 //  - Variants: skipped for v1 — backfill targets parent metadata only.
@@ -29,6 +38,15 @@
 //  - Pricing channel resolution: requires a channels row for (tenant_id,
 //    merchant_id). If none exists, pricing is skipped for that version with
 //    a warning log. No channel creation occurs.
+//
+// Spec deviations:
+//  - SPEC DEVIATION (plan §7.1 step 5): plan specifies confidence=0.7 on
+//    the revision row, but catalog_product_revisions has no confidence
+//    column. Confidence is applied to per-observation entries inside the
+//    values JSONB (each observation carries its own confidence field).
+//    The backfill uses confidence=0.7 as the default for observations from
+//    typed product_version columns (title=0.8, gtin=0.9, others=0.7).
+//    Per-observation confidence is what landed — no schema change in this task.
 //
 // Exit codes:
 //   0  Success (or dry-run completed)
@@ -221,18 +239,28 @@ async function resolveChannelForMerchant(
   return { channelId: row.channelId as ChannelId, channelCode };
 }
 
+interface ExtractedContext {
+  facts: typeof schema.extractedFacts.$inferSelect[];
+  /** raw_data from the source_artifact linked via the fact_set's artifact_id. */
+  sourceArtifactRawData: Record<string, unknown> | null;
+  /** The source_artifact UUID (for rawPayload provenance). */
+  sourceArtifactId: string | null;
+}
+
 /**
- * Fetch extracted_facts for a product_version by navigating the FK chain:
+ * Fetch extracted_facts and the parent source_artifact's raw_data for a
+ * product_version by navigating the FK chain:
  *   product_versions.proposed_diff_id
  *     → proposed_diffs.source_fact_set_id
- *     → extracted_facts.fact_set_id
+ *     → extracted_fact_sets.artifact_id
+ *     → source_artifacts.raw_data
  *
- * Returns an empty array if any link in the chain is absent.
+ * Returns empty facts and null artifact data if any link in the chain is absent.
  */
-async function fetchExtractedFacts(
+async function fetchExtractedContext(
   db: DrizzleClient,
   productVersion: typeof schema.productVersions.$inferSelect
-): Promise<typeof schema.extractedFacts.$inferSelect[]> {
+): Promise<ExtractedContext> {
   // Step 1: look up proposed_diff to get source_fact_set_id
   const diffRows = await db
     .select({ sourceFactSetId: schema.proposedDiffs.sourceFactSetId })
@@ -241,20 +269,38 @@ async function fetchExtractedFacts(
     .limit(1);
 
   const factSetId = diffRows[0]?.sourceFactSetId;
-  if (!factSetId) return [];
+  if (!factSetId) return { facts: [], sourceArtifactRawData: null, sourceArtifactId: null };
 
-  // Step 2: fetch all extracted_facts for that fact_set_id
-  const facts = await db
-    .select()
-    .from(schema.extractedFacts)
-    .where(eq(schema.extractedFacts.factSetId, factSetId));
+  // Step 2: fetch fact_set to get artifact_id, and fetch extracted_facts in parallel
+  const [factSetRows, facts] = await Promise.all([
+    db
+      .select({ artifactId: schema.extractedFactSets.artifactId })
+      .from(schema.extractedFactSets)
+      .where(eq(schema.extractedFactSets.id, factSetId))
+      .limit(1),
+    db
+      .select()
+      .from(schema.extractedFacts)
+      .where(eq(schema.extractedFacts.factSetId, factSetId))
+  ]);
 
-  return facts;
+  const artifactId = factSetRows[0]?.artifactId ?? null;
+  if (!artifactId) return { facts, sourceArtifactRawData: null, sourceArtifactId: null };
+
+  // Step 3: fetch source_artifact.raw_data
+  const artifactRows = await db
+    .select({ rawData: schema.sourceArtifacts.rawData })
+    .from(schema.sourceArtifacts)
+    .where(eq(schema.sourceArtifacts.id, artifactId))
+    .limit(1);
+
+  const sourceArtifactRawData = artifactRows[0]?.rawData ?? null;
+  return { facts, sourceArtifactRawData, sourceArtifactId: artifactId };
 }
 
 /**
  * Build an AdapterOutput from a legacy product_version row + associated
- * extracted_facts (optional enrichment).
+ * extracted_facts (optional enrichment) and the parent source_artifact.
  *
  * v1 scope:
  *  - IdentityHint: from gtin, brand+modelNumber, or mpn+brand
@@ -268,11 +314,13 @@ async function fetchExtractedFacts(
 function buildAdapterOutput(
   pv: typeof schema.productVersions.$inferSelect,
   channel: { channelId: ChannelId; channelCode: string } | null,
-  _facts: typeof schema.extractedFacts.$inferSelect[]
+  _facts: typeof schema.extractedFacts.$inferSelect[],
   // facts are included for forward compatibility; v1 derives observations
   // from typed product_version columns, not from raw facts. The facts
   // parameter is intentionally unused in this version — a v2 backfill can
   // enrich from canonicalPath-mapped facts for the attribute observations.
+  sourceArtifactRawData: Record<string, unknown> | null = null,
+  sourceArtifactId: string | null = null
 ): AdapterOutput {
   const SOURCE = "legacy:product_versions";
   const SOURCE_RECORD_ID = pv.id;
@@ -391,9 +439,13 @@ function buildAdapterOutput(
   }
 
   // ---- 4. rawPayload --------------------------------------------------
-  // Point at the product_version metadata so revisions carry provenance.
+  // Per plan §7.1 step 5: raw_payload points at the source_artifact's
+  // raw_data. The wrapper preserves auxiliary provenance (product_version_id,
+  // proposed_diff_id, etc.) so revisions are fully auditable even without
+  // joining back through the FK chain.
   const rawPayload: Record<string, unknown> = {
     source: SOURCE,
+    source_artifact_id: sourceArtifactId,
     product_version_id: pv.id,
     product_id: pv.productId,
     tenant_id: pv.tenantId,
@@ -401,7 +453,11 @@ function buildAdapterOutput(
     proposed_diff_id: pv.proposedDiffId,
     schema_version: pv.schemaVersion,
     confidence_score: pv.confidenceScore,
-    created_at: pv.createdAt.toISOString()
+    created_at: pv.createdAt.toISOString(),
+    // The raw_data blob from source_artifacts — the primary provenance target
+    // per plan §7.1 step 5. Null when the artifact could not be resolved
+    // through the FK chain (e.g., legacy rows with no source_artifact).
+    raw_data: sourceArtifactRawData
   };
 
   return {
@@ -548,11 +604,11 @@ export async function runBackfill(
       }
       const channel = channelCache.get(merchantId) ?? null;
 
-      // Fetch extracted_facts via FK chain
-      const facts = await fetchExtractedFacts(db, pv);
+      // Fetch extracted_facts and source_artifact.raw_data via FK chain
+      const { facts, sourceArtifactRawData, sourceArtifactId } = await fetchExtractedContext(db, pv);
 
       // Build AdapterOutput
-      const adapterOutput = buildAdapterOutput(pv, channel, facts);
+      const adapterOutput = buildAdapterOutput(pv, channel, facts, sourceArtifactRawData, sourceArtifactId);
 
       // Log deferred fields
       if (Array.isArray(pv.images) && pv.images.length > 0) {
@@ -575,6 +631,7 @@ export async function runBackfill(
           adapterOutput,
           actor: "backfill:product_versions",
           reasonOverride: "migration_backfill",
+          sourceOverride: "legacy:product_versions",
           ...(channel
             ? {
                 channelCodeToId: {

@@ -72,6 +72,14 @@ export interface WriteAdapterOutputInput {
    * revision provenance is clearly tagged.
    */
   reasonOverride?: string;
+  /**
+   * Override the source_kind written to catalog_product_revisions.
+   * When omitted, source_kind is derived from the actor prefix
+   * (e.g. "shopify:connector" → "shopify"). The backfill script passes
+   * "legacy:product_versions" so the revision carries the correct lineage
+   * literal from plan §7.1 step 5 rather than "backfill".
+   */
+  sourceOverride?: string;
 }
 
 export type WriteMatchPath = IdentityMatchPath | "newly_created";
@@ -187,7 +195,8 @@ export async function writeAdapterOutput(
     rulesVersion = 1,
     observationCap = DEFAULT_OBSERVATION_CAP,
     channelCodeToId,
-    reasonOverride
+    reasonOverride,
+    sourceOverride
   } = input;
 
   const hasSideTableObservations =
@@ -539,7 +548,7 @@ export async function writeAdapterOutput(
       );
     }
 
-    const sourceKindForRevision = actor.split(":")[0] ?? actor;
+    const sourceKindForRevision = sourceOverride ?? actor.split(":")[0] ?? actor;
     const firstObs = adapterOutput.observations[0];
     const firstPricing = adapterOutput.pricingObservations[0];
     const firstInventory = adapterOutput.inventoryObservations[0];
