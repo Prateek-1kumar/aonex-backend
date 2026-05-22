@@ -7,3 +7,17 @@ export type {
   MappingOverride,
 } from "./schema/attributes.js";
 export type { CategorySchema } from "./schema/category.js";
+export type {
+  CatalogEvent,
+  NewCatalogEvent,
+  CatalogEventDlq,
+  NewCatalogEventDlq,
+} from "./schema/catalog-events.js";
+export type {
+  TenantWebhook,
+  NewTenantWebhook,
+} from "./schema/tenant-webhooks.js";
+export type {
+  BackfillCursor,
+  NewBackfillCursor,
+} from "./schema/backfill-cursor.js";

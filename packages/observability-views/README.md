@@ -12,7 +12,7 @@ Views read from `product_versions`, `audit_events`, and `extraction_runs` with 7
 
 ## How it fits
 
-The migration at `packages/db/drizzle/0006_observability_materialized_views.sql` creates the views. The drift-scan cron in `apps/worker` calls `REFRESH_ALL_VIEWS_SQL` hourly to keep dashboards current without per-render query cost.
+The views are installed by a Phase 8 node-pg-migrate migration (not yet authored — `packages/db/migrations/` is the home). The drift-scan cron in `apps/worker` calls `REFRESH_ALL_VIEWS_SQL` hourly to keep dashboards current without per-render query cost.
 
 ## Dependencies
 

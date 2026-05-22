@@ -2,7 +2,7 @@
 
 import { buildContainerFromEnv } from "./composition-root.js";
 
-const container = buildContainerFromEnv();
+const container = await buildContainerFromEnv();
 await container.start();
 console.log(`[aonex-worker] running (${container.env.NODE_ENV})`);
 

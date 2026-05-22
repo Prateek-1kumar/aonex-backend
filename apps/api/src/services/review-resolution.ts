@@ -52,7 +52,7 @@ export async function editAndApprove(
   if (edit.newCanonicalPath) {
     // 2. Walk the chain to get the source URL for domain extraction:
     //    reviewTask.proposedDiffId → proposedDiffs.sourceFactSetId
-    //    → extractedFactSets.artifactId → sourceArtifacts.sourceExternalId
+    //    → linkIngestionTraceSets.artifactId → sourceArtifacts.sourceExternalId
     let sourceExternalId = "";
 
     const diff = await ctx.db.query.proposedDiffs.findFirst({
@@ -60,7 +60,7 @@ export async function editAndApprove(
     });
 
     if (diff?.sourceFactSetId) {
-      const factSet = await ctx.db.query.extractedFactSets.findFirst({
+      const factSet = await ctx.db.query.linkIngestionTraceSets.findFirst({
         where: (fs, { eq }) => eq(fs.id, diff.sourceFactSetId),
       });
 
@@ -197,7 +197,7 @@ export async function rejectTask(
       where: (d, { eq }) => eq(d.id, task.proposedDiffId!),
     });
     if (diff?.sourceFactSetId) {
-      const factSet = await ctx.db.query.extractedFactSets.findFirst({
+      const factSet = await ctx.db.query.linkIngestionTraceSets.findFirst({
         where: (f, { eq }) => eq(f.id, diff.sourceFactSetId),
       });
       if (factSet?.artifactId) {
@@ -317,7 +317,7 @@ export async function mergeWithExisting(
       where: (d, { eq }) => eq(d.id, task.proposedDiffId!),
     });
     if (diff?.sourceFactSetId) {
-      const factSet = await ctx.db.query.extractedFactSets.findFirst({
+      const factSet = await ctx.db.query.linkIngestionTraceSets.findFirst({
         where: (f, { eq }) => eq(f.id, diff.sourceFactSetId),
       });
       if (factSet?.artifactId) {

@@ -2,16 +2,17 @@ import { sql } from "drizzle-orm";
 import type { CronJob } from "./index.js";
 
 /**
- * Nightly job: refresh domain_profiles from last 30 days of extraction_runs.
+ * Nightly job: refresh domain_profiles from last 30 days of link_ingestion_trace_runs.
  *
  * Schema notes (verified against packages/db/src/schema/):
- *   - extraction_runs.extractor_version  — LLM runs carry a value matching '%llm%'
- *   - extraction_runs.started_at         — run timestamp (nullable; rows with NULL excluded by > filter)
+ *   - link_ingestion_trace_runs.extractor_version  — LLM runs carry a value matching '%llm%'
+ *   - link_ingestion_trace_runs.started_at         — run timestamp (nullable; rows with NULL excluded by > filter)
  *   - source_artifacts.source_external_id — the URL/external identifier for the artifact
- *   - proposed_diffs links to extracted_fact_sets via proposed_diffs.source_fact_set_id,
- *     and extracted_fact_sets links to extraction_runs via extracted_fact_sets.extraction_run_id.
- *     There is NO direct FK from proposed_diffs to extraction_runs, so we join through
- *     extracted_fact_sets as a bridge table.
+ *   - proposed_diffs links to link_ingestion_trace_sets via proposed_diffs.source_fact_set_id,
+ *     and link_ingestion_trace_sets links to link_ingestion_trace_runs via
+ *     link_ingestion_trace_sets.extraction_run_id.
+ *     There is NO direct FK from proposed_diffs to link_ingestion_trace_runs, so we join through
+ *     link_ingestion_trace_sets as a bridge table.
  *   - proposed_diffs.confidence_score    — numeric(5,4)
  */
 export const domainProfileRefresh: CronJob = {
@@ -31,12 +32,12 @@ export const domainProfileRefresh: CronJob = {
           count(*) FILTER (WHERE er.extractor_version ILIKE '%llm%') AS llm_runs,
           count(*) AS total_runs,
           avg((diff.confidence_score)::numeric) AS avg_confidence
-        FROM extraction_runs er
+        FROM link_ingestion_trace_runs er
         JOIN source_artifacts sa ON sa.id = er.artifact_id
-        -- Bridge through extracted_fact_sets: extraction_runs has no direct FK to proposed_diffs.
-        -- proposed_diffs.source_fact_set_id -> extracted_fact_sets.id
-        -- extracted_fact_sets.extraction_run_id -> extraction_runs.id
-        LEFT JOIN extracted_fact_sets efs ON efs.extraction_run_id = er.id
+        -- Bridge through link_ingestion_trace_sets: link_ingestion_trace_runs has no direct FK to proposed_diffs.
+        -- proposed_diffs.source_fact_set_id -> link_ingestion_trace_sets.id
+        -- link_ingestion_trace_sets.extraction_run_id -> link_ingestion_trace_runs.id
+        LEFT JOIN link_ingestion_trace_sets efs ON efs.extraction_run_id = er.id
         LEFT JOIN proposed_diffs diff ON diff.source_fact_set_id = efs.id
         WHERE er.started_at > NOW() - INTERVAL '30 days'
         GROUP BY 1

@@ -1,0 +1,51 @@
+{
+  "shopDomain": "demo-shop.myshopify.com",
+  "observedAt": "2026-05-21T10:00:00.000Z",
+  "product": {
+    "id": "gid://shopify/Product/12345",
+    "title": "Nike Pegasus 40 Men's Road Running Shoes",
+    "handle": "nike-pegasus-40",
+    "status": "ACTIVE",
+    "vendor": "Nike",
+    "productType": "Running Shoes",
+    "tags": ["men", "running", "pegasus", "nike"],
+    "updated_at": "2026-05-21T09:30:00Z",
+    "body_html": "<p>Daily training shoe with Air Zoom unit.</p>",
+    "options": [
+      { "name": "size", "values": ["8", "9", "10", "11"] },
+      { "name": "color", "values": ["Black", "White"] }
+    ],
+    "images": [
+      { "url": "https://cdn.shopify.com/sample-1.jpg", "altText": "Nike Pegasus front view" }
+    ],
+    "variants": [
+      {
+        "id": "gid://shopify/ProductVariant/100",
+        "title": "Black / 8",
+        "sku": "NK-PEG-40-BLK-8",
+        "barcode": "8806095269757",
+        "price": "129.99",
+        "compareAtPrice": "159.99",
+        "inventoryQuantity": 12,
+        "weight": 0.8,
+        "selectedOptions": [
+          { "name": "color", "value": "Black" },
+          { "name": "size", "value": "8" }
+        ]
+      },
+      {
+        "id": "gid://shopify/ProductVariant/101",
+        "title": "White / 9",
+        "sku": "NK-PEG-40-WHT-9",
+        "barcode": "8806095269758",
+        "price": "129.99",
+        "inventoryQuantity": 5,
+        "weight": 0.82,
+        "selectedOptions": [
+          { "name": "color", "value": "White" },
+          { "name": "size", "value": "9" }
+        ]
+      }
+    ]
+  }
+}

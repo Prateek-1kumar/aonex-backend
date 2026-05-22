@@ -52,9 +52,9 @@ export async function runCalibrationRefit(deps: CalibrationRefitDeps): Promise<C
       sa.source_type AS source_type,
       ef.confidence::float8 AS raw_confidence,
       CASE WHEN pd.status IN ('approved', 'auto_approved') THEN 1 ELSE 0 END AS outcome
-    FROM extracted_facts ef
-    JOIN extracted_fact_sets efs ON efs.id = ef.fact_set_id
-    JOIN extraction_runs er ON er.id = efs.extraction_run_id
+    FROM link_ingestion_trace_facts ef
+    JOIN link_ingestion_trace_sets efs ON efs.id = ef.fact_set_id
+    JOIN link_ingestion_trace_runs er ON er.id = efs.extraction_run_id
     JOIN source_artifacts sa ON sa.id = er.artifact_id
     JOIN proposed_diffs pd ON pd.source_fact_set_id = efs.id
     LEFT JOIN product_versions pv ON pv.proposed_diff_id = pd.id

@@ -8,13 +8,19 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
-    "drizzle-kit": "drizzle-kit"
+    "migrate": "node-pg-migrate --envPath ../../.env",
+    "migrate:up": "node-pg-migrate --envPath ../../.env up",
+    "migrate:down": "node-pg-migrate --envPath ../../.env down",
+    "migrate:redo": "node-pg-migrate --envPath ../../.env redo",
+    "migrate:create": "node-pg-migrate --envPath ../../.env -j sql create",
+    "studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@aonex/types": "workspace:*",
@@ -23,6 +29,7 @@
   },
   "devDependencies": {
     "@types/pg": "^8.11.10",
-    "drizzle-kit": "^0.30.0"
+    "drizzle-kit": "^0.30.0",
+    "node-pg-migrate": "^8.0.4"
   }
 }
