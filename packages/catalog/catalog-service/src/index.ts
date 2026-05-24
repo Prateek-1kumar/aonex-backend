@@ -15,6 +15,17 @@ export type {
 } from "./catalog-write.js";
 
 // ---------------------------------------------------------------------------
+// Approval — proposed diff → product version
+// ---------------------------------------------------------------------------
+export { applyApprovedDiff } from "./approve.js";
+export type {
+  ApplyApprovedDiffInput,
+  ApplyApprovedDiffResult,
+  CanonicalProductPayload,
+  CanonicalVariantPayload
+} from "./approve.js";
+
+// ---------------------------------------------------------------------------
 // Identity resolver — hint → product match
 // ---------------------------------------------------------------------------
 export { resolveIdentity } from "./identity-resolver.js";
