@@ -1,9 +1,67 @@
 // Anomaly Lab HTTP handlers — thin wrappers over @aonex/catalog-service staging fns.
 import type { Context } from "hono";
 import { and, asc, eq, gt, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { schema } from "@aonex/db";
-import { TenantId } from "@aonex/types";
+import { TenantId, MerchantId } from "@aonex/types";
+import {
+  promoteStagedProduct,
+  rejectStagedProduct,
+  linkStagedProduct,
+  StillIncompleteError,
+} from "@aonex/catalog-service";
 import type { AnomalyLabRouteDeps } from "../routes/anomaly-lab.js";
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Extract reviewer ID from the request context.
+ * JWT middleware sets merchantId; userId is set by some auth paths.
+ * Mirrors review.ts convention.
+ */
+function getReviewerId(c: Context): string {
+  return (
+    (c.get("userId" as never) as string | undefined) ??
+    MerchantId.unsafeFrom(c.get("merchantId" as never) as string)
+  );
+}
+
+/**
+ * Map a domain error to a structured HTTP response. All action endpoints share
+ * this mapping:
+ *   StillIncompleteError      → 400 INCOMPLETE (with stillMissing array)
+ *   /not pending/i            → 409 CONFLICT
+ *   /not found/i              → 404 NOT_FOUND
+ *   /not a live candidate/i   → 400 BAD_REQUEST
+ *   else                      → 500 INTERNAL
+ */
+function mapDomainError(c: Context, err: unknown): Response {
+  if (err instanceof StillIncompleteError) {
+    return c.json(
+      {
+        error: {
+          code: "INCOMPLETE",
+          message: "Still missing required fields",
+          stillMissing: err.stillMissing,
+        },
+      },
+      400
+    );
+  }
+  if (err instanceof Error) {
+    if (/not pending/i.test(err.message)) {
+      return c.json({ error: { code: "CONFLICT", message: err.message } }, 409);
+    }
+    if (/not found/i.test(err.message)) {
+      return c.json({ error: { code: "NOT_FOUND", message: err.message } }, 404);
+    }
+    if (/not a live candidate/i.test(err.message)) {
+      return c.json({ error: { code: "BAD_REQUEST", message: err.message } }, 400);
+    }
+  }
+  const message = err instanceof Error ? err.message : "Unknown error";
+  return c.json({ error: { code: "INTERNAL", message } }, 500);
+}
 
 const QUEUE_MAX = 100;
 
@@ -258,4 +316,105 @@ export async function getEvidence(c: Context, deps: AnomalyLabRouteDeps): Promis
   // Connector / CSV / other — return the full rawData object.
   // connector/CSV rawData is returned verbatim and is currently unbounded — TODO: cap/summarise large connector payloads (link htmlSnippet is already bounded upstream).
   return c.json({ data: { kind: "json", content: artifact.rawData } });
+}
+
+// ── Action schemas ─────────────────────────────────────────────────────────
+
+const ApproveStagedSchema = z.object({
+  fills: z.record(z.unknown()).default({}),
+});
+
+const LinkStagedSchema = z.object({
+  confirmedProductId: z.string().min(1),
+  fills: z.record(z.unknown()).default({}),
+});
+
+// ── Action handlers ────────────────────────────────────────────────────────
+
+/**
+ * POST /api/lab/staged/:id/approve
+ *
+ * Promote a pending staged product into the catalog. The reviewer's `fills`
+ * are merged with the staged observations to satisfy the readiness gate.
+ * Returns { data: { productId } } on success.
+ */
+export async function approveStaged(c: Context, deps: AnomalyLabRouteDeps): Promise<Response> {
+  const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+  const stagedProductId = c.req.param("id") as string;
+
+  const parsed = ApproveStagedSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: { code: "VALIDATION_FAILED", message: "Invalid request body" } }, 400);
+  }
+
+  const reviewerId = getReviewerId(c);
+
+  try {
+    const result = await promoteStagedProduct({
+      db: deps.db,
+      tenantId,
+      stagedProductId,
+      resolvedBy: reviewerId,
+      fills: parsed.data.fills,
+    });
+    return c.json({ data: { productId: result.productId } });
+  } catch (err) {
+    return mapDomainError(c, err);
+  }
+}
+
+/**
+ * POST /api/lab/staged/:id/reject
+ *
+ * Reject a pending staged product. Terminal — the row is marked rejected
+ * and will never be promoted. Returns { data: { ok: true } } on success.
+ */
+export async function rejectStaged(c: Context, deps: AnomalyLabRouteDeps): Promise<Response> {
+  const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+  const stagedProductId = c.req.param("id") as string;
+  const reviewerId = getReviewerId(c);
+
+  try {
+    await rejectStagedProduct({
+      db: deps.db,
+      tenantId,
+      stagedProductId,
+      resolvedBy: reviewerId,
+    });
+    return c.json({ data: { ok: true } });
+  } catch (err) {
+    return mapDomainError(c, err);
+  }
+}
+
+/**
+ * POST /api/lab/staged/:id/link
+ *
+ * Confirm a live match candidate and enrich the existing catalog product with
+ * observations from the staged row. Returns { data: { productId } } on success.
+ */
+export async function linkStaged(c: Context, deps: AnomalyLabRouteDeps): Promise<Response> {
+  const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+  const stagedProductId = c.req.param("id") as string;
+
+  const parsed = LinkStagedSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: { code: "VALIDATION_FAILED", message: "Invalid request body" } }, 400);
+  }
+
+  const reviewerId = getReviewerId(c);
+
+  try {
+    const result = await linkStagedProduct({
+      db: deps.db,
+      tenantId,
+      stagedProductId,
+      confirmedProductId: parsed.data.confirmedProductId,
+      resolvedBy: reviewerId,
+      fills: parsed.data.fills,
+    });
+    return c.json({ data: { productId: result.productId } });
+  } catch (err) {
+    return mapDomainError(c, err);
+  }
 }
