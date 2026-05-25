@@ -53,6 +53,12 @@ export interface IdentityResolverInput {
    * the family filter is dropped (we still require brand for fuzzy).
    */
   inferredFamily?: string;
+  /**
+   * When true, also search staged_products (status='pending') and include
+   * those matches in `candidates` tagged kind='staged'. Default false keeps
+   * the resolver backward-compatible with the catalog-write path.
+   */
+  includeStaged?: boolean;
 }
 
 export type IdentityMatchPath =
@@ -75,6 +81,12 @@ export interface IdentityResolverResult {
   matchPath: IdentityMatchPath;
   /** All candidate product_ids considered (for debugging/observability). */
   candidateProductIds: string[];
+  /**
+   * All matches considered, tagged by origin. Empty unless includeStaged or a
+   * live match was found. Used by admitOrStage to route the ingest: a live
+   * entry means enrich, a staged entry means accumulate, empty means hold.
+   */
+  candidates: Array<{ productId: string; score: number; kind: "live" | "staged" }>;
 }
 
 /**
@@ -106,7 +118,8 @@ export async function resolveIdentity(
         strength: 1.0,
         reviewTaskSuggested: false,
         matchPath: "gtin",
-        candidateProductIds: [hit.productId]
+        candidateProductIds: [hit.productId],
+        candidates: [{ productId: hit.productId, score: 1.0, kind: "live" }]
       };
     }
   }
@@ -131,7 +144,8 @@ export async function resolveIdentity(
         strength: 0.9,
         reviewTaskSuggested: false,
         matchPath: "mpn_brand",
-        candidateProductIds: [hit.productId]
+        candidateProductIds: [hit.productId],
+        candidates: [{ productId: hit.productId, score: 0.9, kind: "live" }]
       };
     }
   }
@@ -200,7 +214,8 @@ export async function resolveIdentity(
           strength: best.score,
           reviewTaskSuggested: false,
           matchPath: "fuzzy_high",
-          candidateProductIds: candidateIds
+          candidateProductIds: candidateIds,
+          candidates: [{ productId: best.productId, score: best.score, kind: "live" }]
         };
       }
       if (best.score >= FUZZY_REVIEW) {
@@ -209,18 +224,41 @@ export async function resolveIdentity(
           strength: 0,
           reviewTaskSuggested: true,
           matchPath: "fuzzy_review",
-          candidateProductIds: candidateIds
+          candidateProductIds: candidateIds,
+          candidates: []
         };
       }
     }
   }
 
-  // ---- 4. No match ------------------------------------------------------
+  // ---- 4. No match: optionally search staged_products (v1: GTIN-exact) --
+  // This runs only when includeStaged is true and the hint has a GTIN.
+  // Fuzzy staged matching is deferred to a later plan — GTIN-exact is enough
+  // for the "Amazon-first, incomplete" dedup case.
+  const stagedCandidates: Array<{ productId: string; score: number; kind: "live" | "staged" }> = [];
+  if (input.includeStaged && identityHint.gtin) {
+    const stagedRows = await db
+      .select({ stagedProductId: schema.stagedProducts.stagedProductId })
+      .from(schema.stagedProducts)
+      .where(
+        and(
+          eq(schema.stagedProducts.tenantId, tenantId),
+          eq(schema.stagedProducts.status, "pending"),
+          sql`${schema.stagedProducts.proposedIdentity}->>'gtin' = ${identityHint.gtin}`
+        )
+      )
+      .limit(5);
+    for (const row of stagedRows) {
+      stagedCandidates.push({ productId: row.stagedProductId, score: 1.0, kind: "staged" });
+    }
+  }
+
   return {
     productId: null,
     strength: 0,
     reviewTaskSuggested: false,
     matchPath: "none",
-    candidateProductIds: candidateIds
+    candidateProductIds: candidateIds,
+    candidates: stagedCandidates
   };
 }
