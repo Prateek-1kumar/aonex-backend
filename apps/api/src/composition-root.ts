@@ -43,6 +43,7 @@ import { swaggerRoutes } from "./routes/swagger.js";
 import { ingestionsRoutes } from "./routes/ingestions.js";
 import { reviewRoutes } from "./routes/review.js";
 import { catalogRoutes } from "./routes/catalog.js";
+import { anomalyLabRoutes } from "./routes/anomaly-lab.js";
 
 export interface ApiContainer {
   app: Hono;
@@ -232,6 +233,7 @@ export function buildContainer(env: Env): ApiContainer {
     })
   );
   protectedApp.route("/review", reviewRoutes({ db: db.client, audit }));
+  protectedApp.route("/lab", anomalyLabRoutes({ db: db.client, audit }));
   protectedApp.route(
     "/catalog",
     catalogRoutes({ db: db.client })
