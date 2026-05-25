@@ -25,9 +25,14 @@ export async function linkStagedProduct(input: LinkStagedInput): Promise<Promote
       )
     );
   if (!staged) throw new Error(`staged product ${input.stagedProductId} not found`);
-  const candidates = (staged.matchCandidates as Array<{ productId: string }>) ?? [];
-  if (!candidates.some((c) => c.productId === input.confirmedProductId)) {
-    throw new Error(`product ${input.confirmedProductId} is not a candidate for staged ${input.stagedProductId}`);
+  // Only LIVE candidates are linkable: their productId is a real
+  // catalog_products id that writeAdapterOutput can attach to via forceProductId.
+  // A kind:"staged" candidate's productId is a staged_products id (the resolver
+  // reuses the productId slot, disambiguated by kind) — linking onto it would
+  // fail in writeAdapterOutput. Staged-to-staged merge is a separate (deferred) op.
+  const candidates = (staged.matchCandidates as Array<{ productId: string; kind?: string }>) ?? [];
+  if (!candidates.some((c) => c.productId === input.confirmedProductId && c.kind === "live")) {
+    throw new Error(`product ${input.confirmedProductId} is not a live candidate for staged ${input.stagedProductId}`);
   }
   return promoteStagedProduct({
     db: input.db,
