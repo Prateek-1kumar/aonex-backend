@@ -79,11 +79,21 @@ async function resolveChannelCodeToId(
   const result: Record<string, ChannelId> = {};
 
   for (const code of channelCodes) {
+    // Derive the canonical form for each row — `${channelKind}-${region}` when
+    // the row has a region, or bare `${channelKind}` for region-null rows.
+    // Match ONLY against the derived form: the bare `|| code === r.channelKind`
+    // fallback was removed because it is non-deterministic when a tenant has
+    // multiple region rows for the same kind (e.g. "shopify-au" + "shopify-us")
+    // and the caller passes a bare "shopify" code. Channel codes at ingest are
+    // always region-suffixed (e.g. "shopify-au") via channelCodeFromShopDomain /
+    // channelCodeFromUrl, mirroring how resolveChannelByCode in
+    // new-catalog-link-path.ts derives the kind but always matches against the
+    // full code rather than the bare kind.
     const matched = rows.find((r) => {
-      const withRegion = r.region != null
+      const derivedCode = r.region != null
         ? `${r.channelKind}-${r.region}`
         : r.channelKind;
-      return code === withRegion || code === r.channelKind;
+      return code === derivedCode;
     });
     if (matched) {
       result[code] = matched.channelId as ChannelId;
@@ -266,6 +276,23 @@ export async function promoteStagedProduct(
         ? await resolveChannelCodeToId(txDb, tenantId, allChannelCodes)
         : undefined;
 
+    // Guard: every channelCode in pricing/inventory observations must have
+    // resolved to a channelId. An unresolved code means the channel row was
+    // removed after the product was staged — throw a clear error inside the
+    // transaction so it rolls back cleanly. This is NOT a StillIncompleteError
+    // (which signals a missing reviewer fill); it is a channel-resolution
+    // failure that requires operator intervention (re-add the channel row).
+    if (channelCodeToId !== undefined) {
+      const unresolved = allChannelCodes.filter(
+        (code) => !(code in channelCodeToId)
+      );
+      if (unresolved.length > 0) {
+        throw new Error(
+          `promoteStagedProduct: cannot resolve channel "${unresolved[0]}" for staged product ${stagedProductId}'s pricing/inventory; the channel may have been removed`
+        );
+      }
+    }
+
     // ---- Step 5: Write the product via writeAdapterOutput -------------------
     // writeAdapterOutput calls tx.transaction() internally; since we are already
     // inside a transaction, drizzle-orm/node-postgres issues a SAVEPOINT — the
@@ -286,6 +313,12 @@ export async function promoteStagedProduct(
 
     // ---- Step 6: Pin all fills as reconciliation_overrides ------------------
     // Per spec §7.1: pin ALL fills (identity fills + attribute fills).
+    //
+    // Identity fills (brand/gtin/mpn) are pinned here for a durable audit trail
+    // of the human decision — the pin records WHEN and by WHOM the identity was
+    // confirmed. Note: these identity pins are INERT to the sync reconciler,
+    // which only consumes overrides for value-attributes (via pickWinner);
+    // identity fields are governed by the identity-policy gate, not by pins.
     const fillEntries = Object.entries(fills);
     if (fillEntries.length > 0) {
       await txDb.insert(schema.reconciliationOverrides).values(
@@ -302,6 +335,8 @@ export async function promoteStagedProduct(
     }
 
     // ---- Step 7: Flip staged row to promoted --------------------------------
+    // WHERE includes tenantId for defense-in-depth, matching the FOR UPDATE
+    // select above.
     await txDb
       .update(schema.stagedProducts)
       .set({
@@ -311,7 +346,12 @@ export async function promoteStagedProduct(
         humanFills: fills as unknown,
         updatedAt: new Date()
       })
-      .where(eq(schema.stagedProducts.stagedProductId, stagedProductId));
+      .where(
+        and(
+          eq(schema.stagedProducts.stagedProductId, stagedProductId),
+          eq(schema.stagedProducts.tenantId, tenantId as unknown as string)
+        )
+      );
 
     return { productId };
   });
