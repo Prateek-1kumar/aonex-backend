@@ -236,6 +236,7 @@ export async function writeAdapterOutput(
       mpn?: string;
       brand?: string;
       titleForFuzzy?: string;
+      primary_identifier?: string;
     } = {};
     if (adapterOutput.identityHint.gtin)
       hintForResolve.gtin = adapterOutput.identityHint.gtin;
@@ -245,6 +246,8 @@ export async function writeAdapterOutput(
       hintForResolve.brand = adapterOutput.identityHint.brand;
     if (adapterOutput.identityHint.titleForFuzzy)
       hintForResolve.titleForFuzzy = adapterOutput.identityHint.titleForFuzzy;
+    if (adapterOutput.identityHint.primary_identifier)
+      hintForResolve.primary_identifier = adapterOutput.identityHint.primary_identifier;
 
     const resolveInput: Parameters<typeof resolveIdentity>[0] = {
       db: tx as unknown as DrizzleClient,
@@ -369,6 +372,7 @@ export async function writeAdapterOutput(
       const primaryIdentifier =
         adapterOutput.identityHint.gtin ??
         adapterOutput.identityHint.mpn ??
+        adapterOutput.identityHint.primary_identifier ??
         stableNonUuidIdentifier(adapterOutput.identityHint);
       const identityJson: Record<string, unknown> = {
         identity_strength: identity.strength
@@ -379,6 +383,8 @@ export async function writeAdapterOutput(
         identityJson["mpn"] = adapterOutput.identityHint.mpn;
       if (adapterOutput.identityHint.brand)
         identityJson["brand"] = adapterOutput.identityHint.brand;
+      if (adapterOutput.identityHint.primary_identifier)
+        identityJson["primary_identifier"] = adapterOutput.identityHint.primary_identifier;
 
       const inserted = await tx
         .insert(schema.catalogProducts)
