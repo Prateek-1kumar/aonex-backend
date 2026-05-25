@@ -252,9 +252,12 @@ export async function promoteStagedProduct(
       staged.channelCode ?? null
     );
 
-    // ---- Step 3: Re-run the gate (always, even when confirmedMatchProductId) --
+    // ---- Step 3: Re-run the gate (skip when linking to a confirmed existing product) --
     const verdict = evaluateGate({ adapterOutput: filledOutput, signals: [] });
-    if (!verdict.admit) {
+    // When linking to a confirmed existing product (confirmedMatchProductId set),
+    // the target already passed the gate; the incoming staged item may be partial,
+    // so we skip the completeness re-check and enrich the existing product.
+    if (!confirmedMatchProductId && !verdict.admit) {
       // StillIncompleteError causes the transaction to roll back — no product,
       // no pins, staged row stays pending.
       throw new StillIncompleteError(verdict.missingFields);
