@@ -2,10 +2,14 @@ import { test, expect } from "bun:test";
 import { evaluateGate, type GateInput } from "./evaluate-gate.js";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
 
+// Fixed timestamp so the obs() factory is deterministic (matters if a future
+// test exercises attrValue's latest-by-observedAt tie-breaking).
+const T = new Date("2026-01-01T00:00:00Z");
+
 function obs(attributeCode: string, value: unknown): AdapterOutput["observations"][number] {
   return {
     attributeCode, target: "parent", channelCode: "web", localeCode: "_unscoped",
-    source: "link", sourceRecordId: "r1", value, confidence: 1, observedAt: new Date()
+    source: "link", sourceRecordId: "r1", value, confidence: 1, observedAt: T
   };
 }
 
@@ -15,7 +19,7 @@ function output(over: Partial<AdapterOutput> = {}): AdapterOutput {
     pricingObservations: [{
       productHint: "p", channelCode: "web", locale: "_unscoped", source: "link",
       sourceRecordId: "r1", currency: "USD", tiers: [{ kind: "list", amount: 19.99 }],
-      observedAt: new Date()
+      observedAt: T
     }],
     inventoryObservations: [],
     identityHint: { gtin: "12345678905", brand: "Acme", titleForFuzzy: "Cool Tee", targetIsVariant: false },
@@ -43,6 +47,28 @@ test("missing brand + identifier → hold with those fields", () => {
   }));
   expect(v.admit).toBe(false);
   expect(v.missingFields.sort()).toEqual(["brand", "identifier"]);
+});
+
+test("gtin present + brand absent → missing 'brand' only, identifier satisfied", () => {
+  // Locks the independence of brand and identifier: a hard ID (gtin) satisfies
+  // 'identifier', so brand-absent flags ONLY 'brand', never 'identifier'.
+  const v = evaluateGate(input({
+    adapterOutput: output({
+      identityHint: { gtin: "12345678905", titleForFuzzy: "Cool Tee", targetIsVariant: false }
+    })
+  }));
+  expect(v.missingFields).toEqual(["brand"]);
+  expect(v.missingFields).not.toContain("identifier");
+});
+
+test("brand present but no gtin/mpn → missing 'identifier' (brand is not an identifier)", () => {
+  const v = evaluateGate(input({
+    adapterOutput: output({
+      identityHint: { brand: "Acme", titleForFuzzy: "Cool Tee", targetIsVariant: false }
+    })
+  }));
+  expect(v.missingFields).toEqual(["identifier"]);
+  expect(v.missingFields).not.toContain("brand");
 });
 
 test("empty/whitespace title does not count as present", () => {

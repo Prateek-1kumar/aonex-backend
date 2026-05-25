@@ -1,6 +1,10 @@
 // Anomaly Lab — staging gate. Pure readiness evaluation over an AdapterOutput.
 // No I/O. Blocking = completeness against CANONICAL_MINIMUM + any blocking signal.
 // Spec §4, §8. `signals` is supplied by the caller (resolver + detector suite).
+//
+// The fields checked below must stay in lockstep with CANONICAL_MINIMUM in
+// ../canonical-minimum.ts (that constant is the spec anchor; the checks here
+// are the runtime enforcement). If you add a field there, add its check here.
 
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
 
@@ -27,6 +31,9 @@ function isNonEmptyString(v: unknown): boolean {
 }
 
 function attrValue(out: AdapterOutput, attributeCode: string): unknown {
+  // Latest observation by observedAt. On equal timestamps the first-seen wins
+  // (strict `>`); the gate only needs presence, not "best value" ordering, so
+  // tie-breaking is intentionally simpler than the reconciler's pick-winner.
   let latest: { observedAt: Date; value: unknown } | undefined;
   for (const o of out.observations) {
     if (o.attributeCode !== attributeCode) continue;
@@ -36,6 +43,8 @@ function attrValue(out: AdapterOutput, attributeCode: string): unknown {
 }
 
 function hasPrimaryPricing(out: AdapterOutput): boolean {
+  // A tier amount/total of 0 is an intentionally valid price (free/sample),
+  // so we check `typeof === "number"`, not truthiness.
   return out.pricingObservations.some(
     (p) => isNonEmptyString(p.currency) &&
       p.tiers.some((t) => typeof t.amount === "number" || typeof t.total === "number")
@@ -43,8 +52,14 @@ function hasPrimaryPricing(out: AdapterOutput): boolean {
 }
 
 function hasIdentifier(out: AdapterOutput): boolean {
+  // "identifier" requires a HARD identifier present at gate time (spec §5.1).
+  // At gate time the only hard IDs on the hint are gtin/mpn — primary_identifier
+  // is synthesised later by writeAdapterOutput, so requiring it would be moot.
+  // brand is deliberately NOT an identifier: it is a separate required field
+  // (a brand alone does not identify a product, and matching across sources —
+  // e.g. Shopify↔Amazon — needs a real ID).
   const h = out.identityHint;
-  return isNonEmptyString(h.gtin) || isNonEmptyString(h.mpn) || isNonEmptyString(h.brand);
+  return isNonEmptyString(h.gtin) || isNonEmptyString(h.mpn);
 }
 
 export function evaluateGate(input: GateInput): GateVerdict {
