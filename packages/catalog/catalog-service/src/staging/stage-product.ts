@@ -5,6 +5,7 @@ import { schema, type DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
 import type { GateVerdict } from "../gate/evaluate-gate.js";
+import { latestObservationValue } from "../observation-helpers.js";
 
 export interface StageProductInput {
   db: DrizzleClient;
@@ -20,25 +21,19 @@ export interface StageProductInput {
 
 export interface StageProductResult { stagedProductId: string; }
 
-function latest(out: AdapterOutput, code: string): unknown {
-  let best: { observedAt: Date; value: unknown } | undefined;
-  for (const o of out.observations) {
-    if (o.attributeCode === code && (!best || o.observedAt > best.observedAt)) best = o;
-  }
-  return best?.value;
-}
-
 export async function stageProduct(input: StageProductInput): Promise<StageProductResult> {
   const { db, adapterOutput: out } = input;
-  const title = latest(out, "title");
+  const title = latestObservationValue(out, "title");
   const priceObs = out.pricingObservations[0];
   const amount = priceObs?.tiers.find((t) => typeof t.amount === "number")?.amount;
 
   const [row] = await db.insert(schema.stagedProducts).values({
     tenantId: input.tenantId,
     merchantId: input.merchantId,
-    proposedIdentity: out.identityHint,
-    observations: out as unknown as object,
+    proposedIdentity: out.identityHint as unknown, // jsonb: object shape not statically known to Drizzle
+    // observedAt fields are Date objects; they serialize to ISO strings in jsonb
+    // and will be read back as strings — consumers must not expect Date objects.
+    observations: out as unknown,                   // jsonb: AdapterOutput not assignable to Drizzle's JsonValue
     denormTitle: typeof title === "string" ? title : null,
     denormBrand: out.identityHint.brand ?? null,
     denormPrice: typeof amount === "number" ? String(amount) : null,
@@ -46,13 +41,14 @@ export async function stageProduct(input: StageProductInput): Promise<StageProdu
     sourceKind: input.sourceKind,
     sourceArtifactId: input.sourceArtifactId ?? null,
     channelCode: input.channelCode,
-    gateVerdict: {
+    gateVerdict: {                                   // jsonb: object literal — shape is known but Drizzle requires cast
       missingFields: input.verdict.missingFields,
       signals: [...input.verdict.blockingSignals, ...input.verdict.infoSignals]
-    },
-    matchCandidates: input.matchCandidates,
+    } as unknown,
+    matchCandidates: input.matchCandidates as unknown, // jsonb: array of objects not assignable to JsonValue
     status: "pending"
-  } as never).returning({ id: schema.stagedProducts.stagedProductId });
+  }).returning({ id: schema.stagedProducts.stagedProductId });
 
-  return { stagedProductId: row!.id };
+  if (!row) throw new Error("stageProduct: insert into staged_products returned no row");
+  return { stagedProductId: row.id };
 }

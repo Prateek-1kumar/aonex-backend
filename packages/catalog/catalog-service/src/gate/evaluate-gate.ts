@@ -7,6 +7,7 @@
 // are the runtime enforcement). If you add a field there, add its check here.
 
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
+import { latestObservationValue } from "../observation-helpers.js";
 
 export interface GateSignal {
   signalKind: string;
@@ -28,18 +29,6 @@ export interface GateVerdict {
 
 function isNonEmptyString(v: unknown): boolean {
   return typeof v === "string" && v.trim().length > 0;
-}
-
-function attrValue(out: AdapterOutput, attributeCode: string): unknown {
-  // Latest observation by observedAt. On equal timestamps the first-seen wins
-  // (strict `>`); the gate only needs presence, not "best value" ordering, so
-  // tie-breaking is intentionally simpler than the reconciler's pick-winner.
-  let latest: { observedAt: Date; value: unknown } | undefined;
-  for (const o of out.observations) {
-    if (o.attributeCode !== attributeCode) continue;
-    if (!latest || o.observedAt > latest.observedAt) latest = o;
-  }
-  return latest?.value;
 }
 
 function hasPrimaryPricing(out: AdapterOutput): boolean {
@@ -66,10 +55,10 @@ export function evaluateGate(input: GateInput): GateVerdict {
   const { adapterOutput: out, signals } = input;
   const missingFields: string[] = [];
 
-  if (!isNonEmptyString(attrValue(out, "title"))) missingFields.push("title");
+  if (!isNonEmptyString(latestObservationValue(out, "title"))) missingFields.push("title");
   if (!isNonEmptyString(out.identityHint.brand)) missingFields.push("brand");
   if (!hasPrimaryPricing(out)) missingFields.push("pricing.primary");
-  if (!isNonEmptyString(attrValue(out, "category_path"))) missingFields.push("category_path");
+  if (!isNonEmptyString(latestObservationValue(out, "category_path"))) missingFields.push("category_path");
   if (!hasIdentifier(out)) missingFields.push("identifier");
 
   const blockingSignals = signals.filter((s) => s.blocking);
