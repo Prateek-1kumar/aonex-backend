@@ -642,3 +642,91 @@ describe("GET /products — listProducts (new-schema path)", () => {
   });
 
 });
+
+// ===========================================================================
+// GET /products — server-side pagination (Phase 4 scale: bound the unbounded
+// list query that previously returned ALL rows for a tenant/merchant).
+// ===========================================================================
+//
+// Isolated under a dedicated merchant so the list returns exactly our seeded
+// products regardless of rows other describes leave behind.
+
+const PAGE_MERCHANT_ID = "44444444-4444-4444-4444-444444444401";
+const PAGE_P1 = "44444444-4444-4444-4444-4444444444a1"; // oldest
+const PAGE_P2 = "44444444-4444-4444-4444-4444444444a2";
+const PAGE_P3 = "44444444-4444-4444-4444-4444444444a3"; // newest
+
+describe("GET /products — pagination (new-schema path)", () => {
+  let db: DrizzleClient;
+
+  async function cleanPageRows(): Promise<void> {
+    for (const id of [PAGE_P1, PAGE_P2, PAGE_P3]) {
+      await db.delete(schema.catalogProducts).where(eq(schema.catalogProducts.productId, id));
+    }
+    await db.delete(schema.merchants).where(eq(schema.merchants.id, PAGE_MERCHANT_ID));
+  }
+
+  beforeAll(async () => {
+    db = await connectTestDb();
+    await ensureTestTenant(db);
+    await cleanPageRows();
+    // Dedicated merchant under the shared test tenant for isolation.
+    await db.insert(schema.merchants).values({
+      id: PAGE_MERCHANT_ID,
+      tenantId: TEST_TENANT_ID,
+      email: "pagination@catalog-tests.internal",
+      passwordHash: "$2b$10$placeholder-hash-for-schema-tests-only",
+      displayName: "Pagination Test Merchant",
+      defaultCurrency: "AUD",
+    }).onConflictDoNothing();
+
+    // Three products with strictly increasing updated_at (t1 < t2 < t3).
+    const base = new Date("2026-05-01T00:00:00Z").getTime();
+    const seed = async (id: string, title: string, minutes: number) => {
+      await db.insert(schema.catalogProducts).values({
+        productId: id,
+        tenantId: TEST_TENANT_ID,
+        merchantId: PAGE_MERCHANT_ID,
+        primaryIdentifier: `PAGE-${id.slice(-2)}`,
+        identity: { identityStrength: 1.0 },
+        status: "active",
+        values: {},
+        winningValues: { title: { _unscoped: { _unscoped: { value: title } } } },
+        updatedAt: new Date(base + minutes * 60_000),
+      });
+    };
+    await seed(PAGE_P1, "Page One", 1);
+    await seed(PAGE_P2, "Page Two", 2);
+    await seed(PAGE_P3, "Page Three", 3);
+  });
+
+  afterAll(async () => {
+    await cleanPageRows();
+    await closeTestDb();
+  });
+
+  test("?limit=2 returns the 2 newest + a nextCursor; the cursor fetches the remaining page", async () => {
+    const app = buildApp({ db, merchantId: PAGE_MERCHANT_ID });
+
+    const res1 = await app.request("/catalog/products?limit=2");
+    expect(res1.status).toBe(200);
+    const body1 = (await res1.json()) as {
+      data: { products: Array<{ id: string }>; nextCursor: string | null };
+    };
+    // Newest-first ordering → P3, P2.
+    expect(body1.data.products.map((p) => p.id)).toEqual([PAGE_P3, PAGE_P2]);
+    expect(typeof body1.data.nextCursor).toBe("string");
+    expect(body1.data.nextCursor).toBeTruthy();
+
+    const res2 = await app.request(
+      `/catalog/products?limit=2&cursor=${encodeURIComponent(body1.data.nextCursor as string)}`
+    );
+    expect(res2.status).toBe(200);
+    const body2 = (await res2.json()) as {
+      data: { products: Array<{ id: string }>; nextCursor: string | null };
+    };
+    // Remaining page → P1 only, and no further cursor (partial page).
+    expect(body2.data.products.map((p) => p.id)).toEqual([PAGE_P1]);
+    expect(body2.data.nextCursor).toBeNull();
+  });
+});
