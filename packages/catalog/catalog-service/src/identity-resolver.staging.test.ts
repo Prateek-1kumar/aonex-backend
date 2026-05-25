@@ -11,7 +11,6 @@ import type { DrizzleClient } from "@aonex/db";
 import {
   connectTestDb,
   closeTestDb,
-  ensureTestTenant,
   ensureTestMerchant,
   TEST_MERCHANT_ID
 } from "@aonex/db/testing";
@@ -116,7 +115,8 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
       (c) => c.kind === "staged" && c.productId === stagedProductId
     );
     expect(stagedEntry).toBeDefined();
-    expect(stagedEntry!.score).toBeGreaterThanOrEqual(1);
+    // GTIN-exact staged match is always score 1.0 (scores are 0–1.0).
+    expect(stagedEntry!.score).toBe(1.0);
   });
 
   test("2. includeStaged + live GTIN → matchPath='gtin', productId not null, candidates has kind='live' entry", async () => {

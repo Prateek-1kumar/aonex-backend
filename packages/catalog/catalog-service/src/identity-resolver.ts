@@ -249,6 +249,8 @@ export async function resolveIdentity(
       )
       .limit(5);
     for (const row of stagedRows) {
+      // productId holds the staged_product_id here (not a catalog product);
+      // kind:"staged" disambiguates it for callers (admitOrStage).
       stagedCandidates.push({ productId: row.stagedProductId, score: 1.0, kind: "staged" });
     }
   }
