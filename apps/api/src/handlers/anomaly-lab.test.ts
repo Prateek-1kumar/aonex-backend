@@ -33,6 +33,9 @@ const ACTION_TEST_ACTOR = "test:anomaly-lab-http-actions";
 
 // Stable UUIDs for Task 2 fixtures — deterministic cleanup in afterAll.
 const LAB_CATALOG_PRODUCT_ID = "ee000000-0000-4000-8000-000000000001";
+// Stable UUID for the Task 3 link happy-path live catalog product (under ACTION_TENANT_ID).
+// Cleaned up in afterAll via the ACTION_TENANT_ID catalog_products sweep.
+const ACTION_LINK_LIVE_PRODUCT_ID = "a1000000-0000-4000-8000-000000000010";
 const LAB_STAGED_CAND_ID = "ee000000-0000-4000-8000-000000000002"; // staged-kind candidate (no catalog row)
 const LAB_STAGED_WITH_LIVE_CAND = "ee000000-0000-4000-8000-000000000010";
 const LAB_STAGED_CROSS_TENANT = "ee000000-0000-4000-8000-000000000011";
@@ -232,6 +235,22 @@ beforeAll(async () => {
     rulesVersion: 1,
     actor: ACTION_TEST_ACTOR,
   }).onConflictDoNothing();
+
+  // Seed the live catalog product used by the link happy-path test.
+  // Inserted directly (not via writeAdapterOutput) to keep setup minimal.
+  // Cleanup: swept by the ACTION_TENANT_ID catalog_products delete in afterAll.
+  await db.delete(schema.catalogProducts)
+    .where(eq(schema.catalogProducts.productId, ACTION_LINK_LIVE_PRODUCT_ID));
+  await db.insert(schema.catalogProducts).values({
+    productId: ACTION_LINK_LIVE_PRODUCT_ID,
+    tenantId: ACTION_TENANT_ID,
+    merchantId: ACTION_MERCHANT_ID,
+    primaryIdentifier: "action-link-test-live-001",
+    identity: { brand: "AcmeLink", gtin: "5000000000001" },
+    status: "active",
+    values: {},
+    winningValues: { title: { _primary: { value: "Action Link Widget" } } },
+  } as never).onConflictDoNothing();
 });
 
 afterAll(async () => {
@@ -588,4 +607,55 @@ test("POST /api/lab/staged/:id/link not-a-candidate: 400, body.error.code BAD_RE
   expect(res.status).toBe(400);
   const body = await res.json() as { error?: { code?: string } };
   expect(body.error?.code).toBe("BAD_REQUEST");
+});
+
+test("POST /api/lab/staged/:id/link happy path: 200, body.data.productId === live product, staged row promoted", async () => {
+  // Seed a staged row with ACTION_LINK_LIVE_PRODUCT_ID as a live match candidate.
+  // Includes a pricing observation on ACTION_CHANNEL_CODE so channel resolution
+  // (inside promoteStagedProduct) maps "shopify-au" → ACTION_CHANNEL_ID.
+  const id = await insertPromotableStagedRow();
+  // Patch the staged row's matchCandidates to include the live product.
+  // insertPromotableStagedRow leaves matchCandidates=[]; we update it here
+  // so the link domain check (.some c.kind==="live") passes.
+  await db.update(schema.stagedProducts)
+    .set({ matchCandidates: [{ productId: ACTION_LINK_LIVE_PRODUCT_ID, score: 0.7, kind: "live" }] as never })
+    .where(eq(schema.stagedProducts.stagedProductId, id));
+
+  const res = await buildActionApp().fetch(
+    new Request(`http://x/api/lab/staged/${id}/link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmedProductId: ACTION_LINK_LIVE_PRODUCT_ID, fills: {} }),
+    })
+  );
+  expect(res.status).toBe(200);
+  const body = await res.json() as { data?: { productId?: string }; error?: unknown };
+  expect(body.data).toBeDefined();
+  // Link enriches the EXISTING product — productId must match the seeded live row.
+  expect(body.data!.productId).toBe(ACTION_LINK_LIVE_PRODUCT_ID);
+
+  // Staged row must be promoted.
+  const [staged] = await db
+    .select({ status: schema.stagedProducts.status })
+    .from(schema.stagedProducts)
+    .where(eq(schema.stagedProducts.stagedProductId, id));
+  expect(staged?.status).toBe("promoted");
+});
+
+test("action endpoint cross-tenant isolation: approve for another tenant's staged row returns 404", async () => {
+  // Seed a pending staged row under ACTION_TENANT_ID.
+  const id = await insertMinimalStagedRow();
+
+  // Call approve via buildApp(OTHER_TENANT) — the domain scopes by tenantId
+  // so the row is invisible to OTHER and must not return 200.
+  const res = await buildApp(OTHER).fetch(
+    new Request(`http://x/api/lab/staged/${id}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fills: { brand: "Acme", gtin: "4000000000017" } }),
+    })
+  );
+  expect(res.status).toBe(404);
+  const body = await res.json() as { error?: { code?: string } };
+  expect(body.error?.code).toBe("NOT_FOUND");
 });

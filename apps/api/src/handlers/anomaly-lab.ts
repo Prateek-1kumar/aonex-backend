@@ -34,9 +34,14 @@ function getReviewerId(c: Context): string {
  *   /not found/i              → 404 NOT_FOUND
  *   /not a live candidate/i   → 400 BAD_REQUEST
  *   else                      → 500 INTERNAL
+ *
+ * IMPORTANT: err.message is logged server-side (below) but NEVER returned to
+ * the client — domain messages embed internal IDs (tenantId, stagedProductId,
+ * status) that must not leak to API consumers.
  */
 function mapDomainError(c: Context, err: unknown): Response {
   if (err instanceof StillIncompleteError) {
+    // stillMissing contains only field names — not sensitive; return as-is.
     return c.json(
       {
         error: {
@@ -50,17 +55,27 @@ function mapDomainError(c: Context, err: unknown): Response {
   }
   if (err instanceof Error) {
     if (/not pending/i.test(err.message)) {
-      return c.json({ error: { code: "CONFLICT", message: err.message } }, 409);
+      return c.json(
+        { error: { code: "CONFLICT", message: "Staged product is no longer pending (already resolved)" } },
+        409
+      );
     }
     if (/not found/i.test(err.message)) {
-      return c.json({ error: { code: "NOT_FOUND", message: err.message } }, 404);
+      return c.json(
+        { error: { code: "NOT_FOUND", message: "Staged product not found" } },
+        404
+      );
     }
     if (/not a live candidate/i.test(err.message)) {
-      return c.json({ error: { code: "BAD_REQUEST", message: err.message } }, 400);
+      return c.json(
+        { error: { code: "BAD_REQUEST", message: "Confirmed product is not a candidate for this staged product" } },
+        400
+      );
     }
   }
-  const message = err instanceof Error ? err.message : "Unknown error";
-  return c.json({ error: { code: "INTERNAL", message } }, 500);
+  // Log the real error server-side so operators can diagnose; never return it.
+  console.error("[lab] unmapped domain error:", err);
+  return c.json({ error: { code: "INTERNAL", message: "Internal error" } }, 500);
 }
 
 const QUEUE_MAX = 100;
