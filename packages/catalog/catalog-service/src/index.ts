@@ -14,6 +14,15 @@ export type {
 } from "./admit-or-stage.js";
 
 // ---------------------------------------------------------------------------
+// Anomaly Lab — promoteStagedProduct (Task 8)
+// ---------------------------------------------------------------------------
+export { promoteStagedProduct, StillIncompleteError } from "./staging/promote-staged.js";
+export type {
+  PromoteStagedInput,
+  PromoteStagedResult
+} from "./staging/promote-staged.js";
+
+// ---------------------------------------------------------------------------
 // Catalog write — adapter output → identity + storage
 // ---------------------------------------------------------------------------
 export { writeAdapterOutput } from "./catalog-write.js";
