@@ -401,6 +401,41 @@ describe("linkStagedProduct (Task 9 Part C)", () => {
     }
 
     expect(thrown).toBeInstanceOf(Error);
-    expect((thrown as Error).message).toContain("is not a candidate");
+    expect((thrown as Error).message).toContain("is not a live candidate");
+  });
+
+  // ---- Negative: candidate exists but is kind:"staged", not "live" ---------
+  test("3. a kind='staged' candidate is rejected (only live candidates are linkable)", async () => {
+    const out = incompleteAdapterOutputWithPricing();
+    const verdict = evaluateGate({ adapterOutput: out, signals: [] });
+    const otherStagedId = "c9999999-9999-4999-9999-999999999999";
+    const { stagedProductId } = await stageProduct({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: out,
+      sourceKind: "shopify",
+      channelCode: LINK_CHANNEL_CODE,
+      verdict,
+      // The candidate's productId is a STAGED id (kind: "staged"), not a live product.
+      matchCandidates: [{ productId: otherStagedId, score: 1, kind: "staged" }]
+    });
+
+    let thrown: unknown;
+    try {
+      await linkStagedProduct({
+        db,
+        tenantId: TENANT,
+        stagedProductId,
+        confirmedProductId: otherStagedId,  // matches by id but is kind:"staged"
+        resolvedBy: RESOLVER_ID,
+        fills: {}
+      });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toContain("is not a live candidate");
   });
 });
