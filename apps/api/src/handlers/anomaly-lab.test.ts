@@ -49,16 +49,17 @@ afterAll(async () => {
 test("GET /api/lab/queue returns only pending rows for the tenant", async () => {
   const res = await buildApp().fetch(new Request("http://x/api/lab/queue"));
   expect(res.status).toBe(200);
-  const body = await res.json() as { items: Array<{ stagedProductId: string; denormTitle: string; missingFields: string[]; candidateCount: number }> };
-  expect(body.items.length).toBe(2);
-  expect(body.items.map((i) => i.denormTitle).sort()).toEqual(["Pending One", "Pending Two"]);
-  expect(body.items.every((i) => Array.isArray(i.missingFields))).toBe(true);
+  const { data } = await res.json() as { data: { items: Array<{ stagedProductId: string; denormTitle: string; missingFields: string[]; candidateCount: number }> } };
+  expect(data.items.length).toBe(2);
+  expect(data.items.map((i) => i.denormTitle).sort()).toEqual(["Pending One", "Pending Two"]);
+  expect(data.items.every((i) => Array.isArray(i.missingFields))).toBe(true);
+  expect(data.items.every((i) => i.candidateCount === 0)).toBe(true);
 });
 
 test("GET /api/lab/queue/stats returns total + breakdowns", async () => {
   const res = await buildApp().fetch(new Request("http://x/api/lab/queue/stats"));
   expect(res.status).toBe(200);
-  const body = await res.json() as { total: number; bySource: Record<string, number> };
-  expect(body.total).toBe(2);
-  expect(body.bySource["link"]).toBe(2);
+  const { data } = await res.json() as { data: { total: number; bySource: Record<string, number> } };
+  expect(data.total).toBe(2);
+  expect(data.bySource["link"]).toBe(2);
 });

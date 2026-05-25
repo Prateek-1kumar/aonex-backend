@@ -9,7 +9,12 @@ const QUEUE_MAX = 100;
 
 export async function listQueue(c: Context, deps: AnomalyLabRouteDeps): Promise<Response> {
   const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
-  const limit = Math.min(Number(c.req.query("limit") ?? 50) || 50, QUEUE_MAX);
+  // Clamp to [1, QUEUE_MAX]; the Math.max(1, …) guards ?limit=-1/0/junk
+  // (a negative limit would otherwise yield .limit(0) then crash on page[-1]).
+  const rawLimit = Number(c.req.query("limit") ?? "50");
+  const limit = Math.min(Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 50, QUEUE_MAX);
+  // TODO(lab): createdAt-only keyset can skip/dup rows sharing a timestamp; for
+  // tie-safety use a composite <iso>|<uuid> cursor (see handlers/admin-trace.ts).
   const cursor = c.req.query("cursor"); // ISO createdAt of the last item seen
 
   const conds = [eq(schema.stagedProducts.tenantId, tenantId), eq(schema.stagedProducts.status, "pending")];
@@ -50,7 +55,9 @@ export async function listQueue(c: Context, deps: AnomalyLabRouteDeps): Promise<
       createdAt: r.createdAt.toISOString(),
     };
   });
-  return c.json({ items, nextCursor });
+  // {data:...} envelope — the frontend request<> wrapper returns body.data and
+  // throws on its absence (src/lib/api.ts). All lab endpoints must wrap.
+  return c.json({ data: { items, nextCursor } });
 }
 
 export async function queueStats(c: Context, deps: AnomalyLabRouteDeps): Promise<Response> {
@@ -78,5 +85,5 @@ export async function queueStats(c: Context, deps: AnomalyLabRouteDeps): Promise
     else if (ageDays < 7) byAge.week++;
     else byAge.older++;
   }
-  return c.json({ total: rows.length, byReason, bySource, byAge });
+  return c.json({ data: { total: rows.length, byReason, bySource, byAge } });
 }
