@@ -116,4 +116,5 @@ test("no gtin/mpn AND no primary_identifier → still missing 'identifier'", () 
     })
   }));
   expect(v.missingFields).toEqual(["identifier"]);
+  expect(v.admit).toBe(false);
 });
