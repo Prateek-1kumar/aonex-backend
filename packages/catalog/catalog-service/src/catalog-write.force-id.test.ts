@@ -195,6 +195,13 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
     expect(result.productId).toBe(forcedProductId);
     expect(result.created).toBe(false);
 
+    // Contract: forceProductId always yields created=false and matchPath="gtin"
+    // (the "gtin" is a placeholder for operator-forced; see forceProductId JSDoc).
+    // These assertions lock the contract so a future change (e.g. adding a
+    // "forced" IdentityMatchPath member) surfaces here explicitly.
+    expect(result.created).toBe(false);
+    expect(result.matchPath).toBe("gtin");
+
     // No new catalog_products row should have been inserted.
     const afterCount = Number(
       (
