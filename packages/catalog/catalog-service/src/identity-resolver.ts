@@ -36,6 +36,9 @@ export interface IdentityHint {
   brand?: string;
   /** Title to score against existing candidate titles in the fuzzy path. */
   titleForFuzzy?: string;
+  /** Merchant-supplied SKU. When present, resolution is exact-or-none (fuzzy
+   *  is skipped — a merchant-keyed product is either its own prior key or new). */
+  primary_identifier?: string;
 }
 
 export interface IdentityResolverInput {
@@ -64,6 +67,7 @@ export interface IdentityResolverInput {
 export type IdentityMatchPath =
   | "gtin"
   | "mpn_brand"
+  | "primary_id"
   | "fuzzy_high"
   | "fuzzy_review"
   | "none";
@@ -148,6 +152,45 @@ export async function resolveIdentity(
         candidates: [{ productId: hit.productId, score: 0.9, kind: "live" }]
       };
     }
+  }
+
+  // ---- 2.5 Merchant SKU: primary_identifier exact match -----------------
+  // A merchant-supplied SKU is a hard identifier within the tenant. When the
+  // hint carries one, resolve EXACT-OR-NONE: an exact hit enriches; no hit
+  // means a genuinely new product. We deliberately skip the fuzzy path here —
+  // CSV SKUs share one brand (the merchant) and carry near-identical synthetic
+  // titles, so fuzzy scoring would merge distinct pieces.
+  if (identityHint.primary_identifier) {
+    const rows = await db
+      .select({ productId: schema.catalogProducts.productId })
+      .from(schema.catalogProducts)
+      .where(
+        and(
+          eq(schema.catalogProducts.tenantId, tenantId),
+          eq(schema.catalogProducts.primaryIdentifier, identityHint.primary_identifier)
+        )
+      )
+      .limit(1);
+    const hit = rows[0];
+    if (hit) {
+      return {
+        productId: hit.productId,
+        strength: 1.0,
+        reviewTaskSuggested: false,
+        matchPath: "primary_id",
+        candidateProductIds: [hit.productId],
+        candidates: [{ productId: hit.productId, score: 1.0, kind: "live" }]
+      };
+    }
+    // No exact match: new product. Skip fuzzy (see comment above).
+    return {
+      productId: null,
+      strength: 0,
+      reviewTaskSuggested: false,
+      matchPath: "none",
+      candidateProductIds: [],
+      candidates: []
+    };
   }
 
   // ---- 3. Fuzzy identity: brand (+ family) candidates scored ------------
