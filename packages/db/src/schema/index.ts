@@ -61,3 +61,6 @@ export * from "./tenant-webhooks.js";
 
 // Catalog redesign Phase 7 — resumable backfill cursor
 export * from "./backfill-cursor.js";
+
+// Anomaly Lab — staging gate
+export * from "./staged-products.js";

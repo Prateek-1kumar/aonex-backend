@@ -157,11 +157,10 @@ describe("link-extract processor: real factory coupling (Phase 9.3)", () => {
         _runNewLinkCatalogPath: async () => {
           newPathCalled = true;
           return {
-            productId: "prod-001" as import("@aonex/types").ProductId,
-            created: true,
-            identityStrength: "gtin",
-            matchPath: "new",
-          } as unknown as import("@aonex/catalog-service").WriteAdapterOutputResult;
+            outcome: "admitted",
+            productId: "prod-001",
+            stagedProductId: null,
+          } as import("@aonex/catalog-service").AdmitOrStageResult;
         },
       });
 
