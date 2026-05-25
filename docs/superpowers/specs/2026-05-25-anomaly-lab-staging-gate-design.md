@@ -153,7 +153,7 @@ routing is dropped. The `packages/anomaly-lab` stub package is deleted.
 | Column | Type | Notes |
 |---|---|---|
 | `staged_product_id` | uuid pk | |
-| `tenant_id`, `merchant_id` | fk | tenant-scoped; `onDelete: restrict` |
+| `tenant_id`, `merchant_id` | uuid | tenant-scoped. **FK-free by design** (decided during impl Task 1): `staged_products` is transient, high-churn operational data with no `catalog_products` parent, so it can't inherit scope via a product FK; tenant scope is enforced in application queries, matching the `identity_log` pattern. |
 | `proposed_identity` | jsonb | `{ gtin?, mpn?, brand?, model_number? }` as extracted |
 | `observations` | jsonb | accumulated `AdapterOutput` shape: per-field value/source/confidence/channel. Drives the workbench form and per-field provenance. |
 | `denorm_title`, `denorm_brand` | text | for list rendering + sort |
