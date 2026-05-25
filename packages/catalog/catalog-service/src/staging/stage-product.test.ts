@@ -46,6 +46,73 @@ describe("stageProduct — insert gate-failed ingest into staged_products", () =
     await closeTestDb();
   });
 
+  test("inserts a pending staged_products row with denorm price when pricing observation present", async () => {
+    // AdapterOutput WITH a pricing observation: USD list price 99.99.
+    const adapterOutput: AdapterOutput = {
+      observations: [
+        {
+          attributeCode: "title",
+          target: "parent",
+          channelCode: "default",
+          localeCode: "en-US",
+          source: "test-adapter",
+          sourceRecordId: "rec-price-001",
+          value: "Priced Tee",
+          confidence: 1.0,
+          observedAt: new Date("2026-05-25T00:00:00Z")
+        }
+      ],
+      pricingObservations: [
+        {
+          productHint: "priced-tee",
+          channelCode: "default",
+          locale: "en-US",
+          source: "test-adapter",
+          sourceRecordId: "rec-price-001",
+          currency: "USD",
+          tiers: [{ kind: "list", amount: 99.99 }],
+          observedAt: new Date("2026-05-25T00:00:00Z")
+        }
+      ],
+      inventoryObservations: [],
+      identityHint: { targetIsVariant: false },
+      rawPayload: null
+    };
+
+    const verdict: GateVerdict = {
+      admit: false,
+      missingFields: ["brand", "identifier"],
+      blockingSignals: [],
+      infoSignals: []
+    };
+
+    const result = await stageProduct({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput,
+      sourceKind: "test-adapter",
+      channelCode: null,
+      verdict,
+      matchCandidates: []
+    });
+
+    expect(typeof result.stagedProductId).toBe("string");
+
+    const rows = await db
+      .select()
+      .from(schema.stagedProducts)
+      .where(eq(schema.stagedProducts.stagedProductId, result.stagedProductId));
+
+    expect(rows.length).toBe(1);
+    const row = rows[0]!;
+
+    // Postgres returns NUMERIC as a string; assert it round-trips correctly.
+    expect(Number(row.denormPrice)).toBe(99.99);
+    expect(row.denormCurrency).toBe("USD");
+    expect(row.denormTitle).toBe("Priced Tee");
+  });
+
   test("inserts a pending staged_products row with correct denorm fields and gateVerdict", async () => {
     // Minimal AdapterOutput: one title observation "Cool Tee", no pricing/inventory,
     // identityHint without brand/gtin.
