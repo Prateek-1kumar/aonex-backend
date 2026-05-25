@@ -80,6 +80,13 @@ export interface WriteAdapterOutputInput {
    * literal from plan §7.1 step 5 rather than "backfill".
    */
   sourceOverride?: string;
+  /**
+   * Skip identity resolution and attach observations to this existing
+   * product_id. Used by the anomaly-lab "link to existing" / promotion path
+   * when a reviewer has confirmed the match. The product MUST already exist
+   * and belong to `tenantId`.
+   */
+  forceProductId?: string;
 }
 
 export type WriteMatchPath = IdentityMatchPath | "newly_created";
@@ -196,7 +203,8 @@ export async function writeAdapterOutput(
     observationCap = DEFAULT_OBSERVATION_CAP,
     channelCodeToId,
     reasonOverride,
-    sourceOverride
+    sourceOverride,
+    forceProductId
   } = input;
 
   const hasSideTableObservations =
@@ -236,7 +244,21 @@ export async function writeAdapterOutput(
     if (adapterOutput.identityHint.titleForFuzzy) {
       resolveInput.observationTitle = adapterOutput.identityHint.titleForFuzzy;
     }
-    const identity = await resolveIdentity(resolveInput);
+    // forceProductId short-circuit: the anomaly-lab "link to existing" path
+    // has already confirmed the match via human review. Skip identity
+    // resolution entirely and synthesise a max-strength resolution result
+    // pointing at the forced product_id. The downstream "existing product"
+    // branch (identity.productId non-null) handles everything else unchanged.
+    const identity = forceProductId
+      ? {
+          productId: forceProductId,
+          strength: 1,
+          reviewTaskSuggested: false,
+          matchPath: "gtin" as const,
+          candidateProductIds: [forceProductId],
+          candidates: [{ productId: forceProductId, score: 1, kind: "live" as const }]
+        }
+      : await resolveIdentity(resolveInput);
 
     // ---- 2. Create-or-attach to catalog_products ------------------------
     let productId: string;
