@@ -79,22 +79,26 @@ async function resolveChannelCodeToId(
   const result: Record<string, ChannelId> = {};
 
   for (const code of channelCodes) {
-    // Derive the canonical form for each row — `${channelKind}-${region}` when
-    // the row has a region, or bare `${channelKind}` for region-null rows.
-    // Match ONLY against the derived form: the bare `|| code === r.channelKind`
-    // fallback was removed because it is non-deterministic when a tenant has
-    // multiple region rows for the same kind (e.g. "shopify-au" + "shopify-us")
-    // and the caller passes a bare "shopify" code. Channel codes at ingest are
-    // always region-suffixed (e.g. "shopify-au") via channelCodeFromShopDomain /
-    // channelCodeFromUrl, mirroring how resolveChannelByCode in
-    // new-catalog-link-path.ts derives the kind but always matches against the
-    // full code rather than the bare kind.
-    const matched = rows.find((r) => {
-      const derivedCode = r.region != null
-        ? `${r.channelKind}-${r.region}`
-        : r.channelKind;
-      return code === derivedCode;
-    });
+    // Resolve the SAME way the ingest-time resolver (resolveChannelByCode in
+    // apps/worker/src/services/new-catalog-link-path.ts) does: by channel KIND
+    // — the prefix before the first "-". A channelCode is "<kind>-<urlTld>"
+    // (e.g. "amazon-in" from channelCodeFromUrl) or a bare "<kind>". Among rows
+    // of that kind, prefer one whose region matches the code's suffix
+    // case-INSENSITIVELY (region is stored upper-case e.g. "IN" while the code
+    // carries the lower-case URL tld "in"); otherwise fall back to the first
+    // row of that kind.
+    //
+    // The previous implementation required an exact `${kind}-${region}` match
+    // and was the cause of approve 500s: it never matched "amazon-in" against
+    // an ("amazon","IN") row (case differs), so a product that resolved fine at
+    // ingest (kind-only match) failed channel resolution at promote and threw.
+    const kind = code.split("-")[0] ?? code;
+    const suffix = code.slice(kind.length + 1).toLowerCase(); // "" for a bare kind
+    const kindMatches = rows.filter((r) => r.channelKind === kind);
+    const regionMatch = suffix
+      ? kindMatches.find((r) => (r.region ?? "").toLowerCase() === suffix)
+      : undefined;
+    const matched = regionMatch ?? kindMatches[0];
     if (matched) {
       result[code] = matched.channelId as ChannelId;
     }
@@ -138,6 +142,10 @@ function deserialiseAdapterOutput(raw: unknown): AdapterOutput {
  * Apply reviewer fills to a cloned AdapterOutput (never mutates the original).
  *
  *   - `brand` / `gtin` / `mpn` fills  →  set on identityHint
+ *   - `identifier` fill                →  set identityHint.primary_identifier
+ *     (the anomaly-lab form's "Identifier (GTIN, MPN, or your SKU)" field is a
+ *     generic hard ID; primary_identifier is the catch-all the gate's
+ *     hasIdentifier() accepts and what becomes the product's primary_identifier)
  *   - any other fill key               →  append a synthetic CanonicalObservation
  *     (source "manual:lab", confidence 1.0, channelCode from staged row or
  *     "_unscoped" if none, localeCode "_unscoped")
@@ -159,13 +167,17 @@ function applyFills(
   const channelCode = stagedChannelCode ?? "_unscoped";
   const now = new Date();
 
-  const identityFillKeys = new Set(["brand", "gtin", "mpn"]);
+  const identityFillKeys = new Set(["brand", "gtin", "mpn", "identifier"]);
 
   for (const [key, value] of Object.entries(fills)) {
     if (identityFillKeys.has(key)) {
       if (key === "brand") cloned.identityHint.brand = value as string;
       else if (key === "gtin") cloned.identityHint.gtin = value as string;
       else if (key === "mpn") cloned.identityHint.mpn = value as string;
+      // The UI's "identifier" field is a generic hard ID (GTIN, MPN, or SKU);
+      // map it to primary_identifier — the bucket hasIdentifier() accepts and
+      // that catalog-write uses as the product's primary_identifier.
+      else if (key === "identifier") cloned.identityHint.primary_identifier = value as string;
     } else {
       cloned.observations.push({
         attributeCode: key,

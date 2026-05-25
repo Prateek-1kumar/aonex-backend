@@ -77,6 +77,14 @@ export interface ListCatalogProductRow {
    */
   pricing: { currency: string; amount: string | null } | null;
   /**
+   * Representative thumbnail URL projected from winning_values.images.
+   * The link adapter emits `images` as one observation whose value is a
+   * SkuImage[] array; we surface the "hero" image (or the first available)
+   * so the catalog grid can render a thumbnail instead of a placeholder.
+   * Null when the product has no images attribute.
+   */
+  imageUrl: string | null;
+  /**
    * Small migration signal so frontend can transition gradually.
    * Clients SHOULD check `_meta.schema` before accessing `current_version`
    * or `variants` to avoid null-pointer errors.
@@ -148,6 +156,75 @@ function extractWinningString(
   }
 
   return null;
+}
+
+/**
+ * Extract a representative image URL from the winning_values.images attribute.
+ *
+ * The `images` winner is a SkuImage[] array (the link adapter emits the whole
+ * array as one observation value). Unlike title/brand, images are scoped to a
+ * real (channelCode, locale) leaf — not `_unscoped` — so we walk all
+ * channels/locales (preferring `_unscoped` when present) to find the first
+ * non-empty array, then pick the "hero" image (else the lowest-position, else
+ * the first entry).
+ *
+ * Defensive against malformed shapes: tolerates an array of plain URL strings
+ * and returns null rather than throwing on anything unexpected.
+ */
+function extractWinningImageUrl(
+  winningValues: Record<string, unknown> | null | undefined
+): string | null {
+  if (!winningValues) return null;
+  const attrBlock = winningValues["images"];
+  if (!attrBlock || typeof attrBlock !== "object" || Array.isArray(attrBlock)) {
+    return null;
+  }
+  const byChannel = attrBlock as Record<string, unknown>;
+  const channels = Object.keys(byChannel).includes("_unscoped")
+    ? ["_unscoped", ...Object.keys(byChannel).filter((c) => c !== "_unscoped")]
+    : Object.keys(byChannel);
+
+  for (const channel of channels) {
+    const byLocale = byChannel[channel];
+    if (!byLocale || typeof byLocale !== "object" || Array.isArray(byLocale)) continue;
+    const localeMap = byLocale as Record<string, unknown>;
+    const locales = Object.keys(localeMap).includes("_unscoped")
+      ? ["_unscoped", ...Object.keys(localeMap).filter((l) => l !== "_unscoped")]
+      : Object.keys(localeMap);
+
+    for (const locale of locales) {
+      const leaf = localeMap[locale];
+      // Winner leaf is { value: SkuImage[] }; tolerate a bare array too.
+      const arr = Array.isArray(leaf)
+        ? leaf
+        : leaf && typeof leaf === "object" && Array.isArray((leaf as { value?: unknown }).value)
+          ? ((leaf as { value: unknown[] }).value)
+          : null;
+      if (!arr || arr.length === 0) continue;
+
+      const url = pickImageUrl(arr);
+      if (url) return url;
+    }
+  }
+  return null;
+}
+
+/** Pick the best display URL from a SkuImage[]-ish array: hero → lowest position → first. */
+function pickImageUrl(images: unknown[]): string | null {
+  const objs = images.filter(
+    (i): i is Record<string, unknown> => !!i && typeof i === "object"
+  );
+  if (objs.length > 0) {
+    const hero = objs.find((i) => i["role"] === "hero" && typeof i["url"] === "string");
+    if (hero) return hero["url"] as string;
+    const withPos = objs
+      .filter((i) => typeof i["url"] === "string")
+      .sort((a, b) => Number(a["position"] ?? 0) - Number(b["position"] ?? 0));
+    if (withPos[0]) return withPos[0]["url"] as string;
+  }
+  // Fallback: array of bare URL strings.
+  const firstString = images.find((i) => typeof i === "string" && i.length > 0);
+  return typeof firstString === "string" ? firstString : null;
 }
 
 // ---- Main export -----------------------------------------------------------
@@ -261,6 +338,7 @@ export async function listCatalogProducts(
       current_version: null,
       variants: [],
       pricing: pickPricing(pricingByProduct.get(row.productId)),
+      imageUrl: extractWinningImageUrl(wv),
       _meta: { schema: "new" },
     };
   });
