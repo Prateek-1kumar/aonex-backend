@@ -4,9 +4,11 @@
 **Depends on:** the **Anomaly Lab staging core** (`admit-or-stage`, `staged_products`, gate) from
 `2026-05-25-anomaly-lab-staging-gate-design.md`. That spec defers CSV to v2 (Decision 7, §13);
 **this spec is that v2.** CSV converges at the `admitOrStage` chokepoint introduced there.
-**Build sequencing:** the Lab staging core is built first (owner: separate effort); CSV work
-starts once it lands. The CSV-specific upstream (intake, parsing, mapping, applier) is
-independent and can be specced/planned in advance.
+**Build sequencing:** the staging core **landed 2026-05-25 on branch `feat/anomaly-lab-staging-gate`**
+(`admitOrStage`, `evaluateGate`, `CANONICAL_MINIMUM`, the four staging ops, `staged_products`
++ migration `0022`, both worker paths repointed). CSV work builds on it. **One shared-code
+change is required first** (§14): the gate as built requires `gtin`/`mpn`, which jewelry lacks —
+we extend identity to accept the merchant's own SKU. See §14.
 **Also reuses:** the completed catalog redesign — source adapters (`AdapterOutput`),
 identity resolver, `writeAdapterOutput`, reconciler, category-schema system, the outbox; and
 the link-adapter LLM/`BudgetTracker` extraction pattern.
@@ -64,7 +66,7 @@ Decoded schema → §6.1 (jewelry category schemas).
 | 5 | **SKU model = rollup summary + full component breakdown.** | Searchable rollup attributes + a structured `components` JSONB attribute (bill-of-materials). Breakdown is source of truth. |
 | 6 | **Images in v1 (Excel only).** Extract embedded photos, associate to SKU via anchor row. | CSV carries no images. |
 | 7 | **Converge at `admitOrStage`.** CSV produces `AdapterOutput` and calls the Lab chokepoint, not `writeAdapterOutput`. | New product paths through the shared gate + staging + Lab. |
-| 8 | **Satisfy `CANONICAL_MINIMUM` with data, not gate relaxation.** Inject merchant brand default; `Tag No.`→`primary_identifier`; synthesize `title`. | The Lab forbids per-tenant gate overrides; jewelry SKUs clear the bar via injected observations. |
+| 8 | **Merchant SKU is a first-class hard identifier.** The gate as built (`evaluate-gate.ts:43`) requires `gtin`/`mpn`; jewelry has neither, only `Tag No.`. We extend identity (not relax the gate) to accept `primary_identifier` as a hard ID, populated from `Tag No.`. Brand → injected merchant-name default; `title` → synthesized. | One shared-code change (§14): `IdentityHint += primary_identifier`, `hasIdentifier()` accepts it, resolver gains an exact `primaryIdentifier` match path (ahead of fuzzy), `writeAdapterOutput` uses it as the product key. Backward-compatible (link/connector never set it). |
 | 9 | **Low mapping confidence = informational badge, not blocking.** | Confident-but-complete SKUs enter the catalog; `low-field-confidence` annotates. Genuinely missing required fields still stage. |
 | 10 | **CSV Lab surface (evidence renderer) is owned here**; the Lab queue/workbench/dashboard are owned by the staging-gate effort. | We add a source-aware evidence pane for spreadsheet rows + mapping decisions. |
 
@@ -141,6 +143,11 @@ Decoded schema → §6.1 (jewelry category schemas).
 
 | Path | Change |
 |---|---|
+| `packages/catalog/source-adapters/src/types.ts` | `IdentityHint += primary_identifier?: string` (§14). |
+| `packages/catalog/catalog-service/src/canonical-minimum.ts` | Update the `identifier` comment: a hard ID is gtin OR mpn OR a merchant-supplied `primary_identifier` (§14). |
+| `packages/catalog/catalog-service/src/gate/evaluate-gate.ts` | `hasIdentifier()` also accepts non-empty `identityHint.primary_identifier` (§14). |
+| `packages/catalog/catalog-service/src/identity-resolver.ts` | Add `primary_identifier?` to its `IdentityHint`; new **exact match path on `catalog_products.primaryIdentifier`** (tenant-scoped) that runs **before fuzzy** — prevents fuzzy mis-merge of distinct pieces sharing brand + similar synthetic titles (§14). |
+| `packages/catalog/catalog-service/src/catalog-write.ts` | `primaryIdentifier` precedence (`:369`) becomes `gtin ?? mpn ?? identityHint.primary_identifier ?? synth`; persist `primary_identifier` into `identityJson` (§14). |
 | `apps/worker/src/processors/ingestion-spine.processor.ts` | Remove `throw "Lane csv not implemented"`; route `csv` lane to the file processor. |
 | `packages/db/src/schema/ingestion.ts` | Add `spreadsheet` to the `sourceType` enum (alongside `templated_csv`). |
 | `apps/api/src/composition-root.ts` | Wire the file-ingestion route + queue + object-storage adapter. |
@@ -265,9 +272,13 @@ Steps 1–2, then step 3 hits the known template `sheetSignature` → identity p
 steps 4–7. Fully deterministic.
 
 ### 8.3 Re-upload (idempotent enrich)
-Edited file, same signature → cached plan reused; SKUs re-resolve by `Tag No.` →
-`admitOrStage` matches live products → enrichment (per-channel append), no duplicates.
-Identical file → checksum dedup short-circuits at intake.
+Edited file, same signature → cached plan reused. Each SKU's `identityHint.primary_identifier`
+is set to a merchant-namespaced `Tag No.` (e.g. `"<merchantId>:RG19"`, to stay collision-free
+under the tenant-scoped `(tenantId, primaryIdentifier)` unique key). `admitOrStage` →
+`resolveIdentity` hits the **exact `primaryIdentifier` path** → live match → enrichment
+(per-channel append), no duplicates. Identical file → checksum dedup short-circuits at intake.
+The exact path running **before fuzzy** is what keeps two distinct rings (same merchant brand,
+near-identical synthetic titles) from being merged.
 
 ---
 
@@ -323,22 +334,27 @@ Identical file → checksum dedup short-circuits at intake.
 
 ---
 
-## 12. Phasing (starts after the Lab staging core lands)
+## 12. Phasing
 
-0. **[Prereq — separate effort]** Lab staging core: `admitOrStage`, `staged_products`, gate.
-1. **Intake + storage:** upload endpoint, object-storage adapter, `source_artifacts` wiring,
+0. **[Done — `feat/anomaly-lab-staging-gate`]** Lab staging core: `admitOrStage`,
+   `staged_products`, gate.
+1. **Merchant-SKU identity (§14):** the shared-code change — `IdentityHint += primary_identifier`,
+   gate accepts it, resolver exact-match path (before fuzzy), `writeAdapterOutput` key precedence.
+   Small, backward-compatible, gates everything else. Land first, on a shared branch.
+2. **Intake + storage:** upload endpoint, object-storage adapter, `source_artifacts` wiring,
    `FILE_INGEST` queue, worker `csv` lane (remove the throw), `CsvAdapter` skeleton →
    `admitOrStage`.
-2. **Grid + schemas:** grid normalizer (xlsx+csv, merged cells, image anchors); jewelry category
+3. **Grid + schemas:** grid normalizer (xlsx+csv, merged cells, image anchors); jewelry category
    schemas drafted + seeded.
-3. **Mapping + applier:** heuristic pre-pass + LLM gap-fill + `ingestion_mapping_plans` cache;
-   deterministic applier (grouping, rollups, components, brand default, title synth).
-4. **Images:** extraction + storage + association.
-5. **Template (Track A):** template-generation endpoint + identity-plan fast path + seeded
+4. **Mapping + applier:** heuristic pre-pass + LLM gap-fill + `ingestion_mapping_plans` cache;
+   deterministic applier (grouping, rollups, components, brand default, title synth,
+   merchant-namespaced `primary_identifier`).
+5. **Images:** extraction + storage + association.
+6. **Template (Track A):** template-generation endpoint + identity-plan fast path + seeded
    template signatures.
-6. **Frontend:** upload UX, template download, unrecognized-columns messaging, status,
+7. **Frontend:** upload UX, template download, unrecognized-columns messaging, status,
    recent-list fix, CSV Lab evidence renderer.
-7. **Hardening:** golden test on the real file, partial-failure handling, replay, idempotent
+8. **Hardening:** golden test on the real file, partial-failure handling, replay, idempotent
    re-upload.
 
 ---
@@ -352,3 +368,46 @@ Identical file → checksum dedup short-circuits at intake.
 - Bulk image re-association / manual image attach UI.
 - Per-tenant override of `CANONICAL_MINIMUM` (forbidden by the Lab spec).
 - Streaming/very-large-file (>~100MB) handling beyond a single worker job.
+
+---
+
+## 14. Shared-code change: merchant SKU as a hard identifier
+
+**Problem.** The gate as built (`evaluate-gate.ts:43`, `canonical-minimum.ts`) requires a hard
+identifier = `gtin` OR `mpn`. Jewelry (and any make-your-own vertical) has neither — the
+merchant's own `Tag No.` is the only identifier. Without a change, every jewelry SKU fails
+`identifier` and is staged, defeating "drop it and it builds each SKU."
+
+**Decision.** A merchant's own SKU is a legitimate hard identifier *within merchant scope*. We
+extend identity to accept it — we do **not** relax the gate (per-tenant overrides remain
+forbidden). The change is additive and backward-compatible: link/connector adapters never set
+`primary_identifier`, so their behavior is unchanged.
+
+**The edits (small, contained):**
+
+1. `source-adapters/src/types.ts` — `IdentityHint += primary_identifier?: string`.
+2. `gate/evaluate-gate.ts` — `hasIdentifier()` returns true when `gtin` OR `mpn` OR
+   `primary_identifier` is a non-empty string. Update the `canonical-minimum.ts` comment to match.
+3. `identity-resolver.ts` — add `primary_identifier?` to its `IdentityHint`; insert an **exact
+   match path on `catalog_products.primaryIdentifier`** (tenant-scoped, as the resolver already
+   scopes) that runs **before** the fuzzy path. Returns `strength: 1.0`, `matchPath: "primary_id"`.
+   **Exact-or-none:** when `primary_identifier` is present but finds no exact match, return
+   `none` and **skip fuzzy** — a merchant-keyed product is either its own prior key (enrich) or
+   genuinely new; falling through to fuzzy (shared brand + near-identical synthetic titles) would
+   merge distinct pieces.
+4. `catalog-write.ts:369` — key precedence becomes
+   `gtin ?? mpn ?? identityHint.primary_identifier ?? stableNonUuidIdentifier(...)`; also persist
+   `primary_identifier` into `identityJson`.
+5. CSV adapter sets `identityHint.primary_identifier = "<merchantId>:<TagNo>"` (namespaced so two
+   merchants in one tenant can both have `RG19` under the `(tenantId, primaryIdentifier)` unique key).
+
+**Why the exact path must precede fuzzy (correctness, not just speed):** CSV SKUs share one brand
+(the merchant name) and carry near-identical synthetic titles (*"14K Gold Diamond Ring — RG19/RG21"*).
+The fuzzy path (brand + title trigram) would happily merge distinct pieces. An exact
+`primaryIdentifier` match resolves first and deterministically, so re-uploads enrich the right
+product and distinct pieces never collapse.
+
+**Tests for this change:** `hasIdentifier` accepts `primary_identifier` (unit); resolver
+`primary_id` exact path matches + precedes fuzzy + is tenant-scoped (integration); two distinct
+synthetic-title SKUs do **not** fuzzy-merge (integration); link/connector with no
+`primary_identifier` behave identically (regression).
