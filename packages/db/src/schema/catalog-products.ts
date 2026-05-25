@@ -40,7 +40,14 @@ export const catalogProducts = pgTable(
     uqTenantIdentifier: unique("uq_catalog_products_tenant_identifier").on(t.tenantId, t.primaryIdentifier),
     parentIdx:          index("idx_catalog_products_parent").on(t.parentProductId),
     tenantStatusIdx:    index("idx_catalog_products_tenant_status").on(t.tenantId, t.status),
-    familyIdx:          index("idx_catalog_products_family").on(t.family)
+    familyIdx:          index("idx_catalog_products_family").on(t.family),
+    // Phase 4 perf — see migrations/0023_perf_indexes.sql.
+    // Serves the keyset-paginated list (filter tenant+merchant, order by updated_at, product_id).
+    tenantMerchantUpdatedIdx: index("idx_catalog_products_tenant_merchant_updated").on(
+      t.tenantId, t.merchantId, t.updatedAt.desc(), t.productId.desc()
+    ),
+    // Serves the tenant-agnostic watchdog sweep (WHERE updated_at > now() - interval).
+    updatedAtIdx:       index("idx_catalog_products_updated_at").on(t.updatedAt)
   })
 );
 
