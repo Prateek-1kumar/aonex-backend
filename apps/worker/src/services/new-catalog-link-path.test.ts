@@ -119,6 +119,9 @@ async function cleanup(db: DrizzleClient): Promise<void> {
     .delete(schema.reviewTasks)
     .where(eq(schema.reviewTasks.tenantId, TEST_TENANT_ID));
   await db
+    .delete(schema.stagedProducts)
+    .where(eq(schema.stagedProducts.tenantId, TEST_TENANT_ID));
+  await db
     .delete(schema.catalogProducts)
     .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
   await db
@@ -144,10 +147,13 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
   });
 
   test("1. happy path — creates product, pricing observation, revision, event", async () => {
+    // category_path is required by the CANONICAL_MINIMUM gate for admission.
     const sku = emptySku({
       title: "Acme Widget XL",
       brand: "Acme",
       gtin: "07000000000001",
+      category_path: "Home & Garden > Tools",
+      category_confidence: 0.9,
       pricing: {
         list_price: 99.95,
         sale_price: 79.95,
@@ -175,24 +181,23 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
       channelDefaultLocale: "en_AU",
     });
 
-    expect(result.created).toBe(true);
+    // Complete product → admitted (written directly to catalog_products).
+    expect(result.outcome).toBe("admitted");
     expect(result.productId).toBeDefined();
-    expect(result.matchPath).toBe("newly_created");
-    expect(result.pricingObservationsWritten).toBe(1);
-    expect(result.observationsWritten).toBeGreaterThan(0);
+    expect(result.stagedProductId).toBeNull();
 
     // catalog_products
     const products = await db
       .select()
       .from(schema.catalogProducts)
-      .where(eq(schema.catalogProducts.productId, result.productId));
+      .where(eq(schema.catalogProducts.productId, result.productId!));
     expect(products.length).toBe(1);
 
     // catalog_pricing_observations — 1 row tied to seeded channel
     const pricing = await db
       .select()
       .from(schema.catalogPricingObservations)
-      .where(eq(schema.catalogPricingObservations.productId, result.productId));
+      .where(eq(schema.catalogPricingObservations.productId, result.productId!));
     expect(pricing.length).toBe(1);
     expect(pricing[0]!.channelId).toBe(TEST_CHANNEL_ID);
     expect(pricing[0]!.currency).toBe("AUD");
@@ -203,13 +208,13 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
       .from(schema.catalogProductRevisions)
       .where(
         and(
-          eq(schema.catalogProductRevisions.productId, result.productId),
+          eq(schema.catalogProductRevisions.productId, result.productId!),
           eq(schema.catalogProductRevisions.tenantId, TEST_TENANT_ID)
         )
       );
     expect(revisions.length).toBe(1);
     expect(revisions[0]!.revisionReason).toBe("create");
-    expect(revisions[0]!.actor).toBe("link-extract");
+    expect(revisions[0]!.actor).toBe("link:processor");
 
     // catalog_events
     const events = await db
@@ -217,7 +222,7 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
       .from(schema.catalogEvents)
       .where(
         and(
-          eq(schema.catalogEvents.productId, result.productId),
+          eq(schema.catalogEvents.productId, result.productId!),
           eq(schema.catalogEvents.tenantId, TEST_TENANT_ID)
         )
       );
@@ -225,12 +230,14 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
     expect(events[0]!.eventType).toBe("catalog.product.created");
   });
 
-  test("2. unknown channel — write proceeds with no side-table inserts, no pricing rows", async () => {
+  test("2. unknown channel + incomplete product — ingest held in staged_products (no catalog row)", async () => {
+    // This fixture lacks brand and category_path: the gate will block it.
+    // The unknown channel also means pricing would be stripped. The key
+    // invariant here is that the ingest SUCCEEDS (outcome: "staged") rather
+    // than throwing — the product is held in staged_products for review.
     const sku = emptySku({
       title: "Mystery Marketplace Widget",
       gtin: "07000000000002",
-      // Even with pricing in SkuJson, when channelId is null we MUST drop
-      // pricing so the write doesn't fail on missing channelCodeToId map.
       pricing: {
         list_price: 12.5,
         sale_price: null,
@@ -255,35 +262,22 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
       channelDefaultLocale: null,
     });
 
-    expect(result.created).toBe(true);
-    expect(result.productId).toBeDefined();
-    // When channel is unknown we skip side-table inserts entirely.
-    expect(result.pricingObservationsWritten).toBe(0);
+    // Incomplete product (no brand, no category_path) → staged, not admitted.
+    expect(result.outcome).toBe("staged");
+    expect(result.productId).toBeNull();
+    expect(result.stagedProductId).not.toBeNull();
 
-    const pricing = await db
-      .select()
-      .from(schema.catalogPricingObservations)
-      .where(eq(schema.catalogPricingObservations.productId, result.productId));
-    expect(pricing.length).toBe(0);
-
-    // Product row + revision + event still created.
+    // No catalog product row (the product is in staged_products, not catalog_products).
     const products = await db
       .select()
       .from(schema.catalogProducts)
-      .where(eq(schema.catalogProducts.productId, result.productId));
-    expect(products.length).toBe(1);
-
-    const revisions = await db
-      .select()
-      .from(schema.catalogProductRevisions)
-      .where(eq(schema.catalogProductRevisions.productId, result.productId));
-    expect(revisions.length).toBe(1);
-
-    const events = await db
-      .select()
-      .from(schema.catalogEvents)
-      .where(eq(schema.catalogEvents.productId, result.productId));
-    expect(events.length).toBe(1);
+      .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
+    // Only previously admitted products should exist; none for this GTIN.
+    const thisProduct = products.filter(
+      (p) => typeof p.identity === "object" && p.identity !== null &&
+        (p.identity as Record<string, unknown>)["gtin"] === "07000000000002"
+    );
+    expect(thisProduct.length).toBe(0);
   });
 
   test("3. attaches to existing product by GTIN — no new product row, new revision + event", async () => {
@@ -333,11 +327,10 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
       channelDefaultLocale: "en_AU",
     });
 
-    expect(result.created).toBe(false);
+    // Existing live product matched by GTIN → enriched path (bypasses gate).
+    expect(result.outcome).toBe("enriched");
     expect(result.productId).toBe(seededId);
-    // matchPath comes from the identity resolver; we don't pin the exact
-    // value — only that it's not "newly_created".
-    expect(result.matchPath).not.toBe("newly_created");
+    expect(result.stagedProductId).toBeNull();
 
     const after = await db
       .select({ count: sql<string>`count(*)::text` })
@@ -415,32 +408,10 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
       channelDefaultLocale: null,
     });
 
-    expect(result.created).toBe(true);
-    expect(result.productId).toBeDefined();
-    expect(result.pricingObservationsWritten).toBe(0);
-
-    const pricing = await db
-      .select()
-      .from(schema.catalogPricingObservations)
-      .where(eq(schema.catalogPricingObservations.productId, result.productId));
-    expect(pricing.length).toBe(0);
-
-    const products = await db
-      .select()
-      .from(schema.catalogProducts)
-      .where(eq(schema.catalogProducts.productId, result.productId));
-    expect(products.length).toBe(1);
-
-    const revisions = await db
-      .select()
-      .from(schema.catalogProductRevisions)
-      .where(eq(schema.catalogProductRevisions.productId, result.productId));
-    expect(revisions.length).toBe(1);
-
-    const events = await db
-      .select()
-      .from(schema.catalogEvents)
-      .where(eq(schema.catalogEvents.productId, result.productId));
-    expect(events.length).toBe(1);
+    // Key regression: must NOT throw despite null currency + unresolved channel.
+    // Incomplete product (no brand, no category_path) → staged, not admitted.
+    expect(result.outcome).toBe("staged");
+    expect(result.productId).toBeNull();
+    expect(result.stagedProductId).not.toBeNull();
   });
 });

@@ -45,8 +45,8 @@ describe("shopifyConnectorAdapter", () => {
     expect(brand!.localeCode).toBe("_unscoped");
     expect(brand!.value).toBe("Nike");
 
-    // Category (low-confidence hint from productType)
-    const category = out.observations.find((o) => o.attributeCode === "category");
+    // Category path (low-confidence hint from productType)
+    const category = out.observations.find((o) => o.attributeCode === "category_path");
     expect(category).toBeDefined();
     expect(category!.value).toBe("Running Shoes");
     expect(category!.confidence).toBe(0.5);

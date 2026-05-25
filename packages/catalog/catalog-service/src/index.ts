@@ -5,6 +5,33 @@
 // re-exported here.
 
 // ---------------------------------------------------------------------------
+// Anomaly Lab — admitOrStage chokepoint (Task 5)
+// ---------------------------------------------------------------------------
+export { admitOrStage } from "./admit-or-stage.js";
+export type {
+  AdmitOrStageInput,
+  AdmitOrStageResult
+} from "./admit-or-stage.js";
+
+// ---------------------------------------------------------------------------
+// Anomaly Lab — promoteStagedProduct (Task 8)
+// ---------------------------------------------------------------------------
+export { promoteStagedProduct, StillIncompleteError } from "./staging/promote-staged.js";
+export type {
+  PromoteStagedInput,
+  PromoteStagedResult
+} from "./staging/promote-staged.js";
+
+// ---------------------------------------------------------------------------
+// Anomaly Lab — rejectStagedProduct + linkStagedProduct (Task 9)
+// ---------------------------------------------------------------------------
+export { rejectStagedProduct } from "./staging/reject-staged.js";
+export type { RejectStagedInput } from "./staging/reject-staged.js";
+
+export { linkStagedProduct } from "./staging/link-staged.js";
+export type { LinkStagedInput } from "./staging/link-staged.js";
+
+// ---------------------------------------------------------------------------
 // Catalog write — adapter output → identity + storage
 // ---------------------------------------------------------------------------
 export { writeAdapterOutput } from "./catalog-write.js";

@@ -34,7 +34,7 @@ import type {
   ArtifactId
 } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
-import { resolveIdentity, type IdentityMatchPath } from "./identity-resolver.js";
+import { resolveIdentity, type IdentityMatchPath, type IdentityResolverResult } from "./identity-resolver.js";
 import {
   applyIdentityObservation,
   type IdentityField
@@ -80,6 +80,23 @@ export interface WriteAdapterOutputInput {
    * literal from plan §7.1 step 5 rather than "backfill".
    */
   sourceOverride?: string;
+  /**
+   * Skip identity resolution and attach observations to this existing
+   * product_id. Used by the anomaly-lab "link to existing" / promotion path
+   * when a reviewer has confirmed the match. The product MUST already exist
+   * and belong to `tenantId`.
+   *
+   * Contract when set:
+   *   - The result's `created` will always be `false` (no new product row).
+   *   - The result/event `matchPath` will be reported as `"gtin"` even though
+   *     no GTIN match occurred — it is a placeholder for "operator-forced";
+   *     a dedicated `"forced"` member and full event-payload threading is
+   *     deferred to the lab-observability follow-on work.
+   *   - The identity-policy gate (Task 3.7) still runs for any identity fields
+   *     present in the hint: forcing only skips the resolution/match step,
+   *     not the downstream identity-field promotion.
+   */
+  forceProductId?: string;
 }
 
 export type WriteMatchPath = IdentityMatchPath | "newly_created";
@@ -196,7 +213,8 @@ export async function writeAdapterOutput(
     observationCap = DEFAULT_OBSERVATION_CAP,
     channelCodeToId,
     reasonOverride,
-    sourceOverride
+    sourceOverride,
+    forceProductId
   } = input;
 
   const hasSideTableObservations =
@@ -218,6 +236,7 @@ export async function writeAdapterOutput(
       mpn?: string;
       brand?: string;
       titleForFuzzy?: string;
+      primary_identifier?: string;
     } = {};
     if (adapterOutput.identityHint.gtin)
       hintForResolve.gtin = adapterOutput.identityHint.gtin;
@@ -227,6 +246,8 @@ export async function writeAdapterOutput(
       hintForResolve.brand = adapterOutput.identityHint.brand;
     if (adapterOutput.identityHint.titleForFuzzy)
       hintForResolve.titleForFuzzy = adapterOutput.identityHint.titleForFuzzy;
+    if (adapterOutput.identityHint.primary_identifier)
+      hintForResolve.primary_identifier = adapterOutput.identityHint.primary_identifier;
 
     const resolveInput: Parameters<typeof resolveIdentity>[0] = {
       db: tx as unknown as DrizzleClient,
@@ -236,7 +257,26 @@ export async function writeAdapterOutput(
     if (adapterOutput.identityHint.titleForFuzzy) {
       resolveInput.observationTitle = adapterOutput.identityHint.titleForFuzzy;
     }
-    const identity = await resolveIdentity(resolveInput);
+    // forceProductId short-circuit: the anomaly-lab "link to existing" path
+    // has already confirmed the match via human review. Skip identity
+    // resolution entirely and synthesise a max-strength resolution result
+    // pointing at the forced product_id. The downstream "existing product"
+    // branch (identity.productId non-null) handles everything else unchanged.
+    const identity: IdentityResolverResult = forceProductId
+      ? {
+          productId: forceProductId,
+          strength: 1.0,
+          reviewTaskSuggested: false,
+          // NB: "gtin" is a stand-in — this is actually an operator-forced
+          // attachment (anomaly-lab promote/link). IdentityMatchPath has no
+          // "forced" member yet; adding one (and threading it into the event
+          // payload) is deferred to the lab-observability work. Downstream
+          // uses matchPath only informationally.
+          matchPath: "gtin",
+          candidateProductIds: [forceProductId],
+          candidates: [{ productId: forceProductId, score: 1.0, kind: "live" as const }]
+        }
+      : await resolveIdentity(resolveInput);
 
     // ---- 2. Create-or-attach to catalog_products ------------------------
     let productId: string;
@@ -332,6 +372,7 @@ export async function writeAdapterOutput(
       const primaryIdentifier =
         adapterOutput.identityHint.gtin ??
         adapterOutput.identityHint.mpn ??
+        adapterOutput.identityHint.primary_identifier ??
         stableNonUuidIdentifier(adapterOutput.identityHint);
       const identityJson: Record<string, unknown> = {
         identity_strength: identity.strength
@@ -342,6 +383,8 @@ export async function writeAdapterOutput(
         identityJson["mpn"] = adapterOutput.identityHint.mpn;
       if (adapterOutput.identityHint.brand)
         identityJson["brand"] = adapterOutput.identityHint.brand;
+      if (adapterOutput.identityHint.primary_identifier)
+        identityJson["primary_identifier"] = adapterOutput.identityHint.primary_identifier;
 
       const inserted = await tx
         .insert(schema.catalogProducts)

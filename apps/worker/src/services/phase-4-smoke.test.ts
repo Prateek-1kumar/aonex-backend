@@ -74,8 +74,8 @@ function buildSkuFixture(): SkuJson {
     description_short: null,
     description_long: null,
     highlights: [],
-    category_path: null,
-    category_confidence: 0,
+    category_path: "Electronics > Widgets",
+    category_confidence: 0.85,
     breadcrumbs: [],
     pricing: {
       list_price: 199.95,
@@ -163,6 +163,9 @@ async function cleanup(db: DrizzleClient): Promise<void> {
     .delete(schema.reviewTasks)
     .where(eq(schema.reviewTasks.tenantId, TEST_TENANT_ID));
   await db
+    .delete(schema.stagedProducts)
+    .where(eq(schema.stagedProducts.tenantId, TEST_TENANT_ID));
+  await db
     .delete(schema.catalogProducts)
     .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
   await db
@@ -216,12 +219,12 @@ describe("Phase 4 integration smoke (Task 4.7)", () => {
       channelDefaultLocale: "en_AU",
     });
 
-    expect(writeResult.created).toBe(true);
+    // Complete product (title, brand, gtin, category_path, pricing) → admitted.
+    expect(writeResult.outcome).toBe("admitted");
     expect(writeResult.productId).toBeDefined();
-    expect(writeResult.matchPath).toBe("newly_created");
-    expect(writeResult.pricingObservationsWritten).toBeGreaterThan(0);
+    expect(writeResult.stagedProductId).toBeNull();
 
-    const productId = writeResult.productId;
+    const productId = writeResult.productId!;
 
     // catalog_products row landed.
     const products = await db
@@ -258,7 +261,7 @@ describe("Phase 4 integration smoke (Task 4.7)", () => {
       );
     expect(revisions.length).toBe(1);
     expect(revisions[0]!.revisionReason).toBe("create");
-    expect(revisions[0]!.actor).toBe("link-extract");
+    expect(revisions[0]!.actor).toBe("link:processor");
 
     // Outbox event for the create.
     const events = await db

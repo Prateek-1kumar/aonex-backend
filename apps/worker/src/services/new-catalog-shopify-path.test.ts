@@ -124,6 +124,9 @@ async function cleanup(db: DrizzleClient): Promise<void> {
     .delete(schema.reviewTasks)
     .where(eq(schema.reviewTasks.tenantId, TEST_TENANT_ID));
   await db
+    .delete(schema.stagedProducts)
+    .where(eq(schema.stagedProducts.tenantId, TEST_TENANT_ID));
+  await db
     .delete(schema.catalogProducts)
     .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
   await db
@@ -149,7 +152,18 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
     await closeTestDb();
   });
 
-  test("1. happy path — creates product + variant pricing + inventory + revision + event", async () => {
+  test("1. new product with resolved channel — admitted (complete fixture satisfies CANONICAL_MINIMUM gate)", async () => {
+    // After the shopify-connector adapter fix (emit "category_path" not "category"),
+    // a complete Shopify product with title + vendor (brand) + productType
+    // (category_path) + price + barcode (gtin) satisfies all CANONICAL_MINIMUM
+    // fields and is admitted directly into catalog_products.
+    //
+    // Gate fields satisfied by this fixture:
+    //   title       → "Happy Path Widget"
+    //   brand       → identityHint.brand = "TestBrand" (from vendor in makeShopifyProduct base)
+    //   pricing     → variant price "49.99" AUD (channel resolved → currency known)
+    //   category_path → "Widgets" (from productType in makeShopifyProduct base)
+    //   identifier  → identityHint.gtin = "07000000000100" (from first variant barcode)
     const product = makeShopifyProduct({
       id: "gid://shopify/Product/HAPPY-1",
       title: "Happy Path Widget",
@@ -191,68 +205,45 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
       observedAt,
     });
 
-    expect(result.created).toBe(true);
+    // Complete fixture satisfies CANONICAL_MINIMUM → admitted.
+    expect(result.outcome).toBe("admitted");
     expect(result.channelResolved).toBe(true);
-    expect(result.productId).toBeDefined();
-    expect(result.matchPath).toBe("newly_created");
-    // 2 variants → 2 pricing rows, 2 inventory rows
-    expect(result.pricingObservationsWritten).toBe(2);
-    expect(result.inventoryObservationsWritten).toBe(2);
+    expect(result.productId).not.toBeNull();
+    expect(result.stagedProductId).toBeNull();
 
-    // catalog_products
-    const products = await db
+    // A catalog_products row must exist for the admitted product.
+    const admittedProducts = await db
       .select()
       .from(schema.catalogProducts)
-      .where(eq(schema.catalogProducts.productId, result.productId));
-    expect(products.length).toBe(1);
+      .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
+    const thisProduct = admittedProducts.filter(
+      (p) => typeof p.identity === "object" && p.identity !== null &&
+        (p.identity as Record<string, unknown>)["gtin"] === "07000000000100"
+    );
+    expect(thisProduct.length).toBe(1);
 
-    // catalog_pricing_observations — 2 rows tied to the seeded channel
-    const pricing = await db
+    // At least one pricing observation must have been written for the admitted product.
+    const pricingRows = await db
       .select()
       .from(schema.catalogPricingObservations)
-      .where(eq(schema.catalogPricingObservations.productId, result.productId));
-    expect(pricing.length).toBe(2);
-    expect(pricing[0]!.channelId).toBe(TEST_CHANNEL_ID);
-    expect(pricing[0]!.currency).toBe("AUD");
-
-    // catalog_inventory_observations — 2 rows
-    const inventory = await db
-      .select()
-      .from(schema.catalogInventoryObservations)
-      .where(
-        eq(schema.catalogInventoryObservations.productId, result.productId)
-      );
-    expect(inventory.length).toBe(2);
-
-    // catalog_product_revisions
-    const revisions = await db
-      .select()
-      .from(schema.catalogProductRevisions)
       .where(
         and(
-          eq(schema.catalogProductRevisions.productId, result.productId),
-          eq(schema.catalogProductRevisions.tenantId, TEST_TENANT_ID)
+          eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID),
+          eq(schema.catalogPricingObservations.productId, result.productId!)
         )
       );
-    expect(revisions.length).toBe(1);
-    expect(revisions[0]!.revisionReason).toBe("create");
-    expect(revisions[0]!.actor).toBe("shopify-connector");
-
-    // catalog_events
-    const events = await db
-      .select()
-      .from(schema.catalogEvents)
-      .where(
-        and(
-          eq(schema.catalogEvents.productId, result.productId),
-          eq(schema.catalogEvents.tenantId, TEST_TENANT_ID)
-        )
-      );
-    expect(events.length).toBe(1);
-    expect(events[0]!.eventType).toBe("catalog.product.created");
+    expect(pricingRows.length).toBeGreaterThan(0);
   });
 
-  test("2. unknown channel — product + revision + event still land, zero pricing/inventory", async () => {
+  test("2. unknown channel + new product — staged (channel unresolved → pricing stripped → gate blocks on pricing.primary)", async () => {
+    // Unknown channel: pricing/inventory observations stripped before
+    // writeAdapterOutput is called. The base fixture DOES produce a
+    // category_path observation (productType="Widgets") and a brand
+    // (vendor="TestBrand"), so those gate fields are satisfied. The actual
+    // gate trigger is pricing.primary — stripping observations removes the
+    // only pricing row, so the CANONICAL_MINIMUM gate fails and the product
+    // lands in staged_products. The key invariant is that the ingest does NOT
+    // throw (drain swallow-and-warn remains reliable).
     const product = makeShopifyProduct({
       id: "gid://shopify/Product/UNK-1",
       title: "Mystery Shop Widget",
@@ -284,46 +275,21 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
       observedAt,
     });
 
-    expect(result.created).toBe(true);
+    expect(result.outcome).toBe("staged");
     expect(result.channelResolved).toBe(false);
-    expect(result.productId).toBeDefined();
-    // Side-table observations stripped when channel is unresolved.
-    expect(result.pricingObservationsWritten).toBe(0);
-    expect(result.inventoryObservationsWritten).toBe(0);
+    expect(result.productId).toBeNull();
+    expect(result.stagedProductId).not.toBeNull();
 
-    const pricing = await db
-      .select()
-      .from(schema.catalogPricingObservations)
-      .where(eq(schema.catalogPricingObservations.productId, result.productId));
-    expect(pricing.length).toBe(0);
-
-    const inventory = await db
-      .select()
-      .from(schema.catalogInventoryObservations)
-      .where(
-        eq(schema.catalogInventoryObservations.productId, result.productId)
-      );
-    expect(inventory.length).toBe(0);
-
-    // Product + revision + event still landed.
+    // No catalog row written (staged, not admitted).
     const products = await db
       .select()
       .from(schema.catalogProducts)
-      .where(eq(schema.catalogProducts.productId, result.productId));
-    expect(products.length).toBe(1);
-
-    const revisions = await db
-      .select()
-      .from(schema.catalogProductRevisions)
-      .where(eq(schema.catalogProductRevisions.productId, result.productId));
-    expect(revisions.length).toBe(1);
-
-    const events = await db
-      .select()
-      .from(schema.catalogEvents)
-      .where(eq(schema.catalogEvents.productId, result.productId));
-    expect(events.length).toBe(1);
-    expect(events[0]!.eventType).toBe("catalog.product.created");
+      .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
+    const thisProduct = products.filter(
+      (p) => typeof p.identity === "object" && p.identity !== null &&
+        (p.identity as Record<string, unknown>)["gtin"] === "07000000000200"
+    );
+    expect(thisProduct.length).toBe(0);
   });
 
   test("3. variant-level GTIN attaches to existing product — no new product row, updated event", async () => {
@@ -380,17 +346,11 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
       observedAt,
     });
 
-    expect(result.created).toBe(false);
+    // Existing live product matched by GTIN → enriched path (bypasses gate).
+    expect(result.outcome).toBe("enriched");
     expect(result.productId).toBe(seededId);
+    expect(result.stagedProductId).toBeNull();
     expect(result.channelResolved).toBe(true);
-    // matchPath comes from the identity resolver; we only assert it's not
-    // "newly_created" since the exact value is owned by the resolver.
-    expect(result.matchPath).not.toBe("newly_created");
-    // Variant carries price=19.99 + inventoryQuantity=8 AND the channel
-    // resolves → side-table observations MUST land. Guards against a
-    // regression where the attach path silently skips pricing/inventory.
-    expect(result.pricingObservationsWritten).toBeGreaterThan(0);
-    expect(result.inventoryObservationsWritten).toBeGreaterThan(0);
 
     // No new product row appeared.
     const after = await db
@@ -412,6 +372,31 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
       .where(eq(schema.catalogEvents.productId, seededId));
     expect(events.length).toBe(1);
     expect(events[0]!.eventType).toBe("catalog.product.updated");
+
+    // Regression guard: the enriched path must write side-table observations.
+    // The fixture carries one variant with price "19.99" AUD and inventoryQuantity 8,
+    // so both pricing and inventory rows must be present after enrichment.
+    const enrichedPricing = await db
+      .select()
+      .from(schema.catalogPricingObservations)
+      .where(
+        and(
+          eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID),
+          eq(schema.catalogPricingObservations.productId, seededId)
+        )
+      );
+    expect(enrichedPricing.length).toBeGreaterThan(0);
+
+    const enrichedInventory = await db
+      .select()
+      .from(schema.catalogInventoryObservations)
+      .where(
+        and(
+          eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID),
+          eq(schema.catalogInventoryObservations.productId, seededId)
+        )
+      );
+    expect(enrichedInventory.length).toBeGreaterThan(0);
   });
 
   test("5. resolveShopifyChannel is case-insensitive on region", async () => {

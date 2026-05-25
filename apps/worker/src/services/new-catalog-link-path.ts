@@ -20,7 +20,7 @@
 // isn't silently lost. Bootstrap of new channel rows happens out-of-band via
 // `scripts/bootstrap-channels.ts`; we do NOT auto-create here.
 
-import { writeAdapterOutput, type WriteAdapterOutputResult } from "@aonex/catalog-service";
+import { admitOrStage, type AdmitOrStageResult } from "@aonex/catalog-service";
 import { getAdapter } from "@aonex/catalog-source-adapters";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
 import type {
@@ -152,7 +152,7 @@ function stripChannelScopedSkuData(sku: SkuJson): SkuJson {
 
 export async function runNewLinkCatalogPath(
   input: RunNewLinkCatalogPathInput
-): Promise<WriteAdapterOutputResult> {
+): Promise<AdmitOrStageResult> {
   const {
     db,
     tenantId,
@@ -217,17 +217,17 @@ export async function runNewLinkCatalogPath(
     }
   );
 
-  const writeInput: Parameters<typeof writeAdapterOutput>[0] = {
+  return admitOrStage({
     db,
     tenantId,
     merchantId,
     adapterOutput,
-    actor: "link-extract",
-    rulesVersion: 1,
-  };
-  if (channelResolved) {
-    writeInput.channelCodeToId = { [channelCode]: channelId };
-  }
-
-  return writeAdapterOutput(writeInput);
+    actor: "link:processor",
+    sourceKind: "link",
+    channelCode: channelResolved ? channelCode : null,
+    ...(channelResolved && channelCode !== null && channelId !== null
+      ? { channelCodeToId: { [channelCode]: channelId } }
+      : {}),
+    sourceArtifactId: artifactId as string,
+  });
 }
