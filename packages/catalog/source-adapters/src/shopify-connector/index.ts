@@ -171,10 +171,10 @@ function adapt(input: unknown, ctx: AdaptContext): AdapterOutput {
     });
   }
 
-  // productType → category hint (low confidence per plan).
+  // productType → category_path hint (low confidence per plan).
   if (product.productType != null) {
     observations.push({
-      attributeCode: "category",
+      attributeCode: "category_path",
       target: "parent",
       channelCode,
       localeCode: locale,
