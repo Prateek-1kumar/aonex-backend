@@ -235,11 +235,15 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
     expect(pricingRows.length).toBeGreaterThan(0);
   });
 
-  test("2. unknown channel + new product — staged (channel unresolved + gate blocks on category_path)", async () => {
-    // Unknown channel: pricing/inventory observations stripped. Gate also
-    // blocks on missing "category_path". Both drive outcome: "staged". The key
-    // invariant is that the ingest does NOT throw (drain swallow-and-warn
-    // remains reliable) and the product is held in staged_products.
+  test("2. unknown channel + new product — staged (channel unresolved → pricing stripped → gate blocks on pricing.primary)", async () => {
+    // Unknown channel: pricing/inventory observations stripped before
+    // writeAdapterOutput is called. The base fixture DOES produce a
+    // category_path observation (productType="Widgets") and a brand
+    // (vendor="TestBrand"), so those gate fields are satisfied. The actual
+    // gate trigger is pricing.primary — stripping observations removes the
+    // only pricing row, so the CANONICAL_MINIMUM gate fails and the product
+    // lands in staged_products. The key invariant is that the ingest does NOT
+    // throw (drain swallow-and-warn remains reliable).
     const product = makeShopifyProduct({
       id: "gid://shopify/Product/UNK-1",
       title: "Mystery Shop Widget",
@@ -274,7 +278,7 @@ describe("runNewShopifyCatalogPath (Task 4.3)", () => {
     expect(result.outcome).toBe("staged");
     expect(result.channelResolved).toBe(false);
     expect(result.productId).toBeNull();
-    expect(result.stagedProductId).toBeDefined();
+    expect(result.stagedProductId).not.toBeNull();
 
     // No catalog row written (staged, not admitted).
     const products = await db

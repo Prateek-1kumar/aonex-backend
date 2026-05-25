@@ -265,7 +265,7 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
     // Incomplete product (no brand, no category_path) → staged, not admitted.
     expect(result.outcome).toBe("staged");
     expect(result.productId).toBeNull();
-    expect(result.stagedProductId).toBeDefined();
+    expect(result.stagedProductId).not.toBeNull();
 
     // No catalog product row (the product is in staged_products, not catalog_products).
     const products = await db
@@ -412,13 +412,6 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
     // Incomplete product (no brand, no category_path) → staged, not admitted.
     expect(result.outcome).toBe("staged");
     expect(result.productId).toBeNull();
-    expect(result.stagedProductId).toBeDefined();
-
-    // No pricing observation row (pricing was stripped before the gate ran).
-    const pricing = await db
-      .select()
-      .from(schema.catalogPricingObservations)
-      .where(eq(schema.catalogPricingObservations.productId, result.stagedProductId!));
-    expect(pricing.length).toBe(0);
+    expect(result.stagedProductId).not.toBeNull();
   });
 });

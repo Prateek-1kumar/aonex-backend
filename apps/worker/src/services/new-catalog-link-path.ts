@@ -228,6 +228,6 @@ export async function runNewLinkCatalogPath(
     ...(channelResolved && channelCode !== null && channelId !== null
       ? { channelCodeToId: { [channelCode]: channelId } }
       : {}),
-    sourceArtifactId: artifactId as unknown as string,
+    sourceArtifactId: artifactId as string,
   });
 }

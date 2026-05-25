@@ -261,7 +261,7 @@ export async function runNewShopifyCatalogPath(
     ...(channelResolved && resolved !== null
       ? { channelCodeToId: { [channelCode]: resolved.channelId } }
       : {}),
-    sourceArtifactId: artifactId as unknown as string,
+    sourceArtifactId: artifactId as string,
   });
 
   return {
