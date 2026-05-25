@@ -29,6 +29,12 @@ import { computeMatchScore } from "@aonex/multi-source-reconciler";
 const FUZZY_AUTO_MATCH = 0.7;
 /** Threshold above which a fuzzy candidate triggers a review (but no match). */
 const FUZZY_REVIEW = 0.5;
+/**
+ * Max brand-matched rows pulled into the in-JS fuzzy scorer. Bounds the scan
+ * for high-volume brands; candidates are pre-ordered by trigram title
+ * similarity so the best composite match is overwhelmingly within this cap.
+ */
+const FUZZY_CANDIDATE_LIMIT = 500;
 
 export interface IdentityHint {
   gtin?: string;
@@ -210,6 +216,12 @@ export async function resolveIdentity(
 
     // gen_title is the generated column projecting winning_values.title._primary.value;
     // it's the cheapest title source and is what the trigram index covers.
+    // Phase 4 perf: bound the candidate set. Previously this scored EVERY
+    // brand-matched row in JS — a latency cliff for high-volume brands (10k+
+    // SKUs). We order by trigram title-similarity (served by the existing
+    // gin_trgm index on gen_title) and cap to FUZZY_CANDIDATE_LIMIT, so the
+    // JS scorer still sees the most title-relevant candidates. NULLS LAST keeps
+    // title-less rows (least relevant to a fuzzy-title match) at the bottom.
     const candidates = (await db.execute(
       sql`SELECT
             product_id,
@@ -219,7 +231,9 @@ export async function resolveIdentity(
             identity->>'brand' AS brand
           FROM catalog_products
           WHERE ${and(...filters)}
-            AND status <> 'merged'`
+            AND status <> 'merged'
+          ORDER BY similarity(gen_title, ${fuzzyTitle}) DESC NULLS LAST
+          LIMIT ${FUZZY_CANDIDATE_LIMIT}`
     )).rows as Array<{
       product_id: string;
       gen_title: string | null;

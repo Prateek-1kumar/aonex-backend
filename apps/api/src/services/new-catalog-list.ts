@@ -36,10 +36,40 @@
 // Until then, the null sentinel is the contract: a product that has
 // current_version=null in the list response was migrated to the new schema.
 
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, or, lt } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId } from "@aonex/types";
+
+// ---- Pagination ------------------------------------------------------------
+
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 200;
+
+/** Opaque keyset cursor: base64url("<updatedAt ISO>|<productId>"). */
+function encodeCursor(updatedAt: Date, productId: string): string {
+  return Buffer.from(`${updatedAt.toISOString()}|${productId}`).toString("base64url");
+}
+
+function decodeCursor(cursor: string): { updatedAt: Date; productId: string } | null {
+  try {
+    const decoded = Buffer.from(cursor, "base64url").toString("utf8");
+    const sep = decoded.indexOf("|");
+    if (sep < 0) return null;
+    const updatedAt = new Date(decoded.slice(0, sep));
+    const productId = decoded.slice(sep + 1);
+    if (Number.isNaN(updatedAt.getTime()) || productId.length === 0) return null;
+    return { updatedAt, productId };
+  } catch {
+    return null; // malformed cursor → treat as first page rather than 500
+  }
+}
+
+export interface ListCatalogProductsPage {
+  products: ListCatalogProductRow[];
+  /** Pass to the next call's `cursor` to fetch the following page; null when no more rows. */
+  nextCursor: string | null;
+}
 
 // ---- Types -----------------------------------------------------------------
 
@@ -97,6 +127,10 @@ export interface ListCatalogProductsOptions {
   merchantId: MerchantId;
   /** Optional status filter. Default: exclude "merged_into". */
   status?: string;
+  /** Page size. Defaults to 50, clamped to [1, 200]. Bounds the formerly-unbounded scan. */
+  limit?: number;
+  /** Opaque keyset cursor from a prior page's `nextCursor`. */
+  cursor?: string;
 }
 
 // ---- winning_values projection helper --------------------------------------
@@ -250,24 +284,50 @@ function pickImageUrl(images: unknown[]): string | null {
 export async function listCatalogProducts(
   db: DrizzleClient,
   options: ListCatalogProductsOptions
-): Promise<ListCatalogProductRow[]> {
+): Promise<ListCatalogProductsPage> {
   const { tenantId, merchantId } = options;
+  const limit = Math.min(
+    Math.max(1, Math.trunc(options.limit ?? DEFAULT_PAGE_LIMIT)),
+    MAX_PAGE_LIMIT
+  );
+  const cursor = options.cursor ? decodeCursor(options.cursor) : null;
 
-  const rows = await db
+  // Keyset pagination on (updated_at DESC, product_id DESC). Fetch limit+1 to
+  // detect a further page without a second COUNT query. product_id is the
+  // tie-breaker so rows sharing an updated_at are paged deterministically.
+  const cursorPredicate = cursor
+    ? or(
+        lt(schema.catalogProducts.updatedAt, cursor.updatedAt),
+        and(
+          eq(schema.catalogProducts.updatedAt, cursor.updatedAt),
+          lt(schema.catalogProducts.productId, cursor.productId)
+        )
+      )
+    : undefined;
+
+  const fetched = await db
     .select()
     .from(schema.catalogProducts)
     .where(
       and(
         eq(schema.catalogProducts.tenantId, tenantId),
         eq(schema.catalogProducts.merchantId, merchantId),
-        ne(schema.catalogProducts.status, "merged_into")
+        ne(schema.catalogProducts.status, "merged_into"),
+        ...(cursorPredicate ? [cursorPredicate] : [])
       )
     )
-    .orderBy(desc(schema.catalogProducts.updatedAt));
+    .orderBy(
+      desc(schema.catalogProducts.updatedAt),
+      desc(schema.catalogProducts.productId)
+    )
+    .limit(limit + 1);
 
-  if (rows.length === 0) {
-    return [];
+  if (fetched.length === 0) {
+    return { products: [], nextCursor: null };
   }
+
+  const hasMore = fetched.length > limit;
+  const rows = fetched.slice(0, limit);
 
   // ── Batch-fetch pricing for all returned products ─────────────────────────
   //
@@ -323,7 +383,7 @@ export async function listCatalogProducts(
     return { currency: chosen.currency, amount: chosen.primaryAmount };
   }
 
-  return rows.map((row): ListCatalogProductRow => {
+  const products = rows.map((row): ListCatalogProductRow => {
     const wv = (row.winningValues ?? null) as Record<string, unknown> | null;
 
     return {
@@ -342,4 +402,12 @@ export async function listCatalogProducts(
       _meta: { schema: "new" },
     };
   });
+
+  // nextCursor points at the last row of THIS page; only emitted when a
+  // further page exists (we fetched limit+1 and got more than `limit`).
+  const lastRow = rows[rows.length - 1];
+  const nextCursor =
+    hasMore && lastRow ? encodeCursor(lastRow.updatedAt, lastRow.productId) : null;
+
+  return { products, nextCursor };
 }

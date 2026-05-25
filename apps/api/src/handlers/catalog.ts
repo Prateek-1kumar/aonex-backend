@@ -13,8 +13,18 @@ export async function listProducts(c: Context, deps: CatalogRouteDeps): Promise<
   const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
   const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
 
-  const hydrated = await listCatalogProducts(deps.db, { tenantId, merchantId });
-  return c.json({ data: { products: hydrated } });
+  // Pagination: ?limit (clamped in the service) + opaque ?cursor. A bad/absent
+  // limit falls through to the service default rather than erroring.
+  const rawLimit = Number(c.req.query("limit"));
+  const cursor = c.req.query("cursor");
+
+  const { products, nextCursor } = await listCatalogProducts(deps.db, {
+    tenantId,
+    merchantId,
+    ...(Number.isFinite(rawLimit) && rawLimit > 0 ? { limit: rawLimit } : {}),
+    ...(cursor ? { cursor } : {}),
+  });
+  return c.json({ data: { products, nextCursor } });
 }
 
 export async function deleteProduct(c: Context, deps: CatalogRouteDeps): Promise<Response> {

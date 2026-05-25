@@ -58,7 +58,12 @@ export const sourceArtifacts = pgTable(
       t.checksum
     ),
     merchantStatus: index("idx_source_artifacts_merchant_status").on(t.merchantId, t.status),
-    modifiedIdx: index("idx_source_artifacts_modified").on(t.sourceMarketplace, t.modifiedAt)
+    modifiedIdx: index("idx_source_artifacts_modified").on(t.sourceMarketplace, t.modifiedAt),
+    // Phase 4 perf — see migrations/0023_perf_indexes.sql. Serves the recent-ingestions
+    // list: filter (merchant_id, source_type), order by received_at DESC.
+    merchantTypeReceivedIdx: index("idx_source_artifacts_merchant_type_received").on(
+      t.merchantId, t.sourceType, t.receivedAt.desc()
+    )
   })
 );
 
