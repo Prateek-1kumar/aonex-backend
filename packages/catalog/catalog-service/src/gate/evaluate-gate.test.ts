@@ -93,3 +93,27 @@ test("a non-blocking signal does not hold a complete product", () => {
   expect(v.admit).toBe(true);
   expect(v.infoSignals).toHaveLength(1);
 });
+
+test("primary_identifier (merchant SKU) satisfies 'identifier' with no gtin/mpn", () => {
+  const v = evaluateGate(input({
+    adapterOutput: output({
+      identityHint: {
+        brand: "MyJeweler",
+        primary_identifier: "m1:RG19",
+        titleForFuzzy: "14K Gold Diamond Ring",
+        targetIsVariant: false
+      }
+    })
+  }));
+  expect(v.missingFields).not.toContain("identifier");
+  expect(v.admit).toBe(true);
+});
+
+test("no gtin/mpn AND no primary_identifier → still missing 'identifier'", () => {
+  const v = evaluateGate(input({
+    adapterOutput: output({
+      identityHint: { brand: "MyJeweler", titleForFuzzy: "Ring", targetIsVariant: false }
+    })
+  }));
+  expect(v.missingFields).toEqual(["identifier"]);
+});

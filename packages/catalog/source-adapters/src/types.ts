@@ -67,6 +67,10 @@ export interface AdapterOutput {
 export interface IdentityHint {
   gtin?:           string;
   mpn?:            string;
+  /** Merchant-supplied SKU (e.g. CSV Tag No.). A hard identifier within the
+   *  tenant/merchant scope — used by the gate and resolver when no gtin/mpn
+   *  exists. Set only by the CSV adapter; link/connector adapters leave it unset. */
+  primary_identifier?: string;
   brand?:          string;
   /** Manufacturer model number. Reserved for future adapters — the identity
    *  policy gate already treats it on equal footing with `brand`. No current

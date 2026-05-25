@@ -41,14 +41,12 @@ function hasPrimaryPricing(out: AdapterOutput): boolean {
 }
 
 function hasIdentifier(out: AdapterOutput): boolean {
-  // "identifier" requires a HARD identifier present at gate time (spec §5.1).
-  // At gate time the only hard IDs on the hint are gtin/mpn — primary_identifier
-  // is synthesised later by writeAdapterOutput, so requiring it would be moot.
-  // brand is deliberately NOT an identifier: it is a separate required field
-  // (a brand alone does not identify a product, and matching across sources —
-  // e.g. Shopify↔Amazon — needs a real ID).
+  // A HARD identifier present at gate time. For scraped/marketplace sources
+  // that's gtin/mpn. For a merchant uploading their own catalog (CSV), their
+  // own SKU (primary_identifier) is the hard ID — it identifies the product
+  // within the tenant. brand is deliberately NOT an identifier.
   const h = out.identityHint;
-  return isNonEmptyString(h.gtin) || isNonEmptyString(h.mpn);
+  return isNonEmptyString(h.gtin) || isNonEmptyString(h.mpn) || isNonEmptyString(h.primary_identifier);
 }
 
 export function evaluateGate(input: GateInput): GateVerdict {
