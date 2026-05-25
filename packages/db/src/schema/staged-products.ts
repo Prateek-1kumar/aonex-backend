@@ -1,6 +1,8 @@
 // Anomaly Lab — staging gate, Task 1. staged_products table.
 // Hard-block holding area for ingests that fail the catalog readiness gate.
 // Migration is ground truth — see migrations/0022_staged_products.sql.
+// tenant_id / merchant_id are intentionally FK-free (transient operational
+// data with no catalog_products parent — see the migration header).
 
 import { pgTable, uuid, text, jsonb, numeric, timestamp } from "drizzle-orm/pg-core";
 
