@@ -23,6 +23,15 @@ export type {
 } from "./staging/promote-staged.js";
 
 // ---------------------------------------------------------------------------
+// Anomaly Lab — rejectStagedProduct + linkStagedProduct (Task 9)
+// ---------------------------------------------------------------------------
+export { rejectStagedProduct } from "./staging/reject-staged.js";
+export type { RejectStagedInput } from "./staging/reject-staged.js";
+
+export { linkStagedProduct } from "./staging/link-staged.js";
+export type { LinkStagedInput } from "./staging/link-staged.js";
+
+// ---------------------------------------------------------------------------
 // Catalog write — adapter output → identity + storage
 // ---------------------------------------------------------------------------
 export { writeAdapterOutput } from "./catalog-write.js";
