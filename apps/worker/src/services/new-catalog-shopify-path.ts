@@ -31,7 +31,7 @@
 // run. A failed catalog write is recoverable by the watchdog or by a
 // one-off re-drain; a failed `source_artifacts` insert is not.
 
-import { writeAdapterOutput, type WriteAdapterOutputResult } from "@aonex/catalog-service";
+import { admitOrStage, type AdmitOrStageResult } from "@aonex/catalog-service";
 import {
   getAdapter,
   channelCodeFromShopDomain,
@@ -138,11 +138,11 @@ export interface RunNewShopifyCatalogPathInput {
 }
 
 export interface RunNewShopifyCatalogPathResult {
-  productId: string;
-  created: boolean;
-  matchPath: WriteAdapterOutputResult["matchPath"];
-  pricingObservationsWritten: number;
-  inventoryObservationsWritten: number;
+  outcome: AdmitOrStageResult["outcome"];
+  /** Set for "admitted" and "enriched"; null for "staged". */
+  productId: string | null;
+  /** Set for "staged"; null for "admitted" and "enriched". */
+  stagedProductId: string | null;
   /** True when a channel row was found for (tenantId, shopify, region, shopDomain). */
   channelResolved: boolean;
 }
@@ -250,26 +250,24 @@ export async function runNewShopifyCatalogPath(
     };
   }
 
-  const writeInput: Parameters<typeof writeAdapterOutput>[0] = {
+  const result = await admitOrStage({
     db,
     tenantId,
     merchantId,
     adapterOutput: writeOutput,
-    actor: "shopify-connector",
-    rulesVersion: 1,
-  };
-  if (channelResolved && resolved) {
-    writeInput.channelCodeToId = { [channelCode]: resolved.channelId };
-  }
-
-  const result = await writeAdapterOutput(writeInput);
+    actor: "shopify:connector",
+    sourceKind: "connector:shopify",
+    channelCode: channelResolved ? channelCode : null,
+    ...(channelResolved && resolved !== null
+      ? { channelCodeToId: { [channelCode]: resolved.channelId } }
+      : {}),
+    sourceArtifactId: artifactId as unknown as string,
+  });
 
   return {
+    outcome: result.outcome,
     productId: result.productId,
-    created: result.created,
-    matchPath: result.matchPath,
-    pricingObservationsWritten: result.pricingObservationsWritten,
-    inventoryObservationsWritten: result.inventoryObservationsWritten,
+    stagedProductId: result.stagedProductId,
     channelResolved,
   };
 }
