@@ -5,6 +5,15 @@
 // re-exported here.
 
 // ---------------------------------------------------------------------------
+// Anomaly Lab — admitOrStage chokepoint (Task 5)
+// ---------------------------------------------------------------------------
+export { admitOrStage } from "./admit-or-stage.js";
+export type {
+  AdmitOrStageInput,
+  AdmitOrStageResult
+} from "./admit-or-stage.js";
+
+// ---------------------------------------------------------------------------
 // Catalog write — adapter output → identity + storage
 // ---------------------------------------------------------------------------
 export { writeAdapterOutput } from "./catalog-write.js";
