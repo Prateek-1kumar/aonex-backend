@@ -27,7 +27,7 @@ import {
   resolveChannelByCode,
   type RunNewLinkCatalogPathInput,
 } from "../services/new-catalog-link-path.js";
-import type { WriteAdapterOutputResult } from "@aonex/catalog-service";
+import type { AdmitOrStageResult } from "@aonex/catalog-service";
 import { runSpineLink } from "./ingestion-spine.processor.js";
 
 export interface LinkExtractJobData {
@@ -49,7 +49,7 @@ export interface LinkExtractProcessorDeps {
    * inject a spy without needing module-level mocking of the service module.
    * Production code should never supply this — the default is always used.
    */
-  _runNewLinkCatalogPath?: (input: RunNewLinkCatalogPathInput) => Promise<WriteAdapterOutputResult>;
+  _runNewLinkCatalogPath?: (input: RunNewLinkCatalogPathInput) => Promise<AdmitOrStageResult>;
   /**
    * Overridable channel resolver used in the new-schema path. Defaults to the
    * real `resolveChannelByCode`. Exposed for tests to avoid mocking the service
@@ -427,10 +427,10 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
         completionTokens: llmMeta.completionTokens,
         estimatedCostUsd: llmMeta.estimatedCostUsd,
         extractorVersion: LLM_EXTRACTOR_VERSION,
+        outcome: writeResult.outcome,
+        // productId is null when outcome === "staged" (product held for review)
         productId: writeResult.productId,
-        created: writeResult.created,
-        identityStrength: writeResult.identityStrength,
-        matchPath: writeResult.matchPath,
+        stagedProductId: writeResult.stagedProductId,
         channelResolved: channelId !== null,
       },
     });
@@ -441,9 +441,10 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       suggestedCategory: structuredResult.structured.category.path,
       categoryConfidence: structuredResult.structured.category.confidence,
       estimatedCostUsd: llmMeta.estimatedCostUsd,
+      outcome: writeResult.outcome,
+      // productId is null when outcome === "staged"
       productId: writeResult.productId,
-      created: writeResult.created,
-      matchPath: writeResult.matchPath,
+      stagedProductId: writeResult.stagedProductId,
     };
   };
 }
