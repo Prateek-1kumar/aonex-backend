@@ -65,6 +65,10 @@ export async function admitOrStage(
   const liveMatch = resolution.candidates.find((c) => c.kind === "live");
 
   if (resolution.productId !== null && liveMatch !== undefined) {
+    // NB: writeAdapterOutput re-resolves identity authoritatively inside its
+    // own transaction; the resolve above is routing-only and is not threaded
+    // in. The second resolve is the source of truth (and is race-safe within
+    // the txn) — so this is a deliberate double-read, not a correctness gap.
     const w = await writeAdapterOutput({
       db,
       tenantId,
@@ -80,6 +84,9 @@ export async function admitOrStage(
 
   // ---- 3. New product path: evaluate gate ---------------------------------
   const signals: GateSignal[] = [];
+  // identity-resolver sets matchPath="fuzzy_review" and reviewTaskSuggested
+  // together (one return path), so today either check alone suffices; we guard
+  // both for forward-compat if the resolver gains another review trigger.
   if (resolution.matchPath === "fuzzy_review" || resolution.reviewTaskSuggested) {
     signals.push({
       signalKind: "identity_conflict",
@@ -92,6 +99,8 @@ export async function admitOrStage(
 
   // ---- 4. Admit -----------------------------------------------------------
   if (verdict.admit) {
+    // As above: writeAdapterOutput re-resolves identity authoritatively in its
+    // own transaction (here it will find no match and create the product).
     const w = await writeAdapterOutput({
       db,
       tenantId,
