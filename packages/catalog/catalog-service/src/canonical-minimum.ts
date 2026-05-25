@@ -7,7 +7,7 @@ export const CANONICAL_MINIMUM = [
   "brand",          // non-empty string
   "pricing.primary",// currency + >= 1 tier amount
   "category_path",  // non-empty
-  "identifier"      // >= 1 of gtin / mpn / primary_identifier non-empty
+  "identifier"      // a hard ID present at gate time: gtin OR mpn (brand is NOT an identifier)
 ] as const;
 
 export type CanonicalMinimumField = (typeof CANONICAL_MINIMUM)[number];
