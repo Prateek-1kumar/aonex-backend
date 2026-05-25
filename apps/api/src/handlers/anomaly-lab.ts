@@ -126,18 +126,18 @@ export async function getStaged(c: Context, deps: AnomalyLabRouteDeps): Promise<
     .limit(1);
 
   const row = rows[0];
-  if (!row) return c.json({ error: "not_found" }, 404);
+  if (!row) return c.json({ error: { code: "NOT_FOUND", message: "Staged product not found" } }, 404);
 
   const verdict = (row.gateVerdict ?? {}) as { missingFields?: string[]; signals?: unknown[] };
   const candidates = (row.matchCandidates ?? []) as MatchCandidate[];
 
   // Batch-load catalog_products titles for live candidates.
   const liveCandidateIds = candidates
-    .filter((c) => c.kind === "live")
-    .map((c) => c.productId);
+    .filter((cand) => cand.kind === "live")
+    .map((cand) => cand.productId);
 
   // Map productId → { title, brand } for enrichment below.
-  const liveTitleMap = new Map<string, { title: string | null; brand: string | null }>();
+  const liveCandidateMap = new Map<string, { title: string | null; brand: string | null }>();
   if (liveCandidateIds.length > 0) {
     const catalogRows = await deps.db
       .select({
@@ -160,14 +160,14 @@ export async function getStaged(c: Context, deps: AnomalyLabRouteDeps): Promise<
       const title = titleLeaf?._primary?.value ?? null;
       const ident = (cr.identity ?? {}) as { brand?: string };
       const brand = ident.brand ?? null;
-      liveTitleMap.set(cr.productId, { title, brand });
+      liveCandidateMap.set(cr.productId, { title, brand });
     }
   }
 
   // Enrich candidates — non-live entries get null title/brand.
   const enrichedCandidates = candidates.map((cand) => {
     if (cand.kind === "live") {
-      const enrichment = liveTitleMap.get(cand.productId) ?? { title: null, brand: null };
+      const enrichment = liveCandidateMap.get(cand.productId) ?? { title: null, brand: null };
       return { ...cand, title: enrichment.title, brand: enrichment.brand };
     }
     return { ...cand, title: null, brand: null };
@@ -221,7 +221,7 @@ export async function getEvidence(c: Context, deps: AnomalyLabRouteDeps): Promis
     .limit(1);
 
   const staged = stagedRows[0];
-  if (!staged) return c.json({ error: "not_found" }, 404);
+  if (!staged) return c.json({ error: { code: "NOT_FOUND", message: "Staged product not found" } }, 404);
 
   if (!staged.sourceArtifactId) {
     return c.json({ data: { kind: "none", content: null } });
@@ -256,5 +256,6 @@ export async function getEvidence(c: Context, deps: AnomalyLabRouteDeps): Promis
   }
 
   // Connector / CSV / other — return the full rawData object.
+  // connector/CSV rawData is returned verbatim and is currently unbounded — TODO: cap/summarise large connector payloads (link htmlSnippet is already bounded upstream).
   return c.json({ data: { kind: "json", content: artifact.rawData } });
 }

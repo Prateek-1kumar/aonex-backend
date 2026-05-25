@@ -20,6 +20,7 @@ const OTHER = "d1000000-0000-4000-8000-0000000000ff";
 
 // Stable UUIDs for Task 2 fixtures — deterministic cleanup in afterAll.
 const LAB_CATALOG_PRODUCT_ID = "ee000000-0000-4000-8000-000000000001";
+const LAB_STAGED_CAND_ID = "ee000000-0000-4000-8000-000000000002"; // staged-kind candidate (no catalog row)
 const LAB_STAGED_WITH_LIVE_CAND = "ee000000-0000-4000-8000-000000000010";
 const LAB_STAGED_CROSS_TENANT = "ee000000-0000-4000-8000-000000000011";
 const LAB_STAGED_EVIDENCE = "ee000000-0000-4000-8000-000000000012";
@@ -127,7 +128,10 @@ beforeAll(async () => {
     denormTitle: "Lab Widget",
     sourceKind: "link",
     gateVerdict: { missingFields: ["identifier"], signals: [{ kind: "low_confidence" }] },
-    matchCandidates: [{ productId: LAB_CATALOG_PRODUCT_ID, score: 0.6, kind: "live" }],
+    matchCandidates: [
+      { productId: LAB_CATALOG_PRODUCT_ID, score: 0.6, kind: "live" },
+      { productId: LAB_STAGED_CAND_ID, score: 0.4, kind: "staged" },
+    ],
     status: "pending",
   } as never);
 
@@ -236,14 +240,18 @@ test("GET /api/lab/staged/:id returns full detail with enriched live candidate",
   expect(data.sourceKind).toBe("link");
   expect(data.missingFields).toContain("identifier");
   expect(Array.isArray(data.signals)).toBe(true);
-  expect(data.matchCandidates).toHaveLength(1);
-  const cand = data.matchCandidates[0]!;
-  expect(cand.productId).toBe(LAB_CATALOG_PRODUCT_ID);
-  expect(cand.kind).toBe("live");
-  expect(cand.score).toBe(0.6);
+  expect(data.matchCandidates).toHaveLength(2);
+  const liveCand = data.matchCandidates.find((c) => c.kind === "live")!;
+  expect(liveCand.productId).toBe(LAB_CATALOG_PRODUCT_ID);
+  expect(liveCand.score).toBe(0.6);
   // Title and brand from winningValues + identity of the catalog row.
-  expect(cand.title).toBe("Lab Widget Pro");
-  expect(cand.brand).toBe("LabBrand");
+  expect(liveCand.title).toBe("Lab Widget Pro");
+  expect(liveCand.brand).toBe("LabBrand");
+  // kind:"staged" candidates have no catalog row — must come back with null title/brand.
+  const stagedCand = data.matchCandidates.find((c) => c.kind === "staged")!;
+  expect(stagedCand.productId).toBe(LAB_STAGED_CAND_ID);
+  expect(stagedCand.title).toBeNull();
+  expect(stagedCand.brand).toBeNull();
 });
 
 test("GET /api/lab/staged/:id cross-tenant returns 404", async () => {
