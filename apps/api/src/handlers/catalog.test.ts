@@ -583,4 +583,62 @@ describe("GET /products — listProducts (new-schema path)", () => {
     expect(found!.pricing).toBeNull();
   });
 
+  // ---- 4. imageUrl projected from winning_values.images -------------------
+  //
+  // The link adapter emits `images` as a single observation whose value is a
+  // SkuImage[] array, scoped to (channelCode, locale) — NOT _unscoped. The
+  // list projection must surface a representative thumbnail URL (preferring
+  // the "hero" role) so the catalog grid can render a thumbnail instead of a
+  // placeholder. Bridges the gap where rich extracted images were dropped by
+  // the list envelope.
+
+  test("imageUrl is projected from winning_values.images (prefers hero role)", async () => {
+    await seedNewProduct(db, LIST_PRODUCT_A, {
+      _meta: { reconciler_version: 1 },
+      title: { _unscoped: { _unscoped: { value: "Imaged Widget" } } },
+      // images live at a real channel + locale leaf (mirrors the link adapter)
+      images: {
+        "amazon-com": {
+          en_US: {
+            value: [
+              { url: "https://img.example/gallery1.jpg", role: "gallery", position: 1 },
+              { url: "https://img.example/hero.jpg", role: "hero", position: 0 },
+            ],
+          },
+        },
+      },
+    });
+
+    const app = buildApp({ db });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as {
+      data: { products: Array<{ id: string; imageUrl: string | null }> };
+    };
+    const found = body.data.products.find((p) => p.id === LIST_PRODUCT_A);
+    expect(found).toBeTruthy();
+    // Hero is preferred over the gallery image even though gallery appears first.
+    expect(found!.imageUrl).toBe("https://img.example/hero.jpg");
+  });
+
+  test("imageUrl is null when no images attribute is present", async () => {
+    await seedNewProduct(
+      db,
+      LIST_PRODUCT_B,
+      makeWinningValues({ title: "Imageless Widget" })
+    );
+
+    const app = buildApp({ db });
+    const res = await app.request("/catalog/products");
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as {
+      data: { products: Array<{ id: string; imageUrl: string | null }> };
+    };
+    const found = body.data.products.find((p) => p.id === LIST_PRODUCT_B);
+    expect(found).toBeTruthy();
+    expect(found!.imageUrl).toBeNull();
+  });
+
 });

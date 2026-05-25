@@ -29,11 +29,39 @@ export interface RunIngestionInput {
   traceId: string;
 }
 
+// Post-extraction results carry `artifactId` + `skuJson` so the worker can run
+// the canonical catalog write (`runNewLinkCatalogPath` → `admitOrStage`). The
+// spine package MUST NOT depend on @aonex/catalog-service (layering), so it
+// only surfaces the already-extracted SkuJson (the rich canonical object the
+// link-adapter built) and the artifact id; the worker-side wrapper
+// (`runSpineLink`) performs the write. The "duplicate" path omits both because
+// extraction never ran. Fields are inlined (not a shared intersection type) so
+// the inferred return types of worker functions stay portable (avoids TS2742).
 export type RunIngestionResult =
-  | { status: "approved"; productId: string; productVersionId: string; confidenceScore: number }
-  | { status: "review"; proposedDiffId: string; reasons: string[]; confidenceScore: number }
+  | {
+      status: "approved";
+      productId: string;
+      productVersionId: string;
+      confidenceScore: number;
+      artifactId?: string;
+      skuJson?: unknown;
+    }
+  | {
+      status: "review";
+      proposedDiffId: string;
+      reasons: string[];
+      confidenceScore: number;
+      artifactId?: string;
+      skuJson?: unknown;
+    }
   | { status: "duplicate"; checksum: string }
-  | { status: "validation_failed"; missingRequired: string[]; reasons: string[] };
+  | {
+      status: "validation_failed";
+      missingRequired: string[];
+      reasons: string[];
+      artifactId?: string;
+      skuJson?: unknown;
+    };
 
 /**
  * Spec §5.2 — unified ingestion spine. Drives every lane (link / csv /
@@ -115,7 +143,9 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     return {
       status: "validation_failed",
       missingRequired: validateResult.missingRequired,
-      reasons: validateResult.errors.map((e) => `${e.path}: ${e.message}`)
+      reasons: validateResult.errors.map((e) => `${e.path}: ${e.message}`),
+      artifactId: persisted.artifactId,
+      skuJson: factSet.skuJson
     };
   }
 
@@ -188,14 +218,18 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
         status: "approved",
         productId: approved.productId,
         productVersionId: approved.productVersionId,
-        confidenceScore: decision.score
+        confidenceScore: decision.score,
+        artifactId: persisted.artifactId,
+        skuJson: factSet.skuJson
       };
     }
     return {
       status: "review",
       proposedDiffId: diff.diffId,
       reasons: decision.reviewTasks.map((t) => t.signalKind),
-      confidenceScore: decision.score
+      confidenceScore: decision.score,
+      artifactId: persisted.artifactId,
+      skuJson: factSet.skuJson
     };
   }
 
@@ -224,7 +258,9 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
       status: "approved",
       productId: approved.productId,
       productVersionId: approved.productVersionId,
-      confidenceScore: decision.score
+      confidenceScore: decision.score,
+      artifactId: persisted.artifactId,
+      skuJson: factSet.skuJson
     };
   }
 
@@ -252,7 +288,9 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     status: "review",
     proposedDiffId: diff.diffId,
     reasons: decision.reviewTasks.map((t) => t.signalKind),
-    confidenceScore: decision.score
+    confidenceScore: decision.score,
+    artifactId: persisted.artifactId,
+    skuJson: factSet.skuJson
   };
 }
 

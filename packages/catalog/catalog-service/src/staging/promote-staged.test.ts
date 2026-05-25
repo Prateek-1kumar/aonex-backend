@@ -44,6 +44,9 @@ const PROMOTE_TENANT_ID = "d0000000-0000-0000-0000-000000000099";
 const PROMOTE_MERCHANT_ID = TEST_MERCHANT_ID;      // re-use shared merchant
 const PROMOTE_CHANNEL_ID = "d0000000-0000-0000-0000-000000000098";
 const PROMOTE_CHANNEL_CODE = "shopify-au";         // matches kind=shopify, region=au
+// Amazon channel with an UPPER-CASE region — repro for the approve-500 where a
+// pricing code "amazon-in" (lower-case URL tld) must resolve to an ("amazon","IN") row.
+const PROMOTE_AMAZON_CHANNEL_ID = "d0000000-0000-0000-0000-000000000096";
 
 const TENANT = PROMOTE_TENANT_ID as unknown as TenantId;
 const MERCHANT = PROMOTE_MERCHANT_ID as unknown as MerchantId;
@@ -193,10 +196,11 @@ async function cleanup(db: DrizzleClient): Promise<void> {
     .delete(schema.catalogProducts)
     .where(eq(schema.catalogProducts.tenantId, PROMOTE_TENANT_ID));
 
-  // Channel seeded for this suite
+  // Channels seeded for this suite (all channels for the unique tenant —
+  // covers both the shopify-au and amazon-IN test channels).
   await db
     .delete(schema.channels)
-    .where(eq(schema.channels.channelId, PROMOTE_CHANNEL_ID));
+    .where(eq(schema.channels.tenantId, PROMOTE_TENANT_ID));
 
   // Source priority rules
   await db
@@ -298,6 +302,20 @@ describe("promoteStagedProduct (Task 8)", () => {
         defaultCurrency: "AUD",
         defaultLocale: "en-AU",
         displayName: "Test Channel (promote-staged)"
+      })
+      .onConflictDoNothing();
+    // Amazon channel with UPPER-CASE region "IN" — see test #4.
+    await db
+      .insert(schema.channels)
+      .values({
+        channelId: PROMOTE_AMAZON_CHANNEL_ID,
+        tenantId: PROMOTE_TENANT_ID,
+        channelKind: "amazon",
+        region: "IN",
+        accountRef: "promote-staged-tests-amazon",
+        defaultCurrency: "INR",
+        defaultLocale: "en-IN",
+        displayName: "Test Channel Amazon IN (promote-staged)"
       })
       .onConflictDoNothing();
 
@@ -476,5 +494,93 @@ describe("promoteStagedProduct (Task 8)", () => {
       (overridesAfterRows.rows[0]!["cnt"] as string)
     );
     expect(overridesAfterCount).toBe(overridesBeforeCount);
+  });
+
+  // ---- Identifier fill via the UI's "identifier" key (regression) ----------
+  // The anomaly-lab form sends the hard ID under the key `identifier`
+  // (field label: "Identifier (GTIN, MPN, or your SKU)"). It MUST map onto
+  // identityHint so the gate's hasIdentifier() accepts it. Before the fix,
+  // `identifier` fell through to a generic observation and the gate kept
+  // reporting it missing — approve was impossible no matter what was typed.
+  test("3. identifier fill (UI 'identifier' key) satisfies the gate and becomes primary_identifier", async () => {
+    const stagedProductId = await stageIncompleteProduct(db);
+
+    const result = await promoteStagedProduct({
+      db,
+      tenantId: TENANT,
+      stagedProductId,
+      resolvedBy: "d0000000-0000-0000-0000-000000000098",
+      // brand satisfies the brand gate; identifier satisfies the identifier gate.
+      fills: { brand: "OnePlus", identifier: "2345678763323" }
+    });
+
+    // Promotion succeeds → a product id is returned.
+    expect(result.productId).toBeTruthy();
+
+    // The filled identifier becomes the product's primary_identifier.
+    const productRows = await db
+      .select({ primaryIdentifier: schema.catalogProducts.primaryIdentifier })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId!));
+    expect(productRows.length).toBe(1);
+    expect(productRows[0]!.primaryIdentifier).toBe("2345678763323");
+
+    // Staged row flips to promoted.
+    const stagedRows = await db
+      .select()
+      .from(schema.stagedProducts)
+      .where(eq(schema.stagedProducts.stagedProductId, stagedProductId));
+    expect(stagedRows[0]!.status).toBe("promoted");
+  });
+
+  // ---- Channel resolution at promote must mirror ingest (regression: 500) --
+  // Real-world repro: a product scraped from amazon.in carries pricing on
+  // channelCode "amazon-in" (lower-case URL tld), but the registered channel is
+  // (kind="amazon", region="IN"). Ingest resolved it by kind; promote must too.
+  // The old promote resolver required an exact "amazon-IN" === "amazon-in"
+  // match → UNRESOLVED → threw → approve 500. This asserts it now resolves.
+  test("4. promote resolves a pricing channelCode against a differently-cased region (amazon-in → amazon/IN)", async () => {
+    const out: AdapterOutput = {
+      observations: [
+        {
+          attributeCode: "title", target: "parent", channelCode: "amazon-in",
+          localeCode: "en-IN", source: "amazon-in:link", sourceRecordId: "amz-1",
+          value: "OnePlus 13", confidence: 0.95, observedAt: new Date("2026-05-26T00:00:00Z")
+        },
+        {
+          attributeCode: "category_path", target: "parent", channelCode: "amazon-in",
+          localeCode: "en-IN", source: "amazon-in:link", sourceRecordId: "amz-1c",
+          value: "electronics/mobiles", confidence: 0.9, observedAt: new Date("2026-05-26T00:00:00Z")
+        }
+      ],
+      pricingObservations: [
+        {
+          productHint: "oneplus-13", channelCode: "amazon-in", locale: "en-IN",
+          source: "amazon-in:link", sourceRecordId: "amz-1p", currency: "INR",
+          tiers: [{ kind: "list", amount: 69999 }], observedAt: new Date("2026-05-26T00:00:00Z")
+        }
+      ],
+      inventoryObservations: [],
+      identityHint: { targetIsVariant: false },
+      rawPayload: { src: "promote-channel-regression" }
+    };
+
+    const verdict = evaluateGate({ adapterOutput: out, signals: [] });
+    expect(verdict.admit).toBe(false); // missing brand + identifier → staged
+
+    const staged = await stageProduct({
+      db, tenantId: TENANT, merchantId: MERCHANT, adapterOutput: out,
+      sourceKind: "link", channelCode: "amazon-in", verdict, matchCandidates: []
+    });
+
+    // Approve with the two missing fields — must NOT 500 on channel resolution.
+    const result = await promoteStagedProduct({
+      db,
+      tenantId: TENANT,
+      stagedProductId: staged.stagedProductId,
+      resolvedBy: "d0000000-0000-0000-0000-000000000097",
+      fills: { brand: "OnePlus", identifier: "amz-oneplus-13" }
+    });
+    expect(result.productId).toBeTruthy();
   });
 });
