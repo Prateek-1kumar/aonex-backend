@@ -16,7 +16,6 @@ import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
 import { makeDrainProcessor } from "./processors/drain.processor.js";
 import { makeTriggerSyncProcessor } from "./processors/trigger-sync.processor.js";
 import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js";
-import { makeIngestionSpineProcessor } from "./processors/ingestion-spine.processor.js";
 import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
@@ -45,7 +44,6 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
   const triggerQueue = new Queue(QUEUE.NANGO_TRIGGER, { connection: redis });
   const extractQueue = new Queue(QUEUE.INGESTION_EXTRACT, { connection: redis });
   const linkExtractQueue = new Queue(QUEUE.LINK_EXTRACT, { connection: redis });
-  const ingestionSpineQueue = new Queue(QUEUE.INGESTION_SPINE, { connection: redis });
   const syncService = new SyncService({ db: db.client, extractQueue });
 
   // Direct Nango client for trigger-sync (no surface in gateway for triggerSync today).
@@ -96,7 +94,6 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
   // Requires OPENAI_API_KEY env var. Falls back to a no-op if missing.
   const openaiApiKey = process.env.OPENAI_API_KEY;
   let linkExtractWorker: Worker | undefined;
-  let spineWorker: Worker | undefined;
   if (openaiApiKey) {
     const providerConfig = openaiApiKey
       ? { apiKey: openaiApiKey, ...(process.env.OPENAI_BASE_URL ? { baseUrl: process.env.OPENAI_BASE_URL } : {}) }
@@ -114,12 +111,6 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         audit,
         extractor,
       }),
-      { connection: redis, concurrency: 5 }
-    );
-
-    spineWorker = new Worker(
-      QUEUE.INGESTION_SPINE,
-      makeIngestionSpineProcessor({ db: db.client, audit, llmExtractor: extractor }),
       { connection: redis, concurrency: 5 }
     );
   } else {
@@ -154,7 +145,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     { connection: redis, concurrency: 1 }
   );
 
-  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), ...(spineWorker ? [spineWorker] : []), cronWorker];
+  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), cronWorker];
   for (const w of workers) {
     w.on("completed", (job) => logger.info({ jobId: job.id, queue: w.name }, "job.completed"));
     w.on("failed", (job, err) =>
@@ -197,11 +188,10 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         triggerWorker.close(true),
         cronWorker.close(true),
         ...(linkExtractWorker ? [linkExtractWorker.close(true)] : []),
-        ...(spineWorker ? [spineWorker.close(true)] : []),
         ...reconcilerHandles.map((h) => h.worker.close(true)),
         ...(outboxHandle ? [outboxHandle.stop()] : [])
       ]);
-      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), ingestionSpineQueue.close(), cronQueue.close()]);
+      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), cronQueue.close()]);
       await redis.quit();
       await db.close();
     }
