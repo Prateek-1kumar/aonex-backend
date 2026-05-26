@@ -8,6 +8,7 @@
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
+    "test": "bun test",
     "dev": "bun --env-file=../../.env run --hot src/index.ts",
     "start": "bun --env-file=../../.env run src/index.ts"
   },
