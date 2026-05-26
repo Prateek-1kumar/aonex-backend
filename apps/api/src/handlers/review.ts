@@ -219,11 +219,15 @@ export async function patchReviewTask(c: Context, deps: ReviewRouteDeps): Promis
     return c.json({ error: { code: "NOT_FOUND", message: "Review task not found" } }, 404);
   }
 
-  if (parsed.data.diff_payload) {
+  // review_tasks.proposed_diff_id is nullable (migration 0003) — diff-dependent
+  // actions must guard against a task that has no associated proposed diff.
+  const proposedDiffId = task.proposedDiffId;
+
+  if (parsed.data.diff_payload && proposedDiffId) {
     await deps.db
       .update(schema.proposedDiffs)
       .set({ diffPayload: parsed.data.diff_payload })
-      .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
+      .where(eq(schema.proposedDiffs.id, proposedDiffId));
   }
 
   if (parsed.data.action === "save") {
@@ -240,9 +244,12 @@ export async function patchReviewTask(c: Context, deps: ReviewRouteDeps): Promis
   }
 
   if (parsed.data.action === "approve") {
+    if (!proposedDiffId) {
+      return c.json({ error: { code: "NO_DIFF", message: "Review task has no proposed diff to approve" } }, 409);
+    }
     const applied = await applyApprovedDiff({
       db: deps.db,
-      diffId: task.proposedDiffId,
+      diffId: proposedDiffId,
       actorId: null,
       approvalStatus: "approved",
     });
@@ -270,7 +277,7 @@ export async function patchReviewTask(c: Context, deps: ReviewRouteDeps): Promis
     return c.json({ data: { task_id: task.id, status: "resolved", catalog: applied } });
   }
 
-  if (parsed.data.action === "reject") {
+  if (parsed.data.action === "reject" && proposedDiffId) {
     await deps.db
       .update(schema.proposedDiffs)
       .set({
@@ -278,7 +285,7 @@ export async function patchReviewTask(c: Context, deps: ReviewRouteDeps): Promis
         rejectionReason: parsed.data.resolution_notes ?? "Rejected in Anomaly Lab",
         reviewedAt: new Date(),
       })
-      .where(eq(schema.proposedDiffs.id, task.proposedDiffId));
+      .where(eq(schema.proposedDiffs.id, proposedDiffId));
   }
 
   await deps.db

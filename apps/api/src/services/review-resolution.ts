@@ -366,7 +366,9 @@ export async function resolveCluster(
   ctx: ResolutionContext,
   clusterKey: string,
   action: "approve_all" | "reject_all",
-  bulkEdit?: { fieldName: string; newValue: unknown }
+  // newValue is optional: ClusterResolveSchema uses z.unknown(), which zod infers
+  // as an optional key. It is only forwarded as newNormalizedValue (also unknown).
+  bulkEdit?: { fieldName: string; newValue?: unknown }
 ): Promise<{ resolvedCount: number; overridesCreated: number }> {
   const tasks = await ctx.db.query.reviewTasks.findMany({
     where: (t, { and, eq }) =>
