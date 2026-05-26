@@ -1,9 +1,10 @@
 # @aonex/ingestion-semantic-mapper
 
-**HLD §10 · Phase 2**
+Maps extracted facts onto the canonical schema.
 
-Pipeline: deterministic mapping → synonym → embedding candidates → type/unit/category validation → confidence scorer.
+Pipeline: deterministic mapping → synonym → embedding candidates →
+type/unit/category validation → confidence scorer (`src/pipeline/scorer.ts`).
 
-This package is a deliberate Phase 2 stub. Folder shipped now so
-`ls` reveals the full HLD architecture; implementation lands when
-the phase opens. See `docs/HLD-alignment.md`.
+**Status:** implemented (~400 LOC). Exports `MappedFactSet` and the mapping
+entry points via `src/index.ts`. See [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md)
+for where this fits in the Ingestion plane.
