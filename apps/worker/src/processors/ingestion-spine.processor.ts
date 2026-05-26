@@ -1,4 +1,3 @@
-import type { Job } from "bullmq";
 import type { DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { runIngestion } from "@aonex/ingestion-spine";
@@ -130,8 +129,4 @@ async function writeSpineExtractionToCatalog(
       },
     });
   }
-}
-
-export function makeIngestionSpineProcessor(deps: IngestionSpineProcessorDeps) {
-  return async (job: Job<IngestionSpineJobData>) => runSpineLink(deps, job.data);
 }

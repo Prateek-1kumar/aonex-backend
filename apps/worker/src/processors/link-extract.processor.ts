@@ -71,17 +71,13 @@ export interface LinkExtractProcessorDeps {
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
   return async (job: Job<LinkExtractJobData>) => {
     // PHASE 2: feature-flag dispatch to the unified ingestion spine.
-    // When INGESTION_SPINE_ENABLED=true, route this job through runSpineLink
-    // instead of the legacy code path below. Both paths are idempotent so
-    // a flag flip mid-flight is safe.
-    //
-    // NOTE on path interaction: when INGESTION_SPINE_ENABLED=true, the spine
-    // path supersedes the catalog write below — `runSpineLink` is used.
-    // The catalog write path (runNewLinkCatalogPath) is only reached when
-    // INGESTION_SPINE_ENABLED is false. The spine itself will need to be
-    // wired through `writeAdapterOutput` in a future task before the
-    // catalog cutover via the spine can complete; until then, running with
-    // the spine enabled bypasses the catalog write entirely.
+    // When INGESTION_SPINE_ENABLED=true, this job runs through runSpineLink
+    // instead of the legacy path below. Both paths are idempotent (a flag flip
+    // mid-flight is safe) and both land the extracted product via
+    // runNewLinkCatalogPath — the legacy path inline below, the spine path via
+    // writeSpineExtractionToCatalog. The spine has no queue of its own; it runs
+    // in-process here. The flag defaults off pending spine/legacy parity
+    // validation (no shadow-compare exists yet).
     if (process.env.INGESTION_SPINE_ENABLED === "true") {
       return runSpineLink(
         { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor },
