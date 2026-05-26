@@ -140,7 +140,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     async (job) => {
       const cron = CRON_JOBS.find((c) => c.name === job.name);
       if (!cron) return;
-      await cron.process({ db: db.client });
+      await cron.process({ db: db.client, logger });
     },
     { connection: redis, concurrency: 1 }
   );

@@ -1,4 +1,5 @@
 import type { DrizzleClient } from "@aonex/db";
+import type { Logger } from "pino";
 import { priceClusterRebuild } from "./price-cluster-rebuild.js";
 import { overridePromotionScan } from "./override-promotion-scan.js";
 import { failurePatternRollup } from "./failure-pattern-rollup.js";
@@ -11,6 +12,8 @@ import { linkTraceCleanup } from "./link-trace-cleanup.js";
 
 export interface JobContext {
   db: DrizzleClient;
+  /** Structured logger; cron jobs log run summaries through this. */
+  logger: Logger;
 }
 
 export interface CronJob {
