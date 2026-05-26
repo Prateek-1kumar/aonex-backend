@@ -317,7 +317,7 @@ export async function getIngestionTrace(c: Context, deps: IngestionsRouteDeps): 
     }
   } catch (err) {
     // Don't fail the whole trace response if SkuJson rebuild fails — log and continue.
-    // eslint-disable-next-line no-console
+     
     console.warn("[trace] failed to rebuild SkuJson:", err);
   }
 

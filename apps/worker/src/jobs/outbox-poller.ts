@@ -22,7 +22,7 @@
 //   - Per-tenant measurement is deferred. v1 publishes only the global
 //     cross-tenant aggregate (the `_global` sentinel suffix).
 
-import IORedis from "ioredis";
+import type IORedis from "ioredis";
 import type { Logger } from "pino";
 import type { DrizzleClient } from "@aonex/db";
 import {

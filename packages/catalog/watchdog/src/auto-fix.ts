@@ -30,7 +30,7 @@
 //      here) — autoFixDrift will surface a thrown projectSync error so the
 //      caller can log + continue.
 
-import { Queue } from "bullmq";
+import { type Queue } from "bullmq";
 import type { DrizzleClient } from "@aonex/db";
 import {
   enqueueReconcilerJob,

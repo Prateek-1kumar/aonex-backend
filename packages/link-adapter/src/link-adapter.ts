@@ -1,6 +1,6 @@
 import type { IngestionAdapter, IngestionEnvelope } from "@aonex/ingestion-spine";
 import { fetchLink } from "@aonex/ingestion-link-fetcher";
-import { LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
+import { type LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import { runDomHeuristics } from "@aonex/ingestion-dom-heuristics";
 import {

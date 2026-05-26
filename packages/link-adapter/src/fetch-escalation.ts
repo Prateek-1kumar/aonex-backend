@@ -1,5 +1,5 @@
 import type { LinkFetchResult } from "@aonex/ingestion-link-fetcher";
-import { fetchLink } from "@aonex/ingestion-link-fetcher";
+import { type fetchLink } from "@aonex/ingestion-link-fetcher";
 import {
   fetchWithBrowser,
   shouldEscalateToBrowser,
@@ -139,7 +139,7 @@ export async function runFetchEscalation(
   /** Set once we have a usable response (static OR browser OR unblock). */
   let resolvedFinalUrl = staticResult?.finalUrl ?? input.sourceRef;
   let resolvedStatusCode = staticResult?.statusCode ?? 0;
-  let resolvedContentType = staticResult?.contentType ?? "text/html";
+  const resolvedContentType = staticResult?.contentType ?? "text/html";
 
   if (mustEscalate) {
     // Layer C — browser fallback

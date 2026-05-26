@@ -8,7 +8,7 @@
 // LLD I1: zero direct coupling.
 // ============================================================
 
-// eslint-disable-next-line no-restricted-imports
+ 
 import { Nango } from "@nangohq/node";
 
 export type NangoClient = Nango;
