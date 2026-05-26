@@ -1,6 +1,6 @@
 import { extractStructured } from "@aonex/ingestion-structured";
 import {
-  LLMProductExtractor,
+  type LLMProductExtractor,
   LLM_EXTRACTOR_VERSION,
   compressJsonLd,
   pruneNextData

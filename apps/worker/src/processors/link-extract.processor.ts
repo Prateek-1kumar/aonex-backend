@@ -15,7 +15,7 @@ import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { sha256Hex, domainOf } from "@aonex/lib-utils";
 import { fetchLink, type LinkFetchResult, LinkFetchError } from "@aonex/ingestion-link-fetcher";
-import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
+import { type LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";

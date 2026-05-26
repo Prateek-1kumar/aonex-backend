@@ -190,7 +190,7 @@ export async function runNewLinkCatalogPath(
       // here, mirroring the `PathLogger` pattern in new-catalog-shopify-path.ts.
       // Lightweight stderr warning for now — the processor's audit emitter
       // records the success path.
-      // eslint-disable-next-line no-console
+       
       console.warn(
         `[new-catalog-link-path] channel unresolved for sourceUrl=${sourceUrl}; dropping ${droppedParentPricing} parent + ${droppedVariantPricing} variant pricing entries`
       );
