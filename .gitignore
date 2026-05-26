@@ -17,6 +17,16 @@ bun.lockb
 # tsbuildinfo
 *.tsbuildinfo
 
+# Compiled TS output belongs in dist/, never inside src/ (these get committed by accident)
+apps/**/src/**/*.js
+apps/**/src/**/*.js.map
+apps/**/src/**/*.d.ts
+apps/**/src/**/*.d.ts.map
+packages/**/src/**/*.js
+packages/**/src/**/*.js.map
+packages/**/src/**/*.d.ts
+packages/**/src/**/*.d.ts.map
+
 # editor
 .vscode/
 .idea/
