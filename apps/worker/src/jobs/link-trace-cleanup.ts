@@ -81,13 +81,8 @@ export async function runLinkTraceCleanup(
 export const linkTraceCleanup: CronJob = {
   name: "link-trace-cleanup",
   cronSchedule: "0 2 * * *", // 02:00 UTC daily
-  async process({ db }) {
+  async process({ db, logger }) {
     const result = await runLinkTraceCleanup({ db });
-    // TODO: pass structured logger once JobContext exposes one. No other cron
-    // job currently receives a logger from CronJob.process(), so console.info
-    // is consistent with the existing pattern (drift-scan, calibration-refit,
-    // etc.). Wire logger when JobContext is extended in a future task.
-    // eslint-disable-next-line no-console
-    console.info("[link-trace-cleanup]", JSON.stringify(result));
+    logger.info(result, "link-trace-cleanup");
   },
 };

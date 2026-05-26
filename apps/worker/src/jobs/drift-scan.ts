@@ -38,8 +38,8 @@ export interface DriftScanDeps {
  *  - null-rate of canonical fields (title/brand/gtin/...)
  *  - schema-key set in attributes_json
  *
- * Output is LOGGED via console.info; audit emission deferred per
- * system-tenant convention (Phase 7 precedent).
+ * Output is logged via the structured (pino) logger; audit emission deferred
+ * per system-tenant convention (Phase 7 precedent).
  */
 export async function runDriftScan(deps: DriftScanDeps): Promise<DriftScanResult> {
   const currentHours = deps.currentWindowHours ?? 1;
@@ -126,11 +126,10 @@ export const driftScan: CronJob = {
         delta: Number(d.delta.toFixed(3))
       }))
     );
-    // eslint-disable-next-line no-console
-    console.info("[drift-scan]", JSON.stringify({
+    ctx.logger.info({
       categoriesScanned: result.perCategory.length,
       driftedFieldCount: driftedFields.length,
       driftedFields: driftedFields.slice(0, 20)
-    }));
+    }, "drift-scan");
   }
 };
