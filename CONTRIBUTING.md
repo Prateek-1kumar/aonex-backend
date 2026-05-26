@@ -37,7 +37,7 @@ must set for a working local stack:
 
 Optional / feature-gated: `NANGO_SECRET_KEY`, `NANGO_WEBHOOK_SECRET`,
 `NANGO_CONNECT_BASE_URL` (marketplace connectors); `GROQ_API_KEY` + `GROQ_*`
-(LLM extraction); `INGESTION_SPINE_ENABLED` / `INGESTION_SPINE_SHADOW_MODE`
+(LLM extraction); `INGESTION_SPINE_ENABLED`
 (route link-extract jobs through the newer ingestion spine);
 `OTEL_EXPORTER_OTLP_ENDPOINT` (tracing). The env schema is validated at startup
 by `parseEnv` in `@aonex/types` — a missing/invalid required var crashes the
@@ -83,8 +83,8 @@ Keep the Drizzle schema in `packages/db/src` in sync with the migration.
 | Check | Command | What it enforces |
 | --- | --- | --- |
 | Types | `bun run typecheck` | Strict TS (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`). Use `import type` for type-only imports. |
-| Lint | `bun run lint` | ESLint — bans `any`, bans `@nangohq/node` outside the gateway, requires switch exhaustiveness. |
-| Boundaries | `bun run depcheck` | dependency-cruiser — no cross-app imports, no cycles, drizzle only in `db`, bullmq only in queues/roots. *(Currently noisy — see Known issues.)* |
+| Lint | `bun run lint` | ESLint — bans `any`, bans `@nangohq/node` outside the gateway, requires switch exhaustiveness. *(Currently broken: ESLint 9 needs flat config; see ARCHITECTURE.md → Known issues.)* |
+| Boundaries | `bun run depcheck` | dependency-cruiser — no cross-app imports, no cycles, drizzle only in `db`, bullmq only in queues/roots. |
 | Tests | `bun run test` | `bun test` per package. |
 
 ### Code organisation
@@ -110,7 +110,7 @@ Keep the Drizzle schema in `packages/db/src` in sync with the migration.
 - Branch from `main`; open a PR.
 - Keep commits focused; write a clear subject line and explain the *why* in the
   body.
-- Make sure `bun run typecheck`, `bun run lint`, and `bun run test` pass for the
-  code you touched. Note that two packages currently fail typecheck for
-  pre-existing reasons (see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) →
-  Known issues) — don't let those mask new failures you introduce.
+- Make sure `bun run typecheck` and `bun run depcheck` pass (both are green) and
+  `bun run test` passes for the code you touched. `bun run lint` is currently
+  broken repo-wide (see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) → Known
+  issues).

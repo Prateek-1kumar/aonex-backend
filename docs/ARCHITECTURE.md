@@ -62,7 +62,11 @@ Status legend:
 
 ### Ingestion plane
 
-Note the **two coexisting roots** (see "Known issues" below):
+Ingestion packages live under two roots: the nested `packages/ingestion/*`
+capability library and the flat `packages/ingestion-*` "spine" generation
+(orchestrator + fetch/anti-bot layer). They are not rival pipelines — the spine
+reuses several nested packages. See "Known issues" for the incomplete spine
+cutover.
 
 **Nested `packages/ingestion/*` (original Phase 1–3 design):**
 
@@ -75,13 +79,7 @@ Note the **two coexisting roots** (see "Known issues" below):
 | `@aonex/ingestion-link-fetcher` | Live | 497 |
 | `@aonex/ingestion-semantic-mapper` | Live | 400 |
 | `@aonex/ingestion-field-extractor` | Live | 316 |
-| `@aonex/ingestion-variant-extractor` | Live | 221 |
 | `@aonex/ingestion-deduplicator` | Live | 199 |
-| `@aonex/ingestion-category-detector` | Live | 110 |
-| `@aonex/ingestion-orchestrator` | **Stub** | 2 |
-| `@aonex/ingestion-source-classifier` | **Stub** | 2 |
-| `@aonex/ingestion-connector-fetcher` | **Stub** | 2 |
-| `@aonex/ingestion-csv-parser` | **Stub** | 2 |
 
 **Flat `packages/ingestion-*` (later "spine" redesign):**
 
@@ -149,33 +147,28 @@ applicable):
 - `bullmq-only-in-queues-and-roots` — `bullmq` only in composition roots and the
   worker.
 
-## Known issues (as of this writing)
+## Known issues
 
-These predate the documentation work and are tracked for a follow-up phase:
+1. **`bun run lint` is broken repo-wide.** The repo pins ESLint 9, which requires
+   a flat config (`eslint.config.js`), but the config is still the legacy
+   `.eslintrc.cjs`. `eslint src/` therefore errors in every package. Migrate the
+   config to flat format to restore lint as a gate. (`bun run typecheck` and
+   `bun run depcheck` are green and serve as the working gates meanwhile.)
 
-1. **`bun run typecheck` fails in two packages** (pre-existing, unrelated to
-   each other):
-   - `@aonex/api` — real type errors (`@aonex/types` has no exported `Clock`;
-     several Hono route-handler overload mismatches in `sync`/`shopify`/
-     `connections`; type issues in `handlers/review.ts`).
-   - `@aonex/ingestion-variant-extractor` — a tsconfig mis-wiring: it imports
-     `@aonex/ingestion-semantic-mapper`, which exports its raw `./src/*.ts`
-     sources, pulling them outside variant-extractor's `rootDir` (TS6059/TS6307).
-     Fix by giving these packages proper project references (or relaxing
-     `rootDir`).
-   The other 67 packages type-check cleanly.
+2. **The ingestion spine cutover is incomplete.** Link ingestion has two
+   orchestration paths sharing the same catalog write (`runNewLinkCatalogPath`):
+   a legacy inline path in `link-extract.processor`, and the newer
+   `@aonex/ingestion-spine` reached via the `INGESTION_SPINE_ENABLED` flag (off
+   by default). There is no spine/legacy shadow-compare yet, so the flag should
+   stay off until parity is validated. The spine reuses several nested
+   `packages/ingestion/*` packages and the flat `ingestion-spine` +
+   fetch/anti-bot packages (`dom-heuristics`, `browser-fallback`,
+   `antibot-vendor`) via `@aonex/link-adapter`.
 
-2. **`bun run depcheck` reports false violations.** It scans stale `dist/` build
-   output (gitignored, but present locally after a build), and the
-   `no-cross-app-imports` rule currently misfires on *intra*-app imports (e.g.
-   `apps/worker/src/jobs/index.ts` importing its sibling jobs). Reconfigure
-   before relying on it as a gate.
-
-3. **Two ingestion roots coexist** (nested `packages/ingestion/*` and flat
-   `packages/ingestion-*`) — two generations of the ingestion design.
-   Consolidation is pending; until then, the flat `ingestion-spine` packages are
-   the newer path.
-
-4. **Test coverage is concentrated** in the catalog core. Only 9 of ~41
+3. **Test coverage is concentrated** in the catalog core. Only 9 of ~41
    workspaces have tests; most run against live Postgres + Redis (see
    `CONTRIBUTING.md`).
+
+> Resolved in the most recent backend pass: `bun run typecheck` (63/63) and
+> `bun run depcheck` (0 errors) are now green; the dead ingestion stubs and
+> orphans, and the unused `INGESTION_SPINE` queue plumbing, were removed.

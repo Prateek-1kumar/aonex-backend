@@ -60,9 +60,9 @@ The API listens on `http://localhost:8787` (`GET /healthz`, `GET /readyz`).
 | `bun run dev` | Run `api` + `worker` in watch mode (parallel) |
 | `bun run build` | `tsc -b` across all packages |
 | `bun run typecheck` | Type-check every package |
-| `bun run lint` | ESLint across all packages |
+| `bun run lint` | ESLint across all packages *(currently broken — needs ESLint flat-config migration; see docs/ARCHITECTURE.md)* |
 | `bun run test` | Run the test suites (needs Postgres + Redis up — see CONTRIBUTING) |
-| `bun run depcheck` | dependency-cruiser boundary check *(see Known issues)* |
+| `bun run depcheck` | dependency-cruiser boundary check |
 | `bun run db:migrate:up` | Apply pending migrations |
 | `bun run db:migrate:down` | Roll back the last migration |
 | `bun run db:migrate:create -- <name>` | Create a new SQL migration |
