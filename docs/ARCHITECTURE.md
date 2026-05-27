@@ -149,13 +149,7 @@ applicable):
 
 ## Known issues
 
-1. **`bun run lint` is broken repo-wide.** The repo pins ESLint 9, which requires
-   a flat config (`eslint.config.js`), but the config is still the legacy
-   `.eslintrc.cjs`. `eslint src/` therefore errors in every package. Migrate the
-   config to flat format to restore lint as a gate. (`bun run typecheck` and
-   `bun run depcheck` are green and serve as the working gates meanwhile.)
-
-2. **The ingestion spine cutover is incomplete.** Link ingestion has two
+1. **The ingestion spine cutover is incomplete.** Link ingestion has two
    orchestration paths sharing the same catalog write (`runNewLinkCatalogPath`):
    a legacy inline path in `link-extract.processor`, and the newer
    `@aonex/ingestion-spine` reached via the `INGESTION_SPINE_ENABLED` flag (off
@@ -165,10 +159,11 @@ applicable):
    fetch/anti-bot packages (`dom-heuristics`, `browser-fallback`,
    `antibot-vendor`) via `@aonex/link-adapter`.
 
-3. **Test coverage is concentrated** in the catalog core. Only 9 of ~41
+2. **Test coverage is concentrated** in the catalog core. Only 9 of ~41
    workspaces have tests; most run against live Postgres + Redis (see
    `CONTRIBUTING.md`).
 
-> Resolved in the most recent backend pass: `bun run typecheck` (63/63) and
-> `bun run depcheck` (0 errors) are now green; the dead ingestion stubs and
+> Resolved in the most recent backend pass: all three gates are green —
+> `bun run typecheck` (63/63), `bun run depcheck` (0 errors), and `bun run lint`
+> (0 errors, migrated to ESLint flat config). The dead ingestion stubs and
 > orphans, and the unused `INGESTION_SPINE` queue plumbing, were removed.
