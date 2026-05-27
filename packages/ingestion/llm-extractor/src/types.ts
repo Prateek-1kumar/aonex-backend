@@ -2,7 +2,7 @@
 // These types bridge the LLM output to the existing ExtractedFact/ExtractedFactSet
 // contract from @aonex/ingestion-field-extractor.
 
-import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-extractor";
+import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 
 /** Configuration for the LLM extraction. */
 export interface LLMExtractionOptions {

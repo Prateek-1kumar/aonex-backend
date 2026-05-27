@@ -30,7 +30,7 @@ export function validate(
   attrs: AttributesInput
 ): ValidationOutcome {
   const validateFn = ajv.compile(schema);
-  const valid = validateFn(attrs) as boolean;
+  validateFn(attrs); // populates validateFn.errors; boolean result unused
   const errors = validateFn.errors ?? [];
 
   const missingRequired: string[] = [];

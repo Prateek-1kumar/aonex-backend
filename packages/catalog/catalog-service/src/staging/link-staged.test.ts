@@ -24,7 +24,7 @@ import {
   ensureTestMerchant,
   TEST_MERCHANT_ID
 } from "@aonex/db/testing";
-import type { TenantId, MerchantId, ChannelId } from "@aonex/types";
+import type { TenantId, MerchantId } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
 import { stageProduct } from "./stage-product.js";
 import { evaluateGate } from "../gate/evaluate-gate.js";
@@ -47,7 +47,6 @@ const LINK_DEDICATED_MERCHANT_ID = "e0000000-0000-0000-0000-000000000097";
 
 const TENANT = LINK_TENANT_ID as unknown as TenantId;
 const MERCHANT = LINK_MERCHANT_ID as unknown as MerchantId;
-const CHANNEL = LINK_CHANNEL_ID as unknown as ChannelId;
 
 const TEST_ACTOR = "test:link-staged";
 const RESOLVER_ID = "e0000000-0000-0000-0000-000000000096";

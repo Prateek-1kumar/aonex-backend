@@ -51,6 +51,16 @@ export default tseslint.config(
           ],
         },
       ],
+      // Underscore-prefixed identifiers are intentionally unused (the code's
+      // existing convention for required-but-unused params/bindings).
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
       // Discriminated-union exhaustiveness (requires type information).
       "@typescript-eslint/switch-exhaustiveness-check": "error",
       // Disallow `any`.
@@ -60,6 +70,15 @@ export default tseslint.config(
         "error",
         { prefer: "type-imports", fixStyle: "inline-type-imports" },
       ],
+    },
+  },
+  {
+    // Test files get pragmatic latitude: `any` for mocks/fixtures and inline
+    // `import("…").Type` casts when wiring up test doubles.
+    files: ["**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/consistent-type-imports": "off",
     },
   },
   {

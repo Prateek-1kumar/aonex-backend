@@ -8,8 +8,8 @@
 // HLD §22.3: "Model output becomes extracted facts, never direct writes."
 
 import type { Job } from "bullmq";
-import { eq, desc } from "drizzle-orm";
-import type { TenantId, MerchantId } from "@aonex/types";
+import { eq } from "drizzle-orm";
+import type { TenantId, MerchantId, ChannelId } from "@aonex/types";
 import { QUEUE } from "@aonex/types";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
@@ -59,7 +59,7 @@ export interface LinkExtractProcessorDeps {
     db: DrizzleClient,
     tenantId: TenantId,
     channelCode: string
-  ) => Promise<{ channelId: import("@aonex/types").ChannelId; channelCode: string; defaultCurrency: string | null; defaultLocale: string | null; } | null>;
+  ) => Promise<{ channelId: ChannelId; channelCode: string; defaultCurrency: string | null; defaultLocale: string | null; } | null>;
   /**
    * Overridable URL → channel-code mapper. Defaults to the real
    * `channelCodeFromUrl`. Exposed for tests — same rationale as
@@ -94,7 +94,7 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     }
 
     // Legacy path follows below — unchanged.
-    const { tenantId, merchantId, url, categoryHint, requestId, traceId } = job.data;
+    const { tenantId, merchantId, url, categoryHint, requestId } = job.data;
 
     // ── Step 1: Fetch HTML ──────────────────────────────────────────
     let fetchResult: LinkFetchResult;
