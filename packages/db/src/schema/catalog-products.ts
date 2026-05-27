@@ -10,7 +10,8 @@ import {
   timestamp,
   bigint,
   unique,
-  index
+  index,
+  type AnyPgColumn
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { tenants } from "./tenants.js";
@@ -22,12 +23,12 @@ export const catalogProducts = pgTable(
     productId:           uuid("product_id").primaryKey().defaultRandom(),
     tenantId:            uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "restrict" }),
     merchantId:          uuid("merchant_id").notNull().references(() => merchants.id, { onDelete: "restrict" }),
-    parentProductId:     uuid("parent_product_id").references((): any => catalogProducts.productId),
+    parentProductId:     uuid("parent_product_id").references((): AnyPgColumn => catalogProducts.productId),
     primaryIdentifier:   text("primary_identifier").notNull(),
     identity:            jsonb("identity").notNull(),
     family:              text("family"),
     status:              text("status").notNull().default("draft"),
-    mergedIntoProductId: uuid("merged_into_product_id").references((): any => catalogProducts.productId),
+    mergedIntoProductId: uuid("merged_into_product_id").references((): AnyPgColumn => catalogProducts.productId),
     values:              jsonb("values").notNull().default(sql`'{}'::jsonb`),
     winningValues:       jsonb("winning_values"),
     winningValuesShadow: jsonb("winning_values_shadow"),

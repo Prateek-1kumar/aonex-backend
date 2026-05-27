@@ -17,10 +17,10 @@ export const QUEUE = {
   INGESTION_EXTRACT: "ingestion.extract",
   /** Phase 3 — parse uploaded CSV file into row-level source_artifacts */
   CSV_PARSE: "csv.parse",
-  /** Link/URL ingestion — fetch HTML, LLM extraction, produce extracted facts */
+  /** Link/URL ingestion — fetch HTML, LLM extraction, produce extracted facts.
+   *  The ingestion spine runs in-process off this queue behind
+   *  INGESTION_SPINE_ENABLED (see link-extract.processor); it has no queue of its own. */
   LINK_EXTRACT: "ingestion.link_extract",
-  /** Phase 2 — unified ingestion spine (all lanes funnel through here) */
-  INGESTION_SPINE: "ingestion.spine",
   /** Audit emitter fallback queue (HLD §23: must not drop) */
   AUDIT_FALLBACK: "audit.fallback"
 } as const;
@@ -36,8 +36,7 @@ export const JOB_KIND = {
   SWEEP_REFRESH_FAILING: "sweep-refresh-failing",
   EXTRACT: "extract",
   CSV_PARSE: "csv-parse",
-  LINK_EXTRACT: "link-extract",
-  INGESTION_SPINE: "ingestion-spine"
+  LINK_EXTRACT: "link-extract"
 } as const;
 
 export type JobKind = (typeof JOB_KIND)[keyof typeof JOB_KIND];

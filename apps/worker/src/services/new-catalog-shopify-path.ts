@@ -237,7 +237,7 @@ export async function runNewShopifyCatalogPath(
           "Shopify channel unresolved; skipping side-table writes"
         );
       } else {
-        // eslint-disable-next-line no-console -- fallback for direct callers without a structured logger
+         
         console.warn(
           `[new-catalog-shopify-path] channel unresolved for shopDomain=${shopDomain} region=${effectiveRegion}; dropping ${droppedPricing} pricing + ${droppedInventory} inventory observations`
         );

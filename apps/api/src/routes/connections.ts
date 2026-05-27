@@ -4,6 +4,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
+import type { AppEnv } from "../http-env.js";
 import {
   isMarketplace,
   MARKETPLACES,
@@ -23,8 +24,8 @@ const CreateBody = z.object({
   marketplaces: z.array(z.enum(MARKETPLACES)).min(1)
 });
 
-export function connectionsRoutes(deps: ConnectionsDeps): Hono {
-  const app = new Hono();
+export function connectionsRoutes(deps: ConnectionsDeps): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
 
   app.post("/", async (c) => {
     const body = CreateBody.parse(await c.req.json());

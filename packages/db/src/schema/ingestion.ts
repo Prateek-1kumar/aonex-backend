@@ -9,7 +9,6 @@ import {
   varchar,
   timestamp,
   jsonb,
-  text,
   integer,
   index,
   uniqueIndex

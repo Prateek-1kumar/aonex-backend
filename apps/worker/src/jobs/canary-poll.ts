@@ -118,16 +118,10 @@ export async function runCanaryPoll(deps: CanaryPollDeps = {}): Promise<CanaryPo
 export const canaryPoll: CronJob = {
   name: "canary-poll",
   cronSchedule: "0 * * * *",
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async process(_ctx) {
+  async process(ctx) {
     const result = await runCanaryPoll();
-    // BullMQ's worker.on("completed") in composition-root logs the returned
-    // value via pino, so just logging via console here would duplicate.
-    // Return is implicit (void per CronJob.process signature) — but we
-    // attach the summary to a global console.info so it shows up in
-    // worker logs even before Phase 8 dashboards.
-    // eslint-disable-next-line no-console
-    console.info("[canary-poll]", JSON.stringify({
+    // Surface a structured run summary in worker logs.
+    ctx.logger.info({
       retailerCount: result.retailers.length,
       overallPassRate: result.overallPassRate,
       perRetailer: result.retailers.map((r) => ({
@@ -136,6 +130,6 @@ export const canaryPoll: CronJob = {
         sampled: r.sampled,
         failedCount: r.failed.length
       }))
-    }));
+    }, "canary-poll");
   }
 };

@@ -109,8 +109,7 @@ export const calibrationRefit: CronJob = {
   cronSchedule: "0 4 * * 0",    // weekly Sunday 04:00 UTC
   async process(ctx) {
     const result = await runCalibrationRefit({ db: ctx.db });
-    // eslint-disable-next-line no-console
-    console.info("[calibration-refit]", JSON.stringify({
+    ctx.logger.info({
       groupsExamined: result.groupsExamined,
       groupsFitted: result.groupsFitted,
       groupsSkipped: result.groupsSkippedBelowMin,
@@ -120,6 +119,6 @@ export const calibrationRefit: CronJob = {
         sampleCount: f.sampleCount,
         modelSteps: f.model.values.length
       }))
-    }));
+    }, "calibration-refit");
   }
 };

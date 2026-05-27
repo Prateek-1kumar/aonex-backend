@@ -79,7 +79,11 @@ export class OpenAIProvider implements IModelProvider {
       throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
     }
 
-    const data = (await response.json()) as any;
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+      model?: string;
+    };
     const choice = data.choices?.[0];
     
     if (!choice?.message?.content) {

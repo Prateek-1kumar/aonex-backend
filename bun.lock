@@ -19,6 +19,7 @@
         "prettier": "^3.4.2",
         "turbo": "^2.3.0",
         "typescript": "^5.7.2",
+        "typescript-eslint": "8.59.2",
       },
     },
     "apps/api": {
@@ -231,21 +232,6 @@
         "drizzle-orm": "^0.36.4",
       },
     },
-    "packages/ingestion/category-detector": {
-      "name": "@aonex/ingestion-category-detector",
-      "version": "0.1.0",
-      "dependencies": {
-        "@aonex/ingestion-field-extractor": "workspace:*",
-      },
-    },
-    "packages/ingestion/connector-fetcher": {
-      "name": "@aonex/ingestion-connector-fetcher",
-      "version": "0.0.0",
-    },
-    "packages/ingestion/csv-parser": {
-      "name": "@aonex/ingestion-csv-parser",
-      "version": "0.0.0",
-    },
     "packages/ingestion/deduplicator": {
       "name": "@aonex/ingestion-deduplicator",
       "version": "0.1.0",
@@ -284,10 +270,6 @@
         "zod": "^3.24.1",
       },
     },
-    "packages/ingestion/orchestrator": {
-      "name": "@aonex/ingestion-orchestrator",
-      "version": "0.0.0",
-    },
     "packages/ingestion/policy-engine": {
       "name": "@aonex/ingestion-policy-engine",
       "version": "0.1.0",
@@ -305,25 +287,12 @@
         "@aonex/ingestion-field-extractor": "workspace:*",
       },
     },
-    "packages/ingestion/source-classifier": {
-      "name": "@aonex/ingestion-source-classifier",
-      "version": "0.0.0",
-    },
     "packages/ingestion/structured": {
       "name": "@aonex/ingestion-structured",
       "version": "0.1.0",
       "dependencies": {
         "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/types": "workspace:*",
-      },
-    },
-    "packages/ingestion/variant-extractor": {
-      "name": "@aonex/ingestion-variant-extractor",
-      "version": "0.1.0",
-      "dependencies": {
-        "@aonex/db": "workspace:*",
-        "@aonex/ingestion-semantic-mapper": "workspace:*",
-        "@aonex/lib-utils": "workspace:*",
       },
     },
     "packages/lib-utils": {
@@ -433,12 +402,6 @@
 
     "@aonex/ingestion-browser-fallback": ["@aonex/ingestion-browser-fallback@workspace:packages/ingestion-browser-fallback"],
 
-    "@aonex/ingestion-category-detector": ["@aonex/ingestion-category-detector@workspace:packages/ingestion/category-detector"],
-
-    "@aonex/ingestion-connector-fetcher": ["@aonex/ingestion-connector-fetcher@workspace:packages/ingestion/connector-fetcher"],
-
-    "@aonex/ingestion-csv-parser": ["@aonex/ingestion-csv-parser@workspace:packages/ingestion/csv-parser"],
-
     "@aonex/ingestion-deduplicator": ["@aonex/ingestion-deduplicator@workspace:packages/ingestion/deduplicator"],
 
     "@aonex/ingestion-dom-heuristics": ["@aonex/ingestion-dom-heuristics@workspace:packages/ingestion-dom-heuristics"],
@@ -451,19 +414,13 @@
 
     "@aonex/ingestion-llm-extractor": ["@aonex/ingestion-llm-extractor@workspace:packages/ingestion/llm-extractor"],
 
-    "@aonex/ingestion-orchestrator": ["@aonex/ingestion-orchestrator@workspace:packages/ingestion/orchestrator"],
-
     "@aonex/ingestion-policy-engine": ["@aonex/ingestion-policy-engine@workspace:packages/ingestion/policy-engine"],
 
     "@aonex/ingestion-semantic-mapper": ["@aonex/ingestion-semantic-mapper@workspace:packages/ingestion/semantic-mapper"],
 
-    "@aonex/ingestion-source-classifier": ["@aonex/ingestion-source-classifier@workspace:packages/ingestion/source-classifier"],
-
     "@aonex/ingestion-spine": ["@aonex/ingestion-spine@workspace:packages/ingestion-spine"],
 
     "@aonex/ingestion-structured": ["@aonex/ingestion-structured@workspace:packages/ingestion/structured"],
-
-    "@aonex/ingestion-variant-extractor": ["@aonex/ingestion-variant-extractor@workspace:packages/ingestion/variant-extractor"],
 
     "@aonex/lib-utils": ["@aonex/lib-utils@workspace:packages/lib-utils"],
 
@@ -1594,6 +1551,8 @@
     "type-fest": ["type-fest@2.19.0", "", {}, "sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA=="],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "typescript-eslint": ["typescript-eslint@8.59.2", "", { "dependencies": { "@typescript-eslint/eslint-plugin": "8.59.2", "@typescript-eslint/parser": "8.59.2", "@typescript-eslint/typescript-estree": "8.59.2", "@typescript-eslint/utils": "8.59.2" }, "peerDependencies": { "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0", "typescript": ">=4.8.4 <6.1.0" } }, "sha512-pJw051uomb3ZeCzGTpRb8RbEqB5Y4WWet8gl/GcTlU35BSx0PVdZ86/bqkQCyKKuraVQEK7r6kBHQXF+fBhkoQ=="],
 
     "ufo": ["ufo@1.6.4", "", {}, "sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA=="],
 

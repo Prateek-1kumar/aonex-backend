@@ -8,14 +8,14 @@
 // HLD §22.3: "Model output becomes extracted facts, never direct writes."
 
 import type { Job } from "bullmq";
-import { eq, desc } from "drizzle-orm";
-import type { TenantId, MerchantId } from "@aonex/types";
+import { eq } from "drizzle-orm";
+import type { TenantId, MerchantId, ChannelId } from "@aonex/types";
 import { QUEUE } from "@aonex/types";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { sha256Hex, domainOf } from "@aonex/lib-utils";
 import { fetchLink, type LinkFetchResult, LinkFetchError } from "@aonex/ingestion-link-fetcher";
-import { LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
+import { type LLMProductExtractor, LLM_EXTRACTOR_VERSION } from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 import type { ArtifactId } from "@aonex/types";
 import { extractStructured, checkCoverage } from "@aonex/ingestion-structured";
@@ -59,7 +59,7 @@ export interface LinkExtractProcessorDeps {
     db: DrizzleClient,
     tenantId: TenantId,
     channelCode: string
-  ) => Promise<{ channelId: import("@aonex/types").ChannelId; channelCode: string; defaultCurrency: string | null; defaultLocale: string | null; } | null>;
+  ) => Promise<{ channelId: ChannelId; channelCode: string; defaultCurrency: string | null; defaultLocale: string | null; } | null>;
   /**
    * Overridable URL → channel-code mapper. Defaults to the real
    * `channelCodeFromUrl`. Exposed for tests — same rationale as
@@ -71,17 +71,13 @@ export interface LinkExtractProcessorDeps {
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
   return async (job: Job<LinkExtractJobData>) => {
     // PHASE 2: feature-flag dispatch to the unified ingestion spine.
-    // When INGESTION_SPINE_ENABLED=true, route this job through runSpineLink
-    // instead of the legacy code path below. Both paths are idempotent so
-    // a flag flip mid-flight is safe.
-    //
-    // NOTE on path interaction: when INGESTION_SPINE_ENABLED=true, the spine
-    // path supersedes the catalog write below — `runSpineLink` is used.
-    // The catalog write path (runNewLinkCatalogPath) is only reached when
-    // INGESTION_SPINE_ENABLED is false. The spine itself will need to be
-    // wired through `writeAdapterOutput` in a future task before the
-    // catalog cutover via the spine can complete; until then, running with
-    // the spine enabled bypasses the catalog write entirely.
+    // When INGESTION_SPINE_ENABLED=true, this job runs through runSpineLink
+    // instead of the legacy path below. Both paths are idempotent (a flag flip
+    // mid-flight is safe) and both land the extracted product via
+    // runNewLinkCatalogPath — the legacy path inline below, the spine path via
+    // writeSpineExtractionToCatalog. The spine has no queue of its own; it runs
+    // in-process here. The flag defaults off pending spine/legacy parity
+    // validation (no shadow-compare exists yet).
     if (process.env.INGESTION_SPINE_ENABLED === "true") {
       return runSpineLink(
         { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor },
@@ -98,7 +94,7 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     }
 
     // Legacy path follows below — unchanged.
-    const { tenantId, merchantId, url, categoryHint, requestId, traceId } = job.data;
+    const { tenantId, merchantId, url, categoryHint, requestId } = job.data;
 
     // ── Step 1: Fetch HTML ──────────────────────────────────────────
     let fetchResult: LinkFetchResult;
