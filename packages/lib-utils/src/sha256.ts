@@ -2,6 +2,7 @@
 // directly (composition root rule).
 
 import { createHash } from "node:crypto";
+import { canonicalStringify } from "./canonical-stringify.js";
 
 export function sha256Hex(input: string | Buffer): string {
   return createHash("sha256").update(input).digest("hex");
@@ -12,6 +13,5 @@ export function sha256Hex(input: string | Buffer): string {
  * key ordering and undefined-vs-omitted differences.
  */
 export function sha256Canonical(value: unknown): string {
-  const { canonicalStringify } = require("./canonical-stringify.js") as typeof import("./canonical-stringify.js");
   return sha256Hex(canonicalStringify(value));
 }

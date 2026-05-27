@@ -57,7 +57,7 @@ describe('EbayAdapter.listProducts', () => {
   it('paginates via offset and returns ProviderProduct[]', async () => {
     let page = 0;
     const transport: EbayTransport = {
-      request: async (_conn, path) => {
+      request: async (_conn, _path) => {
         page++;
         if (page === 1) {
           return new Response(JSON.stringify({

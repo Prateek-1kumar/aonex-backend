@@ -10,7 +10,7 @@ const TITLE_SIMILARITY_THRESHOLD = 0.92; // HLD §13
 /** Normalize a GTIN: strip leading zeros, whitespace, dashes */
 function normalizeGtin(g: string | null): string | null {
   if (!g) return null;
-  return g.replace(/[\s\-]/g, "").replace(/^0+/, "") || null;
+  return g.replace(/[\s-]/g, "").replace(/^0+/, "") || null;
 }
 
 function normalizeBrand(b: string | null): string | null {

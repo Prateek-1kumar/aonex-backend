@@ -161,7 +161,7 @@ export async function runFetchEscalation(
         escalationReasons.push(`browser_anemic_${browserResult.rawHtml.length}b`);
         throw new Error(`browser returned anemic response (${browserResult.rawHtml.length} bytes)`);
       }
-    } catch (browserErr) {
+    } catch {
       // Browser failed OR returned anemic content — try unblock vendor.
       if (deps.unblockAdapter && withinCostCeiling(costCredits, 5)) {
         try {

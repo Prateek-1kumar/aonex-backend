@@ -12,12 +12,10 @@
 import { createHmac } from "node:crypto";
 import { sha256Hex } from "@aonex/lib-utils";
 import {
-  ConnectionId as ConnectionIdParse,
   GatewayError,
   NangoWebhookEventSchema,
   type Marketplace,
-  type MerchantId,
-  type TenantId
+  type MerchantId
 } from "@aonex/types";
 import type {
   CanonicalProductRecord,

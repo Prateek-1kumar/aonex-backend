@@ -136,7 +136,6 @@ class LinkAdapter implements IngestionAdapter {
       const prior = await this.deps.cache.get(envelope.sourceExternalId);
       if (prior && prior.escalatedTo !== "static") {
         const it = this.normalize({ sourceRef: envelope.sourceExternalId });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         for await (const _ of it) {
           /* consume; populates this.cache */
         }

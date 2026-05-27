@@ -19,8 +19,6 @@ import type {
   TokenHealthResult,
   VerifyAndParseInput,
   VerifyAndParseResult,
-  OAuthUrlResult,
-  CreateOAuthUrlInput,
   GetInventoryInput,
   InventoryRecord
 } from "../../contract/index.js";
@@ -143,7 +141,7 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
     }
   }
 
-  async fetchRecord(input: FetchRecordInput): Promise<CanonicalProductRecord> {
+  async fetchRecord(_input: FetchRecordInput): Promise<CanonicalProductRecord> {
     throw new GatewayError("validation_failed", "fetchRecord not implemented in Phase 1");
   }
 

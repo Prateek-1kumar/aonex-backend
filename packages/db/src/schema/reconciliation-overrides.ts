@@ -8,14 +8,14 @@
 // Drizzle schema is used for INSERT/SELECT typing only; the migration is the
 // ground truth — see migrations/0015_reconciliation_overrides_and_lineage.sql.
 
-import { pgTable, uuid, bigint, text, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, bigint, text, jsonb, timestamp, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { catalogProducts } from "./catalog-products.js";
 
 export const reconciliationOverrides = pgTable("reconciliation_overrides", {
   overrideId:    bigint("override_id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
   productId:     uuid("product_id")
                    .notNull()
-                   .references((): any => catalogProducts.productId, { onDelete: "cascade" }),
+                   .references((): AnyPgColumn => catalogProducts.productId, { onDelete: "cascade" }),
   attributeCode: text("attribute_code").notNull(),
   channelCode:   text("channel_code").notNull(),
   localeCode:    text("locale_code").notNull().default("_unscoped"),

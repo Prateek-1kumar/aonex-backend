@@ -75,6 +75,8 @@ function availabilityToQty(availability: string | null | undefined): number | un
       return 1;
     case "out_of_stock":
       return 0;
+    case null:
+    case undefined:
     default:
       return undefined;
   }
