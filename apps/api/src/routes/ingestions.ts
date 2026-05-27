@@ -7,7 +7,7 @@
 import { Hono } from "hono";
 import type { Queue } from "bullmq";
 import type { AuditEmitter } from "@aonex/audit";
-import { QUEUE } from "@aonex/types";
+import { type QUEUE } from "@aonex/types";
 import type { DrizzleClient } from "@aonex/db";
 import {
   submitLink,

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { canonicalStringify, sha256Hex } from "@aonex/lib-utils";
 

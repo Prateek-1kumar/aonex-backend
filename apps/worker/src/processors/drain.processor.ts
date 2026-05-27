@@ -18,15 +18,15 @@ import type { Job } from "bullmq";
 import type { Logger } from "pino";
 import {
   QUEUE,
-  TenantId,
-  MerchantId,
+  type TenantId,
+  type MerchantId,
   type Marketplace
 } from "@aonex/types";
 import type { ConnectorAdapterPhase1 } from "@aonex/connector-gateway";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import type { ShopifyProduct } from "@aonex/catalog-source-adapters";
-import { SyncService } from "../services/sync-service.js";
+import { type SyncService } from "../services/sync-service.js";
 import {
   runNewShopifyCatalogPath,
   SHOPIFY_DEFAULT_REGION,

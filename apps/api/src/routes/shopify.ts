@@ -7,6 +7,7 @@
 // via the ConnectorGateway (ShopifyAdapter path, not Nango cache drain).
 
 import { Hono } from 'hono';
+import type { AppEnv } from '../http-env.js';
 import { MerchantId, TenantId, JOB_KIND, QUEUE, STANDARD_RETRY } from '@aonex/types';
 import type { ConnectorGateway } from '@aonex/connector-gateway';
 import type { AuditEmitter } from '@aonex/audit';
@@ -18,8 +19,8 @@ export interface ShopifyRouteDeps {
   queues: { [QUEUE.NANGO_TRIGGER]: Queue };
 }
 
-export function shopifyRoutes(deps: ShopifyRouteDeps): Hono {
-  const app = new Hono();
+export function shopifyRoutes(deps: ShopifyRouteDeps): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
 
   // POST /connect
   // Creates a Nango Connect session and returns the OAuth URL for the frontend.

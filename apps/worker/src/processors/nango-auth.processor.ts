@@ -3,7 +3,7 @@
 // the initial sync.
 
 import { eq } from "drizzle-orm";
-import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoAuthEvent, MerchantId, TenantId, type Marketplace } from "@aonex/types";
+import { JOB_KIND, QUEUE, STANDARD_RETRY, type NangoAuthEvent, MerchantId, TenantId } from "@aonex/types";
 import type { Job, Queue } from "bullmq";
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";

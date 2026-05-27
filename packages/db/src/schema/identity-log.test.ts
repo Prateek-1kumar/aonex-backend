@@ -9,7 +9,7 @@ import type { DrizzleClient } from "../client.js";
 
 describe("identity_log schema", () => {
   let db: DrizzleClient;
-  let seededProductIds: string[] = [];
+  const seededProductIds: string[] = [];
 
   async function seedProduct(primaryIdentifier: string): Promise<string> {
     const rows = await db

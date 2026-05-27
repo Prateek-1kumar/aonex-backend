@@ -54,7 +54,7 @@ export async function runDaily(deps: DailyDeps): Promise<DailyStats> {
 
   // Loop forever until a chunk returns empty. Each chunk is a separate
   // keyset query — see decision 2 above.
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     const chunkResult = await db.execute(
       lastProductId === null

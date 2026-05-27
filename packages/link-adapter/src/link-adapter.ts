@@ -1,6 +1,6 @@
 import type { IngestionAdapter, IngestionEnvelope } from "@aonex/ingestion-spine";
 import { fetchLink } from "@aonex/ingestion-link-fetcher";
-import { LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
+import { type LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import { runDomHeuristics } from "@aonex/ingestion-dom-heuristics";
 import {
@@ -136,7 +136,6 @@ class LinkAdapter implements IngestionAdapter {
       const prior = await this.deps.cache.get(envelope.sourceExternalId);
       if (prior && prior.escalatedTo !== "static") {
         const it = this.normalize({ sourceRef: envelope.sourceExternalId });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         for await (const _ of it) {
           /* consume; populates this.cache */
         }

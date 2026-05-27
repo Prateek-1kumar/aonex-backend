@@ -3,7 +3,7 @@
 // Composition root constructs with the resolved Env.
 
 import { SignJWT, jwtVerify } from "jose";
-import { AonexJWTClaimsSchema, type AonexJWTClaims, type Clock } from "@aonex/types";
+import { AonexJWTClaimsSchema, type AonexJWTClaims } from "@aonex/types";
 import type { Clock as IClock } from "@aonex/lib-utils";
 
 export interface JwtServiceDeps {

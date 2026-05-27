@@ -36,7 +36,7 @@
 // takes an injected `connection` + `db`. The composition root (apps/worker,
 // Phase 4) wires real connections; tests inject test connections.
 
-import { Queue, Worker, type Job } from "bullmq";
+import { type Queue, Worker, type Job } from "bullmq";
 import type IORedis from "ioredis";
 import { desc, eq, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";

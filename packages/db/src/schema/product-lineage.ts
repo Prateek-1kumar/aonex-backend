@@ -11,15 +11,15 @@
 // Drizzle schema is used for INSERT/SELECT typing only; the migration is the
 // ground truth — see migrations/0015_reconciliation_overrides_and_lineage.sql.
 
-import { pgTable, uuid, bigint, text, jsonb, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, bigint, text, jsonb, timestamp, index, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { catalogProducts } from "./catalog-products.js";
 
 export const productLineage = pgTable(
   "product_lineage",
   {
     lineageId:       bigint("lineage_id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
-    productId:       uuid("product_id").notNull().references((): any => catalogProducts.productId),
-    originProductId: uuid("origin_product_id").notNull().references((): any => catalogProducts.productId),
+    productId:       uuid("product_id").notNull().references((): AnyPgColumn => catalogProducts.productId),
+    originProductId: uuid("origin_product_id").notNull().references((): AnyPgColumn => catalogProducts.productId),
     operation:       text("operation").notNull(),  // 'merge' | 'split' | 'unmerge'
     splitFilter:     jsonb("split_filter"),        // present for 'split'
     rationale:       text("rationale"),

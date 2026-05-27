@@ -2,7 +2,7 @@
   "name": "aonex-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Aonex backend monorepo — implements the senior's HLD (Aonex_Production_HLD_Catalog_Ingestion_Distribution_v2). Phase 1 scope: tenants/merchants, Connector Gateway, Nango Shopify ingestion, source_artifacts, audit. See docs/HLD-alignment.md.",
+  "description": "Aonex backend monorepo — multi-marketplace product-catalog ingestion & distribution platform. See README.md and docs/ARCHITECTURE.md.",
   "workspaces": [
     "apps/*",
     "packages/*",
@@ -34,7 +34,8 @@
     "playwright": "^1.60.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "typescript-eslint": "8.59.2"
   },
   "packageManager": "bun@1.1.38",
   "engines": {

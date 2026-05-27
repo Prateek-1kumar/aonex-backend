@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
+import type { AppEnv } from "../http-env.js";
 import { JOB_KIND, MARKETPLACES, MerchantId, QUEUE, STANDARD_RETRY, TenantId } from "@aonex/types";
 import type { Queue } from "bullmq";
 import type { AuditEmitter } from "@aonex/audit";
@@ -16,8 +17,8 @@ export interface SyncDeps {
 
 const TriggerBody = z.object({ marketplace: z.enum(MARKETPLACES) });
 
-export function syncRoutes(deps: SyncDeps): Hono {
-  const app = new Hono();
+export function syncRoutes(deps: SyncDeps): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
 
   app.post("/trigger", async (c) => {
     const body = TriggerBody.parse(await c.req.json());

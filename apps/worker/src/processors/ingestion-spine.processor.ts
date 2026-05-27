@@ -1,10 +1,9 @@
-import type { Job } from "bullmq";
 import type { DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { runIngestion } from "@aonex/ingestion-spine";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 import { createLinkAdapter, createLinkAdapterWithAntibot } from "@aonex/link-adapter";
-import { LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
+import { type LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
 import type { TenantId, MerchantId, ArtifactId } from "@aonex/types";
@@ -130,8 +129,4 @@ async function writeSpineExtractionToCatalog(
       },
     });
   }
-}
-
-export function makeIngestionSpineProcessor(deps: IngestionSpineProcessorDeps) {
-  return async (job: Job<IngestionSpineJobData>) => runSpineLink(deps, job.data);
 }

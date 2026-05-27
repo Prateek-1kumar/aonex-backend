@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { schema } from "../index.js";
 import { connectTestDb, closeTestDb } from "../testing/connect.js";
 import { ensureTestTenant, TEST_TENANT_ID } from "../testing/seed-tenant.js";
-import { ensureTestMerchant, TEST_MERCHANT_ID } from "../testing/seed-merchant.js";
+import { ensureTestMerchant } from "../testing/seed-merchant.js";
 import { ensureTestChannel, TEST_CHANNEL_ID } from "../testing/seed-channel.js";
 import type { DrizzleClient } from "../client.js";
 

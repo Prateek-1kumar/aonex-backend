@@ -9,9 +9,9 @@ module.exports = {
       name: "no-cross-app-imports",
       severity: "error",
       comment:
-        "apps/api and apps/worker are independent processes. They communicate via Redis (BullMQ) and never via direct imports. (LLD I3, HLD §6.)",
-      from: { path: "^apps/(api|worker)" },
-      to: { path: "^apps/(api|worker)", pathNot: "^apps/(api|worker)/[^/]+/$" }
+        "apps/api and apps/worker are independent processes. Their deployed runtimes (src/) communicate via Redis (BullMQ) and never via direct imports. (LLD I3, HLD §6.) Scoped to src/ — the process boundary; intra-app imports are allowed, only imports into a *different* app's src/ are forbidden. (apps/*/scripts/ are manually-run ops tooling, outside the runtime boundary.)",
+      from: { path: "^apps/([^/]+)/src/" },
+      to: { path: "^apps/([^/]+)/src/", pathNot: "^apps/$1/" }
     },
     {
       name: "no-circular",
@@ -66,6 +66,9 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
+    // Build output is gitignored but present locally after `tsc -b`. Exclude it
+    // so the cruiser analyses TypeScript sources, not compiled dist/ artifacts.
+    exclude: { path: "(^|/)dist/" },
     tsConfig: { fileName: "tsconfig.base.json" },
     enhancedResolveOptions: {
       exportsFields: ["exports"],
