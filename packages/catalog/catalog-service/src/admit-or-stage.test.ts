@@ -347,6 +347,69 @@ describe("admitOrStage — routing chokepoint", () => {
     expect(rows.some((r) => r.stagedProductId === result.stagedProductId)).toBe(true);
   });
 
+  // ---- Case 4: archetype flag on + smartphone missing price → staged via completeness ------
+  test("4. flag-on smartphone missing price → staged with completeness missingFields", async () => {
+    const gtin = "c4000000000004";
+
+    // Smartphone-classified (title "Google Pixel 10 5G") AdapterOutput with gtin
+    // + brand + title + category_path but NO pricing. Under legacy CANONICAL_MINIMUM
+    // missingFields would be ["pricing.primary"]; under completeness it's ["base_price"]
+    // (and "currency", since both come from the same pricing observation absence).
+    const out: AdapterOutput = {
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: "Google Pixel 10 5G",
+          sourceRecordId: "gid://shopify/Product/AOS-4"
+        }),
+        obs({
+          attributeCode: "category_path",
+          value: "Electronics > Phones",
+          sourceRecordId: "gid://shopify/Product/AOS-4-cat"
+        })
+      ],
+      pricingObservations: [],
+      inventoryObservations: [],
+      identityHint: {
+        gtin,
+        brand: "Google",
+        targetIsVariant: false
+      },
+      rawPayload: { src: "admit-or-stage-test-archetype-flag" }
+    };
+
+    const prevFlag = process.env.AONEX_ARCHETYPE_VERTICALS;
+    try {
+      process.env.AONEX_ARCHETYPE_VERTICALS = "smartphone";
+
+      const result = await admitOrStage({
+        db,
+        tenantId: TENANT,
+        merchantId: MERCHANT,
+        adapterOutput: out,
+        sourceKind: "shopify",
+        actor: TEST_ACTOR,
+        channelCode: CHANNEL_CODE
+      });
+
+      expect(result.outcome).toBe("staged");
+      expect(result.stagedProductId).not.toBeNull();
+
+      // Read back the gate verdict from staged_products
+      const rows = await db
+        .select({ gateVerdict: schema.stagedProducts.gateVerdict })
+        .from(schema.stagedProducts)
+        .where(eq(schema.stagedProducts.stagedProductId, result.stagedProductId!));
+      expect(rows.length).toBe(1);
+      const verdict = rows[0]!.gateVerdict as { missingFields: string[] };
+      expect(verdict.missingFields).toContain("base_price");
+      expect(verdict.missingFields).not.toContain("pricing.primary");
+    } finally {
+      if (prevFlag === undefined) delete process.env.AONEX_ARCHETYPE_VERTICALS;
+      else process.env.AONEX_ARCHETYPE_VERTICALS = prevFlag;
+    }
+  });
+
   // ---- Case 3: incomplete re-ingest matching a live product → enriched ------
   test("3. incomplete re-ingest of live product by GTIN → outcome=enriched, productId set", async () => {
     const gtin = "c3000000000003";

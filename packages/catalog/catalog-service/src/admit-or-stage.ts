@@ -13,9 +13,11 @@
 import type { DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId, ChannelId } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
+import { classifyArchetype, type ClassifySignals } from "@aonex/archetypes";
 import { resolveIdentity } from "./identity-resolver.js";
 import { writeAdapterOutput } from "./catalog-write.js";
 import { evaluateGate, type GateSignal } from "./gate/evaluate-gate.js";
+import { latestObservationValue } from "./observation-helpers.js";
 import { stageProduct } from "./staging/stage-product.js";
 
 // ---- Public types -----------------------------------------------------------
@@ -95,7 +97,28 @@ export async function admitOrStage(
     });
   }
 
-  const verdict = evaluateGate({ adapterOutput: out, signals });
+  // Phase 1: when the archetype flag is on for this product's archetype, the
+  // gate delegates to weighted completeness scoring (see evaluate-gate.ts).
+  // Classify here using the same Task 10 pattern that catalog-write uses, so
+  // the routing decision and the eventual archetype family stamp stay aligned.
+  const classifySignals: ClassifySignals = {};
+  const titleVal = latestObservationValue(out, "title");
+  if (typeof titleVal === "string") classifySignals.title = titleVal;
+  const categoryVal = latestObservationValue(out, "category_path");
+  if (typeof categoryVal === "string") classifySignals.categoryPath = categoryVal;
+  if (typeof out.identityHint.brand === "string") classifySignals.brand = out.identityHint.brand;
+  const archetypeId = classifyArchetype(classifySignals);
+
+  const verdict = evaluateGate({
+    adapterOutput: out,
+    signals,
+    archetypeId,
+    allowlist: process.env.AONEX_ARCHETYPE_VERTICALS ?? "",
+    threshold: 0.8,
+    // Phase 2 will thread the real value; in Phase 1 we hardcode true so the
+    // identifier hard-floor matches legacy behaviour for now.
+    identifierExists: true
+  });
 
   // ---- 4. Admit -----------------------------------------------------------
   if (verdict.admit) {
