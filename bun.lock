@@ -216,6 +216,14 @@
         "cheerio": "^1.0.0",
       },
     },
+    "packages/ingestion-eval": {
+      "name": "@aonex/ingestion-eval",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/calibration": "workspace:*",
+        "@aonex/types": "workspace:*",
+      },
+    },
     "packages/ingestion-spine": {
       "name": "@aonex/ingestion-spine",
       "version": "0.0.0",
@@ -407,6 +415,8 @@
     "@aonex/ingestion-dom-heuristics": ["@aonex/ingestion-dom-heuristics@workspace:packages/ingestion-dom-heuristics"],
 
     "@aonex/ingestion-enrichment": ["@aonex/ingestion-enrichment@workspace:packages/ingestion/enrichment"],
+
+    "@aonex/ingestion-eval": ["@aonex/ingestion-eval@workspace:packages/ingestion-eval"],
 
     "@aonex/ingestion-field-extractor": ["@aonex/ingestion-field-extractor@workspace:packages/ingestion/field-extractor"],
 
