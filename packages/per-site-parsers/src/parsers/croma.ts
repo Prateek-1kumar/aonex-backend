@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
+import { flattenJsonLdNodes } from "@aonex/ingestion-link-fetcher";
 import type { PerSiteParser } from "../types.js";
 import { registerParser } from "../registry.js";
 
@@ -29,20 +30,16 @@ function makeFact(rawKey: string, value: unknown, source: string, confidence: nu
 }
 
 function parseJsonLdProduct(rawHtml: string): Record<string, unknown> | null {
-  // Find all <script type="application/ld+json"> blocks and pick one with @type=Product
   const blocks = rawHtml.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
   for (const m of blocks) {
     try {
-      const parsed = JSON.parse(m[1]!);
-      const candidates = Array.isArray(parsed) ? parsed : [parsed];
-      for (const c of candidates) {
-        if (c && typeof c === "object" && c["@type"] === "Product") {
-          return c as Record<string, unknown>;
-        }
+      const nodes = flattenJsonLdNodes(JSON.parse(m[1]!));
+      for (const c of nodes) {
+        const t = c["@type"];
+        const types = Array.isArray(t) ? t : [t];
+        if (types.includes("Product")) return c;
       }
-    } catch {
-      // ignore malformed
-    }
+    } catch { /* ignore malformed */ }
   }
   return null;
 }
