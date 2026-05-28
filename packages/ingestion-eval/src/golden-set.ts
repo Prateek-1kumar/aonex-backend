@@ -20,6 +20,10 @@ export async function loadGoldenSet(dir: string): Promise<{ products: GoldenProd
   const entries = await readdir(dir).catch(() => [] as string[]);
   for (const name of entries) {
     if (!name.endsWith(".json")) continue;
+    // *.extracted.json files are recorded extractor outputs that sit next to
+    // the *.html fixtures and are loaded separately by the eval CLI. Skip
+    // them here so they aren't validated as golden products themselves.
+    if (name.endsWith(".extracted.json")) continue;
     try {
       const parsed = JSON.parse(await Bun.file(join(dir, name)).text());
       const r = validate(parsed, name);
