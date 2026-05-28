@@ -1,0 +1,3 @@
+{ "id": "ok-1", "sourceUrl": "https://x", "archetype": "smartphone",
+  "split": "regression", "rawHtmlPath": "fixtures/golden/_test/ok.html",
+  "labels": { "title": "X", "base_price": 100 } }
