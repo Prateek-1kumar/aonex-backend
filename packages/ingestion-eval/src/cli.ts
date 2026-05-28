@@ -17,6 +17,10 @@ export async function runEval(opts: RunEvalOptions): Promise<number> {
   // Decisions come from the override (early phases) or are derived per product
   // once the live extractor + identity decisions are wired (Phase 0+).
   const decisions: Decision[] = opts.decisionsOverride ?? [];
+  if (decisions.length === 0) {
+    print("skipped: no decisions to score (placeholder wiring; real outputs land in Phase 0)");
+    return 0;
+  }
   const res = evaluateGate({
     decisions,
     regressionPrecision: opts.regressionPrecision,
@@ -31,17 +35,10 @@ export async function runEval(opts: RunEvalOptions): Promise<number> {
 
 // CLI entry: `bun run src/cli.ts`
 if (import.meta.main) {
-  // Placeholder wiring until Phase 0 records real outputs: a single synthetic
-  // pass-row keeps the gate's precision check satisfied so CI has a green
-  // baseline. Phase 0 replaces this with real golden-set + extractor wiring.
+  // Placeholder wiring until Phase 0 records real outputs: exits 0 on empty.
   const code = await runEval({
-    products: [],
-    loadExtracted: async () => ({}),
-    decisionsOverride: [
-      { id: "placeholder", autoPromoted: true, fieldsCorrect: true, dedupCorrect: true },
-    ],
-    regressionPrecision: 1,
-    holdoutPrecision: 1,
+    products: [], loadExtracted: async () => ({}),
+    decisionsOverride: [], regressionPrecision: 1, holdoutPrecision: 1,
   });
   process.exit(code);
 }

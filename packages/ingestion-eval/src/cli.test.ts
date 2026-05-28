@@ -29,3 +29,17 @@ test("runEval returns exit code 1 when the gate fails", async () => {
   });
   expect(code).toBe(1);
 });
+
+test("runEval skips with exit 0 when no decisions are supplied", async () => {
+  let printed = "";
+  const code = await runEval({
+    products: [],
+    loadExtracted: async () => ({}),
+    decisionsOverride: [],
+    regressionPrecision: 1,
+    holdoutPrecision: 1,
+    print: (l) => { printed = l; },
+  });
+  expect(code).toBe(0);
+  expect(printed).toContain("skipped");
+});
