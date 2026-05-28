@@ -13,6 +13,7 @@
     "eval": "bun run src/cli.ts"
   },
   "dependencies": {
+    "@aonex/archetypes": "workspace:*",
     "@aonex/calibration": "workspace:*",
     "@aonex/types": "workspace:*"
   }
