@@ -178,6 +178,22 @@ function applyFills(
       // map it to primary_identifier — the bucket hasIdentifier() accepts and
       // that catalog-write uses as the product's primary_identifier.
       else if (key === "identifier") cloned.identityHint.primary_identifier = value as string;
+    } else if (key === "price") {
+      const amount = parseFloat(String(value).replace(/[^\d.]/g, ""));
+      if (Number.isFinite(amount)) {
+        cloned.pricingObservations.push({
+          productHint: "",
+          channelCode: stagedChannelCode ?? (fills["channelCode"] as string | undefined) ?? "manual",
+          locale: "_unscoped",
+          source: "manual:lab",
+          sourceRecordId: `manual:lab:fill:price`,
+          currency: (fills["currency"] as string | undefined) ?? "USD",
+          tiers: [{ kind: "list", amount }],
+          observedAt: now.toISOString()
+        });
+      }
+    } else if (key === "currency" || key === "channelCode") {
+      // consumed alongside price; do not emit a synthetic observation
     } else {
       cloned.observations.push({
         attributeCode: key,
@@ -371,3 +387,6 @@ export async function promoteStagedProduct(
     return { productId };
   });
 }
+
+export const __applyFillsForTest = applyFills;
+
