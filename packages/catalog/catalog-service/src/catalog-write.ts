@@ -34,11 +34,13 @@ import type {
   ArtifactId
 } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
+import { classifyArchetype } from "@aonex/archetypes";
 import { resolveIdentity, type IdentityMatchPath, type IdentityResolverResult } from "./identity-resolver.js";
 import {
   applyIdentityObservation,
   type IdentityField
 } from "./identity-policy.js";
+import { latestObservationValue } from "./observation-helpers.js";
 import { projectSync, type ProjectSyncResult } from "./reconciler/sync.js";
 
 // ---- Public types ----------------------------------------------------------
@@ -386,6 +388,18 @@ export async function writeAdapterOutput(
       if (adapterOutput.identityHint.primary_identifier)
         identityJson["primary_identifier"] = adapterOutput.identityHint.primary_identifier;
 
+      const classifySignals: { categoryPath?: string; title?: string; brand?: string } = {};
+      const categoryPathVal = latestObservationValue(adapterOutput, "category_path") as
+        | string
+        | undefined;
+      if (typeof categoryPathVal === "string") classifySignals.categoryPath = categoryPathVal;
+      const titleVal = latestObservationValue(adapterOutput, "title") as string | undefined;
+      if (typeof titleVal === "string") classifySignals.title = titleVal;
+      if (adapterOutput.identityHint.brand)
+        classifySignals.brand = adapterOutput.identityHint.brand;
+      const familyId = classifyArchetype(classifySignals);
+      const family = familyId === "unknown" ? null : familyId;
+
       const inserted = await tx
         .insert(schema.catalogProducts)
         .values({
@@ -393,7 +407,7 @@ export async function writeAdapterOutput(
           merchantId,
           primaryIdentifier,
           identity: identityJson,
-          // family is "TBD — for v1 leave null" per task spec.
+          family,
           status: "draft",
           values: {},
           winningValues: {}

@@ -586,4 +586,46 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     expect(logs.length).toBeGreaterThanOrEqual(1);
     expect(logs[0]!.newValue).toBe(seedGtin);
   });
+
+  test("9. new product gets family='smartphone' when classified", async () => {
+    const gtin = `t10:${Date.now()}`;
+    const out = adapterOutput({
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: "Google Pixel 10 5G",
+          sourceRecordId: "gid://shopify/Product/T10"
+        }),
+        obs({
+          attributeCode: "category_path",
+          value: "mobile_phones",
+          sourceRecordId: "gid://shopify/Product/T10"
+        })
+      ],
+      pricingObservations: [
+        pricingObs({
+          sourceRecordId: "p10",
+          tiers: [{ kind: "list", amount: 1499.0 }]
+        })
+      ],
+      identityHint: { gtin, brand: "Google", targetIsVariant: false }
+    });
+
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: out,
+      actor: "shopify:connector",
+      channelCodeToId: { "shopify-au": CHANNEL }
+    });
+
+    expect(result.created).toBe(true);
+
+    const rows = await db
+      .select({ family: schema.catalogProducts.family })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId));
+    expect(rows[0]?.family).toBe("smartphone");
+  });
 });
