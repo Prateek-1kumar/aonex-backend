@@ -7,6 +7,8 @@ import {
   uuid,
   text,
   jsonb,
+  boolean,
+  integer,
   timestamp,
   bigint,
   unique,
@@ -34,6 +36,9 @@ export const catalogProducts = pgTable(
     winningValuesShadow: jsonb("winning_values_shadow"),
     currentRevisionId:   bigint("current_revision_id", { mode: "number" }),
     schemaVersion:       text("schema_version").notNull().default("1"),
+    identifiers:         jsonb("identifiers").notNull().default(sql`'[]'::jsonb`),
+    identifierExists:    boolean("identifier_exists").notNull().default(true),
+    pipelineVersion:     integer("pipeline_version").notNull().default(1),
     createdAt:           timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
   },
