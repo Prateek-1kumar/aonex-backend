@@ -57,7 +57,9 @@ export interface WriteAdapterOutputInput {
   /**
    * Per-leaf observation cap. When `values[attr][channel][locale]` exceeds
    * this length the OLDEST observation (by observed_at) is evicted into the
-   * revision row's `diff.overflow_eviction`. Defaults to 10.
+   * revision row's `diff.overflow_eviction`. Defaults to 20.
+   * See RETENTION.md for rationale (quorum sizing, calibration runway, JSONB
+   * bloat ceiling).
    */
   observationCap?: number;
   /**
@@ -145,7 +147,7 @@ type ValuesJson = Record<
 
 // ---- Helpers ---------------------------------------------------------------
 
-const DEFAULT_OBSERVATION_CAP = 10;
+export const DEFAULT_OBSERVATION_CAP = 20;
 
 /**
  * Stable identity equality for the dedup hint. Two observations from the
