@@ -1,0 +1,8 @@
+{ "id": "croma-pixel-10",
+  "sourceUrl": "https://www.croma.com/google-pixel-10-5g-12gb-256gb-obsidian-/p/000000",
+  "archetype": "smartphone", "split": "regression",
+  "rawHtmlPath": "fixtures/golden/croma-pixel-10.html",
+  "labels": { "title": "Google Pixel 10 5G (12GB RAM, 256GB, Obsidian)",
+              "brand": "Google", "base_price": 79999, "currency": "INR",
+              "category_path": "phones_&_wearables/mobile_phones" },
+  "variantKeys": { "storage": "256GB", "color": "Obsidian" } }
