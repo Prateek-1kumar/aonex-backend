@@ -114,6 +114,7 @@
       "name": "@aonex/catalog-service",
       "version": "0.0.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
         "@aonex/catalog-source-adapters": "workspace:*",
         "@aonex/db": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
