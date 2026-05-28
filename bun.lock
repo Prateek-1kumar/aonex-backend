@@ -93,6 +93,10 @@
       "name": "@aonex/action-projection-compiler",
       "version": "0.0.0",
     },
+    "packages/archetypes": {
+      "name": "@aonex/archetypes",
+      "version": "0.1.0",
+    },
     "packages/audit": {
       "name": "@aonex/audit",
       "version": "0.1.0",
@@ -387,6 +391,8 @@
     "@aonex/action-projection-compiler": ["@aonex/action-projection-compiler@workspace:packages/action/projection-compiler"],
 
     "@aonex/api": ["@aonex/api@workspace:apps/api"],
+
+    "@aonex/archetypes": ["@aonex/archetypes@workspace:packages/archetypes"],
 
     "@aonex/audit": ["@aonex/audit@workspace:packages/audit"],
 
