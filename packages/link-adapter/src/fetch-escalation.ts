@@ -66,7 +66,19 @@ export function isAnemicResponse(rawHtml: string): boolean {
     // total rawHtml is under 30 KB, that's a strong signal of a stub.
     if (rawHtml.length < 30_000) return true;
   }
+  // NEW: a JS-shell page with no Product-typed JSON-LD escalates even if it's
+  // large and has SOME structured data (Organization, BreadcrumbList) — the
+  // per-site parser will find no Product node in static HTML.
+  const hasProductJsonLd = /application\/ld\+json[^>]*>[\s\S]*?"@type"\s*:\s*(\[[^\]]*"Product"|"Product")/i.test(rawHtml);
+  if (!hasProductJsonLd && hasEmptyAppRoot(rawHtml)) return true;
   return false;
+}
+
+function hasEmptyAppRoot(rawHtml: string): boolean {
+  // Matches React/Next-style shells: <div id="root">…</div> or <div id="__next">…</div>
+  // whose body is empty or trivially small (≤200 chars), indicating the actual
+  // product DOM hasn't been hydrated server-side.
+  return /<div\s+[^>]*id=["'](?:root|__next)["'][^>]*>[\s\S]{0,200}<\/div>/i.test(rawHtml);
 }
 
 export async function runFetchEscalation(
