@@ -140,13 +140,18 @@ export function parseJsonLd(
 }
 
 function pickProducts(blocks: Record<string, unknown>[]): Record<string, unknown>[] {
-  return blocks.filter((b) => b["@type"] === "Product");
+  return blocks.filter((b) => hasType(b, "Product"));
 }
 
 function pickProductGroup(
   blocks: Record<string, unknown>[]
 ): Record<string, unknown> | null {
-  return blocks.find((b) => b["@type"] === "ProductGroup") ?? null;
+  return blocks.find((b) => hasType(b, "ProductGroup")) ?? null;
+}
+
+function hasType(b: Record<string, unknown>, type: string): boolean {
+  const t = b["@type"];
+  return Array.isArray(t) ? t.includes(type) : t === type;
 }
 
 function pickHasVariantChildren(
@@ -236,7 +241,7 @@ function pickBreadcrumb(
   blocks: Record<string, unknown>[],
   productName: string | null
 ): string | null {
-  const b = blocks.find((x) => x["@type"] === "BreadcrumbList");
+  const b = blocks.find((x) => hasType(x, "BreadcrumbList"));
   if (!b) return null;
   const items = b.itemListElement as Record<string, unknown>[] | undefined;
   if (!Array.isArray(items)) return null;
@@ -275,7 +280,7 @@ function pickFirstOffer(
   if (Array.isArray(offers)) {
     for (const o of offers) if (isRecord(o)) candidates.push(o);
   } else if (isRecord(offers)) {
-    if (offers["@type"] === "AggregateOffer" && Array.isArray(offers.offers)) {
+    if (hasType(offers, "AggregateOffer") && Array.isArray(offers.offers)) {
       for (const o of offers.offers) if (isRecord(o)) candidates.push(o);
     } else {
       candidates.push(offers);
