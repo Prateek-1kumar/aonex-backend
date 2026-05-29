@@ -56,31 +56,31 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
   );
 
   const issues: CsvRowIssue[] = [...errors, ...warnings];
-  let admittedCount = 0;
+  let processedCount = 0;
 
   for (const group of groups) {
+    const childId = randomUUID();
+    const groupChecksum = createHash("sha256")
+      .update(JSON.stringify(group.output.rawPayload))
+      .digest("hex");
+    const inserted = await db.insert(schema.sourceArtifacts).values({
+      id: childId,
+      tenantId: data.tenantId,
+      merchantId: data.merchantId,
+      sourceType: "templated_csv",
+      sourceMarketplace: null,
+      sourceExternalId: group.primaryIdentifier,
+      parentArtifactId: data.fileArtifactId,
+      rawData: { rows: group.output.rawPayload },
+      checksum: groupChecksum,
+      status: "processing",
+    }).onConflictDoNothing().returning({ id: schema.sourceArtifacts.id });
+
+    // Duplicate group (already ingested in a prior upload) — skip the write.
+    if (inserted.length === 0) continue;
+    const artifactId = (inserted[0]!.id) as ArtifactId;
+
     try {
-      const childId = randomUUID();
-      const groupChecksum = createHash("sha256")
-        .update(JSON.stringify(group.output.rawPayload))
-        .digest("hex");
-      const inserted = await db.insert(schema.sourceArtifacts).values({
-        id: childId,
-        tenantId: data.tenantId,
-        merchantId: data.merchantId,
-        sourceType: "templated_csv",
-        sourceMarketplace: null,
-        sourceExternalId: group.primaryIdentifier,
-        parentArtifactId: data.fileArtifactId,
-        rawData: { rows: group.output.rawPayload },
-        checksum: groupChecksum,
-        status: "processing",
-      }).onConflictDoNothing().returning({ id: schema.sourceArtifacts.id });
-
-      // Duplicate group (already ingested in a prior upload) — skip the write.
-      if (inserted.length === 0) continue;
-      const artifactId = (inserted[0]!.id) as ArtifactId;
-
       await runNewCsvCatalogPath({
         db,
         tenantId: data.tenantId,
@@ -91,19 +91,23 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
       });
       await db.update(schema.sourceArtifacts).set({ status: "completed" })
         .where(eq(schema.sourceArtifacts.id, artifactId as string));
-      admittedCount += 1;
+      processedCount += 1;
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await db.update(schema.sourceArtifacts)
+        .set({ status: "failed", processingErrors: [{ step: "catalog_write", error: message }] as unknown as Record<string, unknown>[] })
+        .where(eq(schema.sourceArtifacts.id, artifactId as string));
       issues.push({
         row: group.rowIndices[0] ?? 0,
         code: "CATALOG_WRITE_FAILED",
-        message: err instanceof Error ? err.message : String(err),
+        message,
         primaryIdentifier: group.primaryIdentifier,
       });
     }
   }
 
   const hardErrors = issues.filter((i) => i.code !== "UNKNOWN_COLUMN");
-  const status = admittedCount === 0
+  const status = processedCount === 0
     ? "failed"
     : hardErrors.length > 0 ? "needs_review" : "completed";
 
@@ -119,7 +123,7 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
     entityType: "source_artifact",
     entityId: data.fileArtifactId,
     requestId: data.requestId,
-    metadata: { admittedCount, errorCount: hardErrors.length, warningCount: warnings.length, status },
+    metadata: { processedCount, errorCount: hardErrors.length, warningCount: warnings.length, status },
   });
 }
 
