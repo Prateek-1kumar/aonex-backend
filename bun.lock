@@ -117,6 +117,7 @@
         "@aonex/archetypes": "workspace:*",
         "@aonex/catalog-source-adapters": "workspace:*",
         "@aonex/db": "workspace:*",
+        "@aonex/gtin-backfill": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
         "@aonex/multi-source-reconciler": "workspace:*",
         "@aonex/types": "workspace:*",

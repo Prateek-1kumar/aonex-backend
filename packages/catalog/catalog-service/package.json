@@ -14,6 +14,7 @@
     "@aonex/lib-utils": "workspace:*",
     "@aonex/catalog-source-adapters": "workspace:*",
     "@aonex/multi-source-reconciler": "workspace:*",
+    "@aonex/gtin-backfill": "workspace:*",
     "bullmq": "^5.34.5",
     "ioredis": "^5.4.2",
     "drizzle-orm": "^0.36.4"
