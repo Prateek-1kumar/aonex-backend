@@ -10,6 +10,8 @@
     { "path": "../../packages/audit" },
     { "path": "../../packages/ingestion/link-fetcher" },
     { "path": "../../packages/ingestion/llm-extractor" },
+    { "path": "../../packages/ingestion-eval" },
+    { "path": "../../packages/multi-source-reconciler" },
     { "path": "../../packages/catalog/catalog-service" }
   ]
 }
