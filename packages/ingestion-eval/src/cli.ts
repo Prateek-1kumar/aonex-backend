@@ -163,6 +163,10 @@ if (import.meta.main) {
   const mp = mergeMetrics(pairs);
   console.log(`identity pairs: ${mp.total} | auto-merged: ${mp.autoMerged} | wrong: ${mp.wrongAutoMerges} | mergePrecision: ${mp.mergePrecision.toFixed(3)}`);
 
+  const { erMetrics: erMet, defaultPairToSides: erSides, ER_PRECISION_BAR, ER_RECALL_BAR } = await import("./er-eval.js");
+  const erM = erMet(pairs, erSides);
+  console.log(`er metrics: prec=${erM.precision.toFixed(3)} recall=${erM.recall.toFixed(3)} (bars ${ER_PRECISION_BAR}/${ER_RECALL_BAR}, tp=${erM.truePositive} fp=${erM.falsePositive} fn=${erM.falseNegative})`);
+
   const code = await runEval({
     products,
     loadExtracted,

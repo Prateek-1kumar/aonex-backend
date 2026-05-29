@@ -14,3 +14,14 @@ export {
   type IdentityPair,
   type MergeMetrics,
 } from "./merge-pairs.js";
+export {
+  stubEmbedding,
+  wouldErAutoMerge,
+  erMetrics,
+  defaultPairToSides,
+  ER_PRECISION_BAR,
+  ER_RECALL_BAR,
+  ER_MERGE_THRESHOLD,
+  type ErEvalSide,
+  type ErMetrics,
+} from "./er-eval.js";
