@@ -11,6 +11,11 @@ import {
   StillIncompleteError,
 } from "@aonex/catalog-service";
 import type { AnomalyLabRouteDeps } from "../routes/anomaly-lab.js";
+import {
+  scoreCandidatePair,
+  type CandidateProductMeta,
+  type StagedProductMeta,
+} from "./lab/er-enrich.js";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -188,6 +193,9 @@ export async function getStaged(c: Context, deps: AnomalyLabRouteDeps): Promise<
       observations: schema.stagedProducts.observations,
       gateVerdict: schema.stagedProducts.gateVerdict,
       matchCandidates: schema.stagedProducts.matchCandidates,
+      denormTitle: schema.stagedProducts.denormTitle,
+      denormBrand: schema.stagedProducts.denormBrand,
+      denormPrice: schema.stagedProducts.denormPrice,
     })
     .from(schema.stagedProducts)
     .where(
@@ -237,13 +245,43 @@ export async function getStaged(c: Context, deps: AnomalyLabRouteDeps): Promise<
     }
   }
 
+  // Build staged-side meta once for ER pair scoring. Variant axes aren't
+  // denormalized on staged_products today — Phase 4.x will extract them from
+  // observations. Passing {} keeps the score honest (neutral specAgreement).
+  const stagedTitle = row.denormTitle ?? "";
+  const stagedMeta: StagedProductMeta = {
+    title: stagedTitle,
+    brand: row.denormBrand ?? "",
+    variant: {},
+    price: row.denormPrice !== null && row.denormPrice !== undefined
+      ? Number(row.denormPrice)
+      : null,
+  };
+  // Skip scoring entirely when the staged side has no title — embeddings of
+  // empty strings degenerate (zero vector), and the resulting score is noise.
+  const canScore = stagedTitle.length > 0;
+
   // Enrich candidates — non-live entries get null title/brand.
+  // For live candidates, attach a PairScore breakdown so reviewers see *why*.
   const enrichedCandidates = candidates.map((cand) => {
     if (cand.kind === "live") {
       const enrichment = liveCandidateMap.get(cand.productId) ?? { title: null, brand: null };
-      return { ...cand, title: enrichment.title, brand: enrichment.brand };
+      let pairScore = null;
+      if (canScore) {
+        // Variant/price not loaded for live candidates today — Phase 4.x adds
+        // the join. Passing {} and null biases the composite conservatively.
+        const candidateMeta: CandidateProductMeta = {
+          productId: cand.productId,
+          title: enrichment.title,
+          brand: enrichment.brand,
+          variant: {},
+          price: null,
+        };
+        pairScore = scoreCandidatePair(stagedMeta, candidateMeta);
+      }
+      return { ...cand, title: enrichment.title, brand: enrichment.brand, pairScore };
     }
-    return { ...cand, title: null, brand: null };
+    return { ...cand, title: null, brand: null, pairScore: null };
   });
 
   return c.json({
