@@ -199,6 +199,10 @@
       "name": "@aonex/drift-detector",
       "version": "0.0.0",
     },
+    "packages/gtin-backfill": {
+      "name": "@aonex/gtin-backfill",
+      "version": "0.1.0",
+    },
     "packages/ingestion-antibot-vendor": {
       "name": "@aonex/ingestion-antibot-vendor",
       "version": "0.0.0",
@@ -413,6 +417,8 @@
     "@aonex/db": ["@aonex/db@workspace:packages/db"],
 
     "@aonex/drift-detector": ["@aonex/drift-detector@workspace:packages/drift-detector"],
+
+    "@aonex/gtin-backfill": ["@aonex/gtin-backfill@workspace:packages/gtin-backfill"],
 
     "@aonex/ingestion-antibot-vendor": ["@aonex/ingestion-antibot-vendor@workspace:packages/ingestion-antibot-vendor"],
 
