@@ -410,6 +410,12 @@ export async function writeAdapterOutput(
           primaryIdentifier,
           identity: identityJson,
           family,
+          // Phase 2 Task 13 (D5): stamp new rows as pipeline_version=2 so the
+          // anti-duplication heal-on-touch can distinguish old (v1) weak-identity
+          // rows from new (v2) rows. Existing rows keep their stamp (default 1)
+          // and only the Lab's resolve flow upgrades them — never an autonomous
+          // background sweep (plan: "no transitive/cascading auto-merge").
+          pipelineVersion: 2,
           status: "draft",
           values: {},
           winningValues: {}

@@ -44,9 +44,27 @@ export interface ResolveV2Input {
   inferredFamily?: string;
 }
 
+/** Per-candidate metadata for Phase 2 Task 13 (heal-on-touch / D5).
+ *  Parallel to `candidateRows` — same length, same order — so callers can
+ *  inspect the OLD-row signals (pipeline_version, empty identifiers[]) without
+ *  polluting the shared `CandidateRow` type used by `decideResolution`. */
+export interface CandidateMeta {
+  productId: string;
+  /** catalog_products.pipeline_version. Pre-Phase-2 rows are 1; new
+   *  Phase-2 inserts are stamped 2 (see catalog-write.ts). */
+  pipelineVersion: number;
+  /** True when the row's identifiers[] is literally empty. The heal-on-touch
+   *  check pairs this with pipelineVersion<2 to detect a fuzzy match to an OLD
+   *  weak-identity row — the trigger for the heal signal. */
+  identifiersEmpty: boolean;
+}
+
 export interface ResolveV2Result {
   legacy: IdentityResolverResult;
   candidateRows: CandidateRow[];
+  /** Parallel to candidateRows (same length, same order). Carries the v1/empty
+   *  signals decideResolution doesn't need. */
+  candidateMeta: CandidateMeta[];
 }
 
 /** Build a strong-keyed identifier set from a legacy IdentityHint.
@@ -117,13 +135,17 @@ export async function resolveIdentityV2(input: ResolveV2Input): Promise<ResolveV
     .filter((c) => c.kind === "live")
     .map((c) => c.productId);
   const allIds = Array.from(new Set<string>([...liveIds, ...strongMatchIds]));
-  if (allIds.length === 0) return { legacy, candidateRows: [] };
+  if (allIds.length === 0) return { legacy, candidateRows: [], candidateMeta: [] };
 
   const rows = await input.db
     .select({
       productId: schema.catalogProducts.productId,
       identifiers: schema.catalogProducts.identifiers,
       identity: schema.catalogProducts.identity,
+      // Phase 2 Task 13: surface pipeline_version + (derived) identifiersEmpty
+      // for admit-or-stage's heal-on-touch check. Kept off CandidateRow so
+      // decideResolution's contract is unchanged.
+      pipelineVersion: schema.catalogProducts.pipelineVersion,
     })
     .from(schema.catalogProducts)
     .where(
@@ -137,7 +159,9 @@ export async function resolveIdentityV2(input: ResolveV2Input): Promise<ResolveV
     legacy.candidates.filter((c) => c.kind === "live").map((c) => [c.productId, c.score])
   );
 
-  const candidateRows: CandidateRow[] = rows.map((row) => {
+  const candidateRows: CandidateRow[] = [];
+  const candidateMeta: CandidateMeta[] = [];
+  for (const row of rows) {
     const ids: Identifier[] = Array.isArray(row.identifiers)
       ? (row.identifiers as Identifier[])
       : [];
@@ -156,8 +180,13 @@ export async function resolveIdentityV2(input: ResolveV2Input): Promise<ResolveV
     // Strong-match-only rows (no legacy hit) get no fuzzyScore: they rely on
     // matchOnStrong inside decideResolution to drive auto_merge.
     if (legacyScore !== undefined && legacyScore < 1.0) candidate.fuzzyScore = legacyScore;
-    return candidate;
-  });
+    candidateRows.push(candidate);
+    candidateMeta.push({
+      productId: row.productId,
+      pipelineVersion: row.pipelineVersion,
+      identifiersEmpty: ids.length === 0,
+    });
+  }
 
-  return { legacy, candidateRows };
+  return { legacy, candidateRows, candidateMeta };
 }
