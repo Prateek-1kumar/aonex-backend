@@ -69,8 +69,8 @@ describe("csvAdapter", () => {
     expect(mpn!.channelCode).toBe("_unscoped");
     expect(mpn!.value).toBe("MPN-SHO-001");
 
-    // category channel-scoped
-    const category = out.observations.find((o) => o.attributeCode === "category");
+    // category_path channel-scoped (canonical code, matches gate + other adapters)
+    const category = out.observations.find((o) => o.attributeCode === "category_path");
     expect(category).toBeDefined();
     expect(category!.value).toBe("Health > Topicals");
     expect(category!.channelCode).toBe("csv");
@@ -88,7 +88,7 @@ describe("csvAdapter", () => {
 
     // Exactly one parent observation each — no duplicates
     const parentObs = out.observations.filter((o) => o.target === "parent");
-    expect(parentObs.length).toBe(7); // title, brand, identity.mpn, identity.gtin, category, description_long, weight
+    expect(parentObs.length).toBe(7); // title, brand, identity.mpn, identity.gtin, category_path, description_long, weight
     // No variant observations
     expect(out.observations.filter((o) => o.target === "variant").length).toBe(0);
 
@@ -130,7 +130,7 @@ describe("csvAdapter", () => {
 
     // Parent obs emitted ONCE despite 3 rows
     const parentObs = out.observations.filter((o) => o.target === "parent");
-    // title, brand, identity.mpn, identity.gtin, category, description_long, weight = 7
+    // title, brand, identity.mpn, identity.gtin, category_path, description_long, weight = 7
     expect(parentObs.length).toBe(7);
 
     // Exactly one title

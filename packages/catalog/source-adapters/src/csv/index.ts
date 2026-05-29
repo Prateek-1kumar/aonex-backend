@@ -265,7 +265,11 @@ function adaptGroup(
   const categoryVal = nonEmpty(firstRow, "category");
   if (categoryVal !== undefined) {
     observations.push({
-      attributeCode: "category",
+      // Canonical attribute code is "category_path" — matches the shopify and
+      // link adapters and the CANONICAL_MINIMUM gate check
+      // (evaluate-gate.ts). Emitting bare "category" here would make every
+      // CSV product miss the gate's category_path requirement and stage.
+      attributeCode: "category_path",
       target: "parent",
       channelCode,
       localeCode: locale,
