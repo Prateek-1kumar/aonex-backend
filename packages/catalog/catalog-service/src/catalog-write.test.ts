@@ -28,7 +28,7 @@ import type {
   CanonicalObservation,
   PricingObservation
 } from "@aonex/catalog-source-adapters";
-import { writeAdapterOutput } from "./catalog-write.js";
+import { writeAdapterOutput, DEFAULT_OBSERVATION_CAP } from "./catalog-write.js";
 
 const TENANT = TEST_TENANT_ID as unknown as TenantId;
 const MERCHANT = TEST_MERCHANT_ID as unknown as MerchantId;
@@ -373,10 +373,10 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     expect(values.title["shopify-au"].en_AU.length).toBe(1);
   });
 
-  test("5. N=10 observation cap overflows oldest to revision diff", async () => {
-    // Pre-seed values with 10 title observations across distinct sourceRecordId
+  test("5. N=20 observation cap overflows oldest to revision diff", async () => {
+    // Pre-seed values with 20 title observations across distinct sourceRecordId
     // / observed_at pairs so the dedup hint does not trigger.
-    const tenObservations = Array.from({ length: 10 }, (_, i) => ({
+    const twentyObservations = Array.from({ length: 20 }, (_, i) => ({
       source: `src-${i}`,
       source_record_id: `rec-${i}`,
       value: `v-${i}`,
@@ -394,7 +394,7 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
         identity: { gtin: "05000000000005", identity_strength: 1.0 },
         status: "active",
         values: {
-          title: { "shopify-au": { en_AU: tenObservations } }
+          title: { "shopify-au": { en_AU: twentyObservations } }
         }
       })
       .returning({ productId: schema.catalogProducts.productId });
@@ -425,7 +425,7 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, seededId));
     const values = row[0]!.values as Record<string, any>;
-    expect(values.title["shopify-au"].en_AU.length).toBe(10);
+    expect(values.title["shopify-au"].en_AU.length).toBe(20);
     // The oldest observation (i=0, observed_at ~2026-05-01T00:00Z) should
     // have been popped.
     const remainingIds: string[] = values.title["shopify-au"].en_AU.map(
@@ -585,5 +585,100 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
       );
     expect(logs.length).toBeGreaterThanOrEqual(1);
     expect(logs[0]!.newValue).toBe(seedGtin);
+  });
+
+  test("9. new product gets family='smartphone' when classified", async () => {
+    const gtin = `t10:${Date.now()}`;
+    const out = adapterOutput({
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: "Google Pixel 10 5G",
+          sourceRecordId: "gid://shopify/Product/T10"
+        }),
+        obs({
+          attributeCode: "category_path",
+          value: "mobile_phones",
+          sourceRecordId: "gid://shopify/Product/T10"
+        })
+      ],
+      pricingObservations: [
+        pricingObs({
+          sourceRecordId: "p10",
+          tiers: [{ kind: "list", amount: 1499.0 }]
+        })
+      ],
+      identityHint: { gtin, brand: "Google", targetIsVariant: false }
+    });
+
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: out,
+      actor: "shopify:connector",
+      channelCodeToId: { "shopify-au": CHANNEL }
+    });
+
+    expect(result.created).toBe(true);
+
+    const rows = await db
+      .select({ family: schema.catalogProducts.family })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId));
+    expect(rows[0]?.family).toBe("smartphone");
+  });
+
+  test("observation cap is 20 and newest wins on overflow", async () => {
+    // Pins both (a) the public cap constant and (b) newest-wins eviction
+    // behaviour: 21 distinct observations on the same leaf must collapse to
+    // 20, with the oldest (iter-0) evicted and iter-1..iter-20 surviving.
+    expect(DEFAULT_OBSERVATION_CAP).toBe(20);
+
+    const baseAt = Date.parse("2026-01-01T00:00:00Z");
+    const gtin = `12000000000${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0")}`;
+
+    let lastProductId: string | null = null;
+    for (let i = 0; i < 21; i++) {
+      const result = await writeAdapterOutput({
+        db,
+        tenantId: TENANT,
+        merchantId: MERCHANT,
+        adapterOutput: adapterOutput({
+          observations: [
+            obs({
+              attributeCode: "title",
+              value: `iter-${i}`,
+              // Each one strictly newer than the previous so the oldest-by-
+              // observed_at eviction targets iter-0 unambiguously.
+              observedAt: new Date(baseAt + i * 1000),
+              sourceRecordId: `t12-r-${i}`
+            })
+          ],
+          identityHint: { gtin, brand: "Acme", targetIsVariant: false }
+        }),
+        actor: "shopify:connector"
+      });
+      lastProductId = result.productId;
+    }
+
+    expect(lastProductId).not.toBeNull();
+    const rows = await db
+      .select({ values: schema.catalogProducts.values })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, lastProductId!));
+    expect(rows.length).toBe(1);
+
+    // values shape: { title: { "shopify-au": { en_AU: StoredObservation[] } } }
+    const leaf = (rows[0]!.values as Record<string, any>).title["shopify-au"]
+      .en_AU as Array<{ value: string }>;
+
+    expect(leaf.length).toBe(20); // cap holds
+    const surviving = leaf.map((o) => o.value);
+    expect(surviving).not.toContain("iter-0");
+    expect(surviving).toContain("iter-1");
+    expect(surviving).toContain("iter-20");
   });
 });

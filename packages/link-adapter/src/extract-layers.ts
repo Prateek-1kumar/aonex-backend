@@ -3,7 +3,9 @@ import {
   type LLMProductExtractor,
   LLM_EXTRACTOR_VERSION,
   compressJsonLd,
-  pruneNextData
+  pruneNextData,
+  genericExtract,
+  createLlmCallModel
 } from "@aonex/ingestion-llm-extractor";
 import type { ExtractedFactSet, ExtractedFact } from "@aonex/ingestion-field-extractor";
 import { convertFromFacts } from "@aonex/ingestion-enrichment";
@@ -15,9 +17,12 @@ import {
 import {
   shouldEscalateToVision,
   callVision,
+  createVisionCallModel,
   type VisionCallInput,
   type VisionCallResult
 } from "@aonex/vision-extractor";
+import { classifyArchetype, getArchetype } from "@aonex/archetypes";
+import type { IsotonicModel } from "@aonex/calibration";
 import type { PerSiteParser } from "@aonex/per-site-parsers";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 import type { ScreenshotFetcher, VisionExtractor } from "./link-adapter.js";
@@ -35,6 +40,32 @@ export const SCHEMA_FIELDS = [
   "highlights","breadcrumbs","return_policy","warranty",
   "shipping_free","shipping_cost","weight","dimensions"
 ] as const;
+
+// Phase 3 Task 6: placeholder identity isotonic. Returns raw confidence unchanged
+// (applyIsotonic short-circuits when thresholds is empty). Phase 3.x will load a
+// fitted model from where calibration eventually persists.
+const IDENTITY_CALIBRATION: IsotonicModel = { thresholds: [], values: [] };
+
+/** Convert genericExtract's CalibratedFact output to the ExtractedFact shape the
+ *  downstream pipeline expects. */
+function calibratedToExtracted(
+  facts: Array<{ field: string; value: unknown; confidence: number }>
+): ExtractedFact[] {
+  return facts.map((f) => ({
+    rawKey: f.field,
+    canonicalPath: null,
+    extractedValue: f.value,
+    normalizedValue: f.value,
+    unit: null,
+    sourcePointer: "generic-extractor",
+    extractionMethod: "direct" as const,
+    confidence: f.confidence,
+    mappingMethod: null,
+    mappingCandidates: null,
+    sourceAlternatives: null,
+    approved: false,
+  }));
+}
 
 /**
  * Merge per-site parser facts with generic Layer A/B facts.
@@ -81,7 +112,7 @@ export async function runExtractionLayers(
   }
 
   // Layers A + B (always run — additive to per-site)
-  const structured = await extractStructured({
+  const structuredResult = await extractStructured({
     pageUrl: cached.fetchResult.finalUrl,
     rawHtml: cached.finalRawHtml,
     structuredBlocks: cached.fetchResult.structuredBlocks
@@ -91,16 +122,76 @@ export async function runExtractionLayers(
   const dom = deps.domHeuristics(cached.finalRawHtml);
 
   // Merge: per-site wins on rawKey collisions (highest-priority Layer G)
-  const baseFacts = mergeFactsWithPriority(perSiteFacts, [...structured.structured.facts, ...dom.facts]);
+  const baseFacts = mergeFactsWithPriority(perSiteFacts, [...structuredResult.structured.facts, ...dom.facts]);
 
-  // LLM gap-fill — always on. Compute schema fields not yet filled by Layers A/B/G
-  // and ask the LLM to fill ONLY those gaps (anchored by the facts we already have).
+  // Phase 3 Task 6: classify the archetype from already-known facts and route the
+  // LLM gap-fill through genericExtract when a registered archetype matches.
+  // When archetype is "unknown" (no rule fires or ambiguous match), fall back to
+  // the legacy static-SCHEMA_FIELDS gap-fill — preserves backward-compat for
+  // sites we haven't classified yet.
+  const titleFact = baseFacts.find((f) => f.rawKey === "title");
+  const brandFact = baseFacts.find((f) => f.rawKey === "brand");
+  const catFact   = baseFacts.find((f) => f.rawKey === "category_path");
+  const classifySignals: { title?: string; brand?: string; categoryPath?: string } = {};
+  if (typeof titleFact?.extractedValue === "string") classifySignals.title = titleFact.extractedValue;
+  if (typeof brandFact?.extractedValue === "string") classifySignals.brand = brandFact.extractedValue;
+  if (typeof catFact?.extractedValue   === "string") classifySignals.categoryPath = catFact.extractedValue;
+  const archId = classifyArchetype(classifySignals);
+  const archetype = getArchetype(archId);
+
+  // Build a Record<rawKey, {value, confidence}> view of baseFacts for genericExtract's
+  // fast-path / vision update step.
+  const structuredView: Record<string, { value: unknown; confidence: number }> = {};
+  for (const f of baseFacts) {
+    structuredView[f.rawKey] = {
+      value: f.normalizedValue ?? f.extractedValue,
+      confidence: f.confidence
+    };
+  }
+
+  // LLM gap-fill / generic extraction
   const llmFacts: ExtractedFactSet["facts"] = [];
 
   const filledKeys = new Set<string>(baseFacts.map((f) => f.rawKey));
   const gaps = SCHEMA_FIELDS.filter((k) => !filledKeys.has(k));
 
-  if (gaps.length > 0 && budget.canCallLlm()) {
+  if (archetype && budget.canCallLlm()) {
+    // Phase 3 Task 6 primary path: schema-guided generic extraction.
+    try {
+      const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
+      const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
+      const rawImageUrls = (cached.fetchResult.structuredBlocks.images ?? []).map((i) => i.url);
+
+      const llmCallModel = createLlmCallModel({
+        llmExtractor: deps.llmExtractor,
+        baseFacts,
+        structuredHints: {
+          jsonLd: compressed,
+          metaTags: cached.fetchResult.structuredBlocks.metaTags ?? {},
+          microdata: cached.fetchResult.structuredBlocks.microdata ?? [],
+          rawImageUrls,
+          nextDataProductSubtree: nextSub
+        },
+        finalUrl: cached.fetchResult.finalUrl,
+        artifactId: envelope.sourceExternalId as never,
+        onCost: (usd) => budget.recordLlm(usd)
+      });
+
+      const calibrated = await genericExtract({
+        archetype,
+        structured: structuredView,
+        cleanedText: cached.fetchResult.cleanedText,
+        calibration: IDENTITY_CALIBRATION,
+        callModel: llmCallModel
+      });
+      llmFacts.push(...calibratedToExtracted(calibrated));
+    } catch {
+      // generic-extract error — keep base facts; absent facts surface in trace
+    }
+  } else if (gaps.length > 0 && budget.canCallLlm()) {
+    // Legacy fallback: unknown archetype OR no archetype registered → use the
+    // original static-SCHEMA_FIELDS gap-fill so behaviour for unclassified sites
+    // stays intact while Phase 3 archetype coverage grows.
     try {
       const compressed = compressJsonLd(cached.fetchResult.structuredBlocks.jsonLd ?? []);
       const nextSub = pruneNextData(cached.fetchResult.structuredBlocks.nextData);
@@ -134,6 +225,12 @@ export async function runExtractionLayers(
   }
 
   // Layer F — vision tier-3 (Phase 9)
+  // NOTE: createVisionCallModel is imported and referenced via `void` below so
+  // the import chain is preserved. The full integration through genericExtract
+  // for vision is deferred to Phase 3.x: it requires deps wiring (API key) that
+  // the existing deps.visionExtractor closure already owns. For Task 6 we
+  // continue to invoke deps.visionExtractor directly so vision behaviour is
+  // unchanged.
   const visionFacts: ExtractedFactSet["facts"] = [];
   const upstreamFacts = [...baseFacts, ...llmFacts];
   const visionDecision = shouldEscalateToVision({
@@ -157,6 +254,9 @@ export async function runExtractionLayers(
       // Vision failed (screenshot or API error) — don't fail the extract.
     }
   }
+  // Keep the new vision callModel symbol referenced so its import survives
+  // tree-shaking-aware tools until Phase 3.x lights up the wiring.
+  void createVisionCallModel;
 
   const allFacts = [...upstreamFacts, ...visionFacts];
 
@@ -176,7 +276,7 @@ export async function runExtractionLayers(
     ...(perSiteFacts.length > 0 ? ["per_site"] : []),
     "structured",
     "dom",
-    ...(llmFacts.length > 0 ? ["llm-gap-fill"] : []),
+    ...(llmFacts.length > 0 ? [archetype ? "generic-extract" : "llm-gap-fill"] : []),
     ...(visionFacts.length > 0 ? ["vision"] : [])
   ];
   skuJson._extraction_meta.escalated_to = cached.escalatedTo;

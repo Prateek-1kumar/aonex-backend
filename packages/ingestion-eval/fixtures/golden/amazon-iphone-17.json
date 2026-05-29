@@ -1,0 +1,7 @@
+{ "id": "amazon-iphone-17",
+  "sourceUrl": "https://www.amazon.in/dp/B0XXXXXXXX",
+  "archetype": "smartphone", "split": "holdout",
+  "rawHtmlPath": "fixtures/golden/amazon-iphone-17.html",
+  "labels": { "title": "Apple iPhone 17 (256 GB)", "brand": "Apple",
+              "base_price": 89900, "currency": "INR" },
+  "variantKeys": { "storage": "256GB" } }

@@ -118,3 +118,26 @@ test("no gtin/mpn AND no primary_identifier → still missing 'identifier'", () 
   expect(v.missingFields).toEqual(["identifier"]);
   expect(v.admit).toBe(false);
 });
+
+// Phase 1 — Task 9: flag-gated delegation to completeness gate.
+// Discriminating tests: the legacy path uses field key "pricing.primary",
+// while the completeness path uses "base_price" / "currency". Asserting on
+// those distinct keys proves the correct path was taken.
+test("flag on for smartphone with no price: completeness shows missing required (not legacy missingFields)", () => {
+  const noPrice = output({ pricingObservations: [] });
+  const v = evaluateGate(input({
+    adapterOutput: noPrice,
+    archetypeId: "smartphone",
+    allowlist: "smartphone",
+  }));
+  expect(v.admit).toBe(false);
+  expect(v.missingFields).toContain("base_price");
+  expect(v.missingFields).not.toContain("pricing.primary");
+});
+
+test("flag off: legacy 5-field behavior is unchanged (uses pricing.primary key)", () => {
+  const noPrice = output({ pricingObservations: [] });
+  const v = evaluateGate(input({ adapterOutput: noPrice }));
+  expect(v.admit).toBe(false);
+  expect(v.missingFields).toContain("pricing.primary");
+});

@@ -8,7 +8,7 @@
 // Uses a unique tenant UUID to avoid collision with catalog-write.test.ts.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
@@ -347,6 +347,69 @@ describe("admitOrStage — routing chokepoint", () => {
     expect(rows.some((r) => r.stagedProductId === result.stagedProductId)).toBe(true);
   });
 
+  // ---- Case 4: archetype flag on + smartphone missing price → staged via completeness ------
+  test("4. flag-on smartphone missing price → staged with completeness missingFields", async () => {
+    const gtin = "c4000000000004";
+
+    // Smartphone-classified (title "Google Pixel 10 5G") AdapterOutput with gtin
+    // + brand + title + category_path but NO pricing. Under legacy CANONICAL_MINIMUM
+    // missingFields would be ["pricing.primary"]; under completeness it's ["base_price"]
+    // (and "currency", since both come from the same pricing observation absence).
+    const out: AdapterOutput = {
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: "Google Pixel 10 5G",
+          sourceRecordId: "gid://shopify/Product/AOS-4"
+        }),
+        obs({
+          attributeCode: "category_path",
+          value: "Electronics > Phones",
+          sourceRecordId: "gid://shopify/Product/AOS-4-cat"
+        })
+      ],
+      pricingObservations: [],
+      inventoryObservations: [],
+      identityHint: {
+        gtin,
+        brand: "Google",
+        targetIsVariant: false
+      },
+      rawPayload: { src: "admit-or-stage-test-archetype-flag" }
+    };
+
+    const prevFlag = process.env.AONEX_ARCHETYPE_VERTICALS;
+    try {
+      process.env.AONEX_ARCHETYPE_VERTICALS = "smartphone";
+
+      const result = await admitOrStage({
+        db,
+        tenantId: TENANT,
+        merchantId: MERCHANT,
+        adapterOutput: out,
+        sourceKind: "shopify",
+        actor: TEST_ACTOR,
+        channelCode: CHANNEL_CODE
+      });
+
+      expect(result.outcome).toBe("staged");
+      expect(result.stagedProductId).not.toBeNull();
+
+      // Read back the gate verdict from staged_products
+      const rows = await db
+        .select({ gateVerdict: schema.stagedProducts.gateVerdict })
+        .from(schema.stagedProducts)
+        .where(eq(schema.stagedProducts.stagedProductId, result.stagedProductId!));
+      expect(rows.length).toBe(1);
+      const verdict = rows[0]!.gateVerdict as { missingFields: string[] };
+      expect(verdict.missingFields).toContain("base_price");
+      expect(verdict.missingFields).not.toContain("pricing.primary");
+    } finally {
+      if (prevFlag === undefined) delete process.env.AONEX_ARCHETYPE_VERTICALS;
+      else process.env.AONEX_ARCHETYPE_VERTICALS = prevFlag;
+    }
+  });
+
   // ---- Case 3: incomplete re-ingest matching a live product → enriched ------
   test("3. incomplete re-ingest of live product by GTIN → outcome=enriched, productId set", async () => {
     const gtin = "c3000000000003";
@@ -382,5 +445,226 @@ describe("admitOrStage — routing chokepoint", () => {
     expect(second.outcome).toBe("enriched");
     expect(second.productId).toBe(liveProductId);
     expect(second.stagedProductId).toBeNull();
+  });
+
+  // ---- Case 5 (Phase 2 Task 6): strong-key match in identifiers[] → auto_merge ----
+  // Seeds a product directly with identifiers[]={gtin:PHASE2-CASE-A-GTIN, strong} and
+  // identity.variantAxes={storage:"256GB"}. Then ingests an AdapterOutput with the same
+  // GTIN + same variant. decideResolution should yield action="auto_merge"; admitOrStage
+  // must attach (outcome="admitted" via writeAdapterOutput re-resolving on GTIN) and not
+  // create a duplicate.
+  test("5. strong-key match via identifiers[] + matching variant → admitted, no duplicate", async () => {
+    const gtin = "PHASE2-CASE-A-GTIN";
+    const primaryId = "PHASE2-CASE-A-SKU";
+
+    // Seed the live product with the new Phase 2 identifiers + variantAxes shape.
+    // CRITICAL: identity.gtin is intentionally NOT set, so the legacy resolver
+    // (which keys on identity->>'gtin') misses this row. Only V2 — which queries
+    // the new identifiers jsonb column for strong-key containment — can find it.
+    // That isolates the new Phase 2 routing as the sole basis for the attach.
+    const seeded = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TENANT_ID,
+        merchantId: MERCHANT_ID,
+        primaryIdentifier: primaryId,
+        identity: {
+          brand: "Acme",
+          variantAxes: { storage: "256GB" }
+        },
+        status: "active",
+        values: {},
+        identifiers: [
+          { type: "gtin", value: gtin, source: "connector:shopify", corroborated: true }
+        ]
+      })
+      .returning();
+    const seededProductId = seeded[0]!.productId;
+
+    const out: AdapterOutput = {
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: "Acme Phase 2 Widget",
+          sourceRecordId: "gid://shopify/Product/AOS-5"
+        }),
+        obs({
+          attributeCode: "category_path",
+          value: "Electronics > Widgets",
+          sourceRecordId: "gid://shopify/Product/AOS-5-cat"
+        })
+      ],
+      pricingObservations: [
+        pricingObs({ sourceRecordId: "gid://shopify/ProductVariant/AOS-5" })
+      ],
+      inventoryObservations: [],
+      identityHint: {
+        gtin,
+        brand: "Acme",
+        variantAxes: { storage: "256GB" },
+        targetIsVariant: false
+      },
+      rawPayload: { src: "admit-or-stage-test-phase2-case-a" }
+    };
+
+    const result = await admitOrStage({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: out,
+      sourceKind: "shopify",
+      actor: TEST_ACTOR,
+      channelCode: CHANNEL_CODE,
+      channelCodeToId: { [CHANNEL_CODE]: CHANNEL }
+    });
+
+    // Strong-key auto_merge → admit attaches to existing row, no duplicate.
+    expect(result.outcome).toBe("admitted");
+    expect(result.productId).toBe(seededProductId);
+    expect(result.stagedProductId).toBeNull();
+
+    // Confirm exactly one row claims this GTIN — no duplicate. We check the
+    // Phase 2 identifiers jsonb (which the seed populated) rather than legacy
+    // identity->>'gtin' (intentionally left unset on the seed).
+    const rows = await db
+      .select({ productId: schema.catalogProducts.productId })
+      .from(schema.catalogProducts)
+      .where(
+        and(
+          eq(schema.catalogProducts.tenantId, TENANT_ID),
+          sql`${schema.catalogProducts.identifiers} @> ${sql.raw(
+            `'[{"type":"gtin","value":"${gtin}"}]'::jsonb`
+          )}`
+        )
+      );
+    expect(rows.length).toBe(1);
+    expect(rows[0]!.productId).toBe(seededProductId);
+  });
+
+  // ---- Case 6 (Phase 2 Task 13): heal-on-touch — cross-version (D5) ---------
+  // Seeds an OLD (pipelineVersion=1) weak-identity row with EMPTY identifiers[]
+  // and identity={brand,family-classifiable} + a winning title — so the legacy
+  // fuzzy resolver surfaces it as a fuzzy-high live candidate when a new ingest
+  // arrives with matching brand+title. Incoming ALSO carries a strong GTIN
+  // (which the seed lacks) → decideResolution sees the seed as a fuzzy candidate
+  // (fuzzyScore>=0.5 from legacy fuzzy_high) → propose_lab. heal_on_touch fires
+  // because the candidate is pipelineVersion=1 AND identifiers[] is empty.
+  test("6. cross-version (D5) heal-on-touch: v1 empty-identifiers fuzzy candidate + strong incoming → staged with merge_candidate + heal_on_touch", async () => {
+    const gtin = "PHASE2-CASE-D5-GTIN";
+    const primaryId = "PHASE2-CASE-D5-SKU";
+    // Seed title intentionally diverges by one token from the ingest title.
+    // That keeps the fuzzy composite < 1.0 (so V2 sets fuzzyScore on the
+    // candidate row, which is the propose_lab trigger in decideResolution).
+    // It still scores >= FUZZY_AUTO_MATCH (0.7), so legacy fuzzy_high surfaces
+    // the seed as a live candidate — both ingredients the heal-on-touch case
+    // needs.
+    const seedTitle = "Google Pixel 10";
+    const ingestTitle = "Google Pixel 10 5G";
+
+    // Seed an OLD weak-identity row. Key properties for the D5 cross-version case:
+    //   - pipelineVersion: 1 (pre-Phase-2 stamp)
+    //   - identifiers[]: literally empty — the legacy weak-identity case
+    //   - identity.gtin NOT set (so legacy step 1 GTIN-exact misses)
+    //   - identity.brand="Google" + winning_values.title.* AND family="phone"
+    //     → legacy fuzzy path surfaces this row when incoming title matches
+    //   - Inserted directly so winning_values.title carries the value that
+    //     populates gen_title (the generated column the fuzzy similarity()
+    //     query reads).
+    const seeded = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TENANT_ID,
+        merchantId: MERCHANT_ID,
+        primaryIdentifier: primaryId,
+        identity: {
+          brand: "Google"
+        },
+        family: "phone",
+        status: "active",
+        values: {},
+        winningValues: {
+          title: { _primary: { value: seedTitle } }
+        },
+        identifiers: [],
+        pipelineVersion: 1
+      })
+      .returning();
+    const seededProductId = seeded[0]!.productId;
+
+    // Ingest: matching brand + title (so legacy fuzzy_high fires on the seed)
+    // PLUS a STRONG GTIN the seed doesn't claim — this is exactly the D5
+    // "new strong-keyed ingest meets an old weak-identity row" case.
+    const out: AdapterOutput = {
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: ingestTitle,
+          sourceRecordId: "gid://shopify/Product/AOS-6"
+        }),
+        obs({
+          attributeCode: "category_path",
+          value: "Electronics > Phones",
+          sourceRecordId: "gid://shopify/Product/AOS-6-cat"
+        })
+      ],
+      pricingObservations: [
+        pricingObs({ sourceRecordId: "gid://shopify/ProductVariant/AOS-6" })
+      ],
+      inventoryObservations: [],
+      identityHint: {
+        gtin,
+        brand: "Google",
+        titleForFuzzy: ingestTitle,
+        targetIsVariant: false
+      },
+      rawPayload: { src: "admit-or-stage-test-phase2-case-d5" }
+    };
+
+    const result = await admitOrStage({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: out,
+      sourceKind: "shopify",
+      actor: TEST_ACTOR,
+      channelCode: CHANNEL_CODE,
+      channelCodeToId: { [CHANNEL_CODE]: CHANNEL }
+    });
+
+    expect(result.outcome).toBe("staged");
+    expect(result.stagedProductId).not.toBeNull();
+    expect(result.productId).toBeNull();
+
+    // Verify gateVerdict.signals contains BOTH merge_candidate AND heal_on_touch.
+    // stageProduct serialises blockingSignals + infoSignals into a single
+    // `signals` array under gateVerdict.
+    const rows = await db
+      .select({ gateVerdict: schema.stagedProducts.gateVerdict })
+      .from(schema.stagedProducts)
+      .where(eq(schema.stagedProducts.stagedProductId, result.stagedProductId!));
+    expect(rows.length).toBe(1);
+    const verdict = rows[0]!.gateVerdict as {
+      missingFields: string[];
+      signals: Array<{ signalKind: string; severity: string; blocking: boolean }>;
+    };
+    const kinds = verdict.signals.map((s) => s.signalKind);
+    expect(kinds).toContain("merge_candidate");
+    expect(kinds).toContain("heal_on_touch");
+
+    // Confirm no NEW catalog_products row was created — only the original
+    // seed remains. Count rows with this brand on this tenant: must be exactly 1
+    // (the seed). The staged row holds the merge proposal; the actual merge
+    // happens later in the Lab flow (out of Task 13 scope).
+    const catalogRows = await db
+      .select({ productId: schema.catalogProducts.productId })
+      .from(schema.catalogProducts)
+      .where(
+        and(
+          eq(schema.catalogProducts.tenantId, TENANT_ID),
+          sql`${schema.catalogProducts.identity}->>'brand' = 'Google'`
+        )
+      );
+    expect(catalogRows.length).toBe(1);
+    expect(catalogRows[0]!.productId).toBe(seededProductId);
   });
 });

@@ -14,6 +14,8 @@
     { "path": "../ingestion-antibot-vendor" },
     { "path": "../per-site-parsers" },
     { "path": "../vision-extractor" },
-    { "path": "../lib-utils" }
+    { "path": "../lib-utils" },
+    { "path": "../archetypes" },
+    { "path": "../calibration" }
   ]
 }
