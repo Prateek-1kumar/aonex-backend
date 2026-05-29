@@ -3,12 +3,16 @@
 
 import type { Context } from "hono";
 import { z } from "zod";
-import { QUEUE, TenantId, MerchantId } from "@aonex/types";
-import { randomUUID } from "node:crypto";
+import { QUEUE, JOB_KIND, TenantId, MerchantId } from "@aonex/types";
+import { randomUUID, createHash } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { schema } from "@aonex/db";
+import { inspectCsv } from "@aonex/catalog-source-adapters";
 import { convertFromFacts, type SkuJson } from "@aonex/ingestion-enrichment";
 import type { IngestionsRouteDeps } from "../routes/ingestions.js";
+
+const CSV_MAX_BYTES = Number(process.env.CSV_MAX_BYTES ?? 15 * 1024 * 1024); // ~15 MB
+const CSV_MAX_ROWS = Number(process.env.CSV_MAX_ROWS ?? 50_000);
 
 const LinkIngestionBodySchema = z.object({
   /** The URL to extract product data from. Must be HTTP or HTTPS. */
@@ -185,6 +189,87 @@ export async function submitLinkBatch(c: Context, deps: IngestionsRouteDeps): Pr
     },
     202
   );
+}
+
+/**
+ * POST /csv — Accept a multipart CSV upload. Fatal-validates synchronously,
+ * persists a file-level source_artifact, enqueues a CSV_PARSE job, and returns
+ * 202 { ingestionId, rowCount }. Per-row processing + partial-success error
+ * reporting happen asynchronously in the csv-parse worker.
+ */
+export async function submitCsv(c: Context, deps: IngestionsRouteDeps): Promise<Response> {
+  const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+  const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+  const requestId = (c.get("requestId" as never) as string) ?? randomUUID();
+
+  let file: File | null = null;
+  try {
+    const form = await c.req.formData();
+    const f = form.get("file");
+    if (f instanceof File) file = f;
+  } catch {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Expected multipart/form-data with a 'file' field" } }, 400);
+  }
+  if (!file) {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Missing 'file' field" } }, 400);
+  }
+  const isCsv = file.type === "text/csv" || file.type === "application/vnd.ms-excel" || file.name.toLowerCase().endsWith(".csv");
+  if (!isCsv) {
+    return c.json({ error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "Only CSV files are accepted" } }, 415);
+  }
+  if (file.size > CSV_MAX_BYTES) {
+    return c.json({ error: { code: "PAYLOAD_TOO_LARGE", message: `File exceeds ${CSV_MAX_BYTES} bytes` } }, 413);
+  }
+
+  const csv = await file.text();
+
+  let inspect;
+  try {
+    inspect = inspectCsv(csv);
+  } catch (err) {
+    return c.json({ error: { code: "UNPROCESSABLE_ENTITY", message: err instanceof Error ? err.message : "Invalid CSV" } }, 422);
+  }
+  if (inspect.rowCount > CSV_MAX_ROWS) {
+    return c.json({ error: { code: "PAYLOAD_TOO_LARGE", message: `File exceeds ${CSV_MAX_ROWS} rows` } }, 413);
+  }
+
+  const observedAt = new Date().toISOString();
+  const uploadId = randomUUID();
+  const fileArtifactId = randomUUID();
+  await deps.db.insert(schema.sourceArtifacts).values({
+    id: fileArtifactId,
+    tenantId,
+    merchantId,
+    sourceType: "templated_csv",
+    sourceMarketplace: null,
+    sourceExternalId: `csv:${file.name}:${uploadId}`,
+    parentArtifactId: null,
+    rawData: { csv, filename: file.name, observedAt },
+    checksum: createHash("sha256").update(csv).digest("hex"),
+    status: "pending",
+  });
+
+  const traceId = randomUUID();
+  await deps.queues[QUEUE.CSV_PARSE].add(
+    JOB_KIND.CSV_PARSE,
+    { tenantId, merchantId, fileArtifactId, requestId, traceId },
+    {
+      jobId: `csv-parse-${tenantId}-${fileArtifactId}`,
+      removeOnComplete: 1000,
+      removeOnFail: 5000,
+      attempts: 3,
+      backoff: { type: "exponential", delay: 5000 },
+    },
+  );
+
+  await deps.audit.emit({
+    tenantId, merchantId, actorType: "user",
+    eventType: "ingestion.csv_submitted", entityType: "source_artifact",
+    entityId: fileArtifactId, requestId,
+    metadata: { filename: file.name, rowCount: inspect.rowCount },
+  });
+
+  return c.json({ data: { ingestionId: fileArtifactId, rowCount: inspect.rowCount, status: "accepted" } }, 202);
 }
 
 /**
