@@ -89,12 +89,14 @@ export async function resolveIdentityV2(input: ResolveV2Input): Promise<ResolveV
   // strong-key auto_merge can never fire for Phase 2-only products.
   const strongMatchIds = new Set<string>();
   if (incomingStrong.length > 0) {
-    const containmentClauses: SQL[] = incomingStrong.map(
-      (id) =>
-        sql`${schema.catalogProducts.identifiers} @> ${sql.raw(
-          `'[${JSON.stringify({ type: id.type, value: id.value })}]'::jsonb`
-        )}`
-    );
+    const containmentClauses: SQL[] = incomingStrong.map((id) => {
+      // Bind the JSON payload as a $N parameter (NOT sql.raw) so the driver
+      // escapes single quotes in id.value. sql.raw with JSON.stringify would
+      // break on values like MPN "O'Brien-12" (broken SQL literal) or, worse,
+      // open a SQL-injection surface for attacker-controlled connector input.
+      const containmentJson = JSON.stringify([{ type: id.type, value: id.value }]);
+      return sql`${schema.catalogProducts.identifiers} @> ${containmentJson}::jsonb`;
+    });
     const where = and(
       eq(schema.catalogProducts.tenantId, input.tenantId),
       // Drizzle's or() returns SQL | undefined; the length>0 guard above means
