@@ -55,10 +55,80 @@ export interface PromoteStagedResult {
 // ---- Helpers ---------------------------------------------------------------
 
 /**
+ * Reserved channel code for Lab-fill PricingObservations. When `applyFills`
+ * can't determine a real channel (e.g. ingest's channel lookup returned null,
+ * so no PricingObservation was emitted), it tags the synthetic price with
+ * this code. `resolveChannelCodeToId` ensures a matching channel row exists
+ * for the tenant — auto-creating one on first use so the Lab promote always
+ * has a valid FK target.
+ */
+const MANUAL_CHANNEL_CODE = "manual";
+
+/**
+ * Ensure a per-tenant `channels` row with kind="manual" exists for Lab fills.
+ * Idempotent — returns the existing row's id when one is already present.
+ * Created on demand rather than in a migration so we don't backfill the row
+ * for tenants that never touch the Lab.
+ */
+async function ensureManualChannel(
+  tx: DrizzleClient,
+  tenantId: TenantId
+): Promise<ChannelId> {
+  const existing = await tx
+    .select({ channelId: schema.channels.channelId })
+    .from(schema.channels)
+    .where(
+      and(
+        eq(schema.channels.tenantId, tenantId as unknown as string),
+        eq(schema.channels.channelKind, MANUAL_CHANNEL_CODE)
+      )
+    )
+    .limit(1);
+  const found = existing[0];
+  if (found) return found.channelId as ChannelId;
+
+  // Insert + return. ON CONFLICT DO NOTHING handles concurrent creates:
+  // the unique key is (tenant_id, channel_kind, region, account_ref) with
+  // NULLS NOT DISTINCT, so a second concurrent insert returns zero rows
+  // (which means another tx beat us) and we re-select.
+  const inserted = await tx
+    .insert(schema.channels)
+    .values({
+      tenantId: tenantId as unknown as string,
+      channelKind: MANUAL_CHANNEL_CODE,
+      displayName: "Manual (Lab fills)"
+    })
+    .onConflictDoNothing()
+    .returning({ channelId: schema.channels.channelId });
+  const created = inserted[0];
+  if (created) return created.channelId as ChannelId;
+
+  // Concurrent insert won; re-read.
+  const reread = await tx
+    .select({ channelId: schema.channels.channelId })
+    .from(schema.channels)
+    .where(
+      and(
+        eq(schema.channels.tenantId, tenantId as unknown as string),
+        eq(schema.channels.channelKind, MANUAL_CHANNEL_CODE)
+      )
+    )
+    .limit(1);
+  const winner = reread[0];
+  if (!winner) {
+    throw new Error(
+      `ensureManualChannel: failed to find or create manual channel for tenant ${tenantId}`
+    );
+  }
+  return winner.channelId as ChannelId;
+}
+
+/**
  * Resolve channelCode → channelId for any pricing/inventory observations.
  * Queries all channels for the tenant, then matches each code using the
  * same derivation as resolveChannelByCode: `${channelKind}-${region}` or
- * `${channelKind}` for rows without a region.
+ * `${channelKind}` for rows without a region. The reserved `"manual"` code
+ * auto-creates a tenant-scoped Lab-fill channel on demand.
  */
 async function resolveChannelCodeToId(
   tx: DrizzleClient,
@@ -79,6 +149,12 @@ async function resolveChannelCodeToId(
   const result: Record<string, ChannelId> = {};
 
   for (const code of channelCodes) {
+    // Reserved Lab-fill channel — auto-create on first use so promote never
+    // FK-trips on the synthetic pricing observation applyFills emits.
+    if (code === MANUAL_CHANNEL_CODE) {
+      result[code] = await ensureManualChannel(tx, tenantId);
+      continue;
+    }
     // Resolve the SAME way the ingest-time resolver (resolveChannelByCode in
     // apps/worker/src/services/new-catalog-link-path.ts) does: by channel KIND
     // — the prefix before the first "-". A channelCode is "<kind>-<urlTld>"
@@ -181,18 +257,21 @@ function applyFills(
     } else if (key === "price") {
       const amount = parseFloat(String(value).replace(/[^\d.]/g, ""));
       if (Number.isFinite(amount)) {
-        // Reuse a real channel — pricing FKs to channels.channel_id, so we
-        // must not invent a synthetic code like "manual". Fall back through:
-        // staged row's channel → caller-provided → any existing pricing obs's
-        // channel → any canonical obs's channel → "_unscoped" (sentinel).
+        // Pricing FKs to channels.channel_id, so we need a code that
+        // resolveChannelCodeToId can map to a real row. Fall back through:
+        // staged row's channel → caller-provided → any EXISTING pricing
+        // observation's channel (already proven to resolve at ingest) →
+        // "manual" (a per-tenant Lab-fill channel that resolveChannelCodeToId
+        // auto-creates on demand). We deliberately do NOT fall through to a
+        // canonical observation's channelCode — those can carry an
+        // unresolved derived code (e.g. "nike-in" when the ingest's channel
+        // lookup returned null and pricing was stripped).
         const existingPricingChannel = cloned.pricingObservations[0]?.channelCode;
-        const existingObsChannel = cloned.observations[0]?.channelCode;
         const resolvedChannel =
           stagedChannelCode ??
           (fills["channelCode"] as string | undefined) ??
           existingPricingChannel ??
-          existingObsChannel ??
-          "_unscoped";
+          MANUAL_CHANNEL_CODE;
         cloned.pricingObservations.push({
           productHint: "",
           channelCode: resolvedChannel,

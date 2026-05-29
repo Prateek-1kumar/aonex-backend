@@ -62,15 +62,20 @@ test("price fill reuses an existing pricing obs's channel when no staged/fills c
   expect(labFill!.channelCode).not.toBe("manual");
 });
 
-test("price fill falls back to an observation's channel when no pricing obs exists", () => {
+test("price fill IGNORES a canonical observation's channelCode (those may be unresolved)", () => {
+  // When ingest's channel lookup returned null (e.g. unknown marketplace),
+  // pricing is stripped but canonical observations may carry a derived
+  // channelCode like "nike-in" that doesn't resolve to a channels row.
+  // applyFills must NOT trust those — it must fall through to "manual",
+  // which resolveChannelCodeToId auto-creates per-tenant on demand.
   const base: AdapterOutput = {
     observations: [
       {
         attributeCode: "title",
         target: "parent",
-        channelCode: "amazon-in",
+        channelCode: "nike-in",       // a derived code with NO matching channels row
         localeCode: "en_IN",
-        source: "link:amazon",
+        source: "link:nike",
         sourceRecordId: "r1",
         value: "Some Product",
         confidence: 0.9,
@@ -84,10 +89,14 @@ test("price fill falls back to an observation's channel when no pricing obs exis
   };
   const filled = applyFills(base, { price: "100", currency: "INR" }, null);
   expect(filled.pricingObservations.length).toBe(1);
-  expect(filled.pricingObservations[0]!.channelCode).toBe("amazon-in");
+  expect(filled.pricingObservations[0]!.channelCode).toBe("manual");
+  expect(filled.pricingObservations[0]!.channelCode).not.toBe("nike-in");
 });
 
-test("price fill last-resort falls back to _unscoped (never 'manual')", () => {
+test("price fill last-resort falls back to 'manual' (the reserved Lab-fill channel)", () => {
+  // "manual" is reserved — resolveChannelCodeToId auto-creates a per-tenant
+  // channel row with kind="manual" on first use. This is the ONLY synthetic
+  // channelCode applyFills is allowed to invent.
   const base: AdapterOutput = {
     observations: [],
     pricingObservations: [],
@@ -96,6 +105,5 @@ test("price fill last-resort falls back to _unscoped (never 'manual')", () => {
     rawPayload: null,
   };
   const filled = applyFills(base, { price: "100", currency: "INR" }, null);
-  expect(filled.pricingObservations[0]!.channelCode).toBe("_unscoped");
-  expect(filled.pricingObservations[0]!.channelCode).not.toBe("manual");
+  expect(filled.pricingObservations[0]!.channelCode).toBe("manual");
 });
