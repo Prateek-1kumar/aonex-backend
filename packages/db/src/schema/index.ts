@@ -67,3 +67,5 @@ export * from "./backfill-cursor.js";
 
 // Anomaly Lab — staging gate
 export * from "./staged-products.js";
+
+export * from "./catalog-reviews.js";
