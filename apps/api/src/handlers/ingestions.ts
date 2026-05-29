@@ -242,7 +242,7 @@ export async function submitCsv(c: Context, deps: IngestionsRouteDeps): Promise<
     merchantId,
     sourceType: "templated_csv",
     sourceMarketplace: null,
-    sourceExternalId: `csv:${file.name}:${uploadId}`,
+    sourceExternalId: `csv:${file.name.slice(0, 120)}:${uploadId}`,
     parentArtifactId: null,
     rawData: { csv, filename: file.name, observedAt },
     checksum: createHash("sha256").update(csv).digest("hex"),
