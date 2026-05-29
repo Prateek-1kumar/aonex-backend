@@ -26,6 +26,8 @@
     "@aonex/per-site-parsers": "workspace:*",
     "@aonex/types": "workspace:*",
     "@aonex/lib-utils": "workspace:*",
-    "@aonex/vision-extractor": "workspace:*"
+    "@aonex/vision-extractor": "workspace:*",
+    "@aonex/archetypes": "workspace:*",
+    "@aonex/calibration": "workspace:*"
   }
 }
