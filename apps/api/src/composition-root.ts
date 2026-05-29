@@ -109,6 +109,7 @@ export function buildContainer(env: Env): ApiContainer {
   const nangoSyncQueue = new Queue(QUEUE.NANGO_SYNC, { connection: redis });
   const nangoTriggerQueue = new Queue(QUEUE.NANGO_TRIGGER, { connection: redis });
   const linkExtractQueue = new Queue(QUEUE.LINK_EXTRACT, { connection: redis });
+  const csvParseQueue = new Queue(QUEUE.CSV_PARSE, { connection: redis });
 
   // ---- Hono app -------------------------------------------------
   const app = new Hono();
@@ -227,7 +228,7 @@ export function buildContainer(env: Env): ApiContainer {
   protectedApp.route(
     "/ingestions",
     ingestionsRoutes({
-      queues: { [QUEUE.LINK_EXTRACT]: linkExtractQueue },
+      queues: { [QUEUE.LINK_EXTRACT]: linkExtractQueue, [QUEUE.CSV_PARSE]: csvParseQueue },
       audit,
       db: db.client,
     })
@@ -248,7 +249,8 @@ export function buildContainer(env: Env): ApiContainer {
         nangoAuthQueue.close(),
         nangoSyncQueue.close(),
         nangoTriggerQueue.close(),
-        linkExtractQueue.close()
+        linkExtractQueue.close(),
+        csvParseQueue.close()
       ]);
       await redis.quit();
       await db.close();

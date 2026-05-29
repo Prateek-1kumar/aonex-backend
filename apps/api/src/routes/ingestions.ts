@@ -12,12 +12,13 @@ import type { DrizzleClient } from "@aonex/db";
 import {
   submitLink,
   submitLinkBatch,
+  submitCsv,
   getRecentIngestions,
   getIngestionTrace,
 } from "../handlers/ingestions.js";
 
 export interface IngestionsRouteDeps {
-  queues: { [QUEUE.LINK_EXTRACT]: Queue };
+  queues: { [QUEUE.LINK_EXTRACT]: Queue; [QUEUE.CSV_PARSE]: Queue };
   audit: AuditEmitter;
   db: DrizzleClient;
 }
@@ -27,6 +28,7 @@ export function ingestionsRoutes(deps: IngestionsRouteDeps) {
 
   app.post("/link", (c) => submitLink(c, deps));
   app.post("/link/batch", (c) => submitLinkBatch(c, deps));
+  app.post("/csv", (c) => submitCsv(c, deps));
   app.get("/recent", (c) => getRecentIngestions(c, deps));
   app.get("/:id/trace", (c) => getIngestionTrace(c, deps));
 
