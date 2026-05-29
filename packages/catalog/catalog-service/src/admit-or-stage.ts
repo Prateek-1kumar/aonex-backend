@@ -100,9 +100,22 @@ export async function admitOrStage(
   // never stage. Retained for products that pre-date Phase 2's identifiers[]
   // column (where decideResolution would fall back to propose_lab on the bare
   // fuzzy/strength score because the candidate's identifiers[] is empty).
+  //
+  // Phase 2 Task 13 (D5 heal-on-touch): when decideResolution returns
+  // propose_lab — i.e. a Lab proposal is warranted (variant conflict, or fuzzy
+  // match to an OLD weak-identity row) — do NOT silently enrich. The propose_lab
+  // decision is the Lab proposal; deferring to it is what makes "heal-on-touch
+  // proposes to the Lab unless the key is strong+corroborated" hold. Without
+  // this guard a strong-keyed incoming would silently land on an old weak row
+  // without backfilling its identifiers — the exact duplication-resurfacing the
+  // heal mechanism exists to prevent.
   const liveMatch = legacyRes.candidates.find((c) => c.kind === "live");
 
-  if (legacyRes.productId !== null && liveMatch !== undefined) {
+  if (
+    decision.action !== "propose_lab" &&
+    legacyRes.productId !== null &&
+    liveMatch !== undefined
+  ) {
     // NB: writeAdapterOutput re-resolves identity authoritatively inside its
     // own transaction; the resolve above is routing-only and is not threaded
     // in. The second resolve is the source of truth (and is race-safe within
@@ -142,6 +155,25 @@ export async function admitOrStage(
       severity: "high",
       blocking: true
     });
+
+    // Phase 2 Task 13 (D5): heal-on-touch. When the contested candidate is an
+    // OLD (pipeline_version=1) row with an EMPTY identifiers[], the merge
+    // proposal doubles as a heal request. The Lab's resolve flow will (in a
+    // later phase) backfill the old row's identifiers[] from the incoming
+    // strong key as part of the merge. .find(...) returns at most one match,
+    // so we push at most ONE heal signal per ingest — honouring the plan's
+    // "one heal attempt per ingest" bound and the "no transitive/cascading
+    // auto-merge" rule (we only propose; we never autonomously merge).
+    const healCandidate = resolution.candidateMeta.find(
+      (m) => m.pipelineVersion < 2 && m.identifiersEmpty
+    );
+    if (healCandidate) {
+      signals.push({
+        signalKind: "heal_on_touch",
+        severity: "high",
+        blocking: true
+      });
+    }
   }
 
   // Phase 1: when the archetype flag is on for this product's archetype, the
