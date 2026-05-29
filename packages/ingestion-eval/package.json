@@ -15,6 +15,7 @@
   "dependencies": {
     "@aonex/archetypes": "workspace:*",
     "@aonex/calibration": "workspace:*",
+    "@aonex/multi-source-reconciler": "workspace:*",
     "@aonex/types": "workspace:*"
   }
 }

@@ -232,6 +232,7 @@
       "dependencies": {
         "@aonex/archetypes": "workspace:*",
         "@aonex/calibration": "workspace:*",
+        "@aonex/multi-source-reconciler": "workspace:*",
         "@aonex/types": "workspace:*",
       },
     },
@@ -324,6 +325,8 @@
       "name": "@aonex/link-adapter",
       "version": "0.0.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
+        "@aonex/calibration": "workspace:*",
         "@aonex/ingestion-antibot-vendor": "workspace:*",
         "@aonex/ingestion-browser-fallback": "workspace:*",
         "@aonex/ingestion-dom-heuristics": "workspace:*",
