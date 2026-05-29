@@ -31,9 +31,11 @@
         "@aonex/connector-gateway": "workspace:*",
         "@aonex/db": "workspace:*",
         "@aonex/ingestion-enrichment": "workspace:*",
+        "@aonex/ingestion-eval": "workspace:*",
         "@aonex/ingestion-link-fetcher": "workspace:*",
         "@aonex/ingestion-llm-extractor": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
+        "@aonex/multi-source-reconciler": "workspace:*",
         "@aonex/types": "workspace:*",
         "@hono/swagger-ui": "^0.6.1",
         "bullmq": "^5.34.5",
@@ -93,6 +95,10 @@
       "name": "@aonex/action-projection-compiler",
       "version": "0.0.0",
     },
+    "packages/archetypes": {
+      "name": "@aonex/archetypes",
+      "version": "0.1.0",
+    },
     "packages/audit": {
       "name": "@aonex/audit",
       "version": "0.1.0",
@@ -110,8 +116,10 @@
       "name": "@aonex/catalog-service",
       "version": "0.0.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
         "@aonex/catalog-source-adapters": "workspace:*",
         "@aonex/db": "workspace:*",
+        "@aonex/gtin-backfill": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
         "@aonex/multi-source-reconciler": "workspace:*",
         "@aonex/types": "workspace:*",
@@ -194,6 +202,10 @@
       "name": "@aonex/drift-detector",
       "version": "0.0.0",
     },
+    "packages/gtin-backfill": {
+      "name": "@aonex/gtin-backfill",
+      "version": "0.1.0",
+    },
     "packages/ingestion-antibot-vendor": {
       "name": "@aonex/ingestion-antibot-vendor",
       "version": "0.0.0",
@@ -214,6 +226,16 @@
       "dependencies": {
         "@aonex/ingestion-field-extractor": "workspace:*",
         "cheerio": "^1.0.0",
+      },
+    },
+    "packages/ingestion-eval": {
+      "name": "@aonex/ingestion-eval",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/archetypes": "workspace:*",
+        "@aonex/calibration": "workspace:*",
+        "@aonex/multi-source-reconciler": "workspace:*",
+        "@aonex/types": "workspace:*",
       },
     },
     "packages/ingestion-spine": {
@@ -265,6 +287,8 @@
       "name": "@aonex/ingestion-llm-extractor",
       "version": "0.1.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
+        "@aonex/calibration": "workspace:*",
         "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/types": "workspace:*",
         "zod": "^3.24.1",
@@ -303,6 +327,8 @@
       "name": "@aonex/link-adapter",
       "version": "0.0.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
+        "@aonex/calibration": "workspace:*",
         "@aonex/ingestion-antibot-vendor": "workspace:*",
         "@aonex/ingestion-browser-fallback": "workspace:*",
         "@aonex/ingestion-dom-heuristics": "workspace:*",
@@ -380,6 +406,8 @@
 
     "@aonex/api": ["@aonex/api@workspace:apps/api"],
 
+    "@aonex/archetypes": ["@aonex/archetypes@workspace:packages/archetypes"],
+
     "@aonex/audit": ["@aonex/audit@workspace:packages/audit"],
 
     "@aonex/calibration": ["@aonex/calibration@workspace:packages/calibration"],
@@ -398,6 +426,8 @@
 
     "@aonex/drift-detector": ["@aonex/drift-detector@workspace:packages/drift-detector"],
 
+    "@aonex/gtin-backfill": ["@aonex/gtin-backfill@workspace:packages/gtin-backfill"],
+
     "@aonex/ingestion-antibot-vendor": ["@aonex/ingestion-antibot-vendor@workspace:packages/ingestion-antibot-vendor"],
 
     "@aonex/ingestion-browser-fallback": ["@aonex/ingestion-browser-fallback@workspace:packages/ingestion-browser-fallback"],
@@ -407,6 +437,8 @@
     "@aonex/ingestion-dom-heuristics": ["@aonex/ingestion-dom-heuristics@workspace:packages/ingestion-dom-heuristics"],
 
     "@aonex/ingestion-enrichment": ["@aonex/ingestion-enrichment@workspace:packages/ingestion/enrichment"],
+
+    "@aonex/ingestion-eval": ["@aonex/ingestion-eval@workspace:packages/ingestion-eval"],
 
     "@aonex/ingestion-field-extractor": ["@aonex/ingestion-field-extractor@workspace:packages/ingestion/field-extractor"],
 

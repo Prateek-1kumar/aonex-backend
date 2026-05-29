@@ -34,11 +34,13 @@ import type {
   ArtifactId
 } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
+import { classifyArchetype } from "@aonex/archetypes";
 import { resolveIdentity, type IdentityMatchPath, type IdentityResolverResult } from "./identity-resolver.js";
 import {
   applyIdentityObservation,
   type IdentityField
 } from "./identity-policy.js";
+import { latestObservationValue } from "./observation-helpers.js";
 import { projectSync, type ProjectSyncResult } from "./reconciler/sync.js";
 
 // ---- Public types ----------------------------------------------------------
@@ -55,7 +57,9 @@ export interface WriteAdapterOutputInput {
   /**
    * Per-leaf observation cap. When `values[attr][channel][locale]` exceeds
    * this length the OLDEST observation (by observed_at) is evicted into the
-   * revision row's `diff.overflow_eviction`. Defaults to 10.
+   * revision row's `diff.overflow_eviction`. Defaults to 20.
+   * See RETENTION.md for rationale (quorum sizing, calibration runway, JSONB
+   * bloat ceiling).
    */
   observationCap?: number;
   /**
@@ -143,7 +147,7 @@ type ValuesJson = Record<
 
 // ---- Helpers ---------------------------------------------------------------
 
-const DEFAULT_OBSERVATION_CAP = 10;
+export const DEFAULT_OBSERVATION_CAP = 20;
 
 /**
  * Stable identity equality for the dedup hint. Two observations from the
@@ -386,6 +390,18 @@ export async function writeAdapterOutput(
       if (adapterOutput.identityHint.primary_identifier)
         identityJson["primary_identifier"] = adapterOutput.identityHint.primary_identifier;
 
+      const classifySignals: { categoryPath?: string; title?: string; brand?: string } = {};
+      const categoryPathVal = latestObservationValue(adapterOutput, "category_path") as
+        | string
+        | undefined;
+      if (typeof categoryPathVal === "string") classifySignals.categoryPath = categoryPathVal;
+      const titleVal = latestObservationValue(adapterOutput, "title") as string | undefined;
+      if (typeof titleVal === "string") classifySignals.title = titleVal;
+      if (adapterOutput.identityHint.brand)
+        classifySignals.brand = adapterOutput.identityHint.brand;
+      const familyId = classifyArchetype(classifySignals);
+      const family = familyId === "unknown" ? null : familyId;
+
       const inserted = await tx
         .insert(schema.catalogProducts)
         .values({
@@ -393,7 +409,13 @@ export async function writeAdapterOutput(
           merchantId,
           primaryIdentifier,
           identity: identityJson,
-          // family is "TBD — for v1 leave null" per task spec.
+          family,
+          // Phase 2 Task 13 (D5): stamp new rows as pipeline_version=2 so the
+          // anti-duplication heal-on-touch can distinguish old (v1) weak-identity
+          // rows from new (v2) rows. Existing rows keep their stamp (default 1)
+          // and only the Lab's resolve flow upgrades them — never an autonomous
+          // background sweep (plan: "no transitive/cascading auto-merge").
+          pipelineVersion: 2,
           status: "draft",
           values: {},
           winningValues: {}

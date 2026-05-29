@@ -54,6 +54,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { loadActiveRules } from "./reconciler/_internal.js";
 import { globMatch, type SourcePriorityRule } from "./reconciler/pick-winner.js";
+import { canSourceWrite } from "./identity/authority.js";
 
 // ---- Public types ----------------------------------------------------------
 
@@ -74,6 +75,9 @@ export interface ApplyIdentityObservationResult {
   frozen: boolean;
   identityLogId?: number;
   reviewTaskId?: string;
+  /** Set when applied=false to explain why. Task 12 introduces
+   *  `"lower_authority"` for the per-source authority guard short-circuit. */
+  reason?: "lower_authority";
 }
 
 // ---- Internal shapes -------------------------------------------------------
@@ -384,6 +388,32 @@ export async function applyIdentityObservation(
     );
     const values = (row.values ?? {}) as ValuesJson;
     const fieldObservations = readFieldObservations(values, field);
+
+    // 1.5 Per-source authority guard (Phase 2 Task 12, spec C4).
+    //     If the field already has a value, look up the source that last
+    //     wrote it from identity_log (most-recent non-freeze row). If the
+    //     incoming source's authority is below the current source's, reject
+    //     before any other policy check. First writes (currentValue=null)
+    //     bypass — canSourceWrite handles that too, but skipping the DB
+    //     round-trip is the obvious shortcut.
+    if (currentValue !== null) {
+      const currentSourceRows = await tx
+        .select({ source: schema.identityLog.source })
+        .from(schema.identityLog)
+        .where(
+          and(
+            eq(schema.identityLog.productId, productId),
+            eq(schema.identityLog.identityField, field),
+            sql`${schema.identityLog.rationale} NOT LIKE 'freeze%'`
+          )
+        )
+        .orderBy(desc(schema.identityLog.appliedAt))
+        .limit(1);
+      const currentSource = currentSourceRows[0]?.source ?? null;
+      if (!canSourceWrite(currentSource, source)) {
+        return { applied: false, frozen: false, reason: "lower_authority" };
+      }
+    }
 
     // 2. Load active source_priority rules for this field. Using the same
     //    helper as the reconciler so semantics are aligned.

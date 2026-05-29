@@ -60,5 +60,7 @@ describe("resolveIdentity — primary_identifier (merchant SKU)", () => {
     });
     expect(r.matchPath).toBe("none");
     expect(r.productId).toBeNull();
+    expect(r.candidateProductIds).toEqual([]);
+    expect(r.reviewTaskSuggested).toBe(false);
   });
 });

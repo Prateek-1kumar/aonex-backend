@@ -1,0 +1,12 @@
+{
+  "id": "same-product",
+  "label": "same",
+  "a": {
+    "identifiers": [{ "type": "gtin", "value": "0193575010100", "source": "connector:shopify", "corroborated": true }],
+    "variant": { "storage": "256GB" }
+  },
+  "b": {
+    "identifiers": [{ "type": "gtin", "value": "0193575010100", "source": "link:croma",  "corroborated": true }],
+    "variant": { "storage": "256GB" }
+  }
+}

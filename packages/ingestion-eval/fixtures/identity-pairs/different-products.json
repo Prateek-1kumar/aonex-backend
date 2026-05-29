@@ -1,0 +1,12 @@
+{
+  "id": "different-products",
+  "label": "different",
+  "a": {
+    "identifiers": [{ "type": "gtin", "value": "0193575010100", "source": "connector:shopify", "corroborated": true }],
+    "variant": { "storage": "256GB" }
+  },
+  "b": {
+    "identifiers": [{ "type": "gtin", "value": "0888462898249", "source": "link:amazon",  "corroborated": true }],
+    "variant": { "storage": "256GB" }
+  }
+}

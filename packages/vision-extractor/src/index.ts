@@ -10,3 +10,7 @@ export {
   type VisionFetchImpl,
   VISION_EXTRACTOR_VERSION
 } from "./vision.js";
+export {
+  createVisionCallModel,
+  type CreateVisionCallModelInput,
+} from "./call-model-adapter.js";

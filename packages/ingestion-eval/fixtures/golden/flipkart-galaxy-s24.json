@@ -1,0 +1,8 @@
+{ "id": "flipkart-galaxy-s24",
+  "sourceUrl": "https://www.flipkart.com/samsung-galaxy-s24-onyx-black-256-gb/p/itmabcd1234",
+  "archetype": "smartphone", "split": "regression",
+  "rawHtmlPath": "fixtures/golden/flipkart-galaxy-s24.html",
+  "labels": { "title": "Samsung Galaxy S24 5G (8GB RAM, 256GB, Onyx Black)",
+              "brand": "Samsung", "base_price": 74999, "currency": "INR",
+              "category_path": "mobiles_&_accessories/mobiles" },
+  "variantKeys": { "storage": "256GB", "color": "Onyx Black" } }

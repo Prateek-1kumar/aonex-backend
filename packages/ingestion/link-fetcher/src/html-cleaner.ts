@@ -1,3 +1,4 @@
+import { flattenJsonLdNodes } from "./json-ld-blocks.js";
 import type { CleanResult, StructuredBlocks } from "./types.js";
 
 const MAX_CLEANED_TEXT_LENGTH = 200_000;
@@ -81,11 +82,7 @@ function extractStructuredBlocks(html: string): StructuredBlocks {
   )) {
     try {
       const parsed = JSON.parse(m[1]!.trim());
-      if (Array.isArray(parsed)) {
-        for (const item of parsed) if (isRecord(item)) jsonLd.push(item);
-      } else if (isRecord(parsed)) {
-        jsonLd.push(parsed);
-      }
+      jsonLd.push(...flattenJsonLdNodes(parsed));
     } catch {
       /* malformed block — skip */
     }
