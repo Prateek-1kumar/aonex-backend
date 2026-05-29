@@ -272,6 +272,18 @@ describe("csvAdapter.adaptGroups", () => {
     expect(price.tiers[0]!.amount).toBe(1299);
   });
 
+  test("non-numeric price is rejected, not coerced to 0", () => {
+    // list_price = "N/A" (non-numeric). currency USD, brand + title present.
+    const csv = [HEADER, "P-BAD,,,Acme,Widget,,,USD,N/A,,,,,,,,"].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.groups).toHaveLength(0);
+    expect(
+      res.errors.some(
+        (e) => e.code === "GROUP_VALIDATION_FAILED" && /is not a number/.test(e.message),
+      ),
+    ).toBe(true);
+  });
+
   test("warns on unrecognized headers with a suggestion", () => {
     const badHeader = HEADER.replace("primary_identifier", "primary_identifer,primary_identifier");
     const csv = [badHeader, "x,P1,,,Acme,Widget,,,USD,,,,,,,,,"].join("\n");
