@@ -10,6 +10,7 @@
     "@aonex/types": "workspace:*",
     "@aonex/ingestion-field-extractor": "workspace:*",
     "@aonex/archetypes": "workspace:*",
+    "@aonex/calibration": "workspace:*",
     "zod": "^3.24.1"
   }
 }
