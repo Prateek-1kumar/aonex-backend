@@ -12,7 +12,7 @@ const HEADER = "primary_identifier,gtin,mpn,brand,title,category,description_lon
 describe("runNewCsvCatalogPath", () => {
   let db: Awaited<ReturnType<typeof connectTestDb>>;
   beforeAll(async () => { db = await connectTestDb(); await ensureTestTenant(db); await ensureTestMerchant(db); });
-  afterAll(async () => { await closeTestDb(db); });
+  afterAll(async () => { await closeTestDb(); });
 
   test("resolveOrCreateCsvChannel is idempotent and returns a channelId", async () => {
     const a = await resolveOrCreateCsvChannel(db, TEST_TENANT_ID as any);
