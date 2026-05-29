@@ -1,6 +1,24 @@
 import type { Decision, GoldenProduct } from "./types.js";
 import { evaluateGate } from "./gate.js";
 
+// Phase 3 Task 7: regression bar for unknown-site recall. Calibrated to the
+// value the eval reports today (run `bun run --filter=@aonex/ingestion-eval eval`
+// and read the unknown-site recall line). Bump up as the fixture set grows.
+// A real-world unknown-site iteration loop (LLM prompt/schema tuning) lives
+// in Phase 3.x — Task 7's deliverable is the measurement infrastructure
+// (3 synthetic unknown-site fixtures + a CLI assertion) so future LLM-driven
+// improvements are observably moving the bar.
+export const UNKNOWN_SITE_RECALL_BAR = 0.6; // tune up as the eval set grows
+
+/** Fixture ids that represent sites with NO per-site parser. The CLI uses
+ *  these to compute a dedicated "unknown-site" weighted recall subset, which
+ *  is the headline metric for the generic extraction path. */
+export const UNKNOWN_SITE_IDS: ReadonlySet<string> = new Set([
+  "vijay-sales-iphone-15",
+  "reliance-digital-pixel-8",
+  "flipkart-galaxy-s24",
+]);
+
 export interface RunEvalOptions {
   products: GoldenProduct[];
   /** Load the recorded extraction output for a product id (Phase 0 records these). */
@@ -117,6 +135,27 @@ if (import.meta.main) {
   console.log(`fixtures scored: ${products.length} (regression=${splits.regression.length}, holdout=${splits.holdout.length}, allowlist="${allowlist}")`);
   console.log(`weighted precision: ${report.weightedPrecision.toFixed(3)}, recall: ${report.weightedRecall.toFixed(3)}`);
 
+  // Phase 3 Task 7: unknown-site recall — products whose source has no
+  // per-site parser. This is the headline metric for the generic extraction
+  // path. If it regresses below UNKNOWN_SITE_RECALL_BAR, the eval fails so
+  // we get an early signal before a prompt/schema change ships.
+  const unknownSubset = perProduct.filter((p) => UNKNOWN_SITE_IDS.has(p.product.id));
+  const unknownReasons: string[] = [];
+  if (unknownSubset.length === 0) {
+    console.log(`unknown-site recall: n/a (no unknown-site fixtures matched ids=[${[...UNKNOWN_SITE_IDS].join(",")}])`);
+  } else {
+    const unknownReport = aggregate(unknownSubset.map((p) => p.scored));
+    console.log(
+      `unknown-site recall: ${unknownReport.weightedRecall.toFixed(3)} ` +
+      `(bar ${UNKNOWN_SITE_RECALL_BAR.toFixed(3)}, n=${unknownSubset.length})`
+    );
+    if (unknownReport.weightedRecall < UNKNOWN_SITE_RECALL_BAR) {
+      unknownReasons.push(
+        `unknown-site recall ${unknownReport.weightedRecall.toFixed(3)} < ${UNKNOWN_SITE_RECALL_BAR.toFixed(3)}`
+      );
+    }
+  }
+
   const { loadIdentityPairs, mergeMetrics } = await import("./merge-pairs.js");
   const pairsDir = `${import.meta.dir}/../fixtures/identity-pairs`;
   const { pairs, errors: pairErrors } = await loadIdentityPairs(pairsDir);
@@ -131,5 +170,8 @@ if (import.meta.main) {
     regressionPrecision,
     holdoutPrecision,
   });
-  process.exit(code);
+  // Surface the unknown-site bar failure as a CLI-level FAIL on top of the
+  // existing gate signals. Either signal failing → non-zero exit.
+  for (const r of unknownReasons) console.log(`FAIL: ${r}`);
+  process.exit(unknownReasons.length > 0 ? 1 : code);
 }

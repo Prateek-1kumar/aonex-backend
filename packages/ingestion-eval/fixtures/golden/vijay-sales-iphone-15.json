@@ -1,0 +1,8 @@
+{ "id": "vijay-sales-iphone-15",
+  "sourceUrl": "https://www.vijaysales.com/product/apple-iphone-15-128gb-black/p/200056789",
+  "archetype": "smartphone", "split": "regression",
+  "rawHtmlPath": "fixtures/golden/vijay-sales-iphone-15.html",
+  "labels": { "title": "Apple iPhone 15 (128GB, Black)",
+              "brand": "Apple", "base_price": 69900, "currency": "INR",
+              "category_path": "mobiles_&_tablets/smartphones" },
+  "variantKeys": { "storage": "128GB", "color": "Black" } }
