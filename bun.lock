@@ -284,6 +284,7 @@
       "name": "@aonex/ingestion-llm-extractor",
       "version": "0.1.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
         "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/types": "workspace:*",
         "zod": "^3.24.1",
