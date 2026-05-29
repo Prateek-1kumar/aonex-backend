@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { csvAdapter, type CsvAdapterInput } from "./index.js";
+import { csvAdapter, adaptGroups, inspectCsv, type CsvAdapterInput } from "./index.js";
 import type { AdaptContext } from "../types.js";
 
 function makeCtx(overrides: Partial<AdaptContext> = {}): AdaptContext {
@@ -245,5 +245,46 @@ describe("csvAdapter", () => {
         makeCtx({ channelDefaultCurrency: null }),
       ),
     ).toThrow(/currency missing/i);
+  });
+});
+
+// HEADER column order:
+// primary_identifier,gtin,mpn,brand,title,category,description_long,currency,
+// list_price,sale_price,weight_value,weight_unit,variant_color,variant_size,
+// variant_gtin,variant_sku,variant_inventory_qty   (17 columns)
+describe("csvAdapter.adaptGroups", () => {
+  test("emits one group per primary_identifier and collects bad groups without throwing", () => {
+    const csv = [HEADER,
+      "P1,,,Acme,Widget,,,USD,,,,,,,,,",      // valid: brand + title
+      "P2,,,,,,,USD,,,,,,,,,",                 // invalid: neither title nor brand
+      ",,,Acme,Orphan,,,USD,,,,,,,,,",         // invalid: empty primary_identifier
+    ].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.groups.map((g) => g.primaryIdentifier)).toEqual(["P1"]);
+    expect(res.errors.map((e) => e.code).sort()).toEqual(["EMPTY_PRIMARY_IDENTIFIER", "GROUP_VALIDATION_FAILED"]);
+    expect(res.rowCount).toBe(3);
+  });
+
+  test("cleans money formatting in prices", () => {
+    const csv = [HEADER, "P1,,,Acme,Widget,,,USD,\"$1,299.00\",,,,,,,,"].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    const price = res.groups[0]!.output.pricingObservations[0]!;
+    expect(price.tiers[0]!.amount).toBe(1299);
+  });
+
+  test("warns on unrecognized headers with a suggestion", () => {
+    const badHeader = HEADER.replace("primary_identifier", "primary_identifer,primary_identifier");
+    const csv = [badHeader, "x,P1,,,Acme,Widget,,,USD,,,,,,,,,"].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.warnings.some((w) => w.code === "UNKNOWN_COLUMN" && /did you mean "primary_identifier"/.test(w.message))).toBe(true);
+  });
+});
+
+describe("csvAdapter.inspectCsv", () => {
+  test("returns headers + rowCount, throws on missing required column", () => {
+    const ok = inspectCsv([HEADER, "P1,,,Acme,Widget,,,USD,,,,,,,,,"].join("\n"));
+    expect(ok.rowCount).toBe(1);
+    expect(ok.headers).toContain("primary_identifier");
+    expect(() => inspectCsv("foo,bar\n1,2")).toThrow(/missing required column/);
   });
 });
