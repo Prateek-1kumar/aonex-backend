@@ -181,9 +181,21 @@ function applyFills(
     } else if (key === "price") {
       const amount = parseFloat(String(value).replace(/[^\d.]/g, ""));
       if (Number.isFinite(amount)) {
+        // Reuse a real channel — pricing FKs to channels.channel_id, so we
+        // must not invent a synthetic code like "manual". Fall back through:
+        // staged row's channel → caller-provided → any existing pricing obs's
+        // channel → any canonical obs's channel → "_unscoped" (sentinel).
+        const existingPricingChannel = cloned.pricingObservations[0]?.channelCode;
+        const existingObsChannel = cloned.observations[0]?.channelCode;
+        const resolvedChannel =
+          stagedChannelCode ??
+          (fills["channelCode"] as string | undefined) ??
+          existingPricingChannel ??
+          existingObsChannel ??
+          "_unscoped";
         cloned.pricingObservations.push({
           productHint: "",
-          channelCode: stagedChannelCode ?? (fills["channelCode"] as string | undefined) ?? "manual",
+          channelCode: resolvedChannel,
           locale: "_unscoped",
           source: "manual:lab",
           sourceRecordId: `manual:lab:fill:price`,
