@@ -7,3 +7,10 @@ export { promoteMetrics, type PromoteMetrics } from "./promote-metrics.js";
 export { loadGoldenSet, splitBy } from "./golden-set.js";
 export { toLabeledSamples } from "./calibration-bridge.js";
 export { evaluateGate, DEFAULT_THRESHOLDS, type GateInput, type GateResult } from "./gate.js";
+export {
+  wouldAutoMerge,
+  mergeMetrics,
+  loadIdentityPairs,
+  type IdentityPair,
+  type MergeMetrics,
+} from "./merge-pairs.js";

@@ -117,6 +117,13 @@ if (import.meta.main) {
   console.log(`fixtures scored: ${products.length} (regression=${splits.regression.length}, holdout=${splits.holdout.length}, allowlist="${allowlist}")`);
   console.log(`weighted precision: ${report.weightedPrecision.toFixed(3)}, recall: ${report.weightedRecall.toFixed(3)}`);
 
+  const { loadIdentityPairs, mergeMetrics } = await import("./merge-pairs.js");
+  const pairsDir = `${import.meta.dir}/../fixtures/identity-pairs`;
+  const { pairs, errors: pairErrors } = await loadIdentityPairs(pairsDir);
+  for (const e of pairErrors) console.error(`pair error: ${e}`);
+  const mp = mergeMetrics(pairs);
+  console.log(`identity pairs: ${mp.total} | auto-merged: ${mp.autoMerged} | wrong: ${mp.wrongAutoMerges} | mergePrecision: ${mp.mergePrecision.toFixed(3)}`);
+
   const code = await runEval({
     products,
     loadExtracted,
