@@ -285,6 +285,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/archetypes": "workspace:*",
+        "@aonex/calibration": "workspace:*",
         "@aonex/ingestion-field-extractor": "workspace:*",
         "@aonex/types": "workspace:*",
         "zod": "^3.24.1",
