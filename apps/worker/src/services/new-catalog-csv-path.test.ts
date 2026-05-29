@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { schema } from "@aonex/db";
 import {
   connectTestDb, closeTestDb, ensureTestTenant, ensureTestMerchant,
   TEST_TENANT_ID, TEST_MERCHANT_ID,
