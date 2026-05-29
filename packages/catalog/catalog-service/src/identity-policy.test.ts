@@ -66,6 +66,27 @@ async function seedRules(db: DrizzleClient): Promise<void> {
       rulesVersion: 1,
       actor: TEST_ACTOR
     },
+    // Task 12: connector:* and link:* needed for authority-guard integration
+    // test. Both at priority-1 so authority — not source-priority — decides
+    // the outcome. shopify:* and ebay:* are different prefixes so no overlap.
+    {
+      tenantId: null,
+      attributeCode: null,
+      sourceGlob: "connector:*",
+      channelScope: null,
+      priority: 1,
+      rulesVersion: 1,
+      actor: TEST_ACTOR
+    },
+    {
+      tenantId: null,
+      attributeCode: null,
+      sourceGlob: "link:*",
+      channelScope: null,
+      priority: 1,
+      rulesVersion: 1,
+      actor: TEST_ACTOR
+    },
     {
       tenantId: null,
       attributeCode: null,
@@ -820,5 +841,84 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .where(eq(schema.catalogProducts.productId, productId));
     const identity = row[0]!.identity as Record<string, unknown>;
     expect(identity.brand).toBe("OldBrand"); // unchanged
+  });
+
+  test("11. authority guard: lower-authority cannot overwrite higher (Task 12, spec C4)", async () => {
+    // Seed a product whose gtin was previously set by a connector source
+    // (highest authority). The most-recent NON-freeze identity_log row carries
+    // that source, which is what the authority guard reads.
+    const inserted = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TEST_TENANT_ID,
+        merchantId: TEST_MERCHANT_ID,
+        primaryIdentifier: "ip-011",
+        identity: { gtin: "01000000000011", identity_strength: 1.0 },
+        status: "active",
+        values: {}
+      })
+      .returning({ productId: schema.catalogProducts.productId });
+    const productId = inserted[0]!.productId;
+
+    // Pre-existing identity_log row recording the connector having set the gtin.
+    await db.insert(schema.identityLog).values({
+      productId,
+      tenantId: TEST_TENANT_ID,
+      identityField: "gtin",
+      oldValue: null,
+      newValue: "01000000000011",
+      source: "connector:shopify",
+      sourceRecordId: "shop-1",
+      observedAt: new Date("2026-05-20T10:00:00Z"),
+      rationale: "single_priority_one_source"
+    });
+
+    // Lower-authority link source tries to overwrite — must be rejected by
+    // the authority guard BEFORE the policy gate runs.
+    const blocked = await applyIdentityObservation({
+      db,
+      productId,
+      field: "gtin",
+      proposedValue: "02000000000012",
+      source: "link:croma",
+      sourceRecordId: "rec-link-1",
+      observedAt: new Date("2026-05-22T10:00:00Z")
+    });
+    expect(blocked.applied).toBe(false);
+    expect(blocked.reason).toBe("lower_authority");
+
+    // The gtin value should be unchanged.
+    const rowAfterBlock = await db
+      .select({ identity: schema.catalogProducts.identity })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, productId));
+    expect(
+      (rowAfterBlock[0]!.identity as Record<string, unknown>).gtin
+    ).toBe("01000000000011");
+
+    // Reverse: an equal-authority connector source CAN overwrite (the policy
+    // gate may still freeze on disagreement, but the authority guard must let
+    // it through). connector:amazon is priority-1 by seeded rules, the prior
+    // connector:shopify observation lives in identity_log (not values), and
+    // values.{field}._unscoped._unscoped is empty — so there is no priority-1
+    // conflict in the values JSONB and the update applies.
+    const allowed = await applyIdentityObservation({
+      db,
+      productId,
+      field: "gtin",
+      proposedValue: "03000000000013",
+      source: "connector:amazon",
+      sourceRecordId: "rec-amzn-1",
+      observedAt: new Date("2026-05-23T10:00:00Z")
+    });
+    expect(allowed.applied).toBe(true);
+
+    const rowAfterAllow = await db
+      .select({ identity: schema.catalogProducts.identity })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, productId));
+    expect(
+      (rowAfterAllow[0]!.identity as Record<string, unknown>).gtin
+    ).toBe("03000000000013");
   });
 });
