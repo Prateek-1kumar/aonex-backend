@@ -150,7 +150,8 @@ function suggestColumn(header: string): string | null {
 }
 
 function parseNumber(raw: string, col: string, rowIndex: number): number {
-  const n = Number(cleanNumeric(raw));
+  const cleaned = cleanNumeric(raw);
+  const n = cleaned === "" ? NaN : Number(cleaned);
   if (!Number.isFinite(n)) {
     throw new Error(
       `csvAdapter: row ${rowIndex}: ${col} is not a number (got "${raw}")`,
