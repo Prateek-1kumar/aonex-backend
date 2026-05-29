@@ -8,7 +8,7 @@
 // Uses a unique tenant UUID to avoid collision with catalog-write.test.ts.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import {
@@ -445,5 +445,99 @@ describe("admitOrStage — routing chokepoint", () => {
     expect(second.outcome).toBe("enriched");
     expect(second.productId).toBe(liveProductId);
     expect(second.stagedProductId).toBeNull();
+  });
+
+  // ---- Case 5 (Phase 2 Task 6): strong-key match in identifiers[] → auto_merge ----
+  // Seeds a product directly with identifiers[]={gtin:PHASE2-CASE-A-GTIN, strong} and
+  // identity.variantAxes={storage:"256GB"}. Then ingests an AdapterOutput with the same
+  // GTIN + same variant. decideResolution should yield action="auto_merge"; admitOrStage
+  // must attach (outcome="admitted" via writeAdapterOutput re-resolving on GTIN) and not
+  // create a duplicate.
+  test("5. strong-key match via identifiers[] + matching variant → admitted, no duplicate", async () => {
+    const gtin = "PHASE2-CASE-A-GTIN";
+    const primaryId = "PHASE2-CASE-A-SKU";
+
+    // Seed the live product with the new Phase 2 identifiers + variantAxes shape.
+    // CRITICAL: identity.gtin is intentionally NOT set, so the legacy resolver
+    // (which keys on identity->>'gtin') misses this row. Only V2 — which queries
+    // the new identifiers jsonb column for strong-key containment — can find it.
+    // That isolates the new Phase 2 routing as the sole basis for the attach.
+    const seeded = await db
+      .insert(schema.catalogProducts)
+      .values({
+        tenantId: TENANT_ID,
+        merchantId: MERCHANT_ID,
+        primaryIdentifier: primaryId,
+        identity: {
+          brand: "Acme",
+          variantAxes: { storage: "256GB" }
+        },
+        status: "active",
+        values: {},
+        identifiers: [
+          { type: "gtin", value: gtin, source: "connector:shopify", corroborated: true }
+        ]
+      })
+      .returning();
+    const seededProductId = seeded[0]!.productId;
+
+    const out: AdapterOutput = {
+      observations: [
+        obs({
+          attributeCode: "title",
+          value: "Acme Phase 2 Widget",
+          sourceRecordId: "gid://shopify/Product/AOS-5"
+        }),
+        obs({
+          attributeCode: "category_path",
+          value: "Electronics > Widgets",
+          sourceRecordId: "gid://shopify/Product/AOS-5-cat"
+        })
+      ],
+      pricingObservations: [
+        pricingObs({ sourceRecordId: "gid://shopify/ProductVariant/AOS-5" })
+      ],
+      inventoryObservations: [],
+      identityHint: {
+        gtin,
+        brand: "Acme",
+        variantAxes: { storage: "256GB" },
+        targetIsVariant: false
+      },
+      rawPayload: { src: "admit-or-stage-test-phase2-case-a" }
+    };
+
+    const result = await admitOrStage({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      adapterOutput: out,
+      sourceKind: "shopify",
+      actor: TEST_ACTOR,
+      channelCode: CHANNEL_CODE,
+      channelCodeToId: { [CHANNEL_CODE]: CHANNEL }
+    });
+
+    // Strong-key auto_merge → admit attaches to existing row, no duplicate.
+    expect(result.outcome).toBe("admitted");
+    expect(result.productId).toBe(seededProductId);
+    expect(result.stagedProductId).toBeNull();
+
+    // Confirm exactly one row claims this GTIN — no duplicate. We check the
+    // Phase 2 identifiers jsonb (which the seed populated) rather than legacy
+    // identity->>'gtin' (intentionally left unset on the seed).
+    const rows = await db
+      .select({ productId: schema.catalogProducts.productId })
+      .from(schema.catalogProducts)
+      .where(
+        and(
+          eq(schema.catalogProducts.tenantId, TENANT_ID),
+          sql`${schema.catalogProducts.identifiers} @> ${sql.raw(
+            `'[{"type":"gtin","value":"${gtin}"}]'::jsonb`
+          )}`
+        )
+      );
+    expect(rows.length).toBe(1);
+    expect(rows[0]!.productId).toBe(seededProductId);
   });
 });
