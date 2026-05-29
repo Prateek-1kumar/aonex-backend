@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
@@ -64,5 +65,29 @@ describe("POST /ingestions/csv", () => {
     form.append("file", new File(["brand,title\nAcme,Widget"], "x.csv", { type: "text/csv" }));
     const res = await app.request("/ingestions/csv", { method: "POST", body: form });
     expect(res.status).toBe(422);
+  });
+
+  test("recent + trace expose CSV file status and error report", async () => {
+    const enqueued: any[] = [];
+    const app = buildApp(db, enqueued);
+    const HEADER = "primary_identifier,brand,title,currency,list_price";
+    const csv = [HEADER, "REC-1,Acme,Widget,USD,19.99", "REC-2,,,USD,5.00"].join("\n");
+    const form = new FormData();
+    form.append("file", new File([csv], "rep.csv", { type: "text/csv" }));
+    const up = await (await app.request("/ingestions/csv", { method: "POST", body: form })).json() as any;
+
+    // Simulate the worker writing the report (the processor itself is covered in Task 3).
+    await db.update(schema.sourceArtifacts)
+      .set({ status: "needs_review", processingErrors: [{ row: 2, code: "GROUP_VALIDATION_FAILED", message: "no title/brand" }] as any })
+      .where(eq(schema.sourceArtifacts.id, up.data.ingestionId));
+
+    const recent = await (await app.request("/ingestions/recent?limit=100")).json() as any;
+    const mine = recent.data.ingestions.find((x: any) => x.artifact_id === up.data.ingestionId);
+    expect(mine.source_type).toBe("templated_csv");
+    expect(mine.error_count).toBe(1);
+
+    const trace = await (await app.request(`/ingestions/${up.data.ingestionId}/trace`)).json() as any;
+    expect(trace.data.source_type).toBe("templated_csv");
+    expect(trace.data.processing_errors).toHaveLength(1);
   });
 });

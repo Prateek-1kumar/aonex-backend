@@ -5,7 +5,7 @@ import type { Context } from "hono";
 import { z } from "zod";
 import { QUEUE, JOB_KIND, TenantId, MerchantId } from "@aonex/types";
 import { randomUUID, createHash } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import { inspectCsv } from "@aonex/catalog-source-adapters";
 import { convertFromFacts, type SkuJson } from "@aonex/ingestion-enrichment";
@@ -289,7 +289,7 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
       and(
         eq(schema.sourceArtifacts.tenantId, tenantId),
         eq(schema.sourceArtifacts.merchantId, merchantId),
-        eq(schema.sourceArtifacts.sourceType, "link_url")
+        inArray(schema.sourceArtifacts.sourceType, ["link_url", "templated_csv"])
       )
     )
     .orderBy(desc(schema.sourceArtifacts.receivedAt))
@@ -297,27 +297,38 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
 
   const hydrated = await Promise.all(
     artifacts.map(async (artifact) => {
-      const run = await deps.db.query.linkIngestionTraceRuns.findFirst({
-        where: (r, { eq }) => eq(r.artifactId, artifact.id),
-        orderBy: (r, { desc }) => [desc(r.createdAt)],
-      });
+      const isCsv = artifact.sourceType === "templated_csv";
       let factCount = 0;
-      if (run) {
-        const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
-          where: (fs, { eq }) => eq(fs.extractionRunId, run.id),
+      let extractorVersion: string | null = null;
+      // CSV file artifacts have no link trace tables — skip the lookups entirely.
+      if (!isCsv) {
+        const run = await deps.db.query.linkIngestionTraceRuns.findFirst({
+          where: (r, { eq }) => eq(r.artifactId, artifact.id),
+          orderBy: (r, { desc }) => [desc(r.createdAt)],
         });
-        if (factSet) {
-          const facts = await deps.db
-            .select({ id: schema.linkIngestionTraceFacts.id })
-            .from(schema.linkIngestionTraceFacts)
-            .where(eq(schema.linkIngestionTraceFacts.factSetId, factSet.id));
-          factCount = facts.length;
+        if (run) {
+          extractorVersion = run.extractorVersion ?? null;
+          const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
+            where: (fs, { eq }) => eq(fs.extractionRunId, run.id),
+          });
+          if (factSet) {
+            const facts = await deps.db
+              .select({ id: schema.linkIngestionTraceFacts.id })
+              .from(schema.linkIngestionTraceFacts)
+              .where(eq(schema.linkIngestionTraceFacts.factSetId, factSet.id));
+            factCount = facts.length;
+          }
         }
       }
       // Pull escalation metadata from rawData (LinkAdapter stores it there per Phase 6).
       const raw = (artifact.rawData ?? {}) as Record<string, unknown>;
+      // CSV warnings (UNKNOWN_COLUMN) are not counted as errors.
+      const errorCount = (artifact.processingErrors ?? []).filter(
+        (e) => (e as { code?: string }).code !== "UNKNOWN_COLUMN",
+      ).length;
       return {
         artifact_id: artifact.id,
+        source_type: artifact.sourceType,
         source_external_id: artifact.sourceExternalId,
         status: artifact.status,
         received_at: artifact.receivedAt,
@@ -328,7 +339,9 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
         cost_credits: typeof raw.costCredits === "number" ? raw.costCredits : 0,
         final_url: typeof raw.finalUrl === "string" ? raw.finalUrl : artifact.sourceExternalId,
         fact_count: factCount,
-        extractor_version: run?.extractorVersion ?? null,
+        extractor_version: extractorVersion,
+        filename: isCsv && typeof raw.filename === "string" ? raw.filename : null,
+        error_count: errorCount,
       };
     })
   );
@@ -351,6 +364,27 @@ export async function getIngestionTrace(c: Context, deps: IngestionsRouteDeps): 
   });
   if (!artifact) {
     return c.json({ error: { code: "NOT_FOUND", message: "Artifact not found" } }, 404);
+  }
+
+  // CSV file artifacts have no link fact sets — return their per-row error report instead.
+  if (artifact.sourceType === "templated_csv") {
+    const events = await deps.db
+      .select()
+      .from(schema.auditEvents)
+      .where(and(eq(schema.auditEvents.tenantId, tenantId), eq(schema.auditEvents.entityId, id)))
+      .orderBy(schema.auditEvents.createdAt);
+    const raw = (artifact.rawData ?? {}) as Record<string, unknown>;
+    return c.json({
+      data: {
+        artifact_id: artifact.id,
+        source_type: "templated_csv",
+        status: artifact.status,
+        filename: typeof raw.filename === "string" ? raw.filename : null,
+        processing_errors: artifact.processingErrors ?? [],
+        events,
+        sku: null,
+      },
+    });
   }
 
   const events = await deps.db
