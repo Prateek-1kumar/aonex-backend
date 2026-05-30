@@ -95,6 +95,8 @@ mock.module("./ingestion-spine.processor.js", () => ({
   runSpineLink: mock(async () => {}),
 }));
 
+import { noopReconcilerQueues } from "../testing/reconciler-queue-stub.js";
+
 // ── Test ─────────────────────────────────────────────────────────────────────
 
 describe("link-extract processor: real factory coupling (Phase 9.3)", () => {
@@ -150,6 +152,7 @@ describe("link-extract processor: real factory coupling (Phase 9.3)", () => {
         db: stubDb,
         audit: stubAudit,
         extractor: stubExtractor,
+        reconcilerQueues: noopReconcilerQueues,
         // Injected stubs for functions that are used at runtime by other test
         // files — injecting avoids module-level mocking that would bleed.
         _channelCodeFromUrl: () => "unknown-channel",
