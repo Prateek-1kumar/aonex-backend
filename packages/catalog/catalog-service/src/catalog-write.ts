@@ -13,9 +13,9 @@
 //      via the `channelCodeToId` arg; without it we cannot satisfy the
 //      side-table NOT NULL on channel_id.
 //   4. Trigger the synchronous reconciler (Task 3.4) over the unique
-//      attribute codes touched by this batch. Pricing/inventory go through
-//      the async-debounced worker (Task 3.6) — for v1 those are deferred
-//      silently here.
+//      attribute codes touched by this batch. When a `reconcilerQueue` is
+//      provided, a debounced pricing/inventory reconcile job is enqueued
+//      post-commit (no-op when no queue is supplied).
 //   5. Append a revision row carrying the post-write `values` snapshot,
 //      reason, raw_payload, actor, and any overflow-evicted observations
 //      (stuffed into `diff.overflow_eviction`).
@@ -718,21 +718,29 @@ export async function writeAdapterOutput(
   // async-debounced worker is the ONLY writer of catalog_*_current +
   // winning_values.{pricing,inventory}; without this enqueue those stay empty.
   if (reconcilerQueue) {
-    if (adapterOutput.pricingObservations.length > 0) {
-      await enqueueReconcilerJob(reconcilerQueue, {
-        tenantId,
-        productId: result.productId,
-        attributeCode: "pricing",
-        rulesVersion,
-      });
-    }
-    if (adapterOutput.inventoryObservations.length > 0) {
-      await enqueueReconcilerJob(reconcilerQueue, {
-        tenantId,
-        productId: result.productId,
-        attributeCode: "inventory",
-        rulesVersion,
-      });
+    try {
+      if (adapterOutput.pricingObservations.length > 0) {
+        await enqueueReconcilerJob(reconcilerQueue, {
+          tenantId,
+          productId: result.productId,
+          attributeCode: "pricing",
+          rulesVersion,
+        });
+      }
+      if (adapterOutput.inventoryObservations.length > 0) {
+        await enqueueReconcilerJob(reconcilerQueue, {
+          tenantId,
+          productId: result.productId,
+          attributeCode: "inventory",
+          rulesVersion,
+        });
+      }
+    } catch (err) {
+      // Non-fatal: the write is already committed. Enqueue is recoverable —
+      // the next write for this product re-enqueues, and the reconcile is
+      // debounced + idempotent. Do NOT rethrow (would make a committed write
+      // look failed and trigger a caller retry → duplicate side-table rows).
+      console.error("writeAdapterOutput: post-commit reconcile enqueue failed (non-fatal)", err);
     }
   }
   return result;

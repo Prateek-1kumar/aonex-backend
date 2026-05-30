@@ -30,6 +30,7 @@ import type {
 } from "@aonex/catalog-source-adapters";
 import { writeAdapterOutput, DEFAULT_OBSERVATION_CAP } from "./catalog-write.js";
 import { reconcilerQueueName, reconcilerJobId } from "./reconciler/async-debounced.js";
+import type { ReconcilerJobData } from "./reconciler/async-debounced.js";
 import type { Queue } from "bullmq";
 
 const TENANT = TEST_TENANT_ID as unknown as TenantId;
@@ -632,7 +633,7 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
   });
 
   test("7. enqueues pricing + inventory reconcile jobs after commit", async () => {
-    const added: Array<{ name: string; data: any; opts: any }> = [];
+    const added: Array<{ name: string; data: ReconcilerJobData; opts: any }> = [];
     const stubQueue = {
       name: reconcilerQueueName(TEST_TENANT_ID),
       add: async (name: string, data: unknown, opts: unknown) => {
@@ -680,12 +681,49 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     expect(jobIds).toEqual(
       [reconcilerJobId(result.productId, "inventory"), reconcilerJobId(result.productId, "pricing")].sort()
     );
-    const attrs = added.map((a) => (a.data as { attributeCode: string }).attributeCode).sort();
+    const attrs = added.map((a) => a.data.attributeCode).sort();
     expect(attrs).toEqual(["inventory", "pricing"]);
     for (const a of added) {
-      expect((a.data as { tenantId: string }).tenantId).toBe(TEST_TENANT_ID);
-      expect((a.data as { productId: string }).productId).toBe(result.productId);
+      expect(a.data.tenantId).toBe(TEST_TENANT_ID);
+      expect(a.data.productId).toBe(result.productId);
     }
+  });
+
+  test("I3. no reconcile jobs enqueued when reconcilerQueue provided but no pricing/inventory observations", async () => {
+    // Guard: the length-guards inside writeAdapterOutput must prevent any
+    // enqueue call even when a reconcilerQueue is supplied. This pins the
+    // regression so a future refactor cannot accidentally drop the guards.
+    const added: Array<{ name: string; data: ReconcilerJobData; opts: any }> = [];
+    const stubQueue = {
+      name: reconcilerQueueName(TEST_TENANT_ID),
+      add: async (name: string, data: unknown, opts: unknown) => {
+        added.push({ name, data: data as ReconcilerJobData, opts });
+        return {} as never;
+      },
+    } as unknown as Queue;
+
+    await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      actor: "test",
+      reconcilerQueue: stubQueue,
+      // No channelCodeToId needed — no side-table observations.
+      adapterOutput: adapterOutput({
+        observations: [
+          obs({
+            attributeCode: "title",
+            value: "Observations-Only Widget",
+            sourceRecordId: `i3-obs-${Date.now()}`
+          })
+        ],
+        pricingObservations: [],
+        inventoryObservations: [],
+        identityHint: { titleForFuzzy: "Observations-Only Widget", targetIsVariant: false }
+      }),
+    });
+
+    expect(added.length).toBe(0);
   });
 
   test("observation cap is 20 and newest wins on overflow", async () => {
