@@ -86,6 +86,8 @@ export interface ListCatalogProductRow {
   brand: string | null;
   /** Projected from winning_values.gtin._unscoped._unscoped.value. */
   gtin: string | null;
+  /** Projected from winning_values.category_path (first available scope). Null when uncategorised. */
+  category: string | null;
   /**
    * Always null for new-schema rows. Legacy concept: typed product versions
    * don't exist in the new catalog. Frontend code that depends on this field
@@ -395,6 +397,7 @@ export async function listCatalogProducts(
       title: extractWinningString(wv, "title"),
       brand: extractWinningString(wv, "brand"),
       gtin: extractWinningString(wv, "gtin"),
+      category: extractWinningString(wv, "category_path"),
       current_version: null,
       variants: [],
       pricing: pickPricing(pricingByProduct.get(row.productId)),

@@ -7,6 +7,16 @@ export {
   type ShopifyProduct,
   type ShopifyVariant,
 } from "./shopify-connector/index.js";
+export {
+  adaptGroups,
+  inspectCsv,
+  KNOWN_CSV_COLUMNS,
+  type CsvAdapterInput,
+  type CsvGroupResult,
+  type CsvAdaptGroupsResult,
+  type CsvRowIssue,
+  type CsvInspectResult,
+} from "./csv/index.js";
 
 import { linkAdapter } from "./link/index.js";
 import { shopifyConnectorAdapter } from "./shopify-connector/index.js";

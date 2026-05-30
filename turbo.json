@@ -1,5 +1,5 @@
 {
-  "$schema": "https://turbo.build/schema.json",
+  "$schema": "https://v2-9-16.turborepo.dev/schema.json",
   "globalDependencies": ["**/.env.*local", "tsconfig.base.json"],
   "globalEnv": ["NODE_ENV", "DATABASE_URL", "REDIS_URL", "NANGO_SECRET_KEY", "NANGO_WEBHOOK_SECRET", "NANGO_HOST", "JWT_SECRET", "PORT"],
   "tasks": {

@@ -3,12 +3,16 @@
 
 import type { Context } from "hono";
 import { z } from "zod";
-import { QUEUE, TenantId, MerchantId } from "@aonex/types";
-import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { QUEUE, JOB_KIND, TenantId, MerchantId } from "@aonex/types";
+import { randomUUID, createHash } from "node:crypto";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { schema } from "@aonex/db";
+import { inspectCsv } from "@aonex/catalog-source-adapters";
 import { convertFromFacts, type SkuJson } from "@aonex/ingestion-enrichment";
 import type { IngestionsRouteDeps } from "../routes/ingestions.js";
+
+const CSV_MAX_BYTES = Number(process.env.CSV_MAX_BYTES ?? 15 * 1024 * 1024); // ~15 MB
+const CSV_MAX_ROWS = Number(process.env.CSV_MAX_ROWS ?? 50_000);
 
 const LinkIngestionBodySchema = z.object({
   /** The URL to extract product data from. Must be HTTP or HTTPS. */
@@ -188,6 +192,87 @@ export async function submitLinkBatch(c: Context, deps: IngestionsRouteDeps): Pr
 }
 
 /**
+ * POST /csv — Accept a multipart CSV upload. Fatal-validates synchronously,
+ * persists a file-level source_artifact, enqueues a CSV_PARSE job, and returns
+ * 202 { ingestionId, rowCount }. Per-row processing + partial-success error
+ * reporting happen asynchronously in the csv-parse worker.
+ */
+export async function submitCsv(c: Context, deps: IngestionsRouteDeps): Promise<Response> {
+  const tenantId = TenantId.unsafeFrom(c.get("tenantId" as never) as string);
+  const merchantId = MerchantId.unsafeFrom(c.get("merchantId" as never) as string);
+  const requestId = (c.get("requestId" as never) as string) ?? randomUUID();
+
+  let file: File | null = null;
+  try {
+    const form = await c.req.formData();
+    const f = form.get("file");
+    if (f instanceof File) file = f;
+  } catch {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Expected multipart/form-data with a 'file' field" } }, 400);
+  }
+  if (!file) {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Missing 'file' field" } }, 400);
+  }
+  const isCsv = file.type === "text/csv" || file.type === "application/vnd.ms-excel" || file.name.toLowerCase().endsWith(".csv");
+  if (!isCsv) {
+    return c.json({ error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "Only CSV files are accepted" } }, 415);
+  }
+  if (file.size > CSV_MAX_BYTES) {
+    return c.json({ error: { code: "PAYLOAD_TOO_LARGE", message: `File exceeds ${CSV_MAX_BYTES} bytes` } }, 413);
+  }
+
+  const csv = await file.text();
+
+  let inspect;
+  try {
+    inspect = inspectCsv(csv);
+  } catch (err) {
+    return c.json({ error: { code: "UNPROCESSABLE_ENTITY", message: err instanceof Error ? err.message : "Invalid CSV" } }, 422);
+  }
+  if (inspect.rowCount > CSV_MAX_ROWS) {
+    return c.json({ error: { code: "PAYLOAD_TOO_LARGE", message: `File exceeds ${CSV_MAX_ROWS} rows` } }, 413);
+  }
+
+  const observedAt = new Date().toISOString();
+  const uploadId = randomUUID();
+  const fileArtifactId = randomUUID();
+  await deps.db.insert(schema.sourceArtifacts).values({
+    id: fileArtifactId,
+    tenantId,
+    merchantId,
+    sourceType: "templated_csv",
+    sourceMarketplace: null,
+    sourceExternalId: `csv:${file.name.slice(0, 120)}:${uploadId}`,
+    parentArtifactId: null,
+    rawData: { csv, filename: file.name, observedAt },
+    checksum: createHash("sha256").update(csv).digest("hex"),
+    status: "pending",
+  });
+
+  const traceId = randomUUID();
+  await deps.queues[QUEUE.CSV_PARSE].add(
+    JOB_KIND.CSV_PARSE,
+    { tenantId, merchantId, fileArtifactId, requestId, traceId },
+    {
+      jobId: `csv-parse-${tenantId}-${fileArtifactId}`,
+      removeOnComplete: 1000,
+      removeOnFail: 5000,
+      attempts: 3,
+      backoff: { type: "exponential", delay: 5000 },
+    },
+  );
+
+  await deps.audit.emit({
+    tenantId, merchantId, actorType: "user",
+    eventType: "ingestion.csv_submitted", entityType: "source_artifact",
+    entityId: fileArtifactId, requestId,
+    metadata: { filename: file.name, rowCount: inspect.rowCount },
+  });
+
+  return c.json({ data: { ingestionId: fileArtifactId, rowCount: inspect.rowCount, status: "accepted" } }, 202);
+}
+
+/**
  * GET /recent — recent link ingestions for the current tenant/merchant.
  * Each row joins source_artifacts (link_url lane only) with the latest
  * extraction_run + product_version + escalation metadata from rawData.
@@ -204,7 +289,7 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
       and(
         eq(schema.sourceArtifacts.tenantId, tenantId),
         eq(schema.sourceArtifacts.merchantId, merchantId),
-        eq(schema.sourceArtifacts.sourceType, "link_url")
+        inArray(schema.sourceArtifacts.sourceType, ["link_url", "templated_csv"])
       )
     )
     .orderBy(desc(schema.sourceArtifacts.receivedAt))
@@ -212,27 +297,38 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
 
   const hydrated = await Promise.all(
     artifacts.map(async (artifact) => {
-      const run = await deps.db.query.linkIngestionTraceRuns.findFirst({
-        where: (r, { eq }) => eq(r.artifactId, artifact.id),
-        orderBy: (r, { desc }) => [desc(r.createdAt)],
-      });
+      const isCsv = artifact.sourceType === "templated_csv";
       let factCount = 0;
-      if (run) {
-        const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
-          where: (fs, { eq }) => eq(fs.extractionRunId, run.id),
+      let extractorVersion: string | null = null;
+      // CSV file artifacts have no link trace tables — skip the lookups entirely.
+      if (!isCsv) {
+        const run = await deps.db.query.linkIngestionTraceRuns.findFirst({
+          where: (r, { eq }) => eq(r.artifactId, artifact.id),
+          orderBy: (r, { desc }) => [desc(r.createdAt)],
         });
-        if (factSet) {
-          const facts = await deps.db
-            .select({ id: schema.linkIngestionTraceFacts.id })
-            .from(schema.linkIngestionTraceFacts)
-            .where(eq(schema.linkIngestionTraceFacts.factSetId, factSet.id));
-          factCount = facts.length;
+        if (run) {
+          extractorVersion = run.extractorVersion ?? null;
+          const factSet = await deps.db.query.linkIngestionTraceSets.findFirst({
+            where: (fs, { eq }) => eq(fs.extractionRunId, run.id),
+          });
+          if (factSet) {
+            const facts = await deps.db
+              .select({ id: schema.linkIngestionTraceFacts.id })
+              .from(schema.linkIngestionTraceFacts)
+              .where(eq(schema.linkIngestionTraceFacts.factSetId, factSet.id));
+            factCount = facts.length;
+          }
         }
       }
       // Pull escalation metadata from rawData (LinkAdapter stores it there per Phase 6).
       const raw = (artifact.rawData ?? {}) as Record<string, unknown>;
+      // CSV warnings (UNKNOWN_COLUMN) are not counted as errors.
+      const errorCount = (artifact.processingErrors ?? []).filter(
+        (e) => (e as { code?: string }).code !== "UNKNOWN_COLUMN",
+      ).length;
       return {
         artifact_id: artifact.id,
+        source_type: artifact.sourceType,
         source_external_id: artifact.sourceExternalId,
         status: artifact.status,
         received_at: artifact.receivedAt,
@@ -243,7 +339,9 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
         cost_credits: typeof raw.costCredits === "number" ? raw.costCredits : 0,
         final_url: typeof raw.finalUrl === "string" ? raw.finalUrl : artifact.sourceExternalId,
         fact_count: factCount,
-        extractor_version: run?.extractorVersion ?? null,
+        extractor_version: extractorVersion,
+        filename: isCsv && typeof raw.filename === "string" ? raw.filename : null,
+        error_count: errorCount,
       };
     })
   );
@@ -266,6 +364,27 @@ export async function getIngestionTrace(c: Context, deps: IngestionsRouteDeps): 
   });
   if (!artifact) {
     return c.json({ error: { code: "NOT_FOUND", message: "Artifact not found" } }, 404);
+  }
+
+  // CSV file artifacts have no link fact sets — return their per-row error report instead.
+  if (artifact.sourceType === "templated_csv") {
+    const events = await deps.db
+      .select()
+      .from(schema.auditEvents)
+      .where(and(eq(schema.auditEvents.tenantId, tenantId), eq(schema.auditEvents.entityId, id)))
+      .orderBy(schema.auditEvents.createdAt);
+    const raw = (artifact.rawData ?? {}) as Record<string, unknown>;
+    return c.json({
+      data: {
+        artifact_id: artifact.id,
+        source_type: "templated_csv",
+        status: artifact.status,
+        filename: typeof raw.filename === "string" ? raw.filename : null,
+        processing_errors: artifact.processingErrors ?? [],
+        events,
+        sku: null,
+      },
+    });
   }
 
   const events = await deps.db
