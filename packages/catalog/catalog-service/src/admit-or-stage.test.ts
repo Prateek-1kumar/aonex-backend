@@ -18,6 +18,9 @@ import {
 import type { ChannelId, MerchantId, TenantId } from "@aonex/types";
 import type { AdapterOutput, CanonicalObservation, PricingObservation } from "@aonex/catalog-source-adapters";
 import { admitOrStage } from "./admit-or-stage.js";
+import { reconcilerQueueName, reconcilerJobId } from "./reconciler/async-debounced.js";
+import type { Queue } from "bullmq";
+import { randomUUID } from "node:crypto";
 
 // ---- Unique IDs for this test suite (never collide with catalog-write.test.ts) ----
 const TENANT_ID = "c0000000-0000-0000-0000-000000000099";
@@ -666,5 +669,47 @@ describe("admitOrStage — routing chokepoint", () => {
       );
     expect(catalogRows.length).toBe(1);
     expect(catalogRows[0]!.productId).toBe(seededProductId);
+  });
+
+  // ---- Task 4: reconcilerQueue forwarded through admitOrStage → enqueues pricing reconcile ----
+  test("admitted product with pricing enqueues a pricing reconcile", async () => {
+    const added: Array<{ opts: any; data: any }> = [];
+    const stubQueue = {
+      name: reconcilerQueueName(TENANT_ID),
+      add: async (_n: string, data: unknown, opts: unknown) => {
+        added.push({ data, opts });
+        return {} as never;
+      },
+    } as unknown as Queue;
+
+    const pid = `SKU-t4-${randomUUID()}`;
+    const observedAt = new Date("2026-05-30T02:00:00Z");
+    const res = await admitOrStage({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      actor: "csv:upload",
+      sourceKind: "csv",
+      channelCode: "csv",
+      channelCodeToId: { csv: CHANNEL },
+      reconcilerQueue: stubQueue,
+      adapterOutput: {
+        observations: [
+          { attributeCode: "title", target: "parent", channelCode: "csv", localeCode: "_unscoped", source: "csv:f.csv", sourceRecordId: pid, value: "Complete Widget", confidence: 0.85, observedAt },
+          { attributeCode: "brand", target: "parent", channelCode: "_unscoped", localeCode: "_unscoped", source: "csv:f.csv", sourceRecordId: pid, value: "Acme", confidence: 0.9, observedAt },
+          { attributeCode: "category_path", target: "parent", channelCode: "csv", localeCode: "_unscoped", source: "csv:f.csv", sourceRecordId: pid, value: "Tools > Widgets", confidence: 0.85, observedAt },
+        ],
+        pricingObservations: [
+          { productHint: pid, channelCode: "csv", locale: "_unscoped", source: "csv:f.csv", sourceRecordId: pid, currency: "USD", tiers: [{ kind: "list", amount: 9.99 }], observedAt },
+        ],
+        inventoryObservations: [],
+        identityHint: { primary_identifier: pid, brand: "Acme", titleForFuzzy: "Complete Widget", targetIsVariant: false },
+        rawPayload: { primary_identifier: pid },
+      },
+    });
+
+    expect(res.outcome).toBe("admitted");
+    expect(added.length).toBe(1);
+    expect(added[0]!.opts.jobId).toBe(reconcilerJobId(res.productId!, "pricing"));
   });
 });

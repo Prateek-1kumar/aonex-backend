@@ -13,6 +13,7 @@
 import type { DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId, ChannelId } from "@aonex/types";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
+import type { Queue } from "bullmq";
 import { classifyArchetype, type ClassifySignals } from "@aonex/archetypes";
 import { resolveIdentityV2, identifierSetFromHint } from "./identity-resolver-v2.js";
 import { decideResolution } from "./identity/resolve-v2.js";
@@ -34,6 +35,9 @@ export interface AdmitOrStageInput {
   /** Required when the AdapterOutput carries pricing/inventory observations. */
   channelCodeToId?: Record<string, ChannelId>;
   sourceArtifactId?: string;
+  /** Per-tenant reconcile queue, forwarded to writeAdapterOutput for post-commit
+   *  pricing/inventory reconcile. Optional → omit to skip enqueue. */
+  reconcilerQueue?: Queue;
 }
 
 export interface AdmitOrStageResult {
@@ -89,7 +93,8 @@ export async function admitOrStage(
       forceProductId: decision.productId,
       ...(input.channelCodeToId !== undefined
         ? { channelCodeToId: input.channelCodeToId }
-        : {})
+        : {}),
+      ...(input.reconcilerQueue !== undefined ? { reconcilerQueue: input.reconcilerQueue } : {})
     });
     return { outcome: "admitted", productId: w.productId, stagedProductId: null };
   }
@@ -128,7 +133,8 @@ export async function admitOrStage(
       actor: input.actor,
       ...(input.channelCodeToId !== undefined
         ? { channelCodeToId: input.channelCodeToId }
-        : {})
+        : {}),
+      ...(input.reconcilerQueue !== undefined ? { reconcilerQueue: input.reconcilerQueue } : {})
     });
     return { outcome: "enriched", productId: w.productId, stagedProductId: null };
   }
@@ -211,7 +217,8 @@ export async function admitOrStage(
       actor: input.actor,
       ...(input.channelCodeToId !== undefined
         ? { channelCodeToId: input.channelCodeToId }
-        : {})
+        : {}),
+      ...(input.reconcilerQueue !== undefined ? { reconcilerQueue: input.reconcilerQueue } : {})
     });
     return { outcome: "admitted", productId: w.productId, stagedProductId: null };
   }
