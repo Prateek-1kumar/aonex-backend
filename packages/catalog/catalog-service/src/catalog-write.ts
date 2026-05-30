@@ -42,6 +42,8 @@ import {
 } from "./identity-policy.js";
 import { latestObservationValue } from "./observation-helpers.js";
 import { projectSync, type ProjectSyncResult } from "./reconciler/sync.js";
+import type { Queue } from "bullmq";
+import { enqueueReconcilerJob } from "./reconciler/async-debounced.js";
 
 // ---- Public types ----------------------------------------------------------
 
@@ -69,6 +71,14 @@ export interface WriteAdapterOutputInput {
    * iff the AdapterOutput carries pricing or inventory observations.
    */
   channelCodeToId?: Record<string, ChannelId>;
+  /**
+   * Per-tenant BullMQ reconcile queue (`recon.<tenantId>`). When provided, a
+   * debounced pricing/inventory reconcile job is enqueued AFTER the write
+   * transaction commits, so the async worker projects the side-table
+   * observations into catalog_*_current + winning_values.{pricing,inventory}.
+   * Omitted by tests/back-compat callers → enqueue is a no-op.
+   */
+  reconcilerQueue?: Queue;
   /**
    * Override the revision_reason written to catalog_product_revisions.
    * When omitted, defaults to "create" for new products and "new_source"
@@ -216,6 +226,7 @@ export async function writeAdapterOutput(
     rulesVersion = 1,
     observationCap = DEFAULT_OBSERVATION_CAP,
     channelCodeToId,
+    reconcilerQueue,
     reasonOverride,
     sourceOverride,
     forceProductId
@@ -230,7 +241,7 @@ export async function writeAdapterOutput(
     );
   }
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // ---- 1. Resolve identity --------------------------------------------
     // `resolveIdentity` takes a DrizzleClient — pass the tx so reads see
     // anything we'd already written in this transaction (none yet at this
@@ -591,9 +602,6 @@ export async function writeAdapterOutput(
         changedAttributes: projection.changedAttributes
       };
     }
-    // Async-tier deferral (v1): pricing / inventory winners would normally
-    // enqueue a BullMQ debounced job here. Task 3.6 owns the worker — we
-    // skip silently rather than fail the write.
 
     // ---- 6. Revision row ------------------------------------------------
     // Re-read the freshly updated row so the snapshot captures projectSync's
@@ -703,5 +711,30 @@ export async function writeAdapterOutput(
       syncReconcilerResult
     };
   });
+
+  // ---- Post-commit: enqueue async pricing/inventory reconcile ----------
+  // The transaction has committed (db.transaction resolved), so the side-
+  // table observation rows are visible before the worker can dequeue. The
+  // async-debounced worker is the ONLY writer of catalog_*_current +
+  // winning_values.{pricing,inventory}; without this enqueue those stay empty.
+  if (reconcilerQueue) {
+    if (adapterOutput.pricingObservations.length > 0) {
+      await enqueueReconcilerJob(reconcilerQueue, {
+        tenantId,
+        productId: result.productId,
+        attributeCode: "pricing",
+        rulesVersion,
+      });
+    }
+    if (adapterOutput.inventoryObservations.length > 0) {
+      await enqueueReconcilerJob(reconcilerQueue, {
+        tenantId,
+        productId: result.productId,
+        attributeCode: "inventory",
+        rulesVersion,
+      });
+    }
+  }
+  return result;
 }
 

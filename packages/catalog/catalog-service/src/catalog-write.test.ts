@@ -29,6 +29,8 @@ import type {
   PricingObservation
 } from "@aonex/catalog-source-adapters";
 import { writeAdapterOutput, DEFAULT_OBSERVATION_CAP } from "./catalog-write.js";
+import { reconcilerQueueName, reconcilerJobId } from "./reconciler/async-debounced.js";
+import type { Queue } from "bullmq";
 
 const TENANT = TEST_TENANT_ID as unknown as TenantId;
 const MERCHANT = TEST_MERCHANT_ID as unknown as MerchantId;
@@ -627,6 +629,63 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, result.productId));
     expect(rows[0]?.family).toBe("smartphone");
+  });
+
+  test("7. enqueues pricing + inventory reconcile jobs after commit", async () => {
+    const added: Array<{ name: string; data: any; opts: any }> = [];
+    const stubQueue = {
+      name: reconcilerQueueName(TEST_TENANT_ID),
+      add: async (name: string, data: unknown, opts: unknown) => {
+        added.push({ name, data, opts });
+        return {} as never;
+      },
+    } as unknown as Queue;
+
+    const observedAt = new Date("2026-05-30T00:00:00Z");
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      actor: "test",
+      reconcilerQueue: stubQueue,
+      channelCodeToId: { "shopify-au": CHANNEL },
+      adapterOutput: {
+        observations: [
+          {
+            attributeCode: "title", target: "parent",
+            channelCode: "shopify-au", localeCode: "en_AU",
+            source: "test:link", sourceRecordId: "rec-7",
+            value: "Priced Widget", confidence: 0.9, observedAt,
+          },
+        ],
+        pricingObservations: [
+          {
+            productHint: "rec-7", channelCode: "shopify-au", locale: "en_AU",
+            source: "test:link", sourceRecordId: "rec-7",
+            currency: "AUD", tiers: [{ kind: "list", amount: 54.82 }], observedAt,
+          },
+        ],
+        inventoryObservations: [
+          {
+            productHint: "rec-7", channelCode: "shopify-au",
+            qty: 7, source: "test:link", sourceRecordId: "rec-7", observedAt,
+          },
+        ],
+        identityHint: { titleForFuzzy: "Priced Widget", targetIsVariant: false },
+        rawPayload: { sku: "rec-7" },
+      },
+    });
+
+    const jobIds = added.map((a) => a.opts.jobId).sort();
+    expect(jobIds).toEqual(
+      [reconcilerJobId(result.productId, "inventory"), reconcilerJobId(result.productId, "pricing")].sort()
+    );
+    const attrs = added.map((a) => (a.data as { attributeCode: string }).attributeCode).sort();
+    expect(attrs).toEqual(["inventory", "pricing"]);
+    for (const a of added) {
+      expect((a.data as { tenantId: string }).tenantId).toBe(TEST_TENANT_ID);
+      expect((a.data as { productId: string }).productId).toBe(result.productId);
+    }
   });
 
   test("observation cap is 20 and newest wins on overflow", async () => {
