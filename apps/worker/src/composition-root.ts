@@ -16,6 +16,7 @@ import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
 import { makeDrainProcessor } from "./processors/drain.processor.js";
 import { makeTriggerSyncProcessor } from "./processors/trigger-sync.processor.js";
 import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js";
+import { makeCsvParseProcessor } from "./processors/csv-parse.processor.js";
 import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
@@ -145,7 +146,13 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     { connection: redis, concurrency: 1 }
   );
 
-  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), cronWorker];
+  const csvParseWorker = new Worker(
+    QUEUE.CSV_PARSE,
+    makeCsvParseProcessor({ db: db.client, audit }),
+    { connection: redis, concurrency: 3 },
+  );
+
+  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), csvParseWorker, cronWorker];
   for (const w of workers) {
     w.on("completed", (job) => logger.info({ jobId: job.id, queue: w.name }, "job.completed"));
     w.on("failed", (job, err) =>
@@ -187,6 +194,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         drainWorker.close(true),
         triggerWorker.close(true),
         cronWorker.close(true),
+        csvParseWorker.close(true),
         ...(linkExtractWorker ? [linkExtractWorker.close(true)] : []),
         ...reconcilerHandles.map((h) => h.worker.close(true)),
         ...(outboxHandle ? [outboxHandle.stop()] : [])
