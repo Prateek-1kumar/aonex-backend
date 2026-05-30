@@ -7,7 +7,13 @@ import { type LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
 import type { TenantId, MerchantId, ArtifactId } from "@aonex/types";
-import { runNewLinkCatalogPath, resolveChannelByCode } from "../services/new-catalog-link-path.js";
+import {
+  runNewLinkCatalogPath,
+  resolveChannelByCode,
+  type RunNewLinkCatalogPathInput,
+} from "../services/new-catalog-link-path.js";
+import type { AdmitOrStageResult } from "@aonex/catalog-service";
+import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
 export interface IngestionSpineJobData {
   tenantId: TenantId;
@@ -23,6 +29,15 @@ export interface IngestionSpineProcessorDeps {
   db: DrizzleClient;
   audit: AuditEmitter;
   llmExtractor: LLMProductExtractor;
+  /** Per-tenant reconcile queue provider; forwarded to runNewLinkCatalogPath for post-commit pricing/inventory reconcile. */
+  reconcilerQueues: ReconcilerQueueProvider;
+  /**
+   * Overridable entry point for the catalog write path. Defaults to the real
+   * `runNewLinkCatalogPath`. Exposed for tests so the spine test can inject a
+   * spy without needing module-level mocking of the service module.
+   * Production code should never supply this.
+   */
+  _runNewLinkCatalogPath?: (input: RunNewLinkCatalogPathInput) => Promise<AdmitOrStageResult>;
 }
 
 /**
@@ -102,7 +117,8 @@ async function writeSpineExtractionToCatalog(
   try {
     const channelCode = channelCodeFromUrl(sourceUrl);
     const resolved = await resolveChannelByCode(deps.db, data.tenantId, channelCode);
-    await runNewLinkCatalogPath({
+    const _newPath = deps._runNewLinkCatalogPath ?? runNewLinkCatalogPath;
+    await _newPath({
       db: deps.db,
       tenantId: data.tenantId,
       merchantId: data.merchantId,
@@ -113,6 +129,7 @@ async function writeSpineExtractionToCatalog(
       channelCode: resolved ? resolved.channelCode : null,
       channelDefaultCurrency: resolved?.defaultCurrency ?? null,
       channelDefaultLocale: resolved?.defaultLocale ?? null,
+      reconcilerQueue: deps.reconcilerQueues.forTenant(data.tenantId),
     });
   } catch (err) {
     await deps.audit.emit({
