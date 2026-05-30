@@ -83,7 +83,7 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     // validation (no shadow-compare exists yet).
     if (process.env.INGESTION_SPINE_ENABLED === "true") {
       return runSpineLink(
-        { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor },
+        { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor, reconcilerQueues: deps.reconcilerQueues },
         {
           tenantId: job.data.tenantId,
           merchantId: job.data.merchantId,
