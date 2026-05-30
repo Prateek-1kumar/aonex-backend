@@ -45,6 +45,7 @@ import type {
   TenantId,
 } from "@aonex/types";
 import type { DrizzleClient } from "@aonex/db";
+import type { Queue } from "bullmq";
 import { sql } from "drizzle-orm";
 import { PLACEHOLDER_CHANNEL_ID } from "./_internal.js";
 
@@ -135,6 +136,8 @@ export interface RunNewShopifyCatalogPathInput {
    * see the drop. The drain processor plumbs its pino logger through.
    */
   logger?: PathLogger;
+  /** Per-tenant reconcile queue; forwarded to admitOrStage for post-commit pricing/inventory reconcile. Optional. */
+  reconcilerQueue?: Queue;
 }
 
 export interface RunNewShopifyCatalogPathResult {
@@ -262,6 +265,7 @@ export async function runNewShopifyCatalogPath(
       ? { channelCodeToId: { [channelCode]: resolved.channelId } }
       : {}),
     sourceArtifactId: artifactId as string,
+    ...(input.reconcilerQueue !== undefined ? { reconcilerQueue: input.reconcilerQueue } : {}),
   });
 
   return {

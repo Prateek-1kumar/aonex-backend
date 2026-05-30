@@ -22,6 +22,9 @@ import {
 import type { ArtifactId, ChannelId, MerchantId, TenantId } from "@aonex/types";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
 import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
+import { reconcilerQueueName, reconcilerJobId } from "@aonex/catalog-service";
+import type { Queue } from "bullmq";
+import { randomUUID } from "node:crypto";
 import { resolveChannelByCode, runNewLinkCatalogPath } from "./new-catalog-link-path.js";
 
 const TENANT = TEST_TENANT_ID as unknown as TenantId;
@@ -373,6 +376,55 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
     expect(ebayTypoCode).toBe("ebay-typo-com");
     const ebayResolved = await resolveChannelByCode(db, TENANT, ebayTypoCode);
     expect(ebayResolved).toBeNull();
+  });
+
+  test("6. runNewLinkCatalogPath enqueues pricing reconcile when given a queue", async () => {
+    // Use a unique GTIN per run so the product is always admitted fresh.
+    const gtin = `0700000000${randomUUID().replace(/-/g, "").slice(0, 4)}`;
+    const pid = `LINK-Q-${randomUUID().slice(0, 8)}`;
+    const added: Array<{ opts: unknown }> = [];
+    const stubQueue = {
+      name: reconcilerQueueName(TEST_TENANT_ID),
+      add: async (_n: string, _d: unknown, opts: unknown) => { added.push({ opts }); return {} as never; },
+    } as unknown as Queue;
+
+    const sku = emptySku({
+      title: "Queue-wired Widget",
+      brand: "Acme",
+      gtin,
+      category_path: "Home & Garden > Tools",
+      category_confidence: 0.9,
+      pricing: {
+        list_price: 49.95,
+        sale_price: null,
+        currency: "AUD",
+        discount_percent: null,
+        price_per_unit: null,
+      },
+      _field_confidence: { title: 0.9, brand: 0.95, gtin: 0.95 },
+    });
+
+    const result = await runNewLinkCatalogPath({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      artifactId: randomUUID() as unknown as ArtifactId,
+      sourceUrl: `https://shop.example-test-au.com/product/${pid}`,
+      sku,
+      channelId: CHANNEL,
+      channelCode: "shop-example-test-au-com",
+      channelDefaultCurrency: "AUD",
+      channelDefaultLocale: "en_AU",
+      reconcilerQueue: stubQueue,
+    });
+
+    // Complete product → admitted; a reconciler job must have been enqueued.
+    expect(result.outcome).toBe("admitted");
+    expect(result.productId).not.toBeNull();
+    expect(added.length).toBe(1);
+    expect((added[0]!.opts as { jobId?: string }).jobId).toBe(
+      reconcilerJobId(result.productId!, "pricing")
+    );
   });
 
   test("5. SkuJson with list_price + null currency under unresolved channel does not throw", async () => {

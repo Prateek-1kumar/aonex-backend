@@ -31,6 +31,7 @@ import {
   runNewShopifyCatalogPath,
   SHOPIFY_DEFAULT_REGION,
 } from "../services/new-catalog-shopify-path.js";
+import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
 export interface DrainJobData {
   merchantId: MerchantId;
@@ -47,6 +48,8 @@ export interface DrainProcessorDeps {
   syncService: SyncService;
   /** Optional pino logger for the Shopify catalog write branch. */
   logger?: Logger;
+  /** Per-tenant reconcile queue provider; forwarded to runNewShopifyCatalogPath. */
+  reconcilerQueues: ReconcilerQueueProvider;
 }
 
 export function makeDrainProcessor(deps: DrainProcessorDeps) {
@@ -110,6 +113,7 @@ export function makeDrainProcessor(deps: DrainProcessorDeps) {
               region: SHOPIFY_DEFAULT_REGION,
               shopifyProduct: artifact.raw as ShopifyProduct,
               observedAt: artifact.modifiedAt ?? new Date(),
+              reconcilerQueue: deps.reconcilerQueues.forTenant(tenantId),
             };
             if (deps.logger) shopifyArgs.logger = deps.logger;
             await runNewShopifyCatalogPath(shopifyArgs);

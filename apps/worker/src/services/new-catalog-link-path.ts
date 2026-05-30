@@ -30,6 +30,7 @@ import type {
   TenantId,
 } from "@aonex/types";
 import type { DrizzleClient } from "@aonex/db";
+import type { Queue } from "bullmq";
 import { PLACEHOLDER_CHANNEL_ID } from "./_internal.js";
 
 /**
@@ -115,6 +116,8 @@ export interface RunNewLinkCatalogPathInput {
   channelDefaultLocale: string | null;
   /** Observed-at for the adapter envelope. Defaults to now() — exposed for tests. */
   observedAt?: Date;
+  /** Per-tenant reconcile queue; forwarded to admitOrStage for post-commit pricing/inventory reconcile. Optional. */
+  reconcilerQueue?: Queue;
 }
 
 /**
@@ -165,6 +168,7 @@ export async function runNewLinkCatalogPath(
     channelDefaultCurrency,
     channelDefaultLocale,
     observedAt = new Date(),
+    reconcilerQueue,
   } = input;
 
   const adapter = getAdapter("link");
@@ -229,5 +233,6 @@ export async function runNewLinkCatalogPath(
       ? { channelCodeToId: { [channelCode]: channelId } }
       : {}),
     sourceArtifactId: artifactId as string,
+    ...(reconcilerQueue !== undefined ? { reconcilerQueue } : {}),
   });
 }

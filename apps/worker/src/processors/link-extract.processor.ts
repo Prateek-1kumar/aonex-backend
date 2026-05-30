@@ -29,6 +29,7 @@ import {
 } from "../services/new-catalog-link-path.js";
 import type { AdmitOrStageResult } from "@aonex/catalog-service";
 import { runSpineLink } from "./ingestion-spine.processor.js";
+import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
 export interface LinkExtractJobData {
   tenantId: TenantId;
@@ -66,6 +67,8 @@ export interface LinkExtractProcessorDeps {
    * `_resolveChannelByCode` above.
    */
   _channelCodeFromUrl?: (url: string) => string;
+  /** Per-tenant reconcile queue provider; forwarded to runNewLinkCatalogPath. */
+  reconcilerQueues: ReconcilerQueueProvider;
 }
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
@@ -393,6 +396,7 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
       channelCode: resolved ? resolved.channelCode : null,
       channelDefaultCurrency: resolved?.defaultCurrency ?? null,
       channelDefaultLocale: resolved?.defaultLocale ?? null,
+      reconcilerQueue: deps.reconcilerQueues.forTenant(tenantId),
     });
 
     // Mark artifact completed — review tasks flow through `review_tasks`.

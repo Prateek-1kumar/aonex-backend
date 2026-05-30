@@ -72,6 +72,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
       gateway,
       syncService,
       logger,
+      reconcilerQueues,
     }),
     {
       connection: redis,
@@ -113,6 +114,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         db: db.client,
         audit,
         extractor,
+        reconcilerQueues,
       }),
       { connection: redis, concurrency: 5 }
     );
