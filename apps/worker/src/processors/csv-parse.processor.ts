@@ -13,6 +13,7 @@ import { QUEUE } from "@aonex/types";
 import { adaptGroups, type CsvRowIssue } from "@aonex/catalog-source-adapters";
 import { eq } from "drizzle-orm";
 import { resolveOrCreateCsvChannel, runNewCsvCatalogPath } from "../services/new-catalog-csv-path.js";
+import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
 export interface CsvParseJobData {
   tenantId: TenantId;
@@ -25,6 +26,7 @@ export interface CsvParseJobData {
 export interface CsvParseProcessorDeps {
   db: DrizzleClient;
   audit: AuditEmitter;
+  reconcilerQueues: ReconcilerQueueProvider;
 }
 
 interface CsvFileRaw { csv: string; filename: string; observedAt: string; }
@@ -88,6 +90,7 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
         artifactId,
         adapterOutput: group.output,
         channel: { channelId: channel.channelId },
+        reconcilerQueue: deps.reconcilerQueues.forTenant(data.tenantId),
       });
       await db.update(schema.sourceArtifacts).set({ status: "completed" })
         .where(eq(schema.sourceArtifacts.id, artifactId as string));

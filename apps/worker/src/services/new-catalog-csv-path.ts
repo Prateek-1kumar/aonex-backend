@@ -7,6 +7,7 @@ import { admitOrStage, type AdmitOrStageResult } from "@aonex/catalog-service";
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
 import type { ChannelId, MerchantId, TenantId, ArtifactId } from "@aonex/types";
 import { schema, type DrizzleClient } from "@aonex/db";
+import type { Queue } from "bullmq";
 
 /** Logical channel code carried on CSV observations (matches the adapter default). */
 export const CSV_CHANNEL_CODE = "csv";
@@ -62,6 +63,8 @@ export interface RunNewCsvCatalogPathInput {
   adapterOutput: AdapterOutput;
   /** Optional pre-resolved channel (the processor resolves once per file). */
   channel?: { channelId: ChannelId };
+  /** Per-tenant reconcile queue; forwarded to admitOrStage. Optional. */
+  reconcilerQueue?: Queue;
 }
 
 export interface RunNewCsvCatalogPathResult {
@@ -86,6 +89,7 @@ export async function runNewCsvCatalogPath(
     channelCode: CSV_CHANNEL_CODE,
     channelCodeToId: { [CSV_CHANNEL_CODE]: channel.channelId },
     sourceArtifactId: artifactId as string,
+    ...(input.reconcilerQueue !== undefined ? { reconcilerQueue: input.reconcilerQueue } : {}),
   });
 
   return { outcome: result.outcome, productId: result.productId, stagedProductId: result.stagedProductId };

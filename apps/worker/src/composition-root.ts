@@ -17,6 +17,7 @@ import { makeDrainProcessor } from "./processors/drain.processor.js";
 import { makeTriggerSyncProcessor } from "./processors/trigger-sync.processor.js";
 import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js";
 import { makeCsvParseProcessor } from "./processors/csv-parse.processor.js";
+import { ReconcilerQueueProvider } from "./services/reconciler-queue-provider.js";
 import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
@@ -37,6 +38,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
 
   const db = createDb(env.DATABASE_URL, { max: 30 });
   const redis = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
+  const reconcilerQueues = new ReconcilerQueueProvider(redis);
 
   const lookup = new PostgresConnectionRegistry(db.client);
   const gateway = buildGateway({ env, lookup });
@@ -148,7 +150,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
 
   const csvParseWorker = new Worker(
     QUEUE.CSV_PARSE,
-    makeCsvParseProcessor({ db: db.client, audit }),
+    makeCsvParseProcessor({ db: db.client, audit, reconcilerQueues }),
     { connection: redis, concurrency: 3 },
   );
 
@@ -199,7 +201,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         ...reconcilerHandles.map((h) => h.worker.close(true)),
         ...(outboxHandle ? [outboxHandle.stop()] : [])
       ]);
-      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), cronQueue.close()]);
+      await Promise.all([drainQueue.close(), triggerQueue.close(), extractQueue.close(), linkExtractQueue.close(), cronQueue.close(), reconcilerQueues.close()]);
       await redis.quit();
       await db.close();
     }
