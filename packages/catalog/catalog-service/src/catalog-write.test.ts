@@ -29,7 +29,7 @@ import type {
   PricingObservation
 } from "@aonex/catalog-source-adapters";
 import { writeAdapterOutput, DEFAULT_OBSERVATION_CAP } from "./catalog-write.js";
-import { reconcilerQueueName, reconcilerJobId } from "./reconciler/async-debounced.js";
+import { reconcilerQueueName, reconcilerJobId, processReconcilerJob } from "./reconciler/async-debounced.js";
 import type { ReconcilerJobData } from "./reconciler/async-debounced.js";
 import type { Queue } from "bullmq";
 
@@ -777,5 +777,59 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     expect(surviving).not.toContain("iter-0");
     expect(surviving).toContain("iter-1");
     expect(surviving).toContain("iter-20");
+  });
+
+  test("8. pricing/inventory observations project to _current + winning_values after reconcile", async () => {
+    const observedAt = new Date("2026-05-30T01:00:00Z");
+    const result = await writeAdapterOutput({
+      db,
+      tenantId: TEST_TENANT_ID,
+      merchantId: TEST_MERCHANT_ID,
+      actor: "test",
+      channelCodeToId: { "shopify-au": TEST_CHANNEL_ID },
+      adapterOutput: {
+        observations: [{
+          attributeCode: "title", target: "parent",
+          channelCode: "shopify-au", localeCode: "en_AU",
+          source: "test:link", sourceRecordId: "rec-8",
+          value: "Projected Widget", confidence: 0.9, observedAt,
+        }],
+        pricingObservations: [{
+          productHint: "rec-8", channelCode: "shopify-au", locale: "en_AU",
+          source: "test:link", sourceRecordId: "rec-8",
+          currency: "AUD", tiers: [{ kind: "list", amount: 54.82 }], observedAt,
+        }],
+        inventoryObservations: [{
+          productHint: "rec-8", channelCode: "shopify-au",
+          qty: 7, source: "test:link", sourceRecordId: "rec-8", observedAt,
+        }],
+        identityHint: { titleForFuzzy: "Projected Widget", targetIsVariant: false },
+        rawPayload: { sku: "rec-8" },
+      },
+    });
+
+    const deps = { db, connection: {} as never };
+    await processReconcilerJob(deps, { tenantId: TEST_TENANT_ID, productId: result.productId, attributeCode: "pricing", rulesVersion: 1 });
+    await processReconcilerJob(deps, { tenantId: TEST_TENANT_ID, productId: result.productId, attributeCode: "inventory", rulesVersion: 1 });
+
+    const priceRows = await db.select()
+      .from(schema.catalogPricingCurrent)
+      .where(eq(schema.catalogPricingCurrent.productId, result.productId));
+    expect(priceRows.length).toBe(1);
+    expect(priceRows[0]!.currency).toBe("AUD");
+    expect(Number(priceRows[0]!.primaryAmount)).toBe(54.82);
+
+    const invRows = await db.select()
+      .from(schema.catalogInventoryCurrent)
+      .where(eq(schema.catalogInventoryCurrent.productId, result.productId));
+    expect(invRows.length).toBe(1);
+    expect(invRows[0]!.qty).toBe(7);
+
+    const rows = await db.select({ wv: schema.catalogProducts.winningValues })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId));
+    const wv = rows[0]!.wv as Record<string, unknown>;
+    expect(wv.pricing).toBeDefined();
+    expect(wv.inventory).toBeDefined();
   });
 });
