@@ -8,6 +8,13 @@ import {
 import { eq } from "drizzle-orm";
 import { randomUUID, createHash } from "node:crypto";
 import { runCsvParse } from "./csv-parse.processor.js";
+import type { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
+import { reconcilerQueueName } from "@aonex/catalog-service";
+
+const noopReconcilerQueues = {
+  forTenant: (tenantId: string) => ({ name: reconcilerQueueName(tenantId), add: async () => ({} as never) } as any),
+  close: async () => {},
+} as unknown as ReconcilerQueueProvider;
 
 const HEADER = "primary_identifier,gtin,mpn,brand,title,category,description_long,currency,list_price,sale_price,weight_value,weight_unit,variant_color,variant_size,variant_gtin,variant_sku,variant_inventory_qty";
 const noopAudit = { emit: async () => {} } as any;
@@ -40,7 +47,7 @@ describe("CSV ingestion end-to-end (parse → catalog + report)", () => {
     ].join("\n");
     const fileId = await seedFileArtifact(db, csv);
 
-    await runCsvParse({ db, audit: noopAudit }, {
+    await runCsvParse({ db, audit: noopAudit, reconcilerQueues: noopReconcilerQueues }, {
       tenantId: TEST_TENANT_ID as any, merchantId: TEST_MERCHANT_ID as any,
       fileArtifactId: fileId, traceId: randomUUID(), requestId: randomUUID(),
     });
