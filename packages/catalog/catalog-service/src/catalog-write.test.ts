@@ -637,7 +637,7 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     const stubQueue = {
       name: reconcilerQueueName(TEST_TENANT_ID),
       add: async (name: string, data: unknown, opts: unknown) => {
-        added.push({ name, data, opts });
+        added.push({ name, data: data as ReconcilerJobData, opts });
         return {} as never;
       },
     } as unknown as Queue;
@@ -783,10 +783,10 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     const observedAt = new Date("2026-05-30T01:00:00Z");
     const result = await writeAdapterOutput({
       db,
-      tenantId: TEST_TENANT_ID,
-      merchantId: TEST_MERCHANT_ID,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
       actor: "test",
-      channelCodeToId: { "shopify-au": TEST_CHANNEL_ID },
+      channelCodeToId: { "shopify-au": CHANNEL },
       adapterOutput: {
         observations: [{
           attributeCode: "title", target: "parent",
@@ -809,8 +809,8 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     });
 
     const deps = { db, connection: {} as never };
-    await processReconcilerJob(deps, { tenantId: TEST_TENANT_ID, productId: result.productId, attributeCode: "pricing", rulesVersion: 1 });
-    await processReconcilerJob(deps, { tenantId: TEST_TENANT_ID, productId: result.productId, attributeCode: "inventory", rulesVersion: 1 });
+    await processReconcilerJob(deps, { tenantId: TENANT, productId: result.productId, attributeCode: "pricing", rulesVersion: 1 });
+    await processReconcilerJob(deps, { tenantId: TENANT, productId: result.productId, attributeCode: "inventory", rulesVersion: 1 });
 
     const priceRows = await db.select()
       .from(schema.catalogPricingCurrent)

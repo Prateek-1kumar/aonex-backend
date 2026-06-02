@@ -35,6 +35,7 @@ export const KNOWN_CSV_COLUMNS = [
   "title", "brand", "gtin", "mpn", "category", "description_long",
   "list_price", "sale_price", "currency", "weight_value", "weight_unit",
   "variant_sku", "variant_color", "variant_size", "variant_gtin", "variant_inventory_qty",
+  "picture", "image_url", "image_urls", "variant_image_url", "variant_image", "variant_images",
 ] as const;
 
 export interface CsvRowIssue {
@@ -169,6 +170,7 @@ interface GroupShared {
   observedAt: Date;
   artifactId?: ArtifactId;
   channelDefaultCurrency: string | null;
+  warnings: CsvRowIssue[];
 }
 
 /**
@@ -249,6 +251,15 @@ function adaptGroup(
 
   const gtinVal = nonEmpty(firstRow, "gtin");
   if (gtinVal !== undefined) {
+    const isValidGtin = /^\d+$/.test(gtinVal) && [8, 12, 13, 14].includes(gtinVal.length);
+    if (!isValidGtin) {
+      shared.warnings.push({
+        row: firstIndex,
+        code: "INVALID_GTIN",
+        message: `row ${firstIndex}: parent GTIN "${gtinVal}" is invalid (must be 8, 12, 13, or 14 digits)`,
+        primaryIdentifier,
+      });
+    }
     observations.push({
       attributeCode: "identity.gtin",
       target: "parent",
@@ -265,10 +276,6 @@ function adaptGroup(
   const categoryVal = nonEmpty(firstRow, "category");
   if (categoryVal !== undefined) {
     observations.push({
-      // Canonical attribute code is "category_path" — matches the shopify and
-      // link adapters and the CANONICAL_MINIMUM gate check
-      // (evaluate-gate.ts). Emitting bare "category" here would make every
-      // CSV product miss the gate's category_path requirement and stage.
       attributeCode: "category_path",
       target: "parent",
       channelCode,
@@ -297,7 +304,6 @@ function adaptGroup(
   }
 
   // weight: emitted as a single observation with unit preserved in extras
-  // so the canonical reconciler doesn't have to guess the unit.
   const weightValRaw = nonEmpty(firstRow, "weight_value");
   const weightUnitVal = nonEmpty(firstRow, "weight_unit");
   if (weightValRaw !== undefined) {
@@ -312,8 +318,6 @@ function adaptGroup(
       value: weight,
       confidence: DEFAULT_CONFIDENCE,
       observedAt,
-      // Only emit unit in extras when explicitly provided — silent
-      // "kg default" would be a footgun.
       ...(weightUnitVal !== undefined
         ? { extras: { unit: weightUnitVal } }
         : {}),
@@ -396,6 +400,15 @@ function adaptGroup(
 
     // identity.gtin (global / _unscoped)
     if (variantGtinVal !== undefined) {
+      const isValidGtin = /^\d+$/.test(variantGtinVal) && [8, 12, 13, 14].includes(variantGtinVal.length);
+      if (!isValidGtin) {
+        shared.warnings.push({
+          row: index,
+          code: "INVALID_GTIN",
+          message: `row ${index}: variant GTIN "${variantGtinVal}" is invalid (must be 8, 12, 13, or 14 digits)`,
+          primaryIdentifier,
+        });
+      }
       observations.push({
         attributeCode: "identity.gtin",
         target: "variant",
@@ -410,12 +423,8 @@ function adaptGroup(
       });
     }
 
-    // Pricing: variants inherit parent tiers + currency in v1. Emit a
-    // pricing observation with variantAxes set so the reconciler can attach
-    // it to the right variant.
+    // Pricing
     if (parentTiers.length > 0) {
-      // parentCurrency null/undefined was already rejected above when
-      // parent pricing was emitted, so it's guaranteed defined here.
       pricing.push({
         productHint,
         variantAxes,
@@ -450,6 +459,80 @@ function adaptGroup(
     }
   }
 
+  // --- Images Extraction (Parent & Variants combined) -------------------
+  interface ExtractedImage {
+    url: string;
+    altText?: string | undefined;
+    rowIndex: number;
+  }
+
+  const extractedImages: ExtractedImage[] = [];
+  const extractFromRow = (row: CsvRow, rowIndex: number, cols: string[], alt?: string) => {
+    for (const col of cols) {
+      const val = nonEmpty(row, col);
+      if (val !== undefined) {
+        const parts = val.startsWith("data:") ? [val] : val.split(",").map(p => p.trim()).filter(Boolean);
+        for (const part of parts) {
+          const isValidUrl = part.startsWith("http://") || part.startsWith("https://") || part.startsWith("data:image/");
+          if (!isValidUrl) {
+            shared.warnings.push({
+              row: rowIndex,
+              code: "INVALID_IMAGE_URL",
+              message: `row ${rowIndex}: Image URL "${part.slice(0, 60)}" must start with http://, https://, or data:image/`,
+              primaryIdentifier,
+            });
+          }
+          extractedImages.push({
+            url: part,
+            altText: alt,
+            rowIndex,
+          });
+        }
+      }
+    }
+  };
+
+  for (const { row, index } of groupRows) {
+    const colorVal = nonEmpty(row, "variant_color");
+    const sizeVal = nonEmpty(row, "variant_size");
+    const axesParts: string[] = [];
+    if (colorVal !== undefined) axesParts.push(`Color: ${colorVal}`);
+    if (sizeVal !== undefined) axesParts.push(`Size: ${sizeVal}`);
+    const altText = axesParts.length > 0 ? axesParts.join(", ") : undefined;
+
+    extractFromRow(row, index, [
+      "picture", "image_url", "image_urls",
+      "variant_image_url", "variant_image", "variant_images"
+    ], altText);
+  }
+
+  const dedupedMap = new Map<string, ExtractedImage>();
+  for (const img of extractedImages) {
+    const existing = dedupedMap.get(img.url);
+    if (!existing || (!existing.altText && img.altText)) {
+      dedupedMap.set(img.url, img);
+    }
+  }
+
+  const finalImages = Array.from(dedupedMap.values()).map(img => ({
+    url: img.url,
+    ...(img.altText ? { altText: img.altText } : {}),
+  }));
+
+  if (finalImages.length > 0) {
+    observations.push({
+      attributeCode: "images",
+      target: "parent",
+      channelCode,
+      localeCode: locale,
+      source,
+      sourceRecordId: parentRecordId,
+      value: finalImages,
+      confidence: DEFAULT_CONFIDENCE,
+      observedAt,
+    });
+  }
+
   // --- Identity hint (for THIS group) ------------------------------------
 
   const hasVariants = groupRows.some((r) => hasAnyVariantField(r.row));
@@ -479,7 +562,12 @@ function adaptGroup(
 export function inspectCsv(csvText: string): CsvInspectResult {
   const text = stripBom(csvText);
   const delimiter = detectDelimiter(text);
-  const rows = parse(text, { columns: true, skip_empty_lines: true, trim: true, delimiter }) as CsvRow[];
+  const rows = parse(text, {
+    columns: (headers: string[]) => headers.map(h => h.trim().toLowerCase().replace(/[-\s]/g, "_")),
+    skip_empty_lines: true,
+    trim: true,
+    delimiter
+  }) as CsvRow[];
   if (rows.length === 0) throw new Error("csvAdapter: CSV contained no data rows");
   const headers = Object.keys(rows[0]!);
   for (const required of REQUIRED_COLUMNS) {
@@ -501,7 +589,12 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
   }
   const text = stripBom(input.csv);
   const delimiter = detectDelimiter(text);
-  const rows = parse(text, { columns: true, skip_empty_lines: true, trim: true, delimiter }) as CsvRow[];
+  const rows = parse(text, {
+    columns: (headers: string[]) => headers.map(h => h.trim().toLowerCase().replace(/[-\s]/g, "_")),
+    skip_empty_lines: true,
+    trim: true,
+    delimiter
+  }) as CsvRow[];
 
   const errors: CsvRowIssue[] = [];
   const warnings: CsvRowIssue[] = [];
@@ -535,6 +628,7 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
     observedAt: input.observedAt instanceof Date ? input.observedAt : new Date(input.observedAt),
     ...(input.artifactId !== undefined ? { artifactId: input.artifactId } : {}),
     channelDefaultCurrency: ctx.channelDefaultCurrency,
+    warnings,
   };
 
   const groups = new Map<string, IndexedRow[]>();

@@ -14,6 +14,13 @@ import { adaptGroups, type CsvRowIssue } from "@aonex/catalog-source-adapters";
 import { eq } from "drizzle-orm";
 import { resolveOrCreateCsvChannel, runNewCsvCatalogPath } from "../services/new-catalog-csv-path.js";
 import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
+import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 export interface CsvParseJobData {
   tenantId: TenantId;
@@ -29,7 +36,13 @@ export interface CsvParseProcessorDeps {
   reconcilerQueues: ReconcilerQueueProvider;
 }
 
-interface CsvFileRaw { csv: string; filename: string; observedAt: string; }
+interface CsvFileRaw {
+  csv?: string;
+  fileBase64?: string;
+  filename: string;
+  observedAt: string;
+  fileType?: string;
+}
 
 export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJobData): Promise<void> {
   const { db } = deps;
@@ -45,8 +58,59 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
   const raw = file.rawData as unknown as CsvFileRaw;
   const channel = await resolveOrCreateCsvChannel(db, data.tenantId);
 
+  let resolvedCsv = "";
+
+  if (raw.fileBase64) {
+    const tempDir = await mkdtemp(join(tmpdir(), "aonex-ingest-"));
+    try {
+      const fileExt = raw.fileType === "xlsx" ? ".xlsx" : ".numbers";
+      const tempFilePath = join(tempDir, `upload${fileExt}`);
+      const extractedImagesDir = join(tempDir, "extracted_images");
+
+      await writeFile(tempFilePath, Buffer.from(raw.fileBase64, "base64"));
+
+      const pythonExe = "/Users/prateekkumar/aonex/aonex-backend/scratch/venv/bin/python";
+      const scriptPath = "/Users/prateekkumar/aonex/aonex-backend/scratch/parse_spreadsheet.py";
+
+      const { stdout, stderr } = await execFileAsync(pythonExe, [
+        scriptPath,
+        "--file", tempFilePath,
+        "--out-dir", extractedImagesDir
+      ]);
+
+      if (stderr) {
+        console.warn("[csv-parse] spreadsheet parser stderr:", stderr);
+      }
+
+      let csvText = stdout;
+      // Convert any absolute paths of extracted images inside the temp folder to base64 data URLs
+      const escapedDir = extractedImagesDir.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const pathRegex = new RegExp(`${escapedDir}[^"\\n,]+`, "g");
+      const matches = Array.from(csvText.matchAll(pathRegex)).map((m) => m[0]);
+      const uniqueMatches = Array.from(new Set(matches));
+
+      for (const localPath of uniqueMatches) {
+        try {
+          const buffer = await readFile(localPath);
+          const ext = localPath.split(".").pop()?.toLowerCase();
+          const mime = ext === "png" ? "image/png" : "image/jpeg";
+          const base64Url = `data:${mime};base64,${buffer.toString("base64")}`;
+          csvText = csvText.replaceAll(localPath, base64Url);
+        } catch (err) {
+          console.warn(`[csv-parse] Failed to convert local image ${localPath}:`, err);
+        }
+      }
+
+      resolvedCsv = csvText;
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  } else {
+    resolvedCsv = raw.csv ?? "";
+  }
+
   const { groups, errors, warnings } = adaptGroups(
-    { csv: raw.csv, filename: raw.filename, observedAt: raw.observedAt },
+    { csv: resolvedCsv, filename: raw.filename, observedAt: raw.observedAt },
     {
       tenantId: data.tenantId,
       channelId: channel.channelId,
@@ -83,7 +147,7 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
     const artifactId = (inserted[0]!.id) as ArtifactId;
 
     try {
-      await runNewCsvCatalogPath({
+      const pathResult = await runNewCsvCatalogPath({
         db,
         tenantId: data.tenantId,
         merchantId: data.merchantId,
@@ -92,8 +156,19 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
         channel: { channelId: channel.channelId },
         reconcilerQueue: deps.reconcilerQueues.forTenant(data.tenantId),
       });
-      await db.update(schema.sourceArtifacts).set({ status: "completed" })
-        .where(eq(schema.sourceArtifacts.id, artifactId as string));
+
+      const childStatus = pathResult.outcome === "staged" ? "needs_review" : "completed";
+      await db.update(schema.sourceArtifacts).set({
+        status: childStatus,
+        rawData: {
+          rows: group.output.rawPayload,
+          outcome: pathResult.outcome,
+          productId: pathResult.productId,
+          stagedProductId: pathResult.stagedProductId,
+        }
+      })
+      .where(eq(schema.sourceArtifacts.id, artifactId as string));
+
       processedCount += 1;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
