@@ -555,6 +555,106 @@ Returns 202 immediately — extraction happens asynchronously via BullMQ.`,
         },
       },
 
+      '/api/ingestions/recent': {
+        get: {
+          summary: 'List recent ingestions for this merchant',
+          description: 'Returns recent link/CSV ingestions for the authenticated merchant. Use this to find artifact_id values, then call GET /api/ingestions/{id}/trace to view the extracted payload.',
+          tags: ['Ingestions'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'limit',
+              in: 'query',
+              required: false,
+              description: 'Number of ingestions to return (1-100, default 20)',
+              schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Recent ingestions list',
+              content: {
+                'application/json': {
+                  example: {
+                    data: {
+                      ingestions: [
+                        {
+                          artifact_id: '6c8d5a0f-5f3d-4928-bf8b-5a88eb1c2d9f',
+                          source_type: 'link_url',
+                          source_external_id: 'https://www.example.com/products/my-product',
+                          status: 'completed',
+                          received_at: '2026-06-01T06:50:00.000Z',
+                          checksum: 'sha256:...',
+                          fact_count: 38,
+                          extractor_version: 'v1.2.3',
+                          error_count: 0,
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+
+      '/api/ingestions/{id}/trace': {
+        get: {
+          summary: 'Get full ingestion trace and extracted product JSON',
+          description: 'Returns stage events plus the reconstructed extracted product JSON at data.sku for a specific artifact_id.',
+          tags: ['Ingestions'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              description: 'artifact_id from GET /api/ingestions/recent',
+              schema: { type: 'string', format: 'uuid' },
+            },
+          ],
+          responses: {
+            200: {
+              description: 'Ingestion trace payload',
+              content: {
+                'application/json': {
+                  example: {
+                    data: {
+                      artifact: {
+                        id: '6c8d5a0f-5f3d-4928-bf8b-5a88eb1c2d9f',
+                        source_external_id: 'https://www.example.com/products/my-product',
+                        status: 'completed',
+                        received_at: '2026-06-01T06:50:00.000Z',
+                        processing_errors: [],
+                      },
+                      events: [
+                        {
+                          id: 'evt-1',
+                          event_type: 'ingestion.extract.completed',
+                          stage: 'extract',
+                          created_at: '2026-06-01T06:50:12.000Z',
+                          metadata: { durationMs: 1240 },
+                        },
+                      ],
+                      sku: {
+                        product: {
+                          name: 'Example Product',
+                          brand: 'Example Brand',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            401: { description: 'Unauthenticated' },
+            404: { description: 'Artifact not found for this tenant' },
+          },
+        },
+      },
+
       // ── Webhooks ──────────────────────────────────────────────────────────
       '/webhooks/nango': {
         post: {

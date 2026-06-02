@@ -300,3 +300,68 @@ describe("csvAdapter.inspectCsv", () => {
     expect(() => inspectCsv("foo,bar\n1,2")).toThrow(/missing required column/);
   });
 });
+
+describe("csvAdapter - header normalization, gtin & image warnings", () => {
+  test("normalizes headers with spaces, dashes, and casing", () => {
+    const messyHeader = "Primary Identifier , Brand,  variant-color , title , variant-sku ";
+    const csv = [
+      messyHeader,
+      "P1,Acme,Red,Widget,SKU-RED"
+    ].join("\n");
+
+    const out = csvAdapter.adapt(makeInput(csv), makeCtx());
+    
+    const title = out.observations.find(o => o.attributeCode === "title");
+    expect(title).toBeDefined();
+    expect(title!.value).toBe("Widget");
+
+    const brand = out.observations.find(o => o.attributeCode === "brand");
+    expect(brand).toBeDefined();
+    expect(brand!.value).toBe("Acme");
+
+    const color = out.observations.find(o => o.attributeCode === "identity.sku");
+    expect(color).toBeDefined();
+    expect(color!.variantAxes).toEqual({ color: "Red" });
+    expect(color!.value).toBe("SKU-RED");
+  });
+
+  test("emits INVALID_GTIN warning for poorly formatted barcodes", () => {
+    const csv = [
+      HEADER,
+      "P1,invalid123,,Acme,Widget,,,USD,,,,,,,,,"
+    ].join("\n");
+
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.groups).toHaveLength(1);
+    expect(res.warnings.some(w => w.code === "INVALID_GTIN" && /is invalid/.test(w.message))).toBe(true);
+  });
+
+  test("emits INVALID_IMAGE_URL warning and correctly collects images", () => {
+    // Normalizing picture, variant_image_url
+    const headers = "primary_identifier,brand,title,picture,variant_image_url,variant_color";
+    const csv = [
+      headers,
+      'P1,Acme,Widget,http://example.com/parent.png,"data:image/png;base64,ABC",Red',
+      "P1,Acme,Widget,invalid-prefix.jpg,https://example.com/v_blue.png,Blue"
+    ].join("\n");
+
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.groups).toHaveLength(1);
+    
+    // Warnings collected
+    expect(res.warnings.some(w => w.code === "INVALID_IMAGE_URL" && /invalid-prefix.jpg/.test(w.message))).toBe(true);
+
+    // Image observations parsed
+    const imgObs = res.groups[0]!.output.observations.find(o => o.attributeCode === "images");
+    expect(imgObs).toBeDefined();
+    
+    const val = imgObs!.value as Array<{ url: string; altText?: string }>;
+    expect(val).toHaveLength(4);
+    
+    expect(val.find(img => img.url === "http://example.com/parent.png")).toBeDefined();
+    
+    const variantBlueImg = val.find(img => img.url === "https://example.com/v_blue.png");
+    expect(variantBlueImg).toBeDefined();
+    expect(variantBlueImg!.altText).toBe("Color: Blue");
+  });
+});

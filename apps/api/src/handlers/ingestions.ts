@@ -5,11 +5,12 @@ import type { Context } from "hono";
 import { z } from "zod";
 import { QUEUE, JOB_KIND, TenantId, MerchantId } from "@aonex/types";
 import { randomUUID, createHash } from "node:crypto";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import { inspectCsv } from "@aonex/catalog-source-adapters";
 import { convertFromFacts, type SkuJson } from "@aonex/ingestion-enrichment";
 import type { IngestionsRouteDeps } from "../routes/ingestions.js";
+
 
 const CSV_MAX_BYTES = Number(process.env.CSV_MAX_BYTES ?? 15 * 1024 * 1024); // ~15 MB
 const CSV_MAX_ROWS = Number(process.env.CSV_MAX_ROWS ?? 50_000);
@@ -213,29 +214,52 @@ export async function submitCsv(c: Context, deps: IngestionsRouteDeps): Promise<
   if (!file) {
     return c.json({ error: { code: "BAD_REQUEST", message: "Missing 'file' field" } }, 400);
   }
-  const isCsv = file.type === "text/csv" || file.type === "application/vnd.ms-excel" || file.name.toLowerCase().endsWith(".csv");
-  if (!isCsv) {
-    return c.json({ error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "Only CSV files are accepted" } }, 415);
+
+  const fileNameLower = file.name.toLowerCase();
+  const isCsv = file.type === "text/csv" || file.type === "application/vnd.ms-excel" || fileNameLower.endsWith(".csv");
+  const isXlsx = file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || fileNameLower.endsWith(".xlsx");
+  const isNumbers = file.type === "application/x-iwork-keynote-sffnumbers" || file.type === "application/vnd.apple.numbers" || fileNameLower.endsWith(".numbers");
+
+  if (!isCsv && !isXlsx && !isNumbers) {
+    return c.json({ error: { code: "UNSUPPORTED_MEDIA_TYPE", message: "Only CSV, Excel (.xlsx), and Numbers (.numbers) files are accepted" } }, 415);
   }
   if (file.size > CSV_MAX_BYTES) {
     return c.json({ error: { code: "PAYLOAD_TOO_LARGE", message: `File exceeds ${CSV_MAX_BYTES} bytes` } }, 413);
   }
 
-  const csv = await file.text();
+  let csv = "";
+  let fileBase64: string | null = null;
+  let fileType = "csv";
+  let rowCount: number | "pending" = "pending";
 
-  let inspect;
-  try {
-    inspect = inspectCsv(csv);
-  } catch (err) {
-    return c.json({ error: { code: "UNPROCESSABLE_ENTITY", message: err instanceof Error ? err.message : "Invalid CSV" } }, 422);
-  }
-  if (inspect.rowCount > CSV_MAX_ROWS) {
-    return c.json({ error: { code: "PAYLOAD_TOO_LARGE", message: `File exceeds ${CSV_MAX_ROWS} rows` } }, 413);
+  if (isCsv) {
+    csv = await file.text();
+    let inspect;
+    try {
+      inspect = inspectCsv(csv);
+    } catch (err) {
+      return c.json({ error: { code: "UNPROCESSABLE_ENTITY", message: err instanceof Error ? err.message : "Invalid CSV" } }, 422);
+    }
+    if (inspect.rowCount > CSV_MAX_ROWS) {
+      return c.json({ error: { code: "PAYLOAD_TOO_LARGE", message: `File exceeds ${CSV_MAX_ROWS} rows` } }, 413);
+    }
+    rowCount = inspect.rowCount;
+    fileType = "csv";
+  } else {
+    const buffer = await file.arrayBuffer();
+    fileBase64 = Buffer.from(buffer).toString("base64");
+    fileType = isXlsx ? "xlsx" : "numbers";
   }
 
   const observedAt = new Date().toISOString();
   const uploadId = randomUUID();
   const fileArtifactId = randomUUID();
+  const rawData = isCsv
+    ? { csv, filename: file.name, observedAt }
+    : { fileBase64, filename: file.name, observedAt, fileType };
+
+  const checksumInput = isCsv ? csv : fileBase64!;
+
   await deps.db.insert(schema.sourceArtifacts).values({
     id: fileArtifactId,
     tenantId,
@@ -244,8 +268,8 @@ export async function submitCsv(c: Context, deps: IngestionsRouteDeps): Promise<
     sourceMarketplace: null,
     sourceExternalId: `csv:${file.name.slice(0, 120)}:${uploadId}`,
     parentArtifactId: null,
-    rawData: { csv, filename: file.name, observedAt },
-    checksum: createHash("sha256").update(csv).digest("hex"),
+    rawData: rawData as Record<string, unknown>,
+    checksum: createHash("sha256").update(checksumInput).digest("hex"),
     status: "pending",
   });
 
@@ -266,10 +290,10 @@ export async function submitCsv(c: Context, deps: IngestionsRouteDeps): Promise<
     tenantId, merchantId, actorType: "user",
     eventType: "ingestion.csv_submitted", entityType: "source_artifact",
     entityId: fileArtifactId, requestId,
-    metadata: { filename: file.name, rowCount: inspect.rowCount },
+    metadata: { filename: file.name, rowCount },
   });
 
-  return c.json({ data: { ingestionId: fileArtifactId, rowCount: inspect.rowCount, status: "accepted" } }, 202);
+  return c.json({ data: { ingestionId: fileArtifactId, rowCount, status: "accepted" } }, 202);
 }
 
 /**
@@ -289,7 +313,8 @@ export async function getRecentIngestions(c: Context, deps: IngestionsRouteDeps)
       and(
         eq(schema.sourceArtifacts.tenantId, tenantId),
         eq(schema.sourceArtifacts.merchantId, merchantId),
-        inArray(schema.sourceArtifacts.sourceType, ["link_url", "templated_csv"])
+        inArray(schema.sourceArtifacts.sourceType, ["link_url", "templated_csv"]),
+        isNull(schema.sourceArtifacts.parentArtifactId)
       )
     )
     .orderBy(desc(schema.sourceArtifacts.receivedAt))
@@ -373,6 +398,18 @@ export async function getIngestionTrace(c: Context, deps: IngestionsRouteDeps): 
       .from(schema.auditEvents)
       .where(and(eq(schema.auditEvents.tenantId, tenantId), eq(schema.auditEvents.entityId, id)))
       .orderBy(schema.auditEvents.createdAt);
+      
+    // Query child artifacts
+    const childArtifacts = await deps.db
+      .select()
+      .from(schema.sourceArtifacts)
+      .where(
+        and(
+          eq(schema.sourceArtifacts.tenantId, tenantId),
+          eq(schema.sourceArtifacts.parentArtifactId, id)
+        )
+      );
+
     const raw = (artifact.rawData ?? {}) as Record<string, unknown>;
     return c.json({
       data: {
@@ -383,6 +420,12 @@ export async function getIngestionTrace(c: Context, deps: IngestionsRouteDeps): 
         processing_errors: artifact.processingErrors ?? [],
         events,
         sku: null,
+        children: childArtifacts.map(child => ({
+          id: child.id,
+          status: child.status,
+          external_id: child.sourceExternalId,
+          raw_data: child.rawData,
+        })),
       },
     });
   }
