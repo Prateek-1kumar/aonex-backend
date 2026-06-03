@@ -11,6 +11,7 @@ export {
   adaptGroups,
   inspectCsv,
   KNOWN_CSV_COLUMNS,
+  COLUMN_ALIASES,
   type CsvAdapterInput,
   type CsvGroupResult,
   type CsvAdaptGroupsResult,
