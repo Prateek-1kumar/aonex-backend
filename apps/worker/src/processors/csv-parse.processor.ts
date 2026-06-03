@@ -15,12 +15,19 @@ import { eq } from "drizzle-orm";
 import { resolveOrCreateCsvChannel, runNewCsvCatalogPath } from "../services/new-catalog-csv-path.js";
 import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 
 const execFileAsync = promisify(execFile);
+
+/** Resolve the scripts directory relative to the repo root. */
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const SCRIPTS_DIR = resolve(__dirname, "../../../..", "scripts");
+const PYTHON_EXE = join(SCRIPTS_DIR, "venv/bin/python");
+const SCRIPT_PATH = join(SCRIPTS_DIR, "parse_spreadsheet.py");
 
 export interface CsvParseJobData {
   tenantId: TenantId;
@@ -55,6 +62,30 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
     .set({ status: "processing" })
     .where(eq(schema.sourceArtifacts.id, data.fileArtifactId));
 
+  try {
+    await runCsvParseInner(deps, data, file);
+  } catch (err) {
+    // Ensure artifact never stays stuck as "processing" — mark it "failed"
+    // so the UI shows the error and the user can re-upload.
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[csv-parse] fatal error for artifact ${data.fileArtifactId}:`, message);
+    await db.update(schema.sourceArtifacts)
+      .set({
+        status: "failed",
+        processingErrors: [{ step: "csv_parse", error: message }] as unknown as Record<string, unknown>[],
+      })
+      .where(eq(schema.sourceArtifacts.id, data.fileArtifactId));
+    // Re-throw so BullMQ records the failure and can alert operators.
+    throw err;
+  }
+}
+
+async function runCsvParseInner(
+  deps: CsvParseProcessorDeps,
+  data: CsvParseJobData,
+  file: { rawData: unknown },
+): Promise<void> {
+  const { db } = deps;
   const raw = file.rawData as unknown as CsvFileRaw;
   const channel = await resolveOrCreateCsvChannel(db, data.tenantId);
 
@@ -69,11 +100,8 @@ export async function runCsvParse(deps: CsvParseProcessorDeps, data: CsvParseJob
 
       await writeFile(tempFilePath, Buffer.from(raw.fileBase64, "base64"));
 
-      const pythonExe = "/Users/prateekkumar/aonex/aonex-backend/scratch/venv/bin/python";
-      const scriptPath = "/Users/prateekkumar/aonex/aonex-backend/scratch/parse_spreadsheet.py";
-
-      const { stdout, stderr } = await execFileAsync(pythonExe, [
-        scriptPath,
+      const { stdout, stderr } = await execFileAsync(PYTHON_EXE, [
+        SCRIPT_PATH,
         "--file", tempFilePath,
         "--out-dir", extractedImagesDir
       ]);

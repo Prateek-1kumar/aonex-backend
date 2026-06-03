@@ -38,6 +38,53 @@ export const KNOWN_CSV_COLUMNS = [
   "picture", "image_url", "image_urls", "variant_image_url", "variant_image", "variant_images",
 ] as const;
 
+/**
+ * Alias mapping — maps common non-canonical column names to their canonical
+ * equivalents. Applied after basic normalization (lowercase, underscored).
+ * This lets users upload CSVs with headers like "SKU", "Product Name",
+ * "Description", "Product Type" and have them map correctly.
+ */
+export const COLUMN_ALIASES: Record<string, string> = {
+  // primary identifier aliases
+  sku: "primary_identifier",
+  product_id: "primary_identifier",
+  item_id: "primary_identifier",
+  item_number: "primary_identifier",
+  article_number: "primary_identifier",
+  // title aliases
+  product_name: "title",
+  name: "title",
+  product_title: "title",
+  item_name: "title",
+  // description aliases
+  description: "description_long",
+  product_description: "description_long",
+  long_description: "description_long",
+  // category aliases
+  product_type: "category",
+  product_category: "category",
+  category_path: "category",
+  // image aliases
+  image: "image_url",
+  picture_url: "image_url",
+  product_image: "image_url",
+  // gtin aliases
+  barcode: "gtin",
+  ean: "gtin",
+  upc: "gtin",
+};
+
+/** Set of all alias source names — used to suppress unknown-column warnings for aliased headers. */
+const ALIAS_SOURCE_NAMES = new Set(Object.keys(COLUMN_ALIASES));
+
+/**
+ * Apply column aliases to a header name. Returns the canonical name if an
+ * alias exists, otherwise returns the header unchanged.
+ */
+function applyAlias(header: string): string {
+  return COLUMN_ALIASES[header] ?? header;
+}
+
 export interface CsvRowIssue {
   /** 1-based data row index (header excluded). 0 means "file-level / header". */
   row: number;
@@ -182,6 +229,7 @@ function adaptGroup(
   primaryIdentifier: string,
   groupRows: IndexedRow[],
   shared: GroupShared,
+  customColumns: string[] = [],
 ): AdapterOutput {
   const { channelCode, locale, source, observedAt } = shared;
   const observations: CanonicalObservation[] = [];
@@ -533,6 +581,27 @@ function adaptGroup(
     });
   }
 
+  // --- Custom attributes (columns not in KNOWN_CSV_COLUMNS) ----------------
+  // Emit each custom column as a custom.<column_name> observation. Values are
+  // taken from the first row only (same as parent-level fields like title/brand).
+
+  for (const col of customColumns) {
+    const customVal = nonEmpty(firstRow, col);
+    if (customVal !== undefined) {
+      observations.push({
+        attributeCode: `custom.${col}`,
+        target: "parent",
+        channelCode,
+        localeCode: locale,
+        source,
+        sourceRecordId: parentRecordId,
+        value: customVal,
+        confidence: DEFAULT_CONFIDENCE,
+        observedAt,
+      });
+    }
+  }
+
   // --- Identity hint (for THIS group) ------------------------------------
 
   const hasVariants = groupRows.some((r) => hasAnyVariantField(r.row));
@@ -563,7 +632,7 @@ export function inspectCsv(csvText: string): CsvInspectResult {
   const text = stripBom(csvText);
   const delimiter = detectDelimiter(text);
   const rows = parse(text, {
-    columns: (headers: string[]) => headers.map(h => h.trim().toLowerCase().replace(/[-\s]/g, "_")),
+    columns: (headers: string[]) => headers.map(h => applyAlias(h.trim().toLowerCase().replace(/[-\s]/g, "_"))),
     skip_empty_lines: true,
     trim: true,
     delimiter
@@ -589,8 +658,14 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
   }
   const text = stripBom(input.csv);
   const delimiter = detectDelimiter(text);
+
+  // Track original headers before aliasing so we can identify custom columns.
+  let originalHeaders: string[] = [];
   const rows = parse(text, {
-    columns: (headers: string[]) => headers.map(h => h.trim().toLowerCase().replace(/[-\s]/g, "_")),
+    columns: (headers: string[]) => {
+      originalHeaders = headers.map(h => h.trim().toLowerCase().replace(/[-\s]/g, "_"));
+      return originalHeaders.map(h => applyAlias(h));
+    },
     skip_empty_lines: true,
     trim: true,
     delimiter
@@ -608,16 +683,35 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
       throw new Error(`csvAdapter: missing required column "${required}"`);
     }
   }
+
+  // Identify custom columns: headers that are not known AND not alias sources.
+  // These will be emitted as custom.* observations.
+  const customColumns: string[] = [];
+  for (const h of originalHeaders) {
+    const aliased = applyAlias(h);
+    // If the header was aliased, it's now a known column — skip.
+    if (aliased !== h) continue;
+    // If it's a known column, skip.
+    if ((KNOWN_CSV_COLUMNS as readonly string[]).includes(h)) continue;
+    // If it's an alias source name, skip (already handled).
+    if (ALIAS_SOURCE_NAMES.has(h)) continue;
+    // Otherwise it's a custom/unknown column.
+    customColumns.push(h);
+  }
+
   for (const h of headerKeys) {
-    if (!(KNOWN_CSV_COLUMNS as readonly string[]).includes(h)) {
-      const suggestion = suggestColumn(h);
-      warnings.push({
-        row: 0,
-        code: "UNKNOWN_COLUMN",
-        message: suggestion
-          ? `unrecognized column "${h}" — did you mean "${suggestion}"?`
-          : `unrecognized column "${h}" — it will be ignored`,
-      });
+    if (!(KNOWN_CSV_COLUMNS as readonly string[]).includes(h) && !ALIAS_SOURCE_NAMES.has(h)) {
+      // Only warn if it's not being captured as a custom column
+      if (!customColumns.includes(h)) {
+        const suggestion = suggestColumn(h);
+        warnings.push({
+          row: 0,
+          code: "UNKNOWN_COLUMN",
+          message: suggestion
+            ? `unrecognized column "${h}" — did you mean "${suggestion}"?`
+            : `unrecognized column "${h}" — stored as custom attribute`,
+        });
+      }
     }
   }
 
@@ -648,7 +742,7 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
   const results: CsvGroupResult[] = [];
   for (const [primaryIdentifier, groupRows] of groups) {
     try {
-      const output = adaptGroup(primaryIdentifier, groupRows, shared);
+      const output = adaptGroup(primaryIdentifier, groupRows, shared, customColumns);
       results.push({ primaryIdentifier, rowIndices: groupRows.map((r) => r.index), output });
     } catch (err) {
       errors.push({
