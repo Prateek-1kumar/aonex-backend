@@ -1,3 +1,8 @@
+// HTTP routes for the catalog read/admin surface.
+//
+// Mounts product list/detail/delete plus provenance & trace endpoints onto a
+// Hono router. Route order is load-bearing (see inline note). Spec §20.
+
 import { Hono } from "hono";
 import type { DrizzleClient } from "@aonex/db";
 import {

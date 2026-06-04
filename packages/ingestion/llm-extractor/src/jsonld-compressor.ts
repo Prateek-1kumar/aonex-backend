@@ -1,3 +1,9 @@
+// Shrinks embedded JSON-LD blocks before they go into the extraction prompt.
+//
+// compressJsonLd keeps only product-relevant @types, prunes review/related-product
+// keys, then trims to MAX_BYTES (drop trailing blocks, then truncate description).
+// Used by @aonex/ingestion-llm-extractor's prompt-builder to fit structured hints.
+
 const KEEP_TYPES = new Set(["Product", "Offer", "AggregateOffer", "Brand", "AggregateRating"]);
 const DROP_KEYS = new Set(["review", "reviews", "relatedProduct", "isRelatedTo", "isSimilarTo"]);
 const MAX_BYTES = 8192;

@@ -1,3 +1,9 @@
+// DOM heuristic for product spec/attribute key-value pairs.
+//
+// extractSpecTableFromDom scans two-cell <table> rows and <dl>/<dt>/<dd> lists,
+// snake-casing each label into a rawKey and emitting one ExtractedFact per pair.
+// Yields the bulk of arbitrary attributes when structured data is missing.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

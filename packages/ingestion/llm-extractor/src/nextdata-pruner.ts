@@ -1,3 +1,9 @@
+// Shrinks a page's __NEXT_DATA__ blob to just the product-relevant subtree.
+//
+// pruneNextData walks the object keeping keys matching KEEP_PATTERN (and their
+// descendants), then truncates string values to fit MAX_BYTES. Used by
+// @aonex/ingestion-llm-extractor to build the __NEXT_DATA__ structured hint.
+
 const KEEP_PATTERN = /product|item|sku|variant|image|price|stock|offer/i;
 const MAX_BYTES = 4096;
 

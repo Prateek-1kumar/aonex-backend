@@ -1,3 +1,10 @@
+// Ladder-rung outcome logger for @aonex/selector-health (spec §6.7 / §14.5).
+//
+// recordLadderRung emits one ladder.rung_fired audit event naming which
+// extraction rung (json_ld … vision_llm) produced each field, so Phase 8
+// dashboards can spot "silent LLM-rescue" patterns when a strong rung's share
+// drops and LLM-rescue spikes.
+
 import type { AuditEmitter } from "@aonex/audit";
 import type { TenantId } from "@aonex/types";
 

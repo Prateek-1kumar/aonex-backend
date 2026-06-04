@@ -1,3 +1,10 @@
+// Nightly cron job: propose promoted-draft category schemas (spec section 10).
+//
+// Exports runSchemaPromotionScan (the testable core) and schemaPromotionScan (the
+// CronJob registered in jobs/index.ts). Aggregates attributes_json keys per
+// canonical_category and, when consistency thresholds are met and no authoritative
+// schema exists, inserts a tier='promoted_draft' category_schemas row for review.
+
 import { schema, type DrizzleClient } from "@aonex/db";
 import { sql } from "drizzle-orm";
 import type { CronJob } from "./index.js";

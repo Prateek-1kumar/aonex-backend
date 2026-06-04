@@ -1,3 +1,11 @@
+// The ingestion spine — runIngestion drives one envelope through every stage.
+//
+// Spec §5.2: persist_artifact → extract → map → validate → score → diff →
+// (approve | review), emitting one audit event per stage and returning an
+// approved / review / duplicate / validation_failed result. Owns the
+// extraction_run / fact_set / facts persistence and artifact-status updates;
+// lane-specific work lives behind the IngestionAdapter passed in.
+
 import { schema, type DrizzleClient } from "@aonex/db";
 import { eq } from "drizzle-orm";
 import type { AuditEmitter } from "@aonex/audit";

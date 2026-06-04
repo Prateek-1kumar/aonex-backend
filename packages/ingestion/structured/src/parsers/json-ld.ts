@@ -1,3 +1,10 @@
+// Parser for Schema.org Product / ProductGroup JSON-LD blocks (highest-trust source).
+//
+// parseJsonLd reads core fields, additionalProperty[] specs, the best offer
+// (TLD-preferred currency), images, and per-variant axes from ProductGroup
+// hasVariant[] (or legacy size[]), plus a productType from the BreadcrumbList.
+// The top-precedence parser fanned out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

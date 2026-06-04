@@ -1,3 +1,10 @@
+// Spine stage: diff — upsert the proposed_diffs row for this fact set.
+//
+// runDiff inserts a `create` diff (status open or auto_approved) with
+// onConflictDoNothing, returning { diffId, created }. `created` drives the
+// orchestrator's idempotency: per-field rows and review_tasks write only on
+// first insertion. Conflict-without-existing-row signals a broken idempotency key.
+
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId } from "@aonex/types";
 

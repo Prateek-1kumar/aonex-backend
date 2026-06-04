@@ -1,3 +1,9 @@
+// Normalizes a raw eBay sync record into the gateway's CanonicalProductRecord.
+//
+// normalizeEbayRecord strips Nango metadata, derives a stable externalId
+// (orderId → offerId → sku), and lifts lastModifiedDate / creationDate into
+// modifiedAt. Used when draining eBay records out of Nango's cache.
+
 import { removeNangoMetadata } from "@aonex/lib-utils";
 import type { CanonicalProductRecord } from "../../../contract/records.js";
 import type { Marketplace } from "@aonex/types";

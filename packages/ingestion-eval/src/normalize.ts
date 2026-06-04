@@ -1,3 +1,9 @@
+// Field-value comparison for scoring extracted products against golden labels.
+//
+// fieldsMatch compares one extracted value to its expected golden value: price
+// fields use a 1% relative tolerance, all others use normalized string equality.
+// Re-exported from the eval index and used by score-extraction.
+
 const PRICE_FIELDS = new Set(["base_price", "price", "currency_amount"]);
 
 function normStr(v: string | number): string {

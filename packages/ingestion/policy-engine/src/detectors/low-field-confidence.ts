@@ -1,3 +1,9 @@
+// Policy-engine detector — low field confidence.
+//
+// detectLowFieldConfidence fires when any REQUIRED_FIELDS fact (title /
+// base_price / currency) maps below THRESHOLD (0.70). One rule in the router.ts
+// array; emits a `low_confidence_mapping` ReviewTaskSignal.
+
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 
 const REQUIRED_FIELDS = ["title", "base_price", "currency"];

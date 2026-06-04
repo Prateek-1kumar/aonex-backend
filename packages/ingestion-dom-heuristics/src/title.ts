@@ -1,3 +1,9 @@
+// DOM heuristic for the title field.
+//
+// extractTitleFromDom ranks candidates from og:title, the first <h1>, and the
+// <title> tag (with trailing "| Site Name" suffix stripped), returning the
+// highest-confidence one with the rest as sourceAlternatives.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

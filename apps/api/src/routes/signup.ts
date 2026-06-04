@@ -1,3 +1,8 @@
+// HTTP route for email/password sign-up.
+//
+// POST /signup creates a tenant + merchant in one transaction, opens a session,
+// and returns (and cookie-sets) a JWT. Email collisions return 409.
+
 import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { z } from "zod";

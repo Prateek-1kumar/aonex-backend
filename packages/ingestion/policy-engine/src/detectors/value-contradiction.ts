@@ -1,3 +1,10 @@
+// Policy-engine detector — value-level contradiction.
+//
+// detectValueContradiction catches cross-field disagreements the field-level
+// detectors miss: a top-level color absent from the variant color axis, and a
+// GTIN whose length/digits are invalid. One rule in the router.ts array; emits
+// a `value_contradiction` ReviewTaskSignal.
+
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 
 // Catches *value-level* contradictions that the field-level detectors miss:

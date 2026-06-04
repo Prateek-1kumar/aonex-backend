@@ -1,3 +1,11 @@
+// Spine stage: score — run the policy engine to get a routing decision.
+//
+// runScore assembles a RouterInput from the mapped facts, validated attributes,
+// domain, category confidence, and required attributes, then calls the policy
+// engine's route(). Returns a RoutingDecision (score + auto_approve/review +
+// detectors tripped) the orchestrator uses to branch. db/tenantId reserved for
+// future DB-backed detectors.
+
 import { route, type RouterInput, type RoutingDecision } from "@aonex/ingestion-policy-engine";
 import type { MappedFactSet } from "@aonex/ingestion-semantic-mapper";
 import type { DrizzleClient } from "@aonex/db";

@@ -1,3 +1,10 @@
+// Canonical schema validator — `validate()`, the package's only runtime export.
+//
+// Compiles a category JSON Schema 2019-09 (with Aonex custom keywords) via a
+// module-level Ajv instance and checks an attributes_json object against it,
+// splitting results into missingRequired vs typed errors and echoing the
+// schema tier for the caller's routing logic. Schemas are cached by `$id`.
+
 import Ajv2019, { type ErrorObject } from "ajv/dist/2019.js";
 import addFormats from "ajv-formats";
 import { registerAonexKeywords } from "./aonex-keywords.js";

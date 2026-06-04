@@ -1,3 +1,10 @@
+// Fetch-tier escalation ladder for a single product URL.
+//
+// runFetchEscalation runs static fetch → browser (Layer C) → ScrapingBee unblock
+// (Layer D), forcing escalation on captcha walls, fetch failures, per-site
+// requiresBrowser parsers, or anemic anti-bot stubs (isAnemicResponse). Returns
+// the resolved HTML as a CacheEntry plus the IngestionEnvelope for the spine.
+
 import type { LinkFetchResult } from "@aonex/ingestion-link-fetcher";
 import { type fetchLink } from "@aonex/ingestion-link-fetcher";
 import {

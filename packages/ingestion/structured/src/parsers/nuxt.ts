@@ -1,3 +1,11 @@
+// Parser for Nuxt.js window.__NUXT__ hydration payloads in raw HTML.
+//
+// parseNuxt locates the product node under candidate payload paths
+// (payload.product, payload.state.product, …) and emits title / brand /
+// base_price / gtin / model_number / description plus flattened product.attributes.
+// One of the parsers fanned out by extractStructured (index.ts); sibling of
+// initial-state.ts.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

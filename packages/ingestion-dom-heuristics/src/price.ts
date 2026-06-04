@@ -1,3 +1,10 @@
+// DOM heuristic for the base_price field.
+//
+// extractPriceFromDom collects candidates from itemprop="price" (rung 1) and
+// price/amount/cost-classed leaf elements via a currency regex (rung 2), then
+// returns the highest-confidence value (tiebreak: smallest) with the rest as
+// sourceAlternatives.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

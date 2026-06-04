@@ -1,3 +1,10 @@
+// Shared contract for every site-specific parser in this package.
+//
+// Defines the PerSiteParser interface: the domains it claims, match priority,
+// version fingerprint, browser-render requirement, and an extract() that turns
+// raw HTML + URL into ExtractedFact[]. Implemented by each parsers/* module and
+// consumed by the registry.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 
 export interface PerSiteParser {

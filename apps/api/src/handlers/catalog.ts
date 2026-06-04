@@ -1,3 +1,9 @@
+// Request handlers backing the catalog routes (see ../routes/catalog.ts).
+//
+// Each handler reads tenant/merchant identity from the JWT-populated Hono
+// context, delegates reads to the new-catalog-* services, and returns JSON.
+// Deletes are soft (status='deleted').
+
 import type { Context } from "hono";
 import { and, eq } from "drizzle-orm";
 import { schema } from "@aonex/db";

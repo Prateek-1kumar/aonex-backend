@@ -1,3 +1,10 @@
+// Composite identity-match scorer for the multi-source reconciler (spec §6.8).
+//
+// computeMatchScore weighs GTIN/MPN/title-similarity/brand signals (per WEIGHTS),
+// excluding any signal missing on either side, and returns the per-signal
+// breakdown + composite used against THRESHOLDS. Backs policy.ts and the
+// catalog identity-resolver.
+
 import { jaroWinkler } from "./jaro-winkler.js";
 
 /**

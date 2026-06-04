@@ -1,3 +1,9 @@
+// Public surface and orchestrator for @aonex/ingestion-dom-heuristics.
+//
+// Re-exports each per-field DOM extractor and exposes runDomHeuristics(rawHtml),
+// which runs them all and flattens the results into a single ExtractedFact[].
+// Called as the fallback path when structured (JSON-LD/microdata) extraction is absent.
+
 export { extractPriceFromDom } from "./price.js";
 export { extractTitleFromDom } from "./title.js";
 export { extractDescriptionFromDom } from "./description.js";

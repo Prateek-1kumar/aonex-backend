@@ -1,3 +1,10 @@
+// The "link" lane IngestionAdapter — drives extraction for a single product URL.
+//
+// LinkAdapter.normalize() runs the fetch-escalation ladder and persists the
+// per-domain decision; extract() replays it on cold paths then runs the layered
+// extractors. createLinkAdapter / createLinkAdapterWithAntibot wire defaults
+// (browser, vision, ScrapingBee) for the worker. Implements IngestionAdapter.
+
 import type { IngestionAdapter, IngestionEnvelope } from "@aonex/ingestion-spine";
 import { fetchLink } from "@aonex/ingestion-link-fetcher";
 import { type LLMProductExtractor } from "@aonex/ingestion-llm-extractor";

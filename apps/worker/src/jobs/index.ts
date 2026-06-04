@@ -1,3 +1,9 @@
+// Cron job registry for the worker.
+//
+// Defines the JobContext / CronJob contract and exports CRON_JOBS, the array of
+// scheduled rollup jobs. composition-root.ts iterates this to register each as a
+// repeatable BullMQ job and dispatch its process(ctx) on schedule.
+
 import type { DrizzleClient } from "@aonex/db";
 import type { Logger } from "pino";
 import { priceClusterRebuild } from "./price-cluster-rebuild.js";

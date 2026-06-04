@@ -1,3 +1,10 @@
+// Walmart product-page parser (walmartParser); self-registers with the registry.
+//
+// Extractor for walmart.com: takes the product id from /ip/ URLs, prefers the
+// embedded __NEXT_DATA__ JSON (title/brand/price+currency/gtin/model) and falls
+// back to Cheerio DOM selectors per missing field, plus spec table, emitting
+// ExtractedFact[]. requiresBrowser — the PDP needs a rendered HTML payload.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { PerSiteParser } from "../types.js";

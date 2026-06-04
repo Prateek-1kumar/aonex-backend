@@ -1,3 +1,9 @@
+// eBay marketplace adapter and its Nango-proxy transport.
+//
+// NangoProxyEbayTransport routes eBay REST calls through Nango's /proxy so the
+// OAuth token never leaves Nango; EbayAdapter implements the MarketplaceLiveAdapter
+// port on top of a pluggable EbayTransport. Wired by the gateway factory.
+
 import type {
   ConnectionContext,
   MarketplaceLiveAdapter,

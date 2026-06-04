@@ -1,3 +1,9 @@
+// Pass/fail gate for an eval run against spec §2.4 SLOs.
+//
+// evaluateGate computes auto-promote metrics plus regression-vs-holdout drift
+// and checks them against DEFAULT_THRESHOLDS (precision >= 0.98, drift <= 0.05),
+// returning the pass flag and human-readable failure reasons. Used by the CLI.
+
 import type { Decision } from "./types.js";
 import { promoteMetrics, type PromoteMetrics } from "./promote-metrics.js";
 

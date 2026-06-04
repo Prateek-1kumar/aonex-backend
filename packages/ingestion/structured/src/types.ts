@@ -1,3 +1,9 @@
+// Shared types for @aonex/ingestion-structured.
+//
+// ParserKind enumerates the structured-data formats handled by parsers/;
+// ParserOutput is the per-parser result (facts + source-class baselineConfidence);
+// StructuredResult is the merged shape returned by merge.ts / extractStructured.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 
 export type ParserKind =

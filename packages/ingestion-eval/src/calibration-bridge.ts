@@ -1,3 +1,9 @@
+// Bridge from extraction scoring to the calibration package.
+//
+// toLabeledSamples flattens per-product ScoredFields into @aonex/calibration
+// LabeledSamples, keeping only fields with a raw extractor confidence so the
+// isotonic confidence map can be fit. Re-exported from the eval index.
+
 import type { ScoredField } from "./types.js";
 import type { LabeledSample } from "@aonex/calibration";
 

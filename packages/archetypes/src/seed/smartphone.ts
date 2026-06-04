@@ -1,3 +1,9 @@
+// Smartphone archetype seed definition (the v1 vertical).
+//
+// Declares the required/recommended/optional attributes and their weights that
+// drive completeness scoring for phone products. Registered in registry.ts and
+// referenced by the ingestion eval's archetype-gated decision path.
+
 import type { Archetype } from "../types.js";
 
 export const smartphone: Archetype = {

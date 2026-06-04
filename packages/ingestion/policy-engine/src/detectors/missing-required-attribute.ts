@@ -1,3 +1,10 @@
+// Policy-engine detector — missing required attribute.
+//
+// detectMissingRequiredAttribute fires when core fields (title / base_price) or
+// any of input.categoryRequiredAttributes are absent from the facts; core gaps
+// raise severity to high. One rule in the router.ts array; emits a
+// `missing_required_attribute` ReviewTaskSignal.
+
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 
 export const detectMissingRequiredAttribute: Detector = (input: RouterInput): ReviewTaskSignal | null => {

@@ -1,3 +1,9 @@
+// Request handlers and zod request-schemas for the reviewer routes
+// (see ../routes/review.ts).
+//
+// Validates payloads, reads tenant/merchant from JWT context, and delegates the
+// state-changing actions to ../services/review-resolution.ts.
+
 import type { Context } from "hono";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";

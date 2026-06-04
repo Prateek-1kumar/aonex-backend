@@ -1,3 +1,9 @@
+// DOM heuristic for the description field.
+//
+// extractDescriptionFromDom gathers candidates from og:description, meta
+// description, and the longest description-classed element, then returns the
+// highest-confidence one (min length 20 chars) as an ExtractedFact.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

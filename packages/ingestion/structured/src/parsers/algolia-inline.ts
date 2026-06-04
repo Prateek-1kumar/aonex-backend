@@ -1,3 +1,9 @@
+// Parser for Algolia InstantSearch payloads embedded as <script id="__ALGOLIA_DATA__">.
+//
+// parseAlgolia reads the first entry of the `hits` array and emits title / brand /
+// base_price / gtin / model_number / description facts. One of the structured-data
+// extractors fanned out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

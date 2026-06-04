@@ -1,3 +1,9 @@
+// Public surface of @aonex/ingestion-eval, the offline extraction-eval harness.
+//
+// Re-exports scoring (scoreProduct/aggregate), field matching, the promote gate,
+// golden-set loading, calibration bridging, and identity/ER merge metrics for
+// the CLI and other packages.
+
 export const EVAL_PACKAGE = "@aonex/ingestion-eval";
 export * from "./types.js";
 export { fieldWeight, CRITICAL_FIELDS } from "./field-weights.js";

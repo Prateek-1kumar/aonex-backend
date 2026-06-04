@@ -1,3 +1,10 @@
+// Nango sync script for the eBay sandbox `ebay-inventory-items` model.
+//
+// Runs inside Nango's runtime: pages the Sell Inventory API v1
+// (/inventory_item, offset pagination) and batchSaves EbayInventoryItem
+// records into Nango's cache for the connection. Default export is the
+// createSync definition (frequency every 6h, autoStart).
+
 import { createSync } from 'nango';
 import { z } from 'zod';
 

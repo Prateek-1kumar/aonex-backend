@@ -1,3 +1,9 @@
+// Stage audit emission for the spine.
+//
+// emitStageAudit fires one `ingestion.<stage>.completed` event with the
+// standard StageAuditMeta envelope (shallow-merging any stage-specific extra).
+// Called by the orchestrator after each stage; entityId is artifactId or requestId.
+
 import type { AuditEmitter } from "@aonex/audit";
 import type { StageAuditMeta, StageName } from "./types.js";
 

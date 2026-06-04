@@ -1,3 +1,11 @@
+// Shopify-connector source adapter — maps Nango-synced Shopify products into observations.
+//
+// Exports shopifyConnectorAdapter (sourceKind "shopify-connector"), which turns a
+// ShopifyProduct (wrapped in a ShopifyAdapterInput with shopDomain / observedAt /
+// artifactId) into parent + variant observations, pricing, inventory, and an
+// IdentityHint. Defines the forward-compatible ShopifyProduct/ShopifyVariant shapes
+// and channelCodeFromShopDomain(). Registered via the package's src/index.ts.
+
 import type { ArtifactId } from "@aonex/types";
 import type {
   SourceAdapter,

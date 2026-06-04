@@ -1,3 +1,10 @@
+// Croma product-page parser (cromaParser); self-registers with the registry.
+//
+// Extractor for croma.com: takes SKU from the URL, prefers JSON-LD Product
+// (title/brand/gtin/price+currency) and falls back to Cheerio DOM selectors per
+// missing field, plus spec list and images, emitting ExtractedFact[]. Static
+// HTML is enough, so requiresBrowser is false.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import { flattenJsonLdNodes } from "@aonex/ingestion-link-fetcher";

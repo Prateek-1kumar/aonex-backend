@@ -1,3 +1,10 @@
+// Shared headless-Chromium pool backing the browser-fallback fetch tier.
+//
+// fetchWithBrowser (spec §6.3) renders a URL and returns final HTML + status;
+// fetchWithBrowserAndScreenshot (§6.6) additionally captures a PNG for the
+// vision extractor. One shared Browser process, per-call BrowserContext, and a
+// semaphore (PLAYWRIGHT_POOL_SIZE). closeBrowserPool runs at worker shutdown.
+
 import { chromium, type Browser, type Page } from "playwright";
 
 export interface FetchBrowserResult {

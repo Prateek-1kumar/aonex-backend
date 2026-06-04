@@ -1,3 +1,10 @@
+// Parser for WooCommerce single-product pages via DOM-class regex over raw HTML.
+//
+// Gated on the body's `single-product` class, parseWoocommerce scrapes title
+// (.product_title), base_price (.woocommerce-Price-amount, currency-stripped), and
+// model_number / sku from the product div's data-product_sku / data-product_id.
+// One of the parsers fanned out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

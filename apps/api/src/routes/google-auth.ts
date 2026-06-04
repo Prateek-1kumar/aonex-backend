@@ -1,3 +1,10 @@
+// HTTP routes for Google OAuth sign-in / sign-up.
+//
+// /google starts the OAuth flow; /google/callback exchanges the code and either
+// logs an existing merchant in or issues a short-lived "pending" token for the
+// workspace-naming step; /google/complete creates the tenant + merchant. Sets the
+// aonex_token session cookie on success.
+
 import { Hono } from "hono";
 import { setCookie, getCookie, deleteCookie } from "hono/cookie";
 import { z } from "zod";

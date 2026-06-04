@@ -1,3 +1,9 @@
+// Spine stage: approve — promote an auto-approved diff to a catalog product.
+//
+// runApprove delegates to catalog-service's applyApprovedDiff and returns the
+// resulting productId / productVersionId. Last stage of the auto-approve branch
+// in the orchestrator (the review branch writes review_tasks instead).
+
 import { applyApprovedDiff } from "@aonex/catalog-service";
 import type { DrizzleClient } from "@aonex/db";
 

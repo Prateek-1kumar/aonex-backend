@@ -1,3 +1,9 @@
+// DOM heuristic for variant option fields (e.g. size, color).
+//
+// extractVariantSelectorFromDom reads <select name> option lists and radio-button
+// groups (grouped by name), snake-casing the control name into a rawKey and
+// emitting one ExtractedFact per control whose value is the option-value array.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

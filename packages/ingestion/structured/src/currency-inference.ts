@@ -1,3 +1,10 @@
+// Currency fallback by ccTLD when no parser extracted a currency.
+//
+// inferCurrency(pageUrl, existingFacts) maps the page host's TLD to an ISO-4217
+// code (.in→INR, .au→AUD, …) and emits a low-confidence "currency" fact, or null
+// if currency already exists / the TLD is ambiguous. extractStructured (index.ts)
+// appends the result before running the coverage check.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 
 const INFERENCE_CONFIDENCE = 0.70;

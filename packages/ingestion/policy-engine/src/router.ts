@@ -1,3 +1,10 @@
+// Policy-engine multi-signal router (Plan B) — the auto-admit / review decision.
+//
+// route() runs every detector in detectors/ over a RouterInput, sums their
+// severity weights into a score, and returns auto_approve when none trip or a
+// review RoutingDecision carrying the emitted ReviewTaskSignals. clusterKey()
+// hashes a signal's dimensions to group like review tasks. Used by the worker.
+
 import { createHash } from "node:crypto";
 import type { Detector, ReviewTaskSignal, RouterInput, RoutingDecision, SignalKind, DetectorSeverity } from "./types.js";
 import { detectLowFieldConfidence } from "./detectors/low-field-confidence.js";

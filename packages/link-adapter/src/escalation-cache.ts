@@ -1,3 +1,10 @@
+// Persistent per-URL escalation cache for the link adapter.
+//
+// IEscalationCache plus two implementations: FileEscalationCache (JSON file on
+// disk) and InMemoryEscalationCache (tests). Records which tier a URL escalated
+// to (static/browser/unblock) so cold-path retries after a worker restart can
+// replay that decision instead of falling back to static-only.
+
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 

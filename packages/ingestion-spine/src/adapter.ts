@@ -1,3 +1,9 @@
+// The IngestionAdapter port — lane-specific plug into the spine.
+//
+// Defines normalize() (yield IngestionEnvelopes) and extract() (envelope →
+// ExtractedFactSet) plus AdapterInput. Each lane (link / csv / nango)
+// implements this; the orchestrator drives it and owns everything downstream.
+
 import type { IngestionEnvelope, IngestionLane } from "./types.js";
 import type { ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 

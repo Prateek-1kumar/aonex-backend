@@ -1,3 +1,11 @@
+// Coverage check for the merged structured facts.
+//
+// checkCoverage(facts, categoryRequiredAttributes) reports whether the core
+// fields (title / base_price / currency / productType), at least one variant,
+// and any category-required attributes are present, returning the missing keys
+// as `gaps`. Called by extractStructured (index.ts) to decide if a page needs
+// downstream gap-fill.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 
 const CORE_REQUIRED = ["title", "base_price", "currency", "productType"];

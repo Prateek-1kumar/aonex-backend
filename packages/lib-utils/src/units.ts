@@ -1,3 +1,10 @@
+// Unit parsing/conversion helper in @aonex/lib-utils.
+//
+// convertToCanonical maps a (value, unit, dimension) onto the canonical unit for
+// that dimension (cm/g/ml/Wh/W/Hz via canonicalUnitFor), returning null for
+// unknown or non-convertible units (e.g. mAh, which needs voltage). Used to
+// normalize attribute values during extraction.
+
 export type Dimension = "length" | "mass" | "volume" | "energy" | "power" | "frequency";
 
 const CANONICAL: Record<Dimension, string> = {

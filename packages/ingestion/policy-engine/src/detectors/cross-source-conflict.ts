@@ -1,3 +1,10 @@
+// Policy-engine detector — cross-source field conflict.
+//
+// detectCrossSourceConflict fires when a CONFLICT_FIELDS fact has source
+// alternatives that genuinely disagree with the winner — after dropping equal
+// values and unit-aware-compatible measurements (via convertToCanonical). One
+// rule in the router.ts array; emits a `field_conflict` ReviewTaskSignal.
+
 import { convertToCanonical, type Dimension } from "@aonex/lib-utils";
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 

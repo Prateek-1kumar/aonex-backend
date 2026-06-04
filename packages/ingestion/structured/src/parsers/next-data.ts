@@ -1,3 +1,10 @@
+// Parser for Next.js __NEXT_DATA__ payloads (passed pre-parsed as structuredBlocks.nextData).
+//
+// parseNextData first tries a stable Shopify Hydrogen shape (variants.nodes[] with
+// selectedOptions / price) for real per-variant axes, otherwise falls back to a
+// scored tree-walk that finds the subtree most resembling a product. Trusted for
+// inventory/variants in merge.ts; fanned out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

@@ -1,3 +1,9 @@
+// HTTP routes for the Anomaly Lab — the human review surface for staged products.
+//
+// Mounts the review queue (list + stats), staged-item detail/evidence reads, and
+// the approve / reject / link-to-existing actions onto a Hono router. Handlers
+// live in ../handlers/anomaly-lab.ts.
+
 import { Hono } from "hono";
 import type { AuditEmitter } from "@aonex/audit";
 import type { DrizzleClient } from "@aonex/db";

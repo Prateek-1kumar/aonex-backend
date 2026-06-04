@@ -1,3 +1,9 @@
+// HTTP routes for the reviewer workflow (review_tasks + clusters).
+//
+// Mounts task/cluster listing, cluster resolution, and the per-task
+// edit-and-approve / patch / reject / merge / evidence actions onto a Hono
+// router. Handlers live in ../handlers/review.ts.
+
 import { Hono } from "hono";
 import type { DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
