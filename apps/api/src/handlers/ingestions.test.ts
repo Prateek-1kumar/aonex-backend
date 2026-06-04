@@ -15,7 +15,7 @@ function buildApp(db: DrizzleClient, enqueued: any[]): Hono {
   const root = new Hono();
   root.use("*", async (c, next) => {
     // @ts-expect-error untyped context vars (same pattern as authMiddleware)
-    c.set("tenantId", TEST_TENANT_ID); // @ts-expect-error
+    c.set("tenantId", TEST_TENANT_ID); // @ts-expect-error untyped context vars (same pattern as authMiddleware)
     c.set("merchantId", TEST_MERCHANT_ID); await next();
   });
   root.route("/ingestions", ingestionsRoutes({

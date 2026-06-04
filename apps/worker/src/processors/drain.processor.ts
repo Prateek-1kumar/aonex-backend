@@ -31,7 +31,7 @@ import {
   runNewShopifyCatalogPath,
   SHOPIFY_DEFAULT_REGION,
 } from "../services/new-catalog-shopify-path.js";
-import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
+import type { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
 export interface DrainJobData {
   merchantId: MerchantId;

@@ -169,7 +169,7 @@ function detectDelimiter(text: string): "," | ";" {
 
 /** Strip currency symbols and thousands separators so "$1,299.00" parses as 1299. */
 function cleanNumeric(raw: string): string {
-  return raw.replace(/[^0-9.\-]/g, "");
+  return raw.replace(/[^0-9.-]/g, "");
 }
 
 /** Levenshtein distance — bounded use for "did you mean" header suggestions. */
