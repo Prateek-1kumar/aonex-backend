@@ -36,7 +36,7 @@
 // Until then, the null sentinel is the contract: a product that has
 // current_version=null in the list response was migrated to the new schema.
 
-import { and, desc, eq, inArray, ne, or, lt } from "drizzle-orm";
+import { and, count, desc, eq, inArray, ne, or, lt } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId } from "@aonex/types";
@@ -69,6 +69,8 @@ export interface ListCatalogProductsPage {
   products: ListCatalogProductRow[];
   /** Pass to the next call's `cursor` to fetch the following page; null when no more rows. */
   nextCursor: string | null;
+  /** Total number of listable products for this tenant+merchant (cursor-independent). */
+  total: number;
 }
 
 // ---- Types -----------------------------------------------------------------
@@ -307,17 +309,27 @@ export async function listCatalogProducts(
       )
     : undefined;
 
+  // Listable products exclude merged + soft-deleted rows. Shared by the page
+  // query and the total count so the UI's "real count" matches what it can page.
+  const baseConds = [
+    eq(schema.catalogProducts.tenantId, tenantId),
+    eq(schema.catalogProducts.merchantId, merchantId),
+    ne(schema.catalogProducts.status, "merged_into"),
+    ne(schema.catalogProducts.status, "deleted"),
+  ];
+
+  // Full count of the filtered set (cursor-independent) so callers can show a
+  // real total alongside the keyset-paginated page.
+  const totalRow = await db
+    .select({ value: count() })
+    .from(schema.catalogProducts)
+    .where(and(...baseConds));
+  const total = Number(totalRow[0]?.value ?? 0);
+
   const fetched = await db
     .select()
     .from(schema.catalogProducts)
-    .where(
-      and(
-        eq(schema.catalogProducts.tenantId, tenantId),
-        eq(schema.catalogProducts.merchantId, merchantId),
-        ne(schema.catalogProducts.status, "merged_into"),
-        ...(cursorPredicate ? [cursorPredicate] : [])
-      )
-    )
+    .where(and(...baseConds, ...(cursorPredicate ? [cursorPredicate] : [])))
     .orderBy(
       desc(schema.catalogProducts.updatedAt),
       desc(schema.catalogProducts.productId)
@@ -325,7 +337,7 @@ export async function listCatalogProducts(
     .limit(limit + 1);
 
   if (fetched.length === 0) {
-    return { products: [], nextCursor: null };
+    return { products: [], nextCursor: null, total };
   }
 
   const hasMore = fetched.length > limit;
@@ -412,5 +424,5 @@ export async function listCatalogProducts(
   const nextCursor =
     hasMore && lastRow ? encodeCursor(lastRow.updatedAt, lastRow.productId) : null;
 
-  return { products, nextCursor };
+  return { products, nextCursor, total };
 }
