@@ -13,7 +13,7 @@ import {
   type RunNewLinkCatalogPathInput,
 } from "../services/new-catalog-link-path.js";
 import type { AdmitOrStageResult } from "@aonex/catalog-service";
-import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
+import type { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
 export interface IngestionSpineJobData {
   tenantId: TenantId;

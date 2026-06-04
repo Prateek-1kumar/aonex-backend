@@ -13,7 +13,7 @@ import { QUEUE } from "@aonex/types";
 import { adaptGroups, type CsvRowIssue } from "@aonex/catalog-source-adapters";
 import { eq } from "drizzle-orm";
 import { resolveOrCreateCsvChannel, runNewCsvCatalogPath } from "../services/new-catalog-csv-path.js";
-import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
+import type { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
 import { join, resolve, dirname } from "node:path";
 import { tmpdir } from "node:os";
@@ -112,7 +112,7 @@ async function runCsvParseInner(
 
       let csvText = stdout;
       // Convert any absolute paths of extracted images inside the temp folder to base64 data URLs
-      const escapedDir = extractedImagesDir.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const escapedDir = extractedImagesDir.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
       const pathRegex = new RegExp(`${escapedDir}[^"\\n,]+`, "g");
       const matches = Array.from(csvText.matchAll(pathRegex)).map((m) => m[0]);
       const uniqueMatches = Array.from(new Set(matches));

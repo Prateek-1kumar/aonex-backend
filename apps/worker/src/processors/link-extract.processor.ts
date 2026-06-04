@@ -29,7 +29,7 @@ import {
 } from "../services/new-catalog-link-path.js";
 import type { AdmitOrStageResult } from "@aonex/catalog-service";
 import { runSpineLink } from "./ingestion-spine.processor.js";
-import { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
+import type { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
 export interface LinkExtractJobData {
   tenantId: TenantId;

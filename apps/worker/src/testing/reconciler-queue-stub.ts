@@ -14,6 +14,6 @@ export const noopReconcilerQueues: ReconcilerQueueProvider = {
     ({
       name: reconcilerQueueName(tenantId),
       add: async () => ({} as never),
-    }) as any,
+    }) as never,
   close: async () => {},
 } as unknown as ReconcilerQueueProvider;

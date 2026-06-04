@@ -9,7 +9,7 @@
 // The ingestion-spine package (`runIngestion`, LinkAdapter) is module-mocked
 // so we never hit Redis, Playwright, or real DB.
 
-import { describe, expect, mock, test, beforeAll } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import type { IngestionEnvelope } from "@aonex/ingestion-spine";
 
 // ── Module stubs ─────────────────────────────────────────────────────────────
