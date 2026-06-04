@@ -164,16 +164,23 @@ export function authRoutes(deps: AuthDeps): Hono {
   });
 
   app.post("/logout", async (c) => {
+    // Accept a Bearer token OR the httpOnly cookie (mirrors /me) so the session
+    // is revoked whether logout is called server-to-server with an Authorization
+    // header or directly from the browser carrying the cookie.
     const auth = c.req.header("authorization");
-    if (auth?.startsWith("Bearer ")) {
+    const token = auth?.startsWith("Bearer ")
+      ? auth.slice("Bearer ".length).trim()
+      : getCookie(c, COOKIE_NAME);
+
+    if (token) {
       try {
-        const claims = await deps.jwt.verify(auth.slice("Bearer ".length).trim());
+        const claims = await deps.jwt.verify(token);
         await deps.db
           .update(schema.merchantSessions)
           .set({ revokedAt: deps.clock.now() })
           .where(eq(schema.merchantSessions.jti, claims.jti));
       } catch {
-        // already invalid — logout is idempotent
+        // already invalid/expired — logout is idempotent
       }
     }
     deleteCookie(c, COOKIE_NAME, { path: "/" });
