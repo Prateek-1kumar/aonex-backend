@@ -18,13 +18,13 @@ export async function listProducts(c: Context, deps: CatalogRouteDeps): Promise<
   const rawLimit = Number(c.req.query("limit"));
   const cursor = c.req.query("cursor");
 
-  const { products, nextCursor } = await listCatalogProducts(deps.db, {
+  const { products, nextCursor, total } = await listCatalogProducts(deps.db, {
     tenantId,
     merchantId,
     ...(Number.isFinite(rawLimit) && rawLimit > 0 ? { limit: rawLimit } : {}),
     ...(cursor ? { cursor } : {}),
   });
-  return c.json({ data: { products, nextCursor } });
+  return c.json({ data: { products, nextCursor, total } });
 }
 
 export async function deleteProduct(c: Context, deps: CatalogRouteDeps): Promise<Response> {
