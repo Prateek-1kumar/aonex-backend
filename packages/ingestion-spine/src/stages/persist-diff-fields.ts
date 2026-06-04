@@ -1,3 +1,10 @@
+// Spine stage: persist-diff-fields — one proposed_diff_fields row per known field.
+//
+// persistDiffFields materializes the reviewer UI's per-field approve/reject rows
+// from the canonical payload (KNOWN_FIELD_KEYS), with per-field confidence = max
+// fact confidence for that path (fallback 0.6). Mirrors legacy
+// link-catalog-pipeline; caller invokes it only when the diff was newly created.
+
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

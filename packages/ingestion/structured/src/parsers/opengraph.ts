@@ -1,3 +1,10 @@
+// Parser for OpenGraph / product meta tags (lowest-trust source, baseline 0.65).
+//
+// parseOpenGraph scans <meta property=… content=…> tags, mapping og:* and
+// product:* properties to rawKeys (title, base_price, currency, brand, images, …).
+// Forms the dedicated `opengraph` bucket in the cross-validator (merge.ts); fanned
+// out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

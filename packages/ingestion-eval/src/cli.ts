@@ -1,3 +1,11 @@
+// CLI + core run loop for the ingestion eval harness.
+//
+// runEval feeds golden-set decisions through evaluateGate; the import.meta.main
+// block (invoked via `bun run src/cli.ts`) loads golden fixtures, scores each
+// product (archetype-completeness or legacy critical-fields gate), and prints
+// weighted precision/recall, unknown-site recall, identity-pair and ER metrics,
+// exiting non-zero if any bar regresses.
+
 import type { Decision, GoldenProduct } from "./types.js";
 import { evaluateGate } from "./gate.js";
 

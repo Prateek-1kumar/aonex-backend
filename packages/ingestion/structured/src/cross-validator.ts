@@ -1,3 +1,10 @@
+// Cross-source agreement check across json_ld / opengraph / dom fact buckets.
+//
+// crossValidate compares the comparable fields (base_price, title, brand, gtin,
+// model_number) across sources: on agreement it boosts the winner's confidence,
+// on conflict it keeps the highest-confidence value but penalizes it and records
+// the conflict. Invoked by mergeParserOutputs (merge.ts); spec §6.1.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 
 export interface CrossValidationInput {

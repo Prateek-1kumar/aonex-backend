@@ -1,3 +1,10 @@
+// Source-adapter contract for @aonex/catalog-source-adapters.
+//
+// Defines SourceAdapter (sourceKind + adapt) plus the canonical shapes every
+// adapter emits: AdapterOutput, CanonicalObservation, Pricing/InventoryObservation,
+// IdentityHint, and the AdaptContext (tenant/channel + attribute defs/synonyms)
+// each adapt() receives. Implemented by csv/link/shopify-connector; the registry keys on sourceKind.
+
 import type { TenantId, ChannelId, ArtifactId } from "@aonex/types";
 
 export interface AdaptContext {

@@ -1,3 +1,9 @@
+// drizzle-kit configuration (migration generation + studio).
+//
+// Points drizzle-kit at the schema barrel and ./drizzle output, targeting
+// postgresql via DATABASE_URL. bundle:true lets its CJS loader resolve the
+// ESM .js → .ts schema imports. Consumed by the db:migrate / db:studio scripts.
+
 import type { Config } from "drizzle-kit";
 
 export default {

@@ -1,3 +1,10 @@
+// Assembles the final canonical SkuJson from extracted facts.
+//
+// convertFromFacts indexes ExtractedFact[] (splitting out variant buckets),
+// normalizes/roles/links images, validates pricing & GTIN, dedupes variant SKUs,
+// folds unknown keys into attributes, and emits provenance + confidence maps.
+// Terminal step of @aonex/ingestion-enrichment; its SkuJson is the package output.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import { normalizeImageUrls } from "./image-normalizer.js";
 import { classifyImageRoles } from "./image-role-classifier.js";

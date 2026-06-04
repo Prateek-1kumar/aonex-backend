@@ -1,3 +1,10 @@
+// Layered fact-extraction pipeline run after the fetch tier resolves HTML.
+//
+// runExtractionLayers fuses per-site parser (Layer G, wins on collisions),
+// structured-data + DOM heuristics (Layers A/B), archetype-routed LLM gap-fill,
+// and vision tier-3 (Layer F) into one ExtractedFactSet, gated by a per-URL
+// BudgetTracker. Produces the enriched skuJson with _extraction_meta provenance.
+
 import { extractStructured } from "@aonex/ingestion-structured";
 import {
   type LLMProductExtractor,

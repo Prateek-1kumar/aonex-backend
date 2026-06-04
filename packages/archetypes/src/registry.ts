@@ -1,3 +1,9 @@
+// In-memory registry of archetype definitions for @aonex/archetypes.
+//
+// registerArchetype/getArchetype/listArchetypes wrap a Map keyed by archetype
+// id; the smartphone seed is registered at module load as the v1 vertical.
+// Re-exported from the package index and read by the classifier's callers.
+
 import type { Archetype } from "./types.js";
 import { smartphone } from "./seed/smartphone.js";
 

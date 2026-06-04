@@ -1,3 +1,10 @@
+// Public entrypoint for @aonex/ingestion-structured.
+//
+// extractStructured runs every parsers/ extractor over a page's structured
+// blocks + raw HTML, merges them (merge.ts), infers a currency fallback, and
+// reports coverage — returning { structured, coverage, captchaSignal }. Bails
+// early with a captcha_wall gap when isCaptchaWall trips on the raw HTML.
+
 import { parseJsonLd } from "./parsers/json-ld.js";
 import { parseShopifyProbe } from "./parsers/shopify-probe.js";
 import { parseNextData } from "./parsers/next-data.js";

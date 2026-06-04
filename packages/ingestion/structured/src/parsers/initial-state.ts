@@ -1,3 +1,10 @@
+// Parser for Redux/Vuex-style window.__INITIAL_STATE__ / __PRELOADED_STATE__ blobs.
+//
+// parseInitialState locates the product node under a set of candidate paths
+// (product, state.product, pageProps.product, …) and emits title / brand /
+// base_price / gtin / model_number / description plus flattened product.attributes.
+// One of the parsers fanned out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

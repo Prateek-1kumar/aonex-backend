@@ -1,3 +1,10 @@
+// Builds the schema-scoped product-extraction chat prompt for the LLM.
+//
+// buildExtractionPrompt assembles a system message (safety rules, output JSON
+// schema — full or gap-only, confidence policy, category attributes, structured
+// hints/facts) plus a user message wrapping the cleaned page text. Entry point of
+// @aonex/ingestion-llm-extractor's prompt layer; consumed by the extractor.
+
 import type { ChatMessage } from "./providers/types.js";
 import type { PromptBuildParams } from "./types.js";
 import { pickAttributeSchema } from "./attribute-schemas.js";

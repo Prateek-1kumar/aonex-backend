@@ -1,3 +1,10 @@
+// Queue processor that runs the ingestion-spine pipeline for a link/extract job.
+//
+// Exports runSpineLink (dispatched by link-extract.processor.ts under feature-flag):
+// normalizes the source URL via the link adapter, runs runIngestion to write the
+// trace + proposed_diff, then bridges the extracted SkuJson into the canonical
+// catalog through runNewLinkCatalogPath, enqueuing reconcile via ReconcilerQueueProvider.
+
 import type { DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { runIngestion } from "@aonex/ingestion-spine";

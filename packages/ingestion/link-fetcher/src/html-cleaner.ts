@@ -1,3 +1,10 @@
+// Strips boilerplate/noise from raw HTML and harvests structured data pre-extraction.
+//
+// cleanHtml returns a CleanResult: machine-readable structuredBlocks (JSON-LD,
+// __NEXT_DATA__/Apollo/initial state, meta/link tags, microdata, images,
+// breadcrumbs), region-marked + entity-decoded cleanedText, and a captchaSignal.
+// Entry point of @aonex/ingestion-link-fetcher's cleaning stage.
+
 import { flattenJsonLdNodes } from "./json-ld-blocks.js";
 import type { CleanResult, StructuredBlocks } from "./types.js";
 

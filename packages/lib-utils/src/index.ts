@@ -1,3 +1,9 @@
+// Public API of @aonex/lib-utils — shared low-level utilities.
+//
+// Barrel re-exporting canonical JSON stringify, sha256, Nango-metadata
+// stripping, clock, backoff, URL/domain helpers (url.js), and unit
+// conversion (units.js). Imported across workers and services.
+
 export * from "./canonical-stringify.js";
 export * from "./sha256.js";
 export * from "./remove-nango-metadata.js";

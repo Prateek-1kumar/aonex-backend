@@ -1,3 +1,9 @@
+// Spine stage: map — resolve raw facts to canonical attribute paths.
+//
+// runMap loads the tenant/merchant MapperCorpus (known attrs, synonyms, channel
+// mappings, mapping overrides) and runs the semantic mapper over the fact set.
+// Third stage in the orchestrator; produces the MappedFactSet later stages read.
+
 import { map as semanticMap, type MapperCorpus, type MappedFactSet } from "@aonex/ingestion-semantic-mapper";
 import type { DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId } from "@aonex/types";

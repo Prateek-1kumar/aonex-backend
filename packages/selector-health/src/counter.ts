@@ -1,3 +1,9 @@
+// Selector-firing counter for @aonex/selector-health (spec §6.7 + §14.5).
+//
+// recordSelectorFiring emits one selector.fired audit event per "rich" parser
+// rung so the Phase 8 selector-health-scan cron can aggregate per-(domain ×
+// selector) success rates and surface selector rot.
+
 import type { AuditEmitter } from "@aonex/audit";
 import type { TenantId } from "@aonex/types";
 

@@ -1,3 +1,10 @@
+// Catalog admission gate — archetype completeness scoring.
+//
+// evaluateCompleteness builds the set of present canonical fields from an
+// AdapterOutput (observations + identity + pricing) and scores it against the
+// archetype's required/recommended attributes, returning an admit verdict plus
+// the missing keys. Used by admit-or-stage to decide catalog vs. anomaly lab.
+
 import type { AdapterOutput } from "@aonex/catalog-source-adapters";
 import { getArchetype, scoreCompleteness } from "@aonex/archetypes";
 import { latestObservationValue } from "../observation-helpers.js";

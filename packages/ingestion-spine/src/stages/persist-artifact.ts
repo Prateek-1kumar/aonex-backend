@@ -1,3 +1,9 @@
+// Spine stage: persist_artifact — write the raw envelope to source_artifacts.
+//
+// runs first, before any extraction. persistArtifact inserts with
+// onConflictDoNothing for checksum-based dedup; a null artifactId (plus
+// duplicateOfChecksum) tells the orchestrator to short-circuit as a duplicate.
+
 import { schema, type DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId, ArtifactId } from "@aonex/types";
 import type { IngestionEnvelope } from "../adapter.js";

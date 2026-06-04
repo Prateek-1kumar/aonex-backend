@@ -1,3 +1,9 @@
+// Source-adapter registry for @aonex/catalog-source-adapters.
+//
+// In-memory Map keyed by SourceAdapter.sourceKind. registerAdapter() populates
+// it (called from src/index.ts); getAdapter(sourceKind) resolves the adapter for
+// an incoming source and throws if none is registered.
+
 import type { SourceAdapter } from "./types.js";
 
 const registry = new Map<string, SourceAdapter>();

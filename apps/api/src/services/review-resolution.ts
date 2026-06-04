@@ -1,3 +1,9 @@
+// Business logic for reviewer resolution actions on review_tasks.
+//
+// editAndApprove / resolveCluster / rejectTask / mergeWithExisting — each loads
+// the task, enforces tenant ownership, and applies the approved diff (optionally
+// writing a mapping_override). Pure service layer; HTTP concerns stay in handlers.
+
 import { eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
 import { domainOf } from "@aonex/lib-utils";

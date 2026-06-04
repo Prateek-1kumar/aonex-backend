@@ -1,3 +1,11 @@
+// Link source adapter — maps an extracted product-link SkuJson into observations.
+//
+// Exports linkAdapter (sourceKind "link"), which turns the link-extraction
+// pipeline's SkuJson (wrapped in a LinkAdapterInput envelope with sourceUrl /
+// observedAt / artifactId) into parent + variant observations, pricing, inventory,
+// and an IdentityHint. Also exports channelCodeFromUrl(), used by the worker's
+// link-extract processor to resolve the channel. Registered via the package's src/index.ts.
+
 import type { SkuJson, SkuVariant, SkuImage } from "@aonex/ingestion-enrichment";
 import type { ArtifactId } from "@aonex/types";
 import type {

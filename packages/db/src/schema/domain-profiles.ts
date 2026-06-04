@@ -1,3 +1,9 @@
+// Drizzle table: domain_profiles — per-domain extraction tuning.
+//
+// Holds preferred parsers plus rolling LLM hit-rate / avg-confidence / sample-count
+// keyed by domain pattern. Rebuilt nightly by the domain-profile-refresh job and
+// read by the link adapter to pick parsers for a domain.
+
 import {
   pgTable,
   varchar,

@@ -1,3 +1,9 @@
+// Amazon product-page parser (amazonParser); self-registers with the registry.
+//
+// Cheerio DOM extractor for the amazon.* family: pulls ASIN from the URL, then
+// title/brand/price+currency/description/images/spec-table rows as ExtractedFact[].
+// requiresBrowser — the PDP needs a rendered HTML payload.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { PerSiteParser } from "../types.js";

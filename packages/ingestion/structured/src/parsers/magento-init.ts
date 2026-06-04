@@ -1,3 +1,10 @@
+// Parser for Magento <script type="text/x-magento-init"> component configs.
+//
+// parseMagento walks each block's selector → component map, pulling base_price
+// from Magento_Catalog/js/price-box (several priceConfig shapes) and
+// title / brand / model_number / gtin / description from Magento_Catalog/product/view.
+// One of the parsers fanned out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

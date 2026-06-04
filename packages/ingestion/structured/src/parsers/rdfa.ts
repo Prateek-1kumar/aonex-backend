@@ -1,3 +1,10 @@
+// Parser for Schema.org Product facts expressed via RDFa attributes in raw HTML.
+//
+// parseRdfa locates the typeof="Product" element, then reads recognised property=
+// attributes (content= first, inner text as fallback) into title / brand / gtin /
+// base_price / description facts. Regex-based like microdata.ts (no DOM dependency);
+// one of the parsers fanned out by extractStructured (index.ts).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

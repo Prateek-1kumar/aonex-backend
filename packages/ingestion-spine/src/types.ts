@@ -1,3 +1,9 @@
+// Shared envelope and stage types for the ingestion spine.
+//
+// Defines IngestionLane, StageName, the StageAuditMeta carried through every
+// stage's audit event, ExtractionHints, and IngestionEnvelope (the per-record
+// unit adapters emit and the orchestrator persists). Consumed across the package.
+
 import type { TenantId, MerchantId, ArtifactId, Marketplace } from "@aonex/types";
 
 export type IngestionLane = "link" | "csv" | "nango";

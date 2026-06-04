@@ -1,3 +1,10 @@
+// Policy-engine detector — unit ambiguity.
+//
+// detectUnitAmbiguity flags numeric measurement facts whose unit is missing or
+// unconvertible: for known FIELD_DIMENSIONS it tries convertToCanonical, else
+// falls back to the legacy MEASUREMENT_HINTS regexes. One rule in the router.ts
+// array; emits a `unit_conflict` ReviewTaskSignal.
+
 import { convertToCanonical, type Dimension } from "@aonex/lib-utils";
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 

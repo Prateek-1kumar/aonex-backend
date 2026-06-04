@@ -1,3 +1,11 @@
+// CSV source adapter — normalizes a tenant-uploaded canonical CSV into observations.
+//
+// Exports csvAdapter (sourceKind "csv"), plus adaptGroups() which groups rows by
+// primary_identifier into one AdapterOutput per product (collecting per-group errors
+// and column warnings) and inspectCsv() for cheap header/row-count preflight. Handles
+// header aliasing, custom-column passthrough, GTIN validation, and image extraction.
+// Consumed by the csv-parse worker; registered via the package's src/index.ts.
+
 import { parse } from "csv-parse/sync";
 import type { ArtifactId } from "@aonex/types";
 import type {

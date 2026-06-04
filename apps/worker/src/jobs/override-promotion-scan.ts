@@ -1,3 +1,9 @@
+// Nightly cron job: flag mapping_overrides eligible for synonym promotion.
+//
+// Exports overridePromotionScan (a CronJob registered in jobs/index.ts). Stamps
+// promote_eligible_at on overrides that meet usage, quarantine-age, and
+// cross-tenant-agreement thresholds. Actual promotion stays a manual admin step.
+
 import { sql } from "drizzle-orm";
 import type { CronJob } from "./index.js";
 

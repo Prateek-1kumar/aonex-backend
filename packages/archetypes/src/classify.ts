@@ -1,3 +1,9 @@
+// Deterministic archetype classifier for @aonex/archetypes.
+//
+// classifyArchetype matches category-path/title signals against per-archetype
+// regex rules and returns the archetype id, abstaining to "unknown" on no match
+// or ambiguous (>=2) matches. LLM/embedding fallback lands in Phase 3.
+
 export interface ClassifySignals {
   categoryPath?: string;
   title?: string;

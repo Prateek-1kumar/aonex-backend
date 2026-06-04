@@ -1,3 +1,9 @@
+// Nightly cron job: deduplicate the extraction_failures table.
+//
+// Exports failurePatternRollup (a CronJob registered in jobs/index.ts). Collapses
+// duplicate (tenant, domain, reason, raw_key) groups into one representative row
+// with summed occurrence_count and merged first/last-seen timestamps.
+
 import { sql } from "drizzle-orm";
 import type { CronJob } from "./index.js";
 

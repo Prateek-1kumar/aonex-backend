@@ -1,3 +1,11 @@
+// Side-fetch parser for Shopify's public /products/<handle>.json API endpoint.
+//
+// parseShopifyProductsJson fetches the handle's JSON (with an AbortController
+// timeout), then emits title / brand / description / category_path and, from the
+// variant matching the URL's `variant` param (else the first), base_price + gtin.
+// Awaited in parallel by extractStructured (index.ts); distinct from the
+// HTML-scraping shopify-probe.ts.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

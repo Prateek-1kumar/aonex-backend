@@ -1,3 +1,10 @@
+// Provider port for live marketplace reads — the MarketplaceLiveAdapter contract.
+//
+// Defines the interface every concrete adapter (Nango / Shopify / eBay) implements:
+// createOAuthUrl / healthCheck / listProducts / getInventory, plus the
+// ConnectionContext and ProviderProduct shapes they exchange. Product code depends
+// on this port, never on a concrete provider SDK.
+
 import type { Marketplace, MerchantId } from "@aonex/types";
 import type { OAuthUrlResult, CreateOAuthUrlInput } from "./admin.js";
 import type { InventoryRecord } from "./inventory.js";

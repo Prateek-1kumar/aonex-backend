@@ -1,3 +1,9 @@
+// HTTP routes for the eBay marketplace integration.
+//
+// connect → OAuth URL, callback → enqueue initial sync, plus live inventory /
+// orders / offers reads. All marketplace access goes through ConnectorGateway
+// (never @nangohq/node directly — ACL invariant I1). Merchant identity is JWT-derived.
+
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { MerchantId, TenantId, JOB_KIND, QUEUE, STANDARD_RETRY } from '@aonex/types';

@@ -1,3 +1,11 @@
+// Nango sync script for the Shopify `shopify-products` model.
+//
+// Runs inside Nango's runtime: pages the Admin GraphQL API (products +
+// variants + images + inventory, cursor pagination) filtered by an
+// updated_at checkpoint and batchSaves ShopifyProduct records into Nango's
+// cache for the connection. Default export is the createSync definition
+// (frequency every 6h, autoStart).
+
 import { createSync } from 'nango';
 import { z } from 'zod';
 

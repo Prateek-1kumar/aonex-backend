@@ -1,3 +1,9 @@
+// Post-extraction image role tagging for @aonex/ingestion-enrichment.
+//
+// classifyImageRoles assigns each NormalizedImg a role (hero/gallery/swatch/
+// lifestyle/spec/video_thumb) from url/alt regexes plus the og:image match, and a
+// position index, guaranteeing exactly one hero. Consumed by sku-builder.
+
 import type { NormalizedImg } from "./image-normalizer.js";
 
 export type ImageRole = "hero" | "gallery" | "swatch" | "lifestyle" | "spec" | "video_thumb";

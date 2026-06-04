@@ -1,3 +1,9 @@
+// Policy-engine detector — category ambiguity.
+//
+// detectCategoryAmbiguous flags a review when no category was detected, or its
+// confidence falls below THRESHOLD (0.70). One rule in the router.ts detector
+// array; emits a `category_ambiguous` ReviewTaskSignal.
+
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 
 const THRESHOLD = 0.70;

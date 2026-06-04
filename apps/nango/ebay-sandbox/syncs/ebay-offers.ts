@@ -1,3 +1,10 @@
+// Nango sync script for the eBay sandbox `ebay-offers` model.
+//
+// Runs inside Nango's runtime: pages the Sell Inventory API v1 (/offer,
+// offset pagination) and batchSaves EbayOffer records (price, status,
+// listingId) into Nango's cache for the connection. Default export is the
+// createSync definition (frequency every 6h, autoStart).
+
 import { createSync } from 'nango';
 import { z } from 'zod';
 

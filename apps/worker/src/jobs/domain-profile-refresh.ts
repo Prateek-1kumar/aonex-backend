@@ -1,3 +1,9 @@
+// Nightly cron job: rebuild domain_profiles from recent link ingestion traces.
+//
+// Exports domainProfileRefresh (a CronJob registered in jobs/index.ts). Upserts
+// per-domain LLM hit-rate / avg-confidence / sample-count from the last 30 days
+// of link_ingestion_trace_runs so the link adapter can pick preferred parsers.
+
 import { sql } from "drizzle-orm";
 import type { CronJob } from "./index.js";
 

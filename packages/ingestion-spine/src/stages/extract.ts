@@ -1,3 +1,9 @@
+// Spine stage: extract — dispatch to the lane-specific adapter.extract().
+//
+// runExtract calls the adapter (which owns all lane complexity: parsers, LLM,
+// browser, etc.) and tags the returned ExtractedFactSet with the artifactId.
+// Second stage in the orchestrator; pure dispatch plus standard return shape.
+
 import type { IngestionAdapter, IngestionEnvelope } from "../adapter.js";
 import type { ArtifactId } from "@aonex/types";
 import type { ExtractedFactSet } from "@aonex/ingestion-field-extractor";

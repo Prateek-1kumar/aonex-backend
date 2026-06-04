@@ -1,3 +1,10 @@
+// Side-fetch parser that probes Shopify's /products/<handle>.json and .js endpoints.
+//
+// parseShopifyProbe derives candidate probe URLs from the page path, fetches the
+// first that returns product data, and emits title / vendor / description /
+// productType plus per-variant sku / barcode / price / inventory / option facts.
+// Awaited in parallel by extractStructured (index.ts); cf. shopify-products-json.ts.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

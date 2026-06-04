@@ -1,3 +1,10 @@
+// Policy-engine detector — incomplete variant matrix.
+//
+// detectVariantIncomplete fires when the actual variant count falls short of
+// the cross-product of input.variantAxes (e.g. size × color), signalling a
+// gappy matrix. One rule in the router.ts array; emits a `variant_incomplete`
+// ReviewTaskSignal.
+
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 
 export const detectVariantIncomplete: Detector = (input: RouterInput): ReviewTaskSignal | null => {

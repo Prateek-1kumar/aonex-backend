@@ -1,3 +1,9 @@
+// Best Buy product-page parser (bestbuyParser); self-registers with the registry.
+//
+// Cheerio DOM extractor for bestbuy.com/.ca: pulls SKU from the URL, then
+// title/price+currency/model_number/spec-table rows/images as ExtractedFact[].
+// requiresBrowser — the PDP needs a rendered HTML payload.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { PerSiteParser } from "../types.js";

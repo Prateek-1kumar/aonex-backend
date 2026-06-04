@@ -1,3 +1,10 @@
+// In-memory registry that maps a URL's hostname to a PerSiteParser.
+//
+// registerParser() appends and keeps the list priority-sorted; findParserForUrl()
+// resolves a URL to the highest-priority parser whose domain matches by exact
+// hostname or dotted suffix, returning null when none claim it. Callers in the
+// ingestion pipeline use this to pick the right site-specific extractor.
+
 import type { PerSiteParser } from "./types.js";
 
 const parsers: PerSiteParser[] = [];

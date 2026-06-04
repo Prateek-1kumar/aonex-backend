@@ -1,3 +1,9 @@
+// DOM heuristic for the image_url field.
+//
+// extractImagesFromDom collects og:image plus <img> sources, filtering out
+// icons/data-URIs and tiny (<200px) images. Dedupes by URL stem (ignoring size
+// suffixes), sorts by confidence, and emits up to 10 ExtractedFacts.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

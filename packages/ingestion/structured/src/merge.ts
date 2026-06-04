@@ -1,3 +1,10 @@
+// Merges the per-parser ParserOutputs into a single StructuredResult.
+//
+// mergeParserOutputs picks one winning fact per rawKey using field-family
+// precedence ranks (so NEXT_DATA beats JSON-LD on inventory/category while
+// JSON-LD wins canonical attributes), records losing values as sourceAlternatives,
+// then runs cross-validator.ts and resolves the productType into `category`.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput, StructuredResult } from "./types.js";
 import { crossValidate } from "./cross-validator.js";

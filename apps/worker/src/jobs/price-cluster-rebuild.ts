@@ -1,3 +1,9 @@
+// Nightly cron job: recompute the price_clusters table from product_versions.
+//
+// Exports priceClusterRebuild (a CronJob registered in jobs/index.ts). Wipes and
+// rebuilds median base_price per (tenant, brand, canonical_category, currency),
+// keeping only clusters with >=10 samples; used downstream for price anomaly checks.
+
 import { sql } from "drizzle-orm";
 import type { CronJob } from "./index.js";
 

@@ -1,3 +1,10 @@
+// Spine stage: validate — check mapped attributes against the category schema.
+//
+// runValidate materializes attributes_json from the mapped facts, resolves the
+// category_schemas row, and validates only Tier 1 (authoritative) categories
+// strictly; Tier 2 / no-schema paths pass permissively. Also surfaces the
+// resolved required attributes for the score stage's missing-required detector.
+
 import { validate as validateAttrs, type ValidationOutcome } from "@aonex/schema-validator";
 import type { DrizzleClient } from "@aonex/db";
 import type { MappedFactSet } from "@aonex/ingestion-semantic-mapper";

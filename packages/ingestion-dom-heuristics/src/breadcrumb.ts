@@ -1,3 +1,9 @@
+// DOM heuristic for the category_path field.
+//
+// extractBreadcrumbFromDom finds a breadcrumb container (class/id/aria-label),
+// reads its <li> or child items, drops the trailing product name, and joins the
+// remaining crumbs into a snake-cased path. Confidence scales with chain length.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 

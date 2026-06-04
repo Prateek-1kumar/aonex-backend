@@ -1,3 +1,9 @@
+// AES-256-GCM helpers for encrypting connection tokens at rest.
+//
+// encryptToken / decryptToken wrap node:crypto with a per-call random IV and an
+// auth tag, serialized as `iv:tag:ciphertext` (base64). The 32-byte key is passed
+// in hex-encoded by the caller (from env). Used by the Postgres connection registry.
+
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 const ALGO = 'aes-256-gcm';

@@ -1,3 +1,11 @@
+// Nango sync script for the eBay sandbox `ebay-orders` model.
+//
+// Runs inside Nango's runtime: pages the Sell Fulfillment API v1 (/order)
+// filtered by a creationDate checkpoint and batchSaves EbayOrder records
+// into Nango's cache for the connection. Incremental: advances the
+// created_after checkpoint per page. Default export is the createSync
+// definition (frequency every 1h, autoStart).
+
 import { createSync } from 'nango';
 import { z } from 'zod';
 

@@ -1,3 +1,10 @@
+// Parser for Schema.org microdata (itemprop) attributes via regex over raw HTML.
+//
+// parseMicrodata scans content= attributes and inline text for a fixed set of
+// itemprops (name, brand, price, sku, gtin13/12, …), mapping each to a rawKey and
+// taking the first occurrence. One of the parsers fanned out by extractStructured
+// (index.ts); intentionally regex-based like rdfa.ts (no DOM dependency).
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

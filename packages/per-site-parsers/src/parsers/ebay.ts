@@ -1,3 +1,9 @@
+// eBay listing-page parser (ebayParser); self-registers with the registry.
+//
+// Cheerio DOM extractor for the ebay.* family: pulls the item id from /itm/ URLs,
+// then title/price+currency/item-specifics/images as ExtractedFact[]. Static HTML
+// is enough, so requiresBrowser is false.
+
 import * as cheerio from "cheerio";
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { PerSiteParser } from "../types.js";

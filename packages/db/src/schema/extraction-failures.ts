@@ -1,3 +1,9 @@
+// Drizzle table: extraction_failures — recurring per-domain extraction misses.
+//
+// One row per (tenant, domain_pattern, raw_key, reason) with occurrence_count and
+// first/last-seen, optionally linked to a review_task. Deduplicated nightly by the
+// failure-pattern-rollup job; feeds selector-rot / coverage analysis.
+
 import {
   pgTable,
   uuid,

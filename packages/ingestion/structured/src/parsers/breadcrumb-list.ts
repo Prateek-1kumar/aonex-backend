@@ -1,3 +1,10 @@
+// Parser that derives a category_path from Schema.org BreadcrumbList JSON-LD.
+//
+// parseBreadcrumbList joins the breadcrumb chain (dropping the leaf product name)
+// into a "/"-separated path, with per-fact confidence scaled by chain depth. One
+// of the parsers fanned out by extractStructured (index.ts); fed the same jsonLd
+// blocks as json-ld.ts.
+
 import type { ExtractedFact } from "@aonex/ingestion-field-extractor";
 import type { ParserOutput } from "../types.js";
 

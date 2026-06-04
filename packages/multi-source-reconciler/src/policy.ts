@@ -1,3 +1,10 @@
+// Winner-selection policy for the multi-source reconciler (spec §6.8).
+//
+// reconcileFields merges two candidates field-by-field (higher confidence wins,
+// ties broken by recency) with per-field attribution; decideReconciliationAction
+// maps the composite identity score to merge / review / keep_separate. Consumed
+// by the catalog write path via @aonex/multi-source-reconciler.
+
 import { computeMatchScore, THRESHOLDS, type ProductIdentity, type MatchScoreBreakdown } from "./scoring.js";
 
 /**

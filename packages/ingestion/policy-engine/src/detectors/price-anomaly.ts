@@ -1,3 +1,10 @@
+// Policy-engine detector — price anomaly.
+//
+// detectPriceAnomaly fires when basePrice deviates from the brand/category
+// priceCluster median beyond HIGH_RATIO (5×) or LOW_RATIO (0.2×), guarded by a
+// MIN_SAMPLE (10) cluster size. One rule in the router.ts array; emits a
+// `price_anomaly` ReviewTaskSignal.
+
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 
 const MIN_SAMPLE = 10;

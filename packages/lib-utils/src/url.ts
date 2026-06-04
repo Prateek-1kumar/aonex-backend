@@ -1,3 +1,10 @@
+// URL/domain helpers in @aonex/lib-utils.
+//
+// canonicalizeUrl lowercases the host, strips tracking params (utm_*, gclid,
+// Amazon ref/dib/…) and normalizes trailing slashes for stable dedupe keys;
+// domainOf extracts the registrable host (www-stripped). Used wherever source
+// URLs are keyed or grouped.
+
 const TRACKING_PARAM_PATTERNS = [
   /^utm_/,
   /^_ga$/,

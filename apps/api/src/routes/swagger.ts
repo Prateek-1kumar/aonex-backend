@@ -1,3 +1,8 @@
+// Serves the hand-maintained OpenAPI 3.0 spec and Swagger UI.
+//
+// GET /ui/doc returns the spec JSON; GET /ui renders the interactive docs. The
+// spec is authored inline here (not generated) — keep it in sync with the routes.
+
 import { Hono } from 'hono';
 import { swaggerUI } from '@hono/swagger-ui';
 
@@ -35,11 +40,15 @@ Every JWT encodes a \`merchantId\`. All protected endpoints derive the merchant 
     },
     tags: [
       { name: 'Health', description: 'Liveness and readiness probes' },
-      { name: 'Auth', description: 'Signup, login, refresh, logout' },
+      { name: 'Auth', description: 'Signup, login, refresh, logout, and Google OAuth' },
       { name: 'Connections', description: 'Marketplace connection lifecycle (Nango generic flow)' },
       { name: 'Shopify', description: 'Shopify-specific OAuth connect, callback, products' },
+      { name: 'eBay', description: 'eBay OAuth connect, callback, and live inventory/orders/offers reads' },
       { name: 'Sync', description: 'Manual product sync trigger' },
-      { name: 'Ingestions', description: 'LLM-based product extraction from URLs' },
+      { name: 'Ingestions', description: 'Product extraction from URLs and CSV uploads' },
+      { name: 'Catalog', description: 'Canonical catalog product reads, soft-delete, provenance, and trace' },
+      { name: 'Review', description: 'Reviewer workflow — review tasks and clusters' },
+      { name: 'Anomaly Lab', description: 'Staged-product review queue and approve/reject/link actions' },
       { name: 'Webhooks', description: 'Nango webhook receiver (HMAC-protected, not JWT)' },
     ],
     paths: {
@@ -685,6 +694,426 @@ Implements queue-first ordering for idempotent processing.`,
               },
             },
             400: { description: 'HMAC signature verification failed' },
+          },
+        },
+      },
+
+      // ── Auth (Google OAuth) ───────────────────────────────────────────────
+      '/api/auth/google': {
+        get: {
+          summary: 'Begin Google OAuth sign-in (redirects to Google)',
+          description: 'Sets a CSRF state cookie and 302-redirects to Google\'s consent screen. Open in a browser — not an XHR endpoint. Only mounted when GOOGLE_CLIENT_ID / SECRET / REDIRECT_URI are configured.',
+          tags: ['Auth'],
+          responses: {
+            302: { description: 'Redirect to the Google consent screen' },
+          },
+        },
+      },
+      '/api/auth/google/callback': {
+        get: {
+          summary: 'Google OAuth callback (redirect target — called by Google)',
+          description: 'Verifies the state cookie, exchanges the code, then either logs an existing merchant in (sets the aonex_token cookie) or issues a short-lived pending token and redirects to the workspace-naming step.',
+          tags: ['Auth'],
+          parameters: [
+            { name: 'code', in: 'query', required: true, schema: { type: 'string' } },
+            { name: 'state', in: 'query', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            302: { description: 'Redirect to the app (existing user) or the signup workspace step (new user)' },
+          },
+        },
+      },
+      '/api/auth/google/complete': {
+        post: {
+          summary: 'Finish Google sign-up by naming the workspace',
+          description: 'Exchanges a pending token (from the callback) plus a tenant name for a new tenant + merchant, then returns a JWT.',
+          tags: ['Auth'],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: {
+              type: 'object',
+              required: ['tenantName', 'pendingToken'],
+              properties: {
+                tenantName: { type: 'string', example: 'Acme Corp' },
+                pendingToken: { type: 'string', description: 'Pending JWT issued by /api/auth/google/callback' },
+              },
+            } } },
+          },
+          responses: {
+            201: { description: 'Tenant + merchant created; JWT returned' },
+            401: { description: 'Pending token expired or invalid' },
+            409: { description: 'Email already registered' },
+          },
+        },
+      },
+
+      // ── Ingestions (CSV) ──────────────────────────────────────────────────
+      '/api/ingestions/csv': {
+        post: {
+          summary: 'Upload a CSV file for catalog ingestion (async)',
+          description: 'Multipart upload. The file is stored as a source artifact and a csv_parse job is enqueued; rows are grouped into products and admitted or staged. Returns 202 immediately. Max size is CSV_MAX_BYTES (default 15 MB).',
+          tags: ['Ingestions'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: { 'multipart/form-data': { schema: {
+              type: 'object',
+              required: ['file'],
+              properties: { file: { type: 'string', format: 'binary', description: 'Canonical product CSV' } },
+            } } },
+          },
+          responses: {
+            202: { description: 'File accepted — parsing in progress' },
+            400: { description: 'Missing or invalid file' },
+            401: { description: 'Unauthenticated' },
+            413: { description: 'File exceeds CSV_MAX_BYTES' },
+          },
+        },
+      },
+
+      // ── eBay ──────────────────────────────────────────────────────────────
+      '/api/marketplaces/ebay/connect': {
+        post: {
+          summary: 'Get an eBay OAuth URL to connect a merchant\'s eBay account',
+          tags: ['eBay'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: {
+              description: 'OAuth URL + expiry',
+              content: { 'application/json': { example: { data: { url: 'https://connect.nango.dev?session_token=...', expiresAt: '2026-06-04T12:00:00.000Z' } } } },
+            },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+      '/api/marketplaces/ebay/callback': {
+        get: {
+          summary: 'Post-OAuth callback — confirms the eBay connection and enqueues initial sync',
+          tags: ['eBay'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: 'Connection confirmed, sync enqueued', content: { 'application/json': { example: { data: { status: 'active', marketplace: 'ebay' } } } } },
+            404: { description: 'No eBay connection found (OAuth not completed)' },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+      '/api/marketplaces/ebay/inventory': {
+        get: {
+          summary: 'List inventory items from the connected eBay account (live read)',
+          tags: ['eBay'],
+          security: [{ bearerAuth: [] }],
+          responses: { 200: { description: 'eBay inventory items' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/marketplaces/ebay/orders': {
+        get: {
+          summary: 'List recent orders from the connected eBay account (live read)',
+          tags: ['eBay'],
+          security: [{ bearerAuth: [] }],
+          responses: { 200: { description: 'eBay order records' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/marketplaces/ebay/offers': {
+        get: {
+          summary: 'List offers from the connected eBay account (live read)',
+          tags: ['eBay'],
+          security: [{ bearerAuth: [] }],
+          responses: { 200: { description: 'eBay offer records' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+
+      // ── Catalog ───────────────────────────────────────────────────────────
+      '/api/catalog/products': {
+        get: {
+          summary: 'List catalog products for the merchant (paginated)',
+          description: 'Merchant-isolated. Pagination via ?limit (clamped by the service) and an opaque ?cursor.',
+          tags: ['Catalog'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1 }, description: 'Page size (clamped by the service)' },
+            { name: 'cursor', in: 'query', required: false, schema: { type: 'string' }, description: 'Opaque cursor from a prior response' },
+          ],
+          responses: {
+            200: { description: 'Product page', content: { 'application/json': { example: { data: { products: [], nextCursor: null, total: 0 } } } } },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+      '/api/catalog/products/{id}': {
+        get: {
+          summary: 'Get a single catalog product by id',
+          tags: ['Catalog'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'Product detail' }, 404: { description: 'Not found for this tenant' }, 401: { description: 'Unauthenticated' } },
+        },
+        delete: {
+          summary: 'Soft-delete a catalog product (sets status = deleted)',
+          tags: ['Catalog'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'Product soft-deleted' }, 404: { description: 'Not found for this tenant' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/catalog/products/{id}/provenance': {
+        get: {
+          summary: 'Legacy provenance trace for a product (proposed_diffs chain)',
+          tags: ['Catalog'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'Provenance chain' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/catalog/products/{id}/sku': {
+        get: {
+          summary: 'Get the assembled canonical SKU JSON for a product',
+          tags: ['Catalog'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'SKU payload' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/catalog/products/{product_id}/provenance/{attribute_code}': {
+        get: {
+          summary: 'Per-attribute provenance (new schema: catalog_products + winning_values)',
+          tags: ['Catalog'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'product_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+            { name: 'attribute_code', in: 'path', required: true, schema: { type: 'string' }, example: 'base_price' },
+          ],
+          responses: { 200: { description: 'Winning value plus the observations behind it' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/catalog/products/{product_id}/trace': {
+        get: {
+          summary: 'Full product debug trace (spec §20)',
+          tags: ['Catalog'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'product_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'Trace payload' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+
+      // ── Review ────────────────────────────────────────────────────────────
+      '/api/review/tasks': {
+        get: {
+          summary: 'List review tasks',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          responses: { 200: { description: 'Review task list' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/clusters': {
+        get: {
+          summary: 'List review clusters',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          responses: { 200: { description: 'Cluster list' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/clusters/{cluster_key}/items': {
+        get: {
+          summary: 'List the tasks within a review cluster',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'cluster_key', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: { 200: { description: 'Cluster items' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/clusters/{cluster_key}/resolve': {
+        post: {
+          summary: 'Bulk-resolve a review cluster (approve_all / reject_all)',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'cluster_key', in: 'path', required: true, schema: { type: 'string' } }],
+          requestBody: { required: true, content: { 'application/json': { schema: {
+            type: 'object',
+            required: ['action'],
+            properties: {
+              action: { type: 'string', enum: ['approve_all', 'reject_all'] },
+              bulkEdit: { type: 'object', properties: { fieldName: { type: 'string' }, newValue: {} } },
+            },
+          } } } },
+          responses: { 200: { description: 'Cluster resolved' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/tasks/{id}/edit-and-approve': {
+        post: {
+          summary: 'Edit a field then approve a review task',
+          description: 'Optionally rebinds a mapping (writes a mapping_override) and applies the approved diff.',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: { required: true, content: { 'application/json': { schema: {
+            type: 'object',
+            required: ['fieldName', 'newCanonicalPath', 'newNormalizedValue'],
+            properties: {
+              fieldName: { type: 'string' },
+              newCanonicalPath: { type: 'string', nullable: true },
+              newNormalizedValue: {},
+              pickedCandidateSource: { type: 'string' },
+              reason: { type: 'string' },
+            },
+          } } } },
+          responses: { 200: { description: 'Task approved' }, 404: { description: 'Task not found' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/tasks/{id}': {
+        patch: {
+          summary: 'Patch a review task (save / approve / reject / dismiss)',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: { required: true, content: { 'application/json': { schema: {
+            type: 'object',
+            required: ['action'],
+            properties: {
+              action: { type: 'string', enum: ['save', 'approve', 'reject', 'dismiss'] },
+              diff_payload: { type: 'object' },
+              resolution_notes: { type: 'string', maxLength: 1000 },
+            },
+          } } } },
+          responses: { 200: { description: 'Task updated' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/tasks/{id}/reject': {
+        post: {
+          summary: 'Reject a review task with a reason',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: { required: true, content: { 'application/json': { schema: {
+            type: 'object',
+            required: ['reason'],
+            properties: {
+              reason: { type: 'string', enum: ['wrong_value', 'missing_field', 'wrong_category', 'no_product_found'] },
+              note: { type: 'string' },
+            },
+          } } } },
+          responses: { 200: { description: 'Task rejected' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/tasks/{id}/merge': {
+        post: {
+          summary: 'Merge a review task into an existing product',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: { required: true, content: { 'application/json': { schema: {
+            type: 'object',
+            required: ['existingProductId'],
+            properties: { existingProductId: { type: 'string', format: 'uuid' } },
+          } } } },
+          responses: { 200: { description: 'Merged' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/review/tasks/{id}/evidence': {
+        get: {
+          summary: 'Get the evidence backing a review task',
+          tags: ['Review'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'Evidence payload' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+
+      // ── Anomaly Lab ───────────────────────────────────────────────────────
+      '/api/lab/queue': {
+        get: {
+          summary: 'List the staged-product review queue (paginated)',
+          tags: ['Anomaly Lab'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } },
+            { name: 'cursor', in: 'query', required: false, schema: { type: 'string' }, description: 'ISO createdAt of the last item seen' },
+          ],
+          responses: {
+            200: { description: 'Staged queue page', content: { 'application/json': { example: { data: { items: [], nextCursor: null } } } } },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+      '/api/lab/queue/stats': {
+        get: {
+          summary: 'Pending-queue counts by reason / source / age',
+          tags: ['Anomaly Lab'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: 'Queue stats', content: { 'application/json': { example: { data: { total: 0, byReason: {}, bySource: {}, byAge: { today: 0, week: 0, older: 0 } } } } } },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+      '/api/lab/staged/{id}': {
+        get: {
+          summary: 'Get full detail for one staged product',
+          tags: ['Anomaly Lab'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'Staged product detail' }, 404: { description: 'Not found for this tenant' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/lab/staged/{id}/evidence': {
+        get: {
+          summary: 'Get the evidence for a staged product',
+          tags: ['Anomaly Lab'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: { 200: { description: 'Evidence payload' }, 401: { description: 'Unauthenticated' } },
+        },
+      },
+      '/api/lab/staged/{id}/approve': {
+        post: {
+          summary: 'Approve (promote) a staged product into the catalog',
+          description: 'Reviewer `fills` are merged with the staged observations to satisfy the readiness gate. Returns 400 INCOMPLETE (with stillMissing) when the gate is still unmet.',
+          tags: ['Anomaly Lab'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: { required: false, content: { 'application/json': { schema: {
+            type: 'object',
+            properties: { fills: { type: 'object', description: 'Field → value overrides supplied by the reviewer' } },
+          } } } },
+          responses: {
+            200: { description: 'Promoted to catalog', content: { 'application/json': { example: { data: { productId: 'uuid-...' } } } } },
+            400: { description: 'Still incomplete (stillMissing returned)' },
+            409: { description: 'Staged product no longer pending' },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+      '/api/lab/staged/{id}/reject': {
+        post: {
+          summary: 'Reject a staged product (terminal)',
+          tags: ['Anomaly Lab'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          responses: {
+            200: { description: 'Rejected', content: { 'application/json': { example: { data: { ok: true } } } } },
+            409: { description: 'Staged product no longer pending' },
+            401: { description: 'Unauthenticated' },
+          },
+        },
+      },
+      '/api/lab/staged/{id}/link': {
+        post: {
+          summary: 'Link a staged product to an existing catalog product',
+          tags: ['Anomaly Lab'],
+          security: [{ bearerAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+          requestBody: { required: true, content: { 'application/json': { schema: {
+            type: 'object',
+            required: ['confirmedProductId'],
+            properties: {
+              confirmedProductId: { type: 'string', description: 'The existing catalog product to link this staged product into' },
+              fills: { type: 'object', description: 'Optional reviewer field overrides' },
+            },
+          } } } },
+          responses: {
+            200: { description: 'Linked', content: { 'application/json': { example: { data: { productId: 'uuid-...' } } } } },
+            400: { description: 'Confirmed product is not a candidate for this staged product' },
+            401: { description: 'Unauthenticated' },
           },
         },
       },

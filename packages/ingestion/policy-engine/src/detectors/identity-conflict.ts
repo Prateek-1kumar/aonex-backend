@@ -1,3 +1,10 @@
+// Policy-engine detector — identity conflict (potential duplicate).
+//
+// detectIdentityConflict fires when an incoming gtin/mpn matches an existing
+// product in input.identityIndex but the brand differs — a likely mismatched
+// identity. One rule in the router.ts array; emits a critical-severity
+// `potential_duplicate` ReviewTaskSignal.
+
 import type { Detector, ReviewTaskSignal, RouterInput } from "../types.js";
 
 export const detectIdentityConflict: Detector = (input: RouterInput): ReviewTaskSignal | null => {

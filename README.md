@@ -78,8 +78,7 @@ aonex-backend/
 │   └── nango/    Nango sync scripts (deployed via `nango deploy`)
 ├── packages/     ~38 workspaces across the 4 planes (see docs/ARCHITECTURE.md)
 ├── docs/
-│   ├── ARCHITECTURE.md   System model + package status table
-│   └── runbooks/         Operational runbooks (cutover, backfill, manual split)
+│   └── ARCHITECTURE.md   System model + package status table
 ├── docker-compose.yml    Local Postgres 16 + Redis 7
 └── CONTRIBUTING.md        Setup, workflow, and enforced conventions
 ```
@@ -90,6 +89,3 @@ aonex-backend/
   package inventory, and current build status.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — environment setup, running tests, and
   the conventions enforced in CI (import boundaries, strict TS).
-- [`docs/runbooks/`](docs/runbooks/) — operational procedures.
-- [`docs/superpowers/`](docs/superpowers/) — design specs and implementation
-  plans for recent features.
