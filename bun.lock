@@ -60,6 +60,7 @@
       "name": "@aonex/worker",
       "version": "0.1.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
         "@aonex/audit": "workspace:*",
         "@aonex/calibration": "workspace:*",
         "@aonex/catalog-event-outbox": "workspace:*",
