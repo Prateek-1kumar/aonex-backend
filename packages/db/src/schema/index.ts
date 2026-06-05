@@ -69,3 +69,6 @@ export * from "./backfill-cursor.js";
 export * from "./staged-products.js";
 
 export * from "./catalog-reviews.js";
+
+// Catalog enrichment Phase 0 — DB-backed archetype attribute schemas (self-extending)
+export * from "./archetype-attribute-specs.js";

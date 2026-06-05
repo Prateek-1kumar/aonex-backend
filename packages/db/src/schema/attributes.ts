@@ -41,6 +41,19 @@ export const attributeDefinitions = pgTable(
     confidenceWeight: numeric("confidence_weight", { precision: 4, scale: 3 })
       .notNull()
       .default("1.000"),
+    // Catalog enrichment — registry metadata so attribute_definitions drives the
+    // dynamic enrichment schema and can grow itself via governed LLM-discovered attrs.
+    label: text("label"),
+    description: text("description"),
+    /** descriptive | occasion | care | marketing | seo | aeo | category */
+    enrichmentGroup: varchar("enrichment_group", { length: 32 }),
+    /** true = applies to all archetypes (marketing/seo/aeo/category groups) */
+    appliesUniversally: boolean("applies_universally").notNull().default(false),
+    /** seed | llm_proposed */
+    origin: varchar("origin", { length: 20 }).notNull().default("seed"),
+    /** active | candidate | deprecated */
+    status: varchar("status", { length: 20 }).notNull().default("active"),
+    proposedFromProductId: uuid("proposed_from_product_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
