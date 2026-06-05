@@ -5,8 +5,15 @@
 //   1) the DB seed of attribute_definitions (packages/db seed reads these), and
 //   2) resolveActiveSchema(), which joins archetype specs to these typed defs.
 //
+// Each universal attr also carries a default scoring tier+weight; universalSpecs()
+// projects them into AttributeSpec[] so every archetype SCORES on the full content
+// schema (descriptions/SEO/marketing/AEO/category), not just its descriptive attrs.
+// That is what lets enrichment actually move the completeness score.
+//
 // PROTECTED commerce facts (price/currency/inventory/identifiers) are intentionally
 // ABSENT here — enrichment must never propose them. PROTECTED_KEYS is the hard guard.
+
+import type { AttributeSpec, AttributeTier } from "../types.js";
 
 export type EnrichmentGroup =
   | "core" // existing fields the enricher may improve (title, description, images)
@@ -30,6 +37,10 @@ export interface AttrDef {
   enumValues?: string[];
   unitType?: string;
   description?: string;
+  /** Default scoring tier when this universal attr is merged into an archetype. */
+  tier?: AttributeTier;
+  /** Default scoring weight within that tier. */
+  weight?: number;
 }
 
 /** Commerce facts enrichment must never write — defense in depth on top of omission. */
@@ -39,45 +50,58 @@ export const PROTECTED_KEYS: ReadonlySet<string> = new Set([
   "identifier", "gtin", "mpn", "sku", "upc", "asin",
 ]);
 
-// ── Universal groups (apply to all products) ────────────────────────────────
+// ── Universal groups (apply to all products, and now all SCORED) ─────────────
 const UNIVERSAL: AttrDef[] = [
   // core (improve existing)
-  { key: "title", label: "Title", group: "core", dataType: "string", universal: true },
-  { key: "brand", label: "Brand", group: "core", dataType: "string", universal: true, description: "Enrichable as normalization only — flagged: feeds identity resolution" },
-  { key: "description_long", label: "Description", group: "core", dataType: "string", universal: true },
-  { key: "images", label: "Images", group: "core", dataType: "array", universal: true },
+  { key: "title", label: "Title", group: "core", dataType: "string", universal: true, tier: "required", weight: 0.8 },
+  { key: "brand", label: "Brand", group: "core", dataType: "string", universal: true, tier: "required", weight: 0.6, description: "Enrichable as normalization only — flagged: feeds identity resolution" },
+  { key: "description_short", label: "Short Description", group: "core", dataType: "string", universal: true, tier: "recommended", weight: 0.5, description: "Punchy summary, <= ~320 chars" },
+  { key: "description_long", label: "Description", group: "core", dataType: "string", universal: true, tier: "recommended", weight: 0.7, description: "Rich body copy, ~600-1200 chars" },
+  { key: "images", label: "Images", group: "core", dataType: "array", universal: true, tier: "recommended", weight: 0.5 },
 
   // marketing
-  { key: "key_features", label: "Key Features", group: "marketing", dataType: "array", universal: true },
-  { key: "benefits", label: "Benefits", group: "marketing", dataType: "array", universal: true, description: "Array of {label, text} benefit statements" },
-  { key: "bullet_points", label: "Bullet Points", group: "marketing", dataType: "array", universal: true },
-  { key: "highlights", label: "Highlights", group: "marketing", dataType: "array", universal: true },
+  { key: "key_features", label: "Key Features", group: "marketing", dataType: "array", universal: true, tier: "recommended", weight: 0.6, description: ">= 4 concise feature bullets" },
+  { key: "benefits", label: "Benefits", group: "marketing", dataType: "array", universal: true, tier: "recommended", weight: 0.4, description: "Array of {label, text} benefit statements" },
+  { key: "bullet_points", label: "Bullet Points", group: "marketing", dataType: "array", universal: true, tier: "recommended", weight: 0.4 },
+  { key: "highlights", label: "Highlights", group: "marketing", dataType: "array", universal: true, tier: "optional", weight: 0.3 },
+  { key: "target_audience", label: "Target Audience", group: "marketing", dataType: "array", universal: true, tier: "optional", weight: 0.3, description: "Who the product is for" },
+  { key: "warranty", label: "Warranty", group: "marketing", dataType: "string", universal: true, tier: "optional", weight: 0.2 },
+
+  // care & usage (instructional)
+  { key: "key_instructions", label: "Key Instructions", group: "care", dataType: "array", universal: true, tier: "recommended", weight: 0.4, description: "Key setup / how-to steps" },
+  { key: "usage_instructions", label: "Usage Instructions", group: "care", dataType: "array", universal: true, tier: "optional", weight: 0.3 },
+  { key: "care_instructions", label: "Care Instructions", group: "care", dataType: "array", universal: true, tier: "optional", weight: 0.3 },
+  { key: "whats_in_the_box", label: "What's in the Box", group: "care", dataType: "array", universal: true, tier: "optional", weight: 0.3 },
 
   // seo
-  { key: "meta_title", label: "Meta Title", group: "seo", dataType: "string", universal: true, description: "<= 60 chars" },
-  { key: "meta_description", label: "Meta Description", group: "seo", dataType: "string", universal: true, description: "<= 160 chars" },
-  { key: "meta_keywords", label: "Meta Keywords", group: "seo", dataType: "array", universal: true },
-  { key: "seo_keywords", label: "SEO Keywords", group: "seo", dataType: "array", universal: true },
-  { key: "tags", label: "Tags", group: "seo", dataType: "array", universal: true },
-  { key: "url_slug", label: "URL Slug", group: "seo", dataType: "string", universal: true },
+  { key: "meta_title", label: "Meta Title", group: "seo", dataType: "string", universal: true, tier: "recommended", weight: 0.5, description: "<= 60 chars" },
+  { key: "meta_description", label: "Meta Description", group: "seo", dataType: "string", universal: true, tier: "recommended", weight: 0.6, description: "<= 160 chars" },
+  { key: "seo_keywords", label: "SEO Keywords", group: "seo", dataType: "array", universal: true, tier: "recommended", weight: 0.5 },
+  { key: "tags", label: "Tags", group: "seo", dataType: "array", universal: true, tier: "recommended", weight: 0.4 },
+  { key: "meta_keywords", label: "Meta Keywords", group: "seo", dataType: "array", universal: true, tier: "optional", weight: 0.3 },
+  { key: "search_keywords", label: "Search Keywords", group: "seo", dataType: "array", universal: true, tier: "optional", weight: 0.2, description: "Backend search synonyms" },
+  { key: "url_slug", label: "URL Slug", group: "seo", dataType: "string", universal: true, tier: "optional", weight: 0.2 },
 
   // aeo / geo (Answer/Generative Engine Optimization)
-  { key: "faq", label: "FAQ", group: "aeo", dataType: "array", universal: true, description: "Array of {q, a}" },
-  { key: "pros_cons", label: "Pros & Cons", group: "aeo", dataType: "object", universal: true, description: "{pros[], cons[]}" },
-  { key: "use_cases", label: "Use Cases", group: "aeo", dataType: "array", universal: true },
-  { key: "comparison", label: "Comparison", group: "aeo", dataType: "string", universal: true, description: "Category positioning; no fabricated competitor claims" },
-  { key: "aeo_summary", label: "AEO Summary", group: "aeo", dataType: "string", universal: true },
+  { key: "faq", label: "FAQ", group: "aeo", dataType: "array", universal: true, tier: "optional", weight: 0.4, description: "Array of {q, a}, >= 3" },
+  { key: "pros_cons", label: "Pros & Cons", group: "aeo", dataType: "object", universal: true, tier: "optional", weight: 0.3, description: "{pros[], cons[]}" },
+  { key: "use_cases", label: "Use Cases", group: "aeo", dataType: "array", universal: true, tier: "optional", weight: 0.3 },
+  { key: "comparison", label: "Comparison", group: "aeo", dataType: "string", universal: true, tier: "optional", weight: 0.2, description: "Category positioning; no fabricated competitor claims" },
+  { key: "aeo_summary", label: "AEO Summary", group: "aeo", dataType: "string", universal: true, tier: "optional", weight: 0.3 },
 
   // categories (deep breadcrumb + per-marketplace)
-  { key: "category_path", label: "Category Path", group: "category", dataType: "array", universal: true, description: "Ordered deep breadcrumb, e.g. Home/Clothing/Men Clothing/Jeans/Brand" },
-  { key: "google_category", label: "Google Category", group: "category", dataType: "string", universal: true },
-  { key: "amazon_category", label: "Amazon Category", group: "category", dataType: "string", universal: true },
-  { key: "walmart_category", label: "Walmart Category", group: "category", dataType: "string", universal: true },
-  { key: "ebay_category", label: "eBay Category", group: "category", dataType: "string", universal: true },
-  { key: "etsy_category", label: "Etsy Category", group: "category", dataType: "string", universal: true },
+  { key: "category_path", label: "Category Path", group: "category", dataType: "array", universal: true, tier: "required", weight: 0.9, description: "Ordered deep breadcrumb (4-6 levels), e.g. Home/Men/Clothing/Bottomwear/Jeans" },
+  { key: "google_category", label: "Google Category", group: "category", dataType: "string", universal: true, tier: "recommended", weight: 0.4, description: "Google Product Taxonomy string" },
+  { key: "amazon_category", label: "Amazon Category", group: "category", dataType: "string", universal: true, tier: "optional", weight: 0.3 },
+  { key: "department", label: "Department", group: "category", dataType: "string", universal: true, tier: "optional", weight: 0.2, description: "Top-level department node" },
+  { key: "audience_gender", label: "Audience / Gender", group: "category", dataType: "string", universal: true, tier: "optional", weight: 0.2 },
+  { key: "walmart_category", label: "Walmart Category", group: "category", dataType: "string", universal: true, tier: "optional", weight: 0.2 },
+  { key: "ebay_category", label: "eBay Category", group: "category", dataType: "string", universal: true, tier: "optional", weight: 0.2 },
+  { key: "etsy_category", label: "Etsy Category", group: "category", dataType: "string", universal: true, tier: "optional", weight: 0.2 },
 ];
 
 // ── Archetype-scoped descriptive attributes ─────────────────────────────────
+// (Instructional attrs — care/usage/what's-in-the-box — are now UNIVERSAL above.)
 const APPAREL: AttrDef[] = [
   { key: "product_type", label: "Product Type", group: "descriptive", dataType: "string" },
   { key: "fit", label: "Fit", group: "descriptive", dataType: "string", enumValues: ["Slim", "Regular", "Relaxed", "Skinny", "Loose", "Tailored", "Oversized"] },
@@ -90,7 +114,6 @@ const APPAREL: AttrDef[] = [
   { key: "sleeve_length", label: "Sleeve Length", group: "descriptive", dataType: "string", enumValues: ["Sleeveless", "Short Sleeve", "Half Sleeve", "Three-Quarter", "Full Sleeve"] },
   { key: "neckline", label: "Neckline", group: "descriptive", dataType: "string" },
   { key: "occasion", label: "Occasion", group: "occasion", dataType: "array", enumValues: ["Casual", "Formal", "Party", "Festive", "Sports", "Daily Wear", "Outdoor", "Work"] },
-  { key: "care_instructions", label: "Care Instructions", group: "care", dataType: "array" },
 ];
 
 const FURNITURE: AttrDef[] = [
@@ -101,9 +124,6 @@ const FURNITURE: AttrDef[] = [
   { key: "weight_capacity", label: "Weight Capacity", group: "descriptive", dataType: "number", unitType: "mass" },
   { key: "frame_material", label: "Frame Material", group: "descriptive", dataType: "string" },
   { key: "assembly_required", label: "Assembly Required", group: "descriptive", dataType: "boolean" },
-  { key: "care_instructions", label: "Care Instructions", group: "care", dataType: "array" },
-  { key: "usage_instructions", label: "Usage Instructions", group: "care", dataType: "array" },
-  { key: "whats_in_the_box", label: "What's in the Box", group: "care", dataType: "array" },
 ];
 
 const BEAUTY: AttrDef[] = [
@@ -114,7 +134,6 @@ const BEAUTY: AttrDef[] = [
   { key: "finish", label: "Finish", group: "descriptive", dataType: "string", enumValues: ["Matte", "Dewy", "Satin", "Glossy", "Natural"] },
   { key: "key_ingredients", label: "Key Ingredients", group: "descriptive", dataType: "array" },
   { key: "fragrance", label: "Fragrance", group: "descriptive", dataType: "string" },
-  { key: "usage_instructions", label: "How to Use", group: "care", dataType: "array" },
 ];
 
 const SMARTPHONE: AttrDef[] = [
@@ -156,6 +175,16 @@ export function allAttrDefs(): AttrDef[] {
 }
 
 export const UNIVERSAL_ATTRS: readonly AttrDef[] = UNIVERSAL;
+
+/** Universal attributes projected as scoring specs (protected facts excluded).
+ *  Merged into every archetype so generated content drives the completeness score. */
+export function universalSpecs(): AttributeSpec[] {
+  return UNIVERSAL.filter((d) => !PROTECTED_KEYS.has(d.key)).map((d) => ({
+    field: d.key,
+    tier: d.tier ?? "recommended",
+    weight: d.weight ?? 0.4,
+  }));
+}
 
 /** Lookup a typed def by key across universal + all archetype descriptive sets. */
 export function lookupAttrDef(key: string): AttrDef | undefined {

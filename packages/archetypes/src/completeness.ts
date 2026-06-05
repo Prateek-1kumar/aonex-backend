@@ -1,5 +1,16 @@
 // packages/archetypes/src/completeness.ts
-import type { Archetype, AttributeTier, CompletenessResult } from "./types.js";
+import type { Archetype, AttributeSpec, AttributeTier, CompletenessResult } from "./types.js";
+import { PROTECTED_KEYS } from "./seed/attribute-catalog.js";
+
+/** Protected commerce facts (price/currency/identifier) are owned elsewhere and
+ *  enrichment is forbidden to fill them — so the CONTENT completeness score
+ *  discounts them, letting enrichment drive the number up. Only scoreCompletenessPercent
+ *  (catalog ring + enrich delta) applies this; the admission gate (scoreCompleteness)
+ *  still treats commerce facts at full weight. */
+const PROTECTED_WEIGHT_FACTOR = 0.2;
+function scoredWeight(a: AttributeSpec): number {
+  return PROTECTED_KEYS.has(a.field) ? a.weight * PROTECTED_WEIGHT_FACTOR : a.weight;
+}
 
 export interface ScoreOptions { threshold: number; identifierExists: boolean; }
 
@@ -56,10 +67,10 @@ export function scoreCompletenessPercent(
   let weightedTotal = 0;
   for (const tier of tiers) {
     const attrs = arch.attributes.filter((a) => a.tier === tier);
-    const totalWeight = attrs.reduce((s, a) => s + a.weight, 0);
+    const totalWeight = attrs.reduce((s, a) => s + scoredWeight(a), 0);
     const presentWeight = attrs
       .filter((a) => present.has(a.field))
-      .reduce((s, a) => s + a.weight, 0);
+      .reduce((s, a) => s + scoredWeight(a), 0);
     const coverage = totalWeight === 0 ? 0 : presentWeight / totalWeight;
     byTier[tier] = {
       presentWeight: Math.round(presentWeight * 1000) / 1000,

@@ -71,6 +71,17 @@ test("proposal: fills apparel fields, flags bad enum, drops protected, scores up
   expect(candKeys.has("base_price")).toBe(false); // protected candidate dropped
 });
 
+test("shallow category_path is flagged low-quality (needs a deep breadcrumb)", async () => {
+  const content = JSON.stringify({
+    fields: { category_path: { value: ["Jeans"], confidence: 0.8 } },
+    candidates: [],
+  });
+  const proposal = await generateEnrichmentProposal(jeans, { provider: fakeProvider(content), model: "x" });
+  const cat = proposal.fields.find((f) => f.attributeCode === "category_path");
+  expect(cat?.valid).toBe(false);
+  expect(cat?.validationError).toContain("too shallow");
+});
+
 test("malformed JSON surfaces EnrichmentParseError", async () => {
   let caught: unknown;
   try {
