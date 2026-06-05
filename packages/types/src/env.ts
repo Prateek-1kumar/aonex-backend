@@ -58,6 +58,12 @@ export const EnvSchema = z.object({
   GROQ_MODEL_CLASSIFIER: z.string().min(1).optional(),
   GROQ_MODEL_VISION: z.string().min(1).optional(),
 
+  // Catalog enrichment — NVIDIA-hosted DeepSeek-V4 (OpenAI-compatible /chat/completions).
+  // Presence of NVIDIA_API_KEY enables the "Push to Enrich" path; pluggable per IModelProvider.
+  NVIDIA_API_KEY: z.string().min(1).optional(),
+  NVIDIA_BASE_URL: z.string().url().default("https://integrate.api.nvidia.com/v1"),
+  NVIDIA_MODEL_ENRICH: z.string().min(1).default("deepseek-ai/deepseek-v4-flash"),
+
   // Phase 6 Layer C — Playwright pool size for browser fallback.
   PLAYWRIGHT_POOL_SIZE: z.coerce.number().int().positive().optional(),
 

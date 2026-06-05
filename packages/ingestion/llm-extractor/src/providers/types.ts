@@ -21,6 +21,9 @@ export interface ModelCompletionResult {
   usage: ModelUsage;
   model: string;
   finishReason: string;
+  /** Reasoning/thinking trace, when the provider/model emits one (e.g. DeepSeek
+   *  `reasoning_content`). Used by enrichment to store the per-field "why". */
+  reasoning?: string;
 }
 
 /**
