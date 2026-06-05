@@ -69,6 +69,7 @@ export interface ApplyEnrichmentResult {
   applied: string[];
   registered: string[];
   score: number;
+  contentScore?: number;
 }
 
 interface StoredObservation {
@@ -223,6 +224,16 @@ export async function applyEnrichmentProposal(
     await projectSync({ db, productId: input.productId, affectedAttributes: affected, rulesVersion: 1 });
   }
 
+  // Persist the LLM content-quality score (folded into the proposal's scoreAfter).
+  const scoreAfter = (prop.scoreAfter ?? {}) as { contentQuality?: number };
+  const contentScore = typeof scoreAfter.contentQuality === "number" ? scoreAfter.contentQuality : null;
+  if (contentScore != null) {
+    await db
+      .update(schema.catalogProducts)
+      .set({ contentQualityScore: contentScore.toFixed(2) })
+      .where(eq(schema.catalogProducts.productId, input.productId));
+  }
+
   const after = await db
     .select({ score: schema.catalogProducts.completenessScore })
     .from(schema.catalogProducts)
@@ -234,5 +245,84 @@ export async function applyEnrichmentProposal(
     applied: accepted.map((a) => a.code),
     registered,
     score: Number(after[0]?.score ?? 0),
+    ...(contentScore != null ? { contentScore } : {}),
   };
+}
+
+export interface RevertEnrichmentInput {
+  tenantId: string;
+  merchantId: string;
+  productId: string;
+  proposalId: string;
+}
+
+/** Undo an applied enrichment: strip its enrichment:llm observations, reconcile,
+ *  and clear the content-quality score. The catalog falls back to source values. */
+export async function revertEnrichmentProposal(
+  db: DrizzleClient,
+  input: RevertEnrichmentInput
+): Promise<{ productId: string; score: number }> {
+  const propRows = await db
+    .select()
+    .from(schema.enrichmentProposals)
+    .where(
+      and(
+        eq(schema.enrichmentProposals.proposalId, input.proposalId),
+        eq(schema.enrichmentProposals.tenantId, input.tenantId)
+      )
+    )
+    .limit(1);
+  const prop = propRows[0];
+  if (!prop || prop.merchantId !== input.merchantId || prop.productId !== input.productId) {
+    throw new EnrichmentApplyError("Proposal not found", 404, "NOT_FOUND");
+  }
+  if (prop.status !== "applied") {
+    throw new EnrichmentApplyError(`Proposal is '${prop.status}', not applied`, 409, "INVALID_STATE");
+  }
+
+  const affected: string[] = [];
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ values: schema.catalogProducts.values })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, input.productId))
+      .limit(1);
+    const values = (rows[0]?.values ?? {}) as ValuesJson;
+
+    for (const [attr, byChannel] of Object.entries(values)) {
+      for (const byLocale of Object.values(byChannel)) {
+        for (const [loc, obs] of Object.entries(byLocale)) {
+          if (!Array.isArray(obs)) continue;
+          const kept = obs.filter(
+            (o) => !(o.source === ENRICHMENT_SOURCE && o.source_record_id === prop.proposalId)
+          );
+          if (kept.length !== obs.length) {
+            byLocale[loc] = kept;
+            if (!affected.includes(attr)) affected.push(attr);
+          }
+        }
+      }
+    }
+
+    await tx
+      .update(schema.catalogProducts)
+      .set({ values, contentQualityScore: null, updatedAt: now })
+      .where(eq(schema.catalogProducts.productId, input.productId));
+    await tx
+      .update(schema.enrichmentProposals)
+      .set({ status: "rejected", updatedAt: now })
+      .where(eq(schema.enrichmentProposals.proposalId, input.proposalId));
+  });
+
+  if (affected.length > 0) {
+    await projectSync({ db, productId: input.productId, affectedAttributes: affected, rulesVersion: 1 });
+  }
+
+  const after = await db
+    .select({ score: schema.catalogProducts.completenessScore })
+    .from(schema.catalogProducts)
+    .where(eq(schema.catalogProducts.productId, input.productId))
+    .limit(1);
+  return { productId: input.productId, score: Number(after[0]?.score ?? 0) };
 }

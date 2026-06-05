@@ -20,6 +20,8 @@ export interface EnrichDeps {
   model: string;
   maxTokens?: number;
   temperature?: number;
+  /** Request strict JSON (response_format) — on by default; OpenAI/Groq support it. */
+  jsonMode?: boolean;
   /** DB-hydrated, self-extended archetype specs override (Phase 1+). */
   resolveOptions?: ResolveOptions;
 }
@@ -41,7 +43,7 @@ export async function generateEnrichmentProposal(
     messages,
     maxTokens: deps.maxTokens ?? 8000,
     temperature: deps.temperature ?? 0.4,
-    jsonMode: false,
+    jsonMode: deps.jsonMode ?? true,
   });
 
   const parsed = parseEnrichmentResponse(result.content);

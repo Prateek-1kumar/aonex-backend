@@ -46,6 +46,8 @@ export interface CandidateAttribute {
 export interface ScoreSnapshot {
   /** Archetype-weighted completeness, 0..100. */
   completeness: number;
+  /** LLM "AI Content Score" 0..100 (coherence/spelling/consistency/relevance). Only on scoreAfter. */
+  contentQuality?: number;
 }
 
 export interface EnrichmentProposal {
