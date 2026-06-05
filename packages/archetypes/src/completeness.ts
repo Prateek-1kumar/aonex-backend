@@ -1,5 +1,5 @@
 // packages/archetypes/src/completeness.ts
-import type { Archetype, CompletenessResult } from "./types.js";
+import type { Archetype, AttributeTier, CompletenessResult } from "./types.js";
 
 export interface ScoreOptions { threshold: number; identifierExists: boolean; }
 

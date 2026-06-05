@@ -106,6 +106,15 @@ export { projectSync } from "./reconciler/sync.js";
 export type { ProjectSyncInput, ProjectSyncResult } from "./reconciler/sync.js";
 
 // ---------------------------------------------------------------------------
+// Catalog enrichment — server-authoritative completeness score
+// ---------------------------------------------------------------------------
+export {
+  computeCompletenessScore,
+  presentAttributes,
+  type ScoreFacts
+} from "./completeness-score.js";
+
+// ---------------------------------------------------------------------------
 // Reconciler — async debounced path (BullMQ worker)
 // ---------------------------------------------------------------------------
 export {
