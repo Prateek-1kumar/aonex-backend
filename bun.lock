@@ -129,6 +129,16 @@
         "ioredis": "^5.4.2",
       },
     },
+    "packages/catalog/enrichment": {
+      "name": "@aonex/catalog-enrichment",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/archetypes": "workspace:*",
+        "@aonex/ingestion-llm-extractor": "workspace:*",
+        "@aonex/types": "workspace:*",
+        "zod": "^3.24.1",
+      },
+    },
     "packages/catalog/event-outbox": {
       "name": "@aonex/catalog-event-outbox",
       "version": "0.0.0",
@@ -412,6 +422,8 @@
     "@aonex/audit": ["@aonex/audit@workspace:packages/audit"],
 
     "@aonex/calibration": ["@aonex/calibration@workspace:packages/calibration"],
+
+    "@aonex/catalog-enrichment": ["@aonex/catalog-enrichment@workspace:packages/catalog/enrichment"],
 
     "@aonex/catalog-event-outbox": ["@aonex/catalog-event-outbox@workspace:packages/catalog/event-outbox"],
 

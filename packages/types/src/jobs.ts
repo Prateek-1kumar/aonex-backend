@@ -22,7 +22,9 @@ export const QUEUE = {
    *  INGESTION_SPINE_ENABLED (see link-extract.processor); it has no queue of its own. */
   LINK_EXTRACT: "ingestion.link_extract",
   /** Audit emitter fallback queue (HLD §23: must not drop) */
-  AUDIT_FALLBACK: "audit.fallback"
+  AUDIT_FALLBACK: "audit.fallback",
+  /** Catalog enrichment — "Push to Enrich" LLM job (slow; low concurrency) */
+  PRODUCT_ENRICH: "catalog.product_enrich"
 } as const;
 
 export type QueueName = (typeof QUEUE)[keyof typeof QUEUE];
@@ -36,7 +38,8 @@ export const JOB_KIND = {
   SWEEP_REFRESH_FAILING: "sweep-refresh-failing",
   EXTRACT: "extract",
   CSV_PARSE: "csv-parse",
-  LINK_EXTRACT: "link-extract"
+  LINK_EXTRACT: "link-extract",
+  PRODUCT_ENRICH: "product-enrich"
 } as const;
 
 export type JobKind = (typeof JOB_KIND)[keyof typeof JOB_KIND];
