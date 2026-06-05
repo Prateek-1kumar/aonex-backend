@@ -17,8 +17,9 @@ import { makeDrainProcessor } from "./processors/drain.processor.js";
 import { makeTriggerSyncProcessor } from "./processors/trigger-sync.processor.js";
 import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js";
 import { makeCsvParseProcessor } from "./processors/csv-parse.processor.js";
+import { makeEnrichProcessor } from "./processors/enrich.processor.js";
 import { ReconcilerQueueProvider } from "./services/reconciler-queue-provider.js";
-import { createModelProvider, LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
+import { createModelProvider, LLMProductExtractor, NvidiaProvider } from "@aonex/ingestion-llm-extractor";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
 import {
@@ -156,7 +157,27 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     { connection: redis, concurrency: 3 },
   );
 
-  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), csvParseWorker, cronWorker];
+  // Catalog enrichment worker — NVIDIA-hosted DeepSeek-V4. Low concurrency: the
+  // model is slow (reasoning mode). Disabled (no-op) when NVIDIA_API_KEY is unset.
+  const nvidiaApiKey = process.env.NVIDIA_API_KEY;
+  let enrichWorker: Worker | undefined;
+  if (nvidiaApiKey) {
+    const enrichProvider = new NvidiaProvider({
+      apiKey: nvidiaApiKey,
+      baseUrl: env.NVIDIA_BASE_URL,
+      thinking: true,
+      reasoningEffort: "medium",
+    });
+    enrichWorker = new Worker(
+      QUEUE.PRODUCT_ENRICH,
+      makeEnrichProcessor({ db: db.client, provider: enrichProvider, model: env.NVIDIA_MODEL_ENRICH }),
+      { connection: redis, concurrency: 2 },
+    );
+  } else {
+    logger.warn("NVIDIA_API_KEY not set — enrichment worker disabled");
+  }
+
+  const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), csvParseWorker, ...(enrichWorker ? [enrichWorker] : []), cronWorker];
   for (const w of workers) {
     w.on("completed", (job) => logger.info({ jobId: job.id, queue: w.name }, "job.completed"));
     w.on("failed", (job, err) =>
@@ -199,6 +220,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         triggerWorker.close(true),
         cronWorker.close(true),
         csvParseWorker.close(true),
+        ...(enrichWorker ? [enrichWorker.close(true)] : []),
         ...(linkExtractWorker ? [linkExtractWorker.close(true)] : []),
         ...reconcilerHandles.map((h) => h.worker.close(true)),
         ...(outboxHandle ? [outboxHandle.stop()] : [])

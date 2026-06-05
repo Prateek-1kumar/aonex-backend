@@ -10,7 +10,7 @@
 // attributes (origin='llm_proposed') are left untouched — they conflict on a
 // different key only if a human later promotes the same canonical_key.
 
-import { sql } from "drizzle-orm";
+import { sql, and, eq, isNull } from "drizzle-orm";
 import { createDb, schema } from "@aonex/db";
 import { allAttrDefs, listArchetypes } from "@aonex/archetypes";
 
@@ -84,6 +84,35 @@ try {
   console.log(
     `Upserted ${specRows.length} archetype_attribute_specs across ${archetypes.length} archetypes`
   );
+
+  // 3) source_priority — make curator-grade enrichment WIN over automated sources.
+  //    priority 0 beats all seeded source feeds (priority >= 1); pickWinner uses
+  //    lower-number-wins. Protected facts are never enriched, so a global rule is safe.
+  const existingRule = await client
+    .select({ ruleId: schema.sourcePriority.ruleId })
+    .from(schema.sourcePriority)
+    .where(
+      and(
+        isNull(schema.sourcePriority.tenantId),
+        eq(schema.sourcePriority.sourceGlob, "enrichment:*"),
+        isNull(schema.sourcePriority.effectiveTo)
+      )!
+    )
+    .limit(1);
+  if (existingRule.length === 0) {
+    await client.insert(schema.sourcePriority).values({
+      tenantId: null,
+      attributeCode: null,
+      sourceGlob: "enrichment:*",
+      channelScope: null,
+      priority: 0,
+      rulesVersion: 1,
+      actor: "seed",
+    });
+    console.log("Seeded source_priority rule: 'enrichment:*' -> priority 0 (curator-grade)");
+  } else {
+    console.log("source_priority 'enrichment:*' rule already present; skipping");
+  }
 } catch (err) {
   console.error("Failed to seed enrichment catalogue:", err);
   process.exit(2);

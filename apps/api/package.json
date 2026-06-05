@@ -13,6 +13,7 @@
     "start": "bun --env-file=../../.env run src/index.ts"
   },
   "dependencies": {
+    "@aonex/archetypes": "workspace:*",
     "@aonex/audit": "workspace:*",
     "@aonex/catalog-service": "workspace:*",
     "@aonex/connector-gateway": "workspace:*",

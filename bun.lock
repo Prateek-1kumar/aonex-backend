@@ -26,6 +26,7 @@
       "name": "@aonex/api",
       "version": "0.1.0",
       "dependencies": {
+        "@aonex/archetypes": "workspace:*",
         "@aonex/audit": "workspace:*",
         "@aonex/catalog-service": "workspace:*",
         "@aonex/connector-gateway": "workspace:*",
@@ -63,6 +64,7 @@
         "@aonex/archetypes": "workspace:*",
         "@aonex/audit": "workspace:*",
         "@aonex/calibration": "workspace:*",
+        "@aonex/catalog-enrichment": "workspace:*",
         "@aonex/catalog-event-outbox": "workspace:*",
         "@aonex/catalog-service": "workspace:*",
         "@aonex/catalog-source-adapters": "workspace:*",
