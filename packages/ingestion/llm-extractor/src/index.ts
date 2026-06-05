@@ -5,6 +5,7 @@ export { buildExtractionPrompt } from "./prompt-builder.js";
 export { parseLLMResponse, convertToExtractedFacts } from "./response-parser.js";
 export type { IModelProvider, ChatMessage, ModelUsage, ModelCompletionResult } from "./providers/types.js";
 export { OpenAIProvider, type OpenAIProviderConfig } from "./providers/openai.js";
+export { NvidiaProvider, type NvidiaProviderConfig } from "./providers/nvidia.js";
 export {
   type LLMExtractionOptions,
   type LLMExtractionResult,
