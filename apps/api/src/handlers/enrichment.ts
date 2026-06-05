@@ -9,7 +9,7 @@
 
 import type { Context } from "hono";
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import { MerchantId, TenantId, QUEUE, JOB_KIND } from "@aonex/types";
 import type { CatalogRouteDeps } from "../routes/catalog.js";
@@ -149,4 +149,102 @@ export async function applyEnrichment(c: Context, deps: CatalogRouteDeps): Promi
     }
     throw err;
   }
+}
+
+const BULK_MAX = 50;
+
+/** POST /catalog/enrichment/bulk — enqueue enrichment for up to BULK_MAX products. */
+export async function bulkEnrich(c: Context, deps: CatalogRouteDeps): Promise<Response> {
+  const { tenantId, merchantId } = ids(c);
+  const requestId = (c.get("requestId" as never) as string) ?? randomUUID();
+  const enrichQueue = deps.queues?.[QUEUE.PRODUCT_ENRICH];
+  if (!enrichQueue) {
+    return c.json({ error: { code: "UNAVAILABLE", message: "Enrichment is not configured" } }, 503);
+  }
+
+  let body: { productIds?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+  const requested = Array.isArray(body.productIds)
+    ? body.productIds.filter((x): x is string => typeof x === "string")
+    : [];
+  if (requested.length === 0) {
+    return c.json({ error: { code: "INVALID_BODY", message: "productIds[] is required" } }, 400);
+  }
+  const productIds = [...new Set(requested)].slice(0, BULK_MAX);
+
+  const owned = await deps.db
+    .select({ id: schema.catalogProducts.productId })
+    .from(schema.catalogProducts)
+    .where(
+      and(
+        inArray(schema.catalogProducts.productId, productIds),
+        eq(schema.catalogProducts.tenantId, tenantId),
+        eq(schema.catalogProducts.merchantId, merchantId)
+      )
+    );
+  const ownedIds = new Set(owned.map((o) => o.id));
+
+  const jobs: { productId: string; proposalId: string; jobId: string }[] = [];
+  for (const productId of productIds) {
+    if (!ownedIds.has(productId)) continue;
+    const proposalId = randomUUID();
+    const jobId = `enrich-${tenantId}-${productId}-${proposalId}`;
+    await deps.db.insert(schema.enrichmentProposals).values({
+      proposalId,
+      tenantId,
+      merchantId,
+      productId,
+      status: "pending",
+      jobId,
+    });
+    await enrichQueue.add(
+      JOB_KIND.PRODUCT_ENRICH,
+      { tenantId, merchantId, productId, proposalId, requestId },
+      { jobId, removeOnComplete: 1000, removeOnFail: 5000 }
+    );
+    jobs.push({ productId, proposalId, jobId });
+  }
+  return c.json({ data: { jobs } }, 202);
+}
+
+/** GET /catalog/enrichment/proposals?status=… — list proposals for the workspace. */
+export async function listProposals(c: Context, deps: CatalogRouteDeps): Promise<Response> {
+  const { tenantId, merchantId } = ids(c);
+  const statusParam = c.req.query("status");
+  const rawLimit = Number(c.req.query("limit"));
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 100;
+
+  const conds = [
+    eq(schema.enrichmentProposals.tenantId, tenantId),
+    eq(schema.enrichmentProposals.merchantId, merchantId),
+  ];
+  if (statusParam) conds.push(eq(schema.enrichmentProposals.status, statusParam));
+
+  const rows = await deps.db
+    .select({
+      proposalId: schema.enrichmentProposals.proposalId,
+      productId: schema.enrichmentProposals.productId,
+      status: schema.enrichmentProposals.status,
+      archetype: schema.enrichmentProposals.archetype,
+      scoreBefore: schema.enrichmentProposals.scoreBefore,
+      scoreAfter: schema.enrichmentProposals.scoreAfter,
+      updatedAt: schema.enrichmentProposals.updatedAt,
+      title: sql<string | null>`gen_title`,
+      fieldCount: sql<number>`coalesce(jsonb_array_length(${schema.enrichmentProposals.fields}), 0)`,
+      candidateCount: sql<number>`coalesce(jsonb_array_length(${schema.enrichmentProposals.candidates}), 0)`,
+    })
+    .from(schema.enrichmentProposals)
+    .leftJoin(
+      schema.catalogProducts,
+      eq(schema.catalogProducts.productId, schema.enrichmentProposals.productId)
+    )
+    .where(and(...conds))
+    .orderBy(desc(schema.enrichmentProposals.updatedAt))
+    .limit(limit);
+
+  return c.json({ data: { proposals: rows } });
 }

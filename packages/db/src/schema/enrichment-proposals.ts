@@ -29,7 +29,9 @@ export const enrichmentProposals = pgTable(
     createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt:     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     resolvedBy:    uuid("resolved_by"),
-    resolvedAt:    timestamp("resolved_at", { withTimezone: true })
+    resolvedAt:    timestamp("resolved_at", { withTimezone: true }),
+    /** Stamped when the user sends the draft to Review Commit (decisions saved). */
+    reviewedAt:    timestamp("reviewed_at", { withTimezone: true })
   },
   (t) => ({
     tenantStatusIdx: index("idx_enrich_prop_tenant_status").on(t.tenantId, t.status, t.createdAt),

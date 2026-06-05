@@ -19,6 +19,8 @@ import {
   getEnrichmentProposal,
   applyEnrichment,
   rejectEnrichment,
+  bulkEnrich,
+  listProposals,
 } from "../handlers/enrichment.js";
 import {
   getProductProvenanceTrace,
@@ -44,6 +46,10 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
   app.get("/products/:id", (c) => getProductById(c, deps));
   app.get("/products/:id/provenance", (c) => getProductProvenance(c, deps));
   app.get("/products/:id/sku", (c) => getProductSku(c, deps));
+
+  // Catalog enrichment — bulk workspace (Drafting Room + Review Commit).
+  app.post("/enrichment/bulk", (c) => bulkEnrich(c, deps));
+  app.get("/enrichment/proposals", (c) => listProposals(c, deps));
 
   // Catalog enrichment ("Push to Enrich") — async start + poll + review-then-apply.
   app.post("/products/:id/enrich", (c) => startEnrichment(c, deps));
