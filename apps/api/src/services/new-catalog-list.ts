@@ -118,6 +118,10 @@ export interface ListCatalogProductRow {
    * Null when the product has no images attribute.
    */
   imageUrl: string | null;
+  /** Server-authoritative completeness score (0..100); null until first computed. */
+  completenessScore: number | null;
+  /** LLM content-quality score (0..100); null until enrichment sets it. */
+  contentQualityScore: number | null;
   /**
    * Small migration signal so frontend can transition gradually.
    * Clients SHOULD check `_meta.schema` before accessing `current_version`
@@ -414,6 +418,8 @@ export async function listCatalogProducts(
       variants: [],
       pricing: pickPricing(pricingByProduct.get(row.productId)),
       imageUrl: extractWinningImageUrl(wv),
+      completenessScore: row.completenessScore != null ? Number(row.completenessScore) : null,
+      contentQualityScore: row.contentQualityScore != null ? Number(row.contentQualityScore) : null,
       _meta: { schema: "new" },
     };
   });
