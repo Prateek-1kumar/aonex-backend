@@ -1,6 +1,6 @@
 // packages/archetypes/src/completeness.ts
 import type { Archetype, AttributeSpec, AttributeTier, CompletenessResult } from "./types.js";
-import { PROTECTED_KEYS } from "./seed/attribute-catalog.js";
+import { PROTECTED_KEYS, universalSpecs } from "./seed/attribute-catalog.js";
 
 /** Protected commerce facts (price/currency/identifier) are owned elsewhere and
  *  enrichment is forbidden to fill them — so the CONTENT completeness score
@@ -10,6 +10,15 @@ import { PROTECTED_KEYS } from "./seed/attribute-catalog.js";
 const PROTECTED_WEIGHT_FACTOR = 0.2;
 function scoredWeight(a: AttributeSpec): number {
   return PROTECTED_KEYS.has(a.field) ? a.weight * PROTECTED_WEIGHT_FACTOR : a.weight;
+}
+
+/** The content-completeness schema: the archetype's own specs UNIONED with the
+ *  universal content/SEO/marketing/AEO/category specs (archetype wins on conflict).
+ *  Kept out of the registry so ingestion gap-fill + the gate stay lean — only the
+ *  catalog/enrich score (scoreCompletenessPercent) measures the full content schema. */
+function scoredSchema(arch: Archetype): AttributeSpec[] {
+  const seen = new Set(arch.attributes.map((s) => s.field));
+  return [...arch.attributes, ...universalSpecs().filter((s) => !seen.has(s.field))];
 }
 
 export interface ScoreOptions { threshold: number; identifierExists: boolean; }
@@ -63,10 +72,11 @@ export function scoreCompletenessPercent(
 ): CompletenessPercent {
   const tiers: AttributeTier[] = ["required", "recommended", "optional"];
   const byTier = {} as Record<AttributeTier, TierCoverage>;
+  const schema = scoredSchema(arch);
   let weightedGot = 0;
   let weightedTotal = 0;
   for (const tier of tiers) {
-    const attrs = arch.attributes.filter((a) => a.tier === tier);
+    const attrs = schema.filter((a) => a.tier === tier);
     const totalWeight = attrs.reduce((s, a) => s + scoredWeight(a), 0);
     const presentWeight = attrs
       .filter((a) => present.has(a.field))
