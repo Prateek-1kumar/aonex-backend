@@ -32,6 +32,7 @@ import {
   type PickWinnerObservation
 } from "./pick-winner.js";
 import { deepEqual, loadActiveRules } from "./_internal.js";
+import { computeCompletenessScore } from "../completeness-score.js";
 
 // ---- Public types ----------------------------------------------------------
 
@@ -141,8 +142,16 @@ export async function projectSync(
       .select({
         productId: schema.catalogProducts.productId,
         tenantId: schema.catalogProducts.tenantId,
+        family: schema.catalogProducts.family,
+        identifiers: schema.catalogProducts.identifiers,
         values: schema.catalogProducts.values,
-        winningValues: schema.catalogProducts.winningValues
+        winningValues: schema.catalogProducts.winningValues,
+        // Commerce facts live outside winning_values — read the generated columns
+        // (migration 0009) cheaply from the same row for the completeness score.
+        genPrice: sql<string | null>`gen_primary_price`,
+        genCurrency: sql<string | null>`gen_primary_currency`,
+        genGtin: sql<string | null>`gen_gtin`,
+        genTitle: sql<string | null>`gen_title`
       })
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, productId))
@@ -245,10 +254,27 @@ export async function projectSync(
     };
     nextWinningValues._meta = meta;
 
+    // Recompute the server-authoritative completeness score from the fresh winners
+    // plus commerce facts. Additive: folded into the same UPDATE, never throws
+    // (computeCompletenessScore falls back to the generic archetype).
+    const identifiers = row.identifiers;
+    const hasIdentifier =
+      row.genGtin != null || (Array.isArray(identifiers) && identifiers.length > 0);
+    const score = computeCompletenessScore({
+      family: row.family ?? null,
+      winningValues: nextWinningValues,
+      hasPrice: row.genPrice != null,
+      hasCurrency: row.genCurrency != null,
+      hasIdentifier,
+      hasTitle: row.genTitle != null || "title" in nextWinningValues
+    });
+
     await tx
       .update(schema.catalogProducts)
       .set({
         winningValues: nextWinningValues,
+        completenessScore: score.percent.toFixed(2),
+        scoreBreakdown: score,
         updatedAt: computedAt
       })
       .where(eq(schema.catalogProducts.productId, productId));
