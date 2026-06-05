@@ -26,6 +26,13 @@ function isNumeric(v: unknown): boolean {
   return typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v));
 }
 
+/** Count breadcrumb levels in a category_path (array or delimited string). */
+function categoryDepth(value: unknown): number {
+  if (Array.isArray(value)) return value.filter((s) => typeof s === "string" && s.trim() !== "").length;
+  if (typeof value === "string") return value.split(/[/>›»|]/).map((s) => s.trim()).filter(Boolean).length;
+  return 0;
+}
+
 function validateValue(field: ResolvedField, value: unknown): { valid: boolean; error?: string } {
   switch (field.dataType) {
     case "array":
@@ -105,7 +112,14 @@ export function buildProposal(args: BuildProposalArgs): EnrichmentProposal {
     if (!pv || pv.value === undefined || pv.value === null) continue;
 
     const before = snapshot.current[field.key] ?? null;
-    const v = validateValue(field, pv.value);
+    let v = validateValue(field, pv.value);
+    // Quality nudge: a deep, canonical breadcrumb is the goal — flag shallow paths.
+    if (field.key === "category_path" && v.valid && categoryDepth(pv.value) < 3) {
+      v = {
+        valid: false,
+        error: "category_path too shallow — provide a 4-6 level breadcrumb (e.g. Home > Men > Clothing > Bottomwear > Jeans)",
+      };
+    }
     const pf: ProposalField = {
       attributeCode: field.key,
       group: field.group,

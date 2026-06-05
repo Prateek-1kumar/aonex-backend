@@ -31,6 +31,8 @@ export interface ResolvedField {
   weight: number;
   enumValues?: string[];
   unitType?: string;
+  /** Per-field guidance (length limits, format hints) surfaced to the LLM prompt. */
+  description?: string;
 }
 
 export interface ActiveSchema {
@@ -88,6 +90,7 @@ export function resolveActiveSchema(
     };
     if (def.enumValues) field.enumValues = def.enumValues;
     if (def.unitType) field.unitType = def.unitType;
+    if (def.description) field.description = def.description;
     fields.push(field);
   }
 
