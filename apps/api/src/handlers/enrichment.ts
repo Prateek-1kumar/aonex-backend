@@ -9,7 +9,7 @@
 
 import type { Context } from "hono";
 import { randomUUID } from "node:crypto";
-import { and, eq, desc, inArray, sql } from "drizzle-orm";
+import { and, eq, desc, inArray, isNull, isNotNull, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import { MerchantId, TenantId, QUEUE, JOB_KIND } from "@aonex/types";
 import type { CatalogRouteDeps } from "../routes/catalog.js";
@@ -218,11 +218,14 @@ export async function listProposals(c: Context, deps: CatalogRouteDeps): Promise
   const rawLimit = Number(c.req.query("limit"));
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 100;
 
+  const reviewedParam = c.req.query("reviewed");
   const conds = [
     eq(schema.enrichmentProposals.tenantId, tenantId),
     eq(schema.enrichmentProposals.merchantId, merchantId),
   ];
   if (statusParam) conds.push(eq(schema.enrichmentProposals.status, statusParam));
+  if (reviewedParam === "true") conds.push(isNotNull(schema.enrichmentProposals.reviewedAt));
+  else if (reviewedParam === "false") conds.push(isNull(schema.enrichmentProposals.reviewedAt));
 
   const rows = await deps.db
     .select({
@@ -233,6 +236,7 @@ export async function listProposals(c: Context, deps: CatalogRouteDeps): Promise
       scoreBefore: schema.enrichmentProposals.scoreBefore,
       scoreAfter: schema.enrichmentProposals.scoreAfter,
       updatedAt: schema.enrichmentProposals.updatedAt,
+      reviewedAt: schema.enrichmentProposals.reviewedAt,
       title: sql<string | null>`gen_title`,
       fieldCount: sql<number>`coalesce(jsonb_array_length(${schema.enrichmentProposals.fields}), 0)`,
       candidateCount: sql<number>`coalesce(jsonb_array_length(${schema.enrichmentProposals.candidates}), 0)`,
@@ -247,4 +251,173 @@ export async function listProposals(c: Context, deps: CatalogRouteDeps): Promise
     .limit(limit);
 
   return c.json({ data: { proposals: rows } });
+}
+
+/** POST /catalog/enrichment/push — stage products into the Drafting Room (no job yet). */
+export async function pushProducts(c: Context, deps: CatalogRouteDeps): Promise<Response> {
+  const { tenantId, merchantId } = ids(c);
+
+  let body: { productIds?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+  const requested = Array.isArray(body.productIds)
+    ? body.productIds.filter((x): x is string => typeof x === "string")
+    : [];
+  if (requested.length === 0) {
+    return c.json({ error: { code: "INVALID_BODY", message: "productIds[] is required" } }, 400);
+  }
+  const productIds = [...new Set(requested)].slice(0, BULK_MAX);
+
+  const owned = await deps.db
+    .select({ id: schema.catalogProducts.productId })
+    .from(schema.catalogProducts)
+    .where(
+      and(
+        inArray(schema.catalogProducts.productId, productIds),
+        eq(schema.catalogProducts.tenantId, tenantId),
+        eq(schema.catalogProducts.merchantId, merchantId)
+      )
+    );
+  const ownedIds = owned.map((o) => o.id);
+  if (ownedIds.length === 0) return c.json({ data: { drafts: [] } }, 201);
+
+  // Don't double-stage a product that already has a working-set draft.
+  const active = await deps.db
+    .select({ productId: schema.enrichmentProposals.productId })
+    .from(schema.enrichmentProposals)
+    .where(
+      and(
+        eq(schema.enrichmentProposals.tenantId, tenantId),
+        inArray(schema.enrichmentProposals.productId, ownedIds),
+        inArray(schema.enrichmentProposals.status, ["pending", "generating", "ready"]),
+        isNull(schema.enrichmentProposals.reviewedAt)
+      )
+    );
+  const staged = new Set(active.map((a) => a.productId));
+  const ownedSet = new Set(ownedIds);
+
+  const drafts: { proposalId: string; productId: string }[] = [];
+  for (const productId of productIds) {
+    if (!ownedSet.has(productId) || staged.has(productId)) continue;
+    const proposalId = randomUUID();
+    await deps.db.insert(schema.enrichmentProposals).values({
+      proposalId,
+      tenantId,
+      merchantId,
+      productId,
+      status: "pending",
+    });
+    drafts.push({ proposalId, productId });
+  }
+  return c.json({ data: { drafts } }, 201);
+}
+
+/** POST /catalog/enrichment/:proposalId/run — enqueue the LLM job for a staged draft. */
+export async function runEnrichment(c: Context, deps: CatalogRouteDeps): Promise<Response> {
+  const { tenantId, merchantId } = ids(c);
+  const proposalId = c.req.param("proposalId") as string;
+  const requestId = (c.get("requestId" as never) as string) ?? randomUUID();
+  const enrichQueue = deps.queues?.[QUEUE.PRODUCT_ENRICH];
+  if (!enrichQueue) {
+    return c.json({ error: { code: "UNAVAILABLE", message: "Enrichment is not configured" } }, 503);
+  }
+
+  const rows = await deps.db
+    .select()
+    .from(schema.enrichmentProposals)
+    .where(
+      and(
+        eq(schema.enrichmentProposals.proposalId, proposalId),
+        eq(schema.enrichmentProposals.tenantId, tenantId)
+      )
+    )
+    .limit(1);
+  const prop = rows[0];
+  if (!prop || prop.merchantId !== merchantId) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Draft not found" } }, 404);
+  }
+  if (prop.status === "generating" || prop.status === "ready") {
+    return c.json({ data: { proposalId, status: prop.status } });
+  }
+  if (prop.status !== "pending" && prop.status !== "failed") {
+    return c.json({ error: { code: "INVALID_STATE", message: `Draft is '${prop.status}'` } }, 409);
+  }
+
+  const jobId = `enrich-${tenantId}-${prop.productId}-${proposalId}`;
+  await deps.db
+    .update(schema.enrichmentProposals)
+    .set({ status: "generating", updatedAt: new Date() })
+    .where(eq(schema.enrichmentProposals.proposalId, proposalId));
+  await enrichQueue.add(
+    JOB_KIND.PRODUCT_ENRICH,
+    { tenantId, merchantId, productId: prop.productId, proposalId, requestId },
+    { jobId, removeOnComplete: 1000, removeOnFail: 5000 }
+  );
+  return c.json({ data: { proposalId, status: "generating" } }, 202);
+}
+
+interface StoredField { attributeCode: string; decision?: string; editedValue?: unknown; [k: string]: unknown }
+interface StoredCandidate { key: string; decision?: string; [k: string]: unknown }
+
+/** POST /catalog/products/:id/enrich/:proposalId/review — save per-field decisions
+ *  and move the draft to Review Commit (reviewed_at stamped). */
+export async function reviewProposal(c: Context, deps: CatalogRouteDeps): Promise<Response> {
+  const { tenantId, merchantId } = ids(c);
+  const productId = c.req.param("id") as string;
+  const proposalId = c.req.param("proposalId") as string;
+
+  let body: { fieldDecisions?: unknown; candidateDecisions?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+  const fieldDecisions = Array.isArray(body.fieldDecisions)
+    ? (body.fieldDecisions as { code: string; decision: string; editedValue?: unknown }[])
+    : [];
+  const candidateDecisions = Array.isArray(body.candidateDecisions)
+    ? (body.candidateDecisions as { key: string; decision: string }[])
+    : [];
+
+  const rows = await deps.db
+    .select()
+    .from(schema.enrichmentProposals)
+    .where(
+      and(
+        eq(schema.enrichmentProposals.proposalId, proposalId),
+        eq(schema.enrichmentProposals.tenantId, tenantId)
+      )
+    )
+    .limit(1);
+  const prop = rows[0];
+  if (!prop || prop.merchantId !== merchantId || prop.productId !== productId) {
+    return c.json({ error: { code: "NOT_FOUND", message: "Draft not found" } }, 404);
+  }
+  if (prop.status !== "ready") {
+    return c.json({ error: { code: "INVALID_STATE", message: `Draft is '${prop.status}'` } }, 409);
+  }
+
+  const fieldDec = new Map(fieldDecisions.map((d) => [d.code, d]));
+  const candDec = new Map(candidateDecisions.map((d) => [d.key, d]));
+  const fields = ((prop.fields ?? []) as StoredField[]).map((f) => {
+    const d = fieldDec.get(f.attributeCode);
+    if (!d) return f;
+    const next: StoredField = { ...f, decision: d.decision };
+    if (d.decision === "edit" && d.editedValue !== undefined) next.editedValue = d.editedValue;
+    return next;
+  });
+  const candidates = ((prop.candidates ?? []) as StoredCandidate[]).map((cand) => {
+    const d = candDec.get(cand.key);
+    return d ? { ...cand, decision: d.decision } : cand;
+  });
+
+  await deps.db
+    .update(schema.enrichmentProposals)
+    .set({ fields, candidates, reviewedAt: new Date(), updatedAt: new Date() })
+    .where(eq(schema.enrichmentProposals.proposalId, proposalId));
+
+  return c.json({ data: { ok: true } });
 }
