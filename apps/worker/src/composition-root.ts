@@ -169,10 +169,13 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     });
     const model =
       process.env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile";
+    // Serial: Groq's on-demand TPM budget (12k) reserves prompt+max_tokens per
+    // request (~9.7k each), so parallel jobs trip 429s. The provider retries
+    // transient 429s with Retry-After backoff; serializing keeps us in budget.
     enrichWorker = new Worker(
       QUEUE.PRODUCT_ENRICH,
       makeEnrichProcessor({ db: db.client, provider: enrichProvider, model }),
-      { connection: redis, concurrency: 4 },
+      { connection: redis, concurrency: 1 },
     );
     logger.info({ model }, "enrichment worker: Groq");
   } else if (nvidiaApiKey) {
