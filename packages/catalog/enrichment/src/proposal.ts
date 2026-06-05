@@ -18,6 +18,7 @@ import type {
   EnrichmentProposal,
   ProductSnapshot,
   ProposalField,
+  ScoreSnapshot,
 } from "./types.js";
 
 function isNumeric(v: unknown): boolean {
@@ -153,6 +154,8 @@ export function buildProposal(args: BuildProposalArgs): EnrichmentProposal {
   for (const f of fields) if (f.valid) after.add(f.attributeCode);
   const scoreBefore = arch ? scoreCompletenessPercent(arch, before).percent : 0;
   const scoreAfter = arch ? scoreCompletenessPercent(arch, after).percent : 0;
+  const scoreAfterSnap: ScoreSnapshot = { completeness: scoreAfter };
+  if (parsed.content_quality) scoreAfterSnap.contentQuality = parsed.content_quality.score;
 
   const proposal: EnrichmentProposal = {
     productId: snapshot.productId,
@@ -163,7 +166,7 @@ export function buildProposal(args: BuildProposalArgs): EnrichmentProposal {
     fields,
     candidates,
     scoreBefore: { completeness: scoreBefore },
-    scoreAfter: { completeness: scoreAfter },
+    scoreAfter: scoreAfterSnap,
     costUsd: args.costUsd,
     usage: args.usage,
   };

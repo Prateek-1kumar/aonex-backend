@@ -157,11 +157,25 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     { connection: redis, concurrency: 3 },
   );
 
-  // Catalog enrichment worker — NVIDIA-hosted DeepSeek-V4. Low concurrency: the
-  // model is slow (reasoning mode). Disabled (no-op) when NVIDIA_API_KEY is unset.
+  // Catalog enrichment worker. Prefer Groq (fast, OpenAI-compatible) when
+  // GROQ_API_KEY is set; fall back to NVIDIA DeepSeek; else disabled.
+  const groqApiKey = process.env.GROQ_API_KEY;
   const nvidiaApiKey = process.env.NVIDIA_API_KEY;
   let enrichWorker: Worker | undefined;
-  if (nvidiaApiKey) {
+  if (groqApiKey) {
+    const enrichProvider = createModelProvider({
+      provider: "openai",
+      config: { apiKey: groqApiKey, baseUrl: env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1" },
+    });
+    const model =
+      process.env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile";
+    enrichWorker = new Worker(
+      QUEUE.PRODUCT_ENRICH,
+      makeEnrichProcessor({ db: db.client, provider: enrichProvider, model }),
+      { connection: redis, concurrency: 4 },
+    );
+    logger.info({ model }, "enrichment worker: Groq");
+  } else if (nvidiaApiKey) {
     const enrichProvider = new NvidiaProvider({
       apiKey: nvidiaApiKey,
       baseUrl: env.NVIDIA_BASE_URL,
@@ -173,8 +187,9 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
       makeEnrichProcessor({ db: db.client, provider: enrichProvider, model: env.NVIDIA_MODEL_ENRICH }),
       { connection: redis, concurrency: 2 },
     );
+    logger.info({ model: env.NVIDIA_MODEL_ENRICH }, "enrichment worker: NVIDIA DeepSeek");
   } else {
-    logger.warn("NVIDIA_API_KEY not set — enrichment worker disabled");
+    logger.warn("No GROQ_API_KEY or NVIDIA_API_KEY — enrichment worker disabled");
   }
 
   const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), csvParseWorker, ...(enrichWorker ? [enrichWorker] : []), cronWorker];

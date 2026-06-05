@@ -15,6 +15,7 @@ import { MerchantId, TenantId, QUEUE, JOB_KIND } from "@aonex/types";
 import type { CatalogRouteDeps } from "../routes/catalog.js";
 import {
   applyEnrichmentProposal,
+  revertEnrichmentProposal,
   EnrichmentApplyError,
   type FieldDecision,
   type CandidateDecisionInput,
@@ -142,6 +143,22 @@ export async function applyEnrichment(c: Context, deps: CatalogRouteDeps): Promi
       fieldDecisions,
       candidateDecisions,
     });
+    return c.json({ data: result });
+  } catch (err) {
+    if (err instanceof EnrichmentApplyError) {
+      return c.json({ error: { code: err.code, message: err.message } }, err.httpStatus as 404 | 409);
+    }
+    throw err;
+  }
+}
+
+/** POST /catalog/products/:id/enrich/:proposalId/revert — undo an applied enrichment. */
+export async function revertEnrichment(c: Context, deps: CatalogRouteDeps): Promise<Response> {
+  const { tenantId, merchantId } = ids(c);
+  const productId = c.req.param("id") as string;
+  const proposalId = c.req.param("proposalId") as string;
+  try {
+    const result = await revertEnrichmentProposal(deps.db, { tenantId, merchantId, productId, proposalId });
     return c.json({ data: result });
   } catch (err) {
     if (err instanceof EnrichmentApplyError) {

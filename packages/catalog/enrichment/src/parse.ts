@@ -25,9 +25,18 @@ const CandidateSchema = z.object({
   reasoning: z.string().optional(),
 });
 
+const ContentQualitySchema = z.object({
+  score: z.number().min(0).max(100),
+  coherence: z.number().optional(),
+  spelling: z.number().optional(),
+  consistency: z.number().optional(),
+  relevance: z.number().optional(),
+});
+
 const ResponseSchema = z.object({
   fields: z.record(z.string(), FieldValueSchema).default({}),
   candidates: z.array(CandidateSchema).default([]),
+  content_quality: ContentQualitySchema.optional(),
 });
 
 export type ParsedEnrichment = z.infer<typeof ResponseSchema>;

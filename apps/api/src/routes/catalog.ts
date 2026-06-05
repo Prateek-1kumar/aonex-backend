@@ -24,6 +24,7 @@ import {
   pushProducts,
   runEnrichment,
   reviewProposal,
+  revertEnrichment,
 } from "../handlers/enrichment.js";
 import {
   getProductProvenanceTrace,
@@ -62,6 +63,7 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
   app.post("/products/:id/enrich/:proposalId/review", (c) => reviewProposal(c, deps));
   app.post("/products/:id/enrich/:proposalId/apply", (c) => applyEnrichment(c, deps));
   app.post("/products/:id/enrich/:proposalId/reject", (c) => rejectEnrichment(c, deps));
+  app.post("/products/:id/enrich/:proposalId/revert", (c) => revertEnrichment(c, deps));
 
   // Admin trace endpoints — new-schema only (catalog_products + winning_values).
   // These are the canonical paths; the legacy provenance endpoint above is

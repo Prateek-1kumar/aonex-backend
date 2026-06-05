@@ -58,8 +58,12 @@ Return STRICT JSON with this exact shape:
   "candidates": [
     { "key": "<snake_case>", "label": "<Human Label>", "dataType": "string|number|boolean|array|object",
       "value": <typed value>, "unit": "<optional>", "enumCandidates": ["..."], "reasoning": "<why it matters>" }
-  ]
-}`;
+  ],
+  "content_quality": { "score": <0..100>, "coherence": <0..10>, "spelling": <0..10>, "consistency": <0..10>, "relevance": <0..10> }
+}
+
+Also rate the OVERALL quality of the enriched content you produced in "content_quality"
+(0..100 score from coherence, spelling, consistency, relevance).`;
 
   return [
     { role: "system", content: SYSTEM },
