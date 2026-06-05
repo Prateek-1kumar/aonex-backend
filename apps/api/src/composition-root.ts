@@ -110,6 +110,7 @@ export function buildContainer(env: Env): ApiContainer {
   const nangoTriggerQueue = new Queue(QUEUE.NANGO_TRIGGER, { connection: redis });
   const linkExtractQueue = new Queue(QUEUE.LINK_EXTRACT, { connection: redis });
   const csvParseQueue = new Queue(QUEUE.CSV_PARSE, { connection: redis });
+  const productEnrichQueue = new Queue(QUEUE.PRODUCT_ENRICH, { connection: redis });
 
   // ---- Hono app -------------------------------------------------
   const app = new Hono();
@@ -237,7 +238,10 @@ export function buildContainer(env: Env): ApiContainer {
   protectedApp.route("/lab", anomalyLabRoutes({ db: db.client, audit }));
   protectedApp.route(
     "/catalog",
-    catalogRoutes({ db: db.client })
+    catalogRoutes({
+      db: db.client,
+      queues: { [QUEUE.PRODUCT_ENRICH]: productEnrichQueue }
+    })
   );
   app.route("/api", protectedApp);
 
@@ -250,7 +254,8 @@ export function buildContainer(env: Env): ApiContainer {
         nangoSyncQueue.close(),
         nangoTriggerQueue.close(),
         linkExtractQueue.close(),
-        csvParseQueue.close()
+        csvParseQueue.close(),
+        productEnrichQueue.close()
       ]);
       await redis.quit();
       await db.close();

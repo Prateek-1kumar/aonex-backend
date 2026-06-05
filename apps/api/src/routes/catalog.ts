@@ -4,7 +4,9 @@
 // Hono router. Route order is load-bearing (see inline note). Spec §20.
 
 import { Hono } from "hono";
+import type { Queue } from "bullmq";
 import type { DrizzleClient } from "@aonex/db";
+import { type QUEUE } from "@aonex/types";
 import {
   listProducts,
   deleteProduct,
@@ -13,12 +15,21 @@ import {
   getProductSku,
 } from "../handlers/catalog.js";
 import {
+  startEnrichment,
+  getEnrichmentProposal,
+  applyEnrichment,
+  rejectEnrichment,
+} from "../handlers/enrichment.js";
+import {
   getProductProvenanceTrace,
   getProductTrace,
 } from "../handlers/admin-trace.js";
 
 export interface CatalogRouteDeps {
   db: DrizzleClient;
+  /** Optional so read-only handler tests can construct deps as `{ db }`;
+   *  the composition root always provides it for the enrichment endpoints. */
+  queues?: { [QUEUE.PRODUCT_ENRICH]: Queue };
 }
 
 export function catalogRoutes(deps: CatalogRouteDeps): Hono {
@@ -33,6 +44,12 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
   app.get("/products/:id", (c) => getProductById(c, deps));
   app.get("/products/:id/provenance", (c) => getProductProvenance(c, deps));
   app.get("/products/:id/sku", (c) => getProductSku(c, deps));
+
+  // Catalog enrichment ("Push to Enrich") — async start + poll + review-then-apply.
+  app.post("/products/:id/enrich", (c) => startEnrichment(c, deps));
+  app.get("/products/:id/enrich/:proposalId", (c) => getEnrichmentProposal(c, deps));
+  app.post("/products/:id/enrich/:proposalId/apply", (c) => applyEnrichment(c, deps));
+  app.post("/products/:id/enrich/:proposalId/reject", (c) => rejectEnrichment(c, deps));
 
   // Admin trace endpoints — new-schema only (catalog_products + winning_values).
   // These are the canonical paths; the legacy provenance endpoint above is

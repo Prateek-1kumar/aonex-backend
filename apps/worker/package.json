@@ -27,6 +27,7 @@
     "@aonex/db": "workspace:*",
     "@aonex/archetypes": "workspace:*",
     "@aonex/catalog-service": "workspace:*",
+    "@aonex/catalog-enrichment": "workspace:*",
     "@aonex/catalog-event-outbox": "workspace:*",
     "@aonex/catalog-source-adapters": "workspace:*",
     "@aonex/connector-gateway": "workspace:*",
