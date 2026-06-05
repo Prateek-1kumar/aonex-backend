@@ -1,7 +1,8 @@
 // Apply an enrichment proposal (review-then-apply, spec D1/§2.4).
 //
 // Accepted fields + accepted candidate values become observations under source
-// "enrichment:llm" at the `_primary` leaf. A global priority-0 source_priority
+// "enrichment:llm" at the `_unscoped`/`_unscoped` leaf (the channel/locale the
+// list + detail projections prefer). A global priority-0 source_priority
 // rule ("enrichment:*") makes these curator-grade — they win over automated
 // sources and persist across re-ingests. Accepted candidates are ALSO registered
 // into attribute_definitions + archetype_attribute_specs (the self-extension
@@ -186,8 +187,8 @@ export async function applyEnrichmentProposal(
       if (PROTECTED_KEYS.has(a.code)) continue;
       if (!values[a.code]) values[a.code] = {};
       const attr = values[a.code]!;
-      if (!attr["_primary"]) attr["_primary"] = {};
-      const chan = attr["_primary"]!;
+      if (!attr["_unscoped"]) attr["_unscoped"] = {};
+      const chan = attr["_unscoped"]!;
       if (!chan["_unscoped"]) chan["_unscoped"] = [];
       const extras: Record<string, unknown> = {
         model: prop.model,

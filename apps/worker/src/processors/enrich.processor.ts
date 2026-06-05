@@ -33,7 +33,7 @@ function flattenWinning(wv: Record<string, unknown> | null | undefined): Record<
   for (const [attr, byChannel] of Object.entries(wv)) {
     if (attr === "_meta" || !byChannel || typeof byChannel !== "object") continue;
     const channels = byChannel as Record<string, unknown>;
-    const chanVal = channels["_primary"] ?? Object.values(channels)[0];
+    const chanVal = channels["_unscoped"] ?? channels["_primary"] ?? Object.values(channels)[0];
     if (!chanVal || typeof chanVal !== "object") continue;
     const byLocale = chanVal as Record<string, unknown>;
     const leaf = byLocale["_unscoped"] ?? byLocale["en"] ?? Object.values(byLocale)[0];
