@@ -29,3 +29,48 @@ export function scoreCompleteness(
     hardFloorOk: hardFloorOk(present, opts.identifierExists),
   };
 }
+
+export interface TierCoverage { presentWeight: number; totalWeight: number; percent: number; }
+export interface CompletenessPercent {
+  /** 0..100, server-authoritative quality score for the catalog ring + enrich delta. */
+  percent: number;
+  byTier: Record<AttributeTier, TierCoverage>;
+}
+
+const TIER_SHARE: Record<AttributeTier, number> = {
+  required: 0.7,
+  recommended: 0.25,
+  optional: 0.05,
+};
+
+/** A fuller 0..100 score than scoreCompleteness: weighted coverage across all three
+ *  tiers (required dominates, recommended/optional add partial credit). Drives the
+ *  "Needs Enrichment" tab and the before/after enrich delta. Tiers with no attributes
+ *  are dropped from the denominator so the blend stays fair across archetypes. */
+export function scoreCompletenessPercent(
+  arch: Archetype, present: Set<string>
+): CompletenessPercent {
+  const tiers: AttributeTier[] = ["required", "recommended", "optional"];
+  const byTier = {} as Record<AttributeTier, TierCoverage>;
+  let weightedGot = 0;
+  let weightedTotal = 0;
+  for (const tier of tiers) {
+    const attrs = arch.attributes.filter((a) => a.tier === tier);
+    const totalWeight = attrs.reduce((s, a) => s + a.weight, 0);
+    const presentWeight = attrs
+      .filter((a) => present.has(a.field))
+      .reduce((s, a) => s + a.weight, 0);
+    const coverage = totalWeight === 0 ? 0 : presentWeight / totalWeight;
+    byTier[tier] = {
+      presentWeight: Math.round(presentWeight * 1000) / 1000,
+      totalWeight: Math.round(totalWeight * 1000) / 1000,
+      percent: Math.round(coverage * 10000) / 100,
+    };
+    if (totalWeight > 0) {
+      weightedTotal += TIER_SHARE[tier];
+      weightedGot += TIER_SHARE[tier] * coverage;
+    }
+  }
+  const percent = weightedTotal === 0 ? 100 : Math.round((weightedGot / weightedTotal) * 10000) / 100;
+  return { percent, byTier };
+}

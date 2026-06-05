@@ -16,6 +16,21 @@ const RULES: { id: string; category: RegExp; title: RegExp }[] = [
     category: /mobile[_ ]?phone|smartphone|\bphones?\b/i,
     title: /\b(phone|pixel|iphone|galaxy|smartphone|5g)\b/i,
   },
+  {
+    id: "apparel",
+    category: /\b(clothing|apparel|fashion|footwear|menswear|womenswear|innerwear)\b/i,
+    title: /\b(jeans|t-?shirt|shirt|dress|trouser|trousers|jacket|kurta|saree|hoodie|sweater|skirt|shorts|blazer|leggings)\b/i,
+  },
+  {
+    id: "furniture",
+    category: /\b(furniture|seating|mattress)\b/i,
+    title: /\b(sofa|couch|recliner|armchair|wardrobe|mattress|ottoman|bookshelf|dining table|coffee table)\b/i,
+  },
+  {
+    id: "beauty",
+    category: /\b(beauty|cosmetics?|skin[_ ]?care|make[_ -]?up|fragrance|hair[_ ]?care|personal[_ ]?care)\b/i,
+    title: /\b(serum|moisturizer|moisturiser|lipstick|foundation|sunscreen|shampoo|conditioner|perfume|mascara|cleanser|toner)\b/i,
+  },
 ];
 
 /** Deterministic, explainable classification. Returns the archetype id or

@@ -9,6 +9,7 @@ import {
   jsonb,
   boolean,
   integer,
+  numeric,
   timestamp,
   bigint,
   unique,
@@ -39,6 +40,11 @@ export const catalogProducts = pgTable(
     identifiers:         jsonb("identifiers").notNull().default(sql`'[]'::jsonb`),
     identifierExists:    boolean("identifier_exists").notNull().default(true),
     pipelineVersion:     integer("pipeline_version").notNull().default(1),
+    // Catalog enrichment — persisted, server-authoritative quality scores (0..100).
+    // Recomputed by the reconciler on winning_values change; content score set by enrichment.
+    completenessScore:   numeric("completeness_score", { precision: 5, scale: 2 }),
+    contentQualityScore: numeric("content_quality_score", { precision: 5, scale: 2 }),
+    scoreBreakdown:      jsonb("score_breakdown"),
     createdAt:           timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
   },
