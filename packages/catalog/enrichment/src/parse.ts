@@ -9,34 +9,47 @@ export class EnrichmentParseError extends Error {
   }
 }
 
+/**
+ * LLMs frequently emit `null` for an absent optional field even when told to
+ * omit it (e.g. the model returns `"unit": null` for a unit-less attribute).
+ * Plain `.optional()` rejects `null` and would fail the WHOLE proposal over one
+ * stray null. Accept null/undefined and normalize to `undefined` so the value is
+ * treated as "absent" — proposal.ts already coalesces missing values.
+ */
+function nullable<T extends z.ZodTypeAny>(inner: T) {
+  return inner.nullish().transform((v): z.infer<T> | undefined => v ?? undefined);
+}
+
 const FieldValueSchema = z.object({
   value: z.unknown(),
-  confidence: z.number().min(0).max(1).optional(),
-  reasoning: z.string().optional(),
+  confidence: nullable(z.number().min(0).max(1)),
+  reasoning: nullable(z.string()),
 });
 
 const CandidateSchema = z.object({
   key: z.string().min(1),
-  label: z.string().optional(),
-  dataType: z.enum(["string", "number", "boolean", "array", "object"]).optional(),
+  label: nullable(z.string()),
+  dataType: nullable(z.enum(["string", "number", "boolean", "array", "object"])),
   value: z.unknown(),
-  unit: z.string().optional(),
-  enumCandidates: z.array(z.string()).optional(),
-  reasoning: z.string().optional(),
+  unit: nullable(z.string()),
+  enumCandidates: nullable(z.array(z.string())),
+  reasoning: nullable(z.string()),
 });
 
 const ContentQualitySchema = z.object({
   score: z.number().min(0).max(100),
-  coherence: z.number().optional(),
-  spelling: z.number().optional(),
-  consistency: z.number().optional(),
-  relevance: z.number().optional(),
+  coherence: nullable(z.number()),
+  spelling: nullable(z.number()),
+  consistency: nullable(z.number()),
+  relevance: nullable(z.number()),
 });
 
 const ResponseSchema = z.object({
   fields: z.record(z.string(), FieldValueSchema).default({}),
   candidates: z.array(CandidateSchema).default([]),
-  content_quality: ContentQualitySchema.optional(),
+  // Non-essential quality block — degrade to absent rather than fail the proposal
+  // if the model returns it malformed (e.g. a null score).
+  content_quality: ContentQualitySchema.optional().catch(undefined),
 });
 
 export type ParsedEnrichment = z.infer<typeof ResponseSchema>;
