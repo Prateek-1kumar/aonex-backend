@@ -466,4 +466,65 @@ describe("runNewLinkCatalogPath (Task 4.2)", () => {
     expect(result.productId).toBeNull();
     expect(result.stagedProductId).not.toBeNull();
   });
+
+  test("7. raw extraction keys resolve against the registry: recognized stays first-class, junk → custom.<slug>", async () => {
+    // The whole point of the vocabulary boundary (Faithful Catalog §3): a
+    // recognized attribute lands first-class; Amazon page junk (search-scope
+    // dropdown, 'report incorrect info' form selects) is quarantined under
+    // custom.<slug> instead of masquerading as a product attribute.
+    await db
+      .insert(schema.attributeDefinitions)
+      .values({ canonicalKey: "color", dataType: "string" })
+      .onConflictDoNothing();
+
+    const gtin = `0700000000${randomUUID().replace(/-/g, "").slice(0, 4)}`;
+    const sku = emptySku({
+      title: "Vocabulary Widget",
+      brand: "Acme",
+      gtin,
+      category_path: "Home & Garden > Tools",
+      category_confidence: 0.9,
+      pricing: {
+        list_price: 10,
+        sale_price: null,
+        currency: "AUD",
+        discount_percent: null,
+        price_per_unit: null,
+      },
+      attributes: {
+        color: { value: "Victory Green", unit: null, source: "structured" },
+        "search-alias": { value: ["search-alias=aps"], unit: null, source: "structured" },
+        onlineday: { value: ["1", "2", "3"], unit: null, source: "structured" },
+      },
+      _field_confidence: { title: 0.9, brand: 0.95, gtin: 0.95 },
+    });
+
+    const result = await runNewLinkCatalogPath({
+      db,
+      tenantId: TENANT,
+      merchantId: MERCHANT,
+      artifactId: randomUUID() as unknown as ArtifactId,
+      sourceUrl: "https://shop.example-test-au.com/product/vocab",
+      sku,
+      channelId: CHANNEL,
+      channelCode: "shop-example-test-au-com",
+      channelDefaultCurrency: "AUD",
+      channelDefaultLocale: "en_AU",
+    });
+    expect(result.outcome).toBe("admitted");
+
+    const rows = await db
+      .select({ values: schema.catalogProducts.values })
+      .from(schema.catalogProducts)
+      .where(eq(schema.catalogProducts.productId, result.productId!));
+    const keys = Object.keys(rows[0]!.values as Record<string, unknown>);
+
+    // Recognized attribute stays first-class.
+    expect(keys).toContain("color");
+    // Junk is quarantined under custom.<slug> — never first-class.
+    expect(keys).toContain("custom.search_alias");
+    expect(keys).toContain("custom.onlineday");
+    expect(keys).not.toContain("search-alias");
+    expect(keys).not.toContain("onlineday");
+  });
 });
