@@ -284,10 +284,10 @@ describe("detectDrift (plan §3.10, spec §13.3)", () => {
     // Stale pricing_current row says ebay won — that's the drift we're catching.
     await db.execute(sql`
       INSERT INTO catalog_pricing_current
-        (product_id, channel_id, locale, source, currency, tiers,
+        (product_id, tenant_id, channel_id, locale, source, currency, tiers,
          price_per_unit, primary_amount, observed_at)
       VALUES
-        (${productId}, ${TEST_CHANNEL_ID}, 'en_AU', 'ebay:link', 'AUD',
+        (${productId}, ${TEST_TENANT_ID}, ${TEST_CHANNEL_ID}, 'en_AU', 'ebay:link', 'AUD',
          ${JSON.stringify([{ kind: "list", amount: 120 }])}::jsonb,
          NULL, 120, '2026-05-21T10:00:00Z')
     `);
@@ -333,9 +333,9 @@ describe("detectDrift (plan §3.10, spec §13.3)", () => {
     // Stale current row — claims ebay wins with qty=42.
     await db.execute(sql`
       INSERT INTO catalog_inventory_current
-        (product_id, channel_id, location_id, qty, source, observed_at)
+        (product_id, tenant_id, channel_id, location_id, qty, source, observed_at)
       VALUES
-        (${productId}, ${TEST_CHANNEL_ID}, NULL, 42, 'ebay:link',
+        (${productId}, ${TEST_TENANT_ID}, ${TEST_CHANNEL_ID}, NULL, 42, 'ebay:link',
          '2026-05-21T09:00:00Z')
     `);
 
@@ -392,10 +392,10 @@ describe("detectDrift (plan §3.10, spec §13.3)", () => {
     // Stale current row — same source + tiers, but stale currency=AUD.
     await db.execute(sql`
       INSERT INTO catalog_pricing_current
-        (product_id, channel_id, locale, source, currency, tiers,
+        (product_id, tenant_id, channel_id, locale, source, currency, tiers,
          price_per_unit, primary_amount, observed_at)
       VALUES
-        (${productId}, ${TEST_CHANNEL_ID}, 'en_AU', 'shopify:connector', 'AUD',
+        (${productId}, ${TEST_TENANT_ID}, ${TEST_CHANNEL_ID}, 'en_AU', 'shopify:connector', 'AUD',
          ${JSON.stringify(tiers)}::jsonb,
          NULL, 49.99, '2026-05-21T10:00:00Z')
     `);
@@ -423,9 +423,9 @@ describe("detectDrift (plan §3.10, spec §13.3)", () => {
     // No observations seeded — but a stale current row exists.
     await db.execute(sql`
       INSERT INTO catalog_inventory_current
-        (product_id, channel_id, location_id, qty, source, observed_at)
+        (product_id, tenant_id, channel_id, location_id, qty, source, observed_at)
       VALUES
-        (${productId}, ${TEST_CHANNEL_ID}, ${TEST_LOCATION_ID}, 99,
+        (${productId}, ${TEST_TENANT_ID}, ${TEST_CHANNEL_ID}, ${TEST_LOCATION_ID}, 99,
          'orphan-source', '2026-05-21T08:00:00Z')
     `);
 

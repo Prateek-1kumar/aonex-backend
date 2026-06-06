@@ -29,8 +29,66 @@ function obs(
 }
 
 describe("pickWinner (plan §3.3)", () => {
-  test("RECONCILER_VERSION is the v1 string", () => {
-    expect(RECONCILER_VERSION).toBe("1.0.0");
+  test("RECONCILER_VERSION reflects the confidence tie-break bump", () => {
+    expect(RECONCILER_VERSION).toBe("2.0.0");
+  });
+
+  test("higher confidence wins on tied priority + scope, before recency", () => {
+    // Same source-priority rule, same (null) channel scope → tie on authority
+    // and specificity. The older-but-more-confident observation must win,
+    // proving confidence outranks recency (v2.0.0, review §10).
+    const older = new Date("2026-05-01T00:00:00Z");
+    const newer = new Date("2026-05-10T00:00:00Z");
+    const observations = [
+      obs("csv:a", "HIGH_CONF_OLD", older, { confidence: 0.95 }),
+      obs("csv:b", "LOW_CONF_NEW", newer, { confidence: 0.40 })
+    ];
+    const rules: SourcePriorityRule[] = [
+      {
+        ruleId: 21,
+        attributeCode: null,
+        sourceGlob: "csv:*",
+        channelScope: null,
+        priority: 5
+      }
+    ];
+
+    const winner = pickWinner({
+      observations,
+      rules,
+      channel: "_unscoped",
+      attributeCode: "title"
+    });
+
+    expect(winner!.value).toBe("HIGH_CONF_OLD");
+  });
+
+  test("recency still breaks the tie when confidence is equal", () => {
+    // Both observations share priority, scope, AND confidence → newest wins.
+    const older = new Date("2026-05-01T00:00:00Z");
+    const newer = new Date("2026-05-10T00:00:00Z");
+    const observations = [
+      obs("csv:a", "OLD", older, { confidence: 0.8 }),
+      obs("csv:b", "NEW", newer, { confidence: 0.8 })
+    ];
+    const rules: SourcePriorityRule[] = [
+      {
+        ruleId: 22,
+        attributeCode: null,
+        sourceGlob: "csv:*",
+        channelScope: null,
+        priority: 5
+      }
+    ];
+
+    const winner = pickWinner({
+      observations,
+      rules,
+      channel: "_unscoped",
+      attributeCode: "title"
+    });
+
+    expect(winner!.value).toBe("NEW");
   });
 
   test("priority 1 source beats priority 2 even if observed later", () => {

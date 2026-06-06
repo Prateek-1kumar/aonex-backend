@@ -24,17 +24,28 @@
 //   4. Sort observations by:
 //        - rule priority asc
 //        - then channel-scope specificity desc (more-specific wins ties)
+//        - then confidence desc (higher-confidence observation wins ties)
 //        - then observedAt desc (newer wins on remaining ties)
 //   5. Return top observation's value + a WinnerExplanation tag.
+//
+// Confidence tie-break (v2.0.0, review §10): among observations that tie on
+// source authority (rule priority) AND channel-scope specificity, the
+// higher-confidence extraction wins before recency. Rationale: between two
+// equally-authoritative sources, extraction quality is a better signal than
+// "merely newer". Recency remains the final tie-break when confidence also
+// ties. NOTE: the pricing/inventory async path feeds a uniform confidence of 1
+// (async-debounced.ts), so this criterion is a no-op there and only affects the
+// descriptive-attribute sync path where real extractor confidence flows through.
 //
 // On bumping RECONCILER_VERSION: any change to the projection logic above
 // (new tie-breaker, new rule shape, glob semantics, etc.) MUST bump the
 // constant so `winning_values[*]._meta.reconcilerVersion` stamps reflect the
 // new behaviour. Major bump for behavioural changes; minor for refactors that
-// preserve every output for every input. v1 starts at "1.0.0".
+// preserve every output for every input. v1 was "1.0.0"; v2.0.0 adds the
+// confidence tie-break above (a behavioural change → major bump).
 
 /** Current reconciler logic version — bump on any behavioural change. */
-export const RECONCILER_VERSION = "1.0.0";
+export const RECONCILER_VERSION = "2.0.0";
 
 export interface PickWinnerObservation {
   source: string;
@@ -193,13 +204,17 @@ export function pickWinner(input: PickWinnerInput): PickWinnerResult | null {
   });
 
   // Step 4: sort observations — lowest priority, then most-specific scope,
-  // then newest observedAt.
+  // then highest confidence, then newest observedAt.
   ranked.sort((a, b) => {
     if (a.rulePriority !== b.rulePriority) {
       return a.rulePriority - b.rulePriority;
     }
     if (a.channelSpecificity !== b.channelSpecificity) {
       return b.channelSpecificity - a.channelSpecificity;
+    }
+    // Higher-confidence extraction wins before recency (v2.0.0, review §10).
+    if (a.obs.confidence !== b.obs.confidence) {
+      return b.obs.confidence - a.obs.confidence;
     }
     return b.obs.observedAt.getTime() - a.obs.observedAt.getTime();
   });
