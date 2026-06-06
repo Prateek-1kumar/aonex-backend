@@ -936,6 +936,7 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     // Seed pricing and inventory _current rows attached to the loser.
     await db.insert(schema.catalogPricingCurrent).values({
       productId: loserId,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       locale: "en_AU",
       source: "shopify:connector",
@@ -946,6 +947,7 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     });
     await db.insert(schema.catalogInventoryCurrent).values({
       productId: loserId,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       locationId: TEST_LOCATION_ID,
       qty: 7,
@@ -1760,6 +1762,7 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     });
     await db.insert(schema.catalogPricingCurrent).values({
       productId: sourceId,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       locale: "en_AU",
       source: "amazon:link",
@@ -1770,6 +1773,7 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     });
     await db.insert(schema.catalogInventoryCurrent).values({
       productId: sourceId,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       locationId: TEST_LOCATION_ID,
       qty: 4,

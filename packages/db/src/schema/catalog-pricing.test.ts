@@ -20,11 +20,10 @@ describe("catalog_pricing schema", () => {
     await db
       .delete(schema.catalogPricingObservations)
       .where(eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID));
-    // catalog_pricing_current has no tenant_id column; scope by channel instead
-    // (test channel is unique to the test tenant).
+    // catalog_pricing_current is tenant-scoped as of migration 0029.
     await db
       .delete(schema.catalogPricingCurrent)
-      .where(eq(schema.catalogPricingCurrent.channelId, TEST_CHANNEL_ID));
+      .where(eq(schema.catalogPricingCurrent.tenantId, TEST_TENANT_ID));
   });
 
   afterAll(async () => {
@@ -33,7 +32,7 @@ describe("catalog_pricing schema", () => {
       .where(eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID));
     await db
       .delete(schema.catalogPricingCurrent)
-      .where(eq(schema.catalogPricingCurrent.channelId, TEST_CHANNEL_ID));
+      .where(eq(schema.catalogPricingCurrent.tenantId, TEST_TENANT_ID));
     await closeTestDb();
   });
 
@@ -76,6 +75,7 @@ describe("catalog_pricing schema", () => {
       .insert(schema.catalogPricingCurrent)
       .values({
         productId,
+        tenantId: TEST_TENANT_ID,
         channelId: TEST_CHANNEL_ID,
         source: "shopify:connector",
         currency: "AUD",
@@ -159,6 +159,7 @@ describe("catalog_pricing schema", () => {
     const observedAt = new Date("2026-05-17T10:00:00Z");
     await db.insert(schema.catalogPricingCurrent).values({
       productId,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       source: "shopify:connector",
       currency: "AUD",
@@ -172,6 +173,7 @@ describe("catalog_pricing schema", () => {
       (async () => {
         await db.insert(schema.catalogPricingCurrent).values({
           productId,
+          tenantId: TEST_TENANT_ID,
           channelId: TEST_CHANNEL_ID,
           source: "shopify:connector",
           currency: "AUD",

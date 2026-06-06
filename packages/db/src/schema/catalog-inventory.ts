@@ -60,6 +60,9 @@ export const catalogInventoryCurrent = pgTable(
   "catalog_inventory_current",
   {
     productId:  uuid("product_id").notNull(),
+    // Tenant scope added migration 0029 (review §2 — tenant isolation on the
+    // read-model tables). NOT NULL; stamped by the reconciler from the product row.
+    tenantId:   uuid("tenant_id").notNull(),
     channelId:  uuid("channel_id").notNull(),
     locationId: uuid("location_id"),
     qty:        integer("qty").notNull(),
@@ -70,7 +73,9 @@ export const catalogInventoryCurrent = pgTable(
     // Actual PK includes the generated location_id_coalesced column (see migration);
     // Drizzle's view of the PK here is for typed insert ergonomics only.
     pk:           primaryKey({ columns: [t.productId, t.channelId, t.locationId] }),
-    channelQtyIdx: index().on(t.channelId, t.qty)
+    // Tenant-leading (migration 0029) supersedes the old channel-leading index.
+    tenantQtyIdx: index("idx_catalog_inventory_current_tenant_channel_qty")
+                    .on(t.tenantId, t.channelId, t.qty)
   })
 );
 

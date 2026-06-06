@@ -25,11 +25,10 @@ describe("catalog_inventory schema", () => {
     await db
       .delete(schema.catalogInventoryObservations)
       .where(eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID));
-    // catalog_inventory_current has no tenant_id; scope by channel instead
-    // (the test channel is unique to the test tenant).
+    // catalog_inventory_current is tenant-scoped as of migration 0029.
     await db
       .delete(schema.catalogInventoryCurrent)
-      .where(eq(schema.catalogInventoryCurrent.channelId, TEST_CHANNEL_ID));
+      .where(eq(schema.catalogInventoryCurrent.tenantId, TEST_TENANT_ID));
   });
 
   afterAll(async () => {
@@ -38,7 +37,7 @@ describe("catalog_inventory schema", () => {
       .where(eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID));
     await db
       .delete(schema.catalogInventoryCurrent)
-      .where(eq(schema.catalogInventoryCurrent.channelId, TEST_CHANNEL_ID));
+      .where(eq(schema.catalogInventoryCurrent.tenantId, TEST_TENANT_ID));
     await closeTestDb();
   });
 
@@ -84,6 +83,7 @@ describe("catalog_inventory schema", () => {
       .insert(schema.catalogInventoryCurrent)
       .values({
         productId,
+        tenantId: TEST_TENANT_ID,
         channelId: TEST_CHANNEL_ID,
         locationId: TEST_LOCATION_ID,
         qty: 17,
@@ -185,6 +185,7 @@ describe("catalog_inventory schema", () => {
     const observedAt = new Date("2026-05-19T10:00:00Z");
     await db.insert(schema.catalogInventoryCurrent).values({
       productId,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       locationId: null,
       qty: 5,
@@ -196,6 +197,7 @@ describe("catalog_inventory schema", () => {
       (async () => {
         await db.insert(schema.catalogInventoryCurrent).values({
           productId,
+          tenantId: TEST_TENANT_ID,
           channelId: TEST_CHANNEL_ID,
           locationId: null,
           qty: 9,
@@ -205,8 +207,8 @@ describe("catalog_inventory schema", () => {
       })()
     ).rejects.toThrow(/duplicate key/i);
 
-    // Cleanup the NULL-location row so afterAll's channel-scoped delete doesn't
-    // need any special handling (it deletes by channel which covers this).
+    // Cleanup the NULL-location row so afterAll's tenant-scoped delete doesn't
+    // need any special handling (it deletes by tenant which covers this).
     await db
       .delete(schema.catalogInventoryCurrent)
       .where(
