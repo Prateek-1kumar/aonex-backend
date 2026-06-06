@@ -22,6 +22,7 @@
 
 import { admitOrStage, type AdmitOrStageResult } from "@aonex/catalog-service";
 import { getAdapter } from "@aonex/catalog-source-adapters";
+import type { AdaptContext } from "@aonex/catalog-source-adapters";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
 import type {
   ArtifactId,
@@ -29,9 +30,58 @@ import type {
   MerchantId,
   TenantId,
 } from "@aonex/types";
-import type { DrizzleClient } from "@aonex/db";
+import { schema, type DrizzleClient } from "@aonex/db";
+import { eq, isNotNull } from "drizzle-orm";
 import type { Queue } from "bullmq";
 import { PLACEHOLDER_CHANNEL_ID } from "./_internal.js";
+
+/**
+ * Load the attribute vocabulary (canonical definitions + approved synonyms)
+ * the link adapter uses to resolve raw extraction keys to canonical codes vs
+ * `custom.<slug>` (Faithful Catalog §3). Only `active` definitions and approved
+ * synonyms participate so candidate/deprecated rows can't silently steer
+ * mapping. Mapped to the source-adapter framework's lean shapes.
+ *
+ * v1 loads per-ingest (the corpus is small — tens of rows). TODO(perf): cache
+ * with a short TTL keyed by a registry version if the corpus grows.
+ */
+async function loadAttributeVocabulary(
+  db: DrizzleClient
+): Promise<Pick<AdaptContext, "attributeDefinitions" | "attributeSynonyms">> {
+  const defs = await db
+    .select({
+      canonicalKey: schema.attributeDefinitions.canonicalKey,
+      canonicalUnit: schema.attributeDefinitions.canonicalUnit,
+      dataType: schema.attributeDefinitions.dataType,
+    })
+    .from(schema.attributeDefinitions)
+    .where(eq(schema.attributeDefinitions.status, "active"));
+
+  const syns = await db
+    .select({
+      canonicalKey: schema.attributeSynonyms.canonicalKey,
+      synonym: schema.attributeSynonyms.synonym,
+      sourceMarketplace: schema.attributeSynonyms.sourceMarketplace,
+    })
+    .from(schema.attributeSynonyms)
+    .where(isNotNull(schema.attributeSynonyms.approvedAt));
+
+  return {
+    attributeDefinitions: defs.map((d) => ({
+      canonicalKey: d.canonicalKey,
+      canonicalUnit: d.canonicalUnit ?? null,
+      dataType: d.dataType,
+      // reconciliationPath is unused by the key resolver; default it. The
+      // catalog write service selects the real tier from attribute metadata.
+      reconciliationPath: "sync" as const,
+    })),
+    attributeSynonyms: syns.map((s) => ({
+      canonicalKey: s.canonicalKey,
+      synonym: s.synonym,
+      sourceMarketplace: s.sourceMarketplace ?? null,
+    })),
+  };
+}
 
 /**
  * Curated allow-list of canonical marketplace channel-kinds. The link
@@ -206,6 +256,11 @@ export async function runNewLinkCatalogPath(
   // this id — see source-adapters/src/link/index.ts). With pricing
   // pre-stripped above, the placeholder only appears on parent-level
   // CanonicalObservations that aren't bound to a real channel row.
+  // Load the attribute vocabulary so the adapter resolves raw extraction keys
+  // to canonical codes (recognized) or `custom.<slug>` (unrecognized) instead
+  // of dumping raw page keys into the catalog as first-class attributes.
+  const vocabulary = await loadAttributeVocabulary(db);
+
   const adapterOutput = adapter.adapt(
     { sku: adapterSku, sourceUrl, observedAt, artifactId },
     {
@@ -213,11 +268,7 @@ export async function runNewLinkCatalogPath(
       channelId: channelId ?? PLACEHOLDER_CHANNEL_ID,
       channelDefaultCurrency,
       channelDefaultLocale,
-      // Phase 4 v1: empty arrays — adapters fall back to default rules.
-      // Phase 5+ will load real definitions / synonyms from
-      // `attribute_definitions` + `attribute_synonyms`.
-      attributeDefinitions: [],
-      attributeSynonyms: [],
+      ...vocabulary,
     }
   );
 
