@@ -1,0 +1,1052 @@
+# GENERATED — shared canonical attributes (Shopify-sourced; tiers live on node_attributes).
+attributes:
+  - handle: age-group
+    label: Age group
+    values:
+      - 0-6 months
+      - 6-12 months
+      - 1-2 years
+      - Adults
+      - All ages
+      - Babies
+      - Kids
+      - Newborn
+      - Teens
+      - Toddlers
+      - Universal
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: care-instructions
+    label: Care instructions
+    values:
+      - Dry clean only
+      - Dryer safe
+      - Hand wash
+      - Ironing instructions
+      - Machine washable
+      - Tumble dry
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: clothing-features
+    label: Clothing features
+    values:
+      - Hypoallergenic
+      - Insulated
+      - Moisture wicking
+      - Quick drying
+      - Reversible
+      - Stretchable
+      - UV protection
+      - Vegan friendly
+      - Water resistant
+      - Windproof
+      - Wrinkle resistant
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: color
+    label: Color
+    values:
+      - Beige
+      - Black
+      - Blue
+      - Bronze
+      - Brown
+      - Clear
+      - Gold
+      - Gray
+      - Green
+      - Multicolor
+      - Navy
+      - Orange
+      - Pink
+      - Purple
+      - Red
+      - Rose gold
+      - Silver
+      - White
+      - Yellow
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: fabric
+    label: Fabric
+    values:
+      - Acrylic
+      - Angora
+      - Bamboo
+      - Canvas
+      - Cashmere
+      - Corduroy
+      - Cork
+      - Cotton
+      - Denim
+      - Faux fur
+      - Faux leather
+      - Felt
+      - Flannel
+      - Fleece
+      - Fur
+      - Hemp
+      - Jute
+      - Latex
+      - Leather
+      - Linen
+      - Lycra
+      - Lyocell
+      - Merino
+      - Mesh
+      - Modal
+      - Mohair
+      - Neoprene
+      - Nylon
+      - Plastic
+      - Plush
+      - Polyester
+      - Rattan
+      - Rayon
+      - Rubber
+      - Satin
+      - Sherpa
+      - Silk
+      - Suede
+      - Synthetic
+      - Terrycloth
+      - Tweed
+      - Twill
+      - Velour
+      - Velvet
+      - Vinyl
+      - Viscose
+      - Wool
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: neckline
+    label: Neckline
+    values:
+      - Asymmetric
+      - Bardot
+      - Boat
+      - Cowl
+      - Crew
+      - Halter
+      - Hooded
+      - Mandarin
+      - Mock
+      - Plunging
+      - Round
+      - Split
+      - Square
+      - Sweetheart
+      - Turtle
+      - V-neck
+      - Wrap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: pattern
+    label: Pattern
+    values:
+      - Abstract
+      - Animal
+      - Art
+      - Bead & reel
+      - Birds
+      - Brick
+      - Bull's eye
+      - Camouflage
+      - Characters
+      - Checkered
+      - Chevron
+      - Chinoiserie
+      - Christmas
+      - Collage
+      - Coral
+      - Damask
+      - Diagonal
+      - Diamond
+      - Dog's tooth
+      - Dots
+      - Egg & dart
+      - Ethnic
+      - Everlasting knot
+      - Floral
+      - Fret
+      - Geometric
+      - Guilloche
+      - Hearts
+      - Illusion
+      - Lace
+      - Leaves
+      - Logo
+      - Mosaic
+      - Ogee
+      - Organic
+      - Paisley
+      - Plaid
+      - Rainbow
+      - Random
+      - Scale
+      - Scroll
+      - Solid
+      - Stars
+      - Striped
+      - Swirl
+      - Text
+      - Texture
+      - Tie-dye
+      - Trellis
+      - Vehicle
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: size
+    label: Size
+    values:
+      - Triple extra small (XXXS)
+      - Double extra small (XXS)
+      - Extra small (XS)
+      - Small (S)
+      - Medium (M)
+      - Large (L)
+      - Extra large (XL)
+      - Double extra large (XXL)
+      - Triple extra large (XXXL)
+      - Four extra large (4XL)
+      - Five extra large (5XL)
+      - Six extra large (6XL)
+      - '000'
+      - '00'
+      - '0'
+      - '1'
+      - '2'
+      - '4'
+      - '6'
+      - '8'
+      - '10'
+      - '12'
+      - '14'
+      - '16'
+      - '18'
+      - '20'
+      - '22'
+      - '24'
+      - '26'
+      - '28'
+      - '30'
+      - '32'
+      - '34'
+      - '36'
+      - '38'
+      - '40'
+      - '42'
+      - '44'
+      - '46'
+      - '48'
+      - '50'
+      - '52'
+      - '54'
+      - '56'
+      - '58'
+      - '60'
+      - 0-3 months
+      - 3-6 months
+      - 6-9 months
+      - 9-12 months
+      - 12-18 months
+      - 18-24 months
+      - 2-3 years
+      - 3-4 years
+      - 4-5 years
+      - 5-6 years
+      - One size
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: sleeve-length-type
+    label: Sleeve length type
+    values:
+      - 3/4
+      - Cap
+      - Long
+      - Short
+      - Sleeveless
+      - Spaghetti strap
+      - Strapless
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: target-gender
+    label: Target gender
+    values:
+      - Female
+      - Male
+      - Unisex
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: top-length-type
+    label: Top length type
+    values:
+      - Bodysuit
+      - Crop top
+      - Long
+      - Medium
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-13-8
+  - handle: fit
+    label: Fit
+    values:
+      - Boyfriend
+      - Mom
+      - Skinny leg
+      - Slim
+      - Straight leg
+      - Tapered leg
+      - Wide
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-12-4
+  - handle: pants-length-type
+    label: Pants length type
+    values:
+      - Above the knee
+      - Capri
+      - Cropped
+      - Footed
+      - Knee
+      - Long
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-12-4
+  - handle: waist-rise
+    label: Waist rise
+    values:
+      - High
+      - Low
+      - Mid
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-12-4
+  - handle: skirt-style
+    label: Skirt style
+    values:
+      - Bracer
+      - Circle
+      - Denim
+      - Gathered
+      - Kilt
+      - Layered
+      - Pencil
+      - Pleated
+      - Plisse
+      - Prairie
+      - Sheath
+      - Skirtall
+      - Tailored
+      - Tutu
+      - Wrap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-15
+  - handle: skirt-dress-length-type
+    label: Skirt/Dress length type
+    values:
+      - Knee
+      - Maxi
+      - Midi
+      - Mini
+      - Short
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-15
+  - handle: dress-occasion
+    label: Dress occasion
+    values:
+      - Birthday
+      - Casual
+      - Dance
+      - Everyday
+      - Formal
+      - Holiday
+      - Pageant
+      - Party
+      - Portrait
+      - Religious ceremony
+      - School
+      - Wedding
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-4
+  - handle: dress-style
+    label: Dress style
+    values:
+      - A-line
+      - Babydoll
+      - Blouson
+      - Caftan
+      - Drop waist
+      - Empire waist
+      - Flared
+      - Gown
+      - Jacket
+      - Mermaid
+      - Pencil
+      - Peplum
+      - Sheath
+      - Shift
+      - Shirt
+      - Skater
+      - Slip
+      - Sweater
+      - Tank
+      - Trumpet
+      - Wrap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-1-4
+  - handle: closure-type
+    label: Closure type
+    values:
+      - Adjustable straps
+      - Adjustable/Pull
+      - Buckles
+      - Buttons
+      - Clasp
+      - Clip-on
+      - Drawstring
+      - Elastic
+      - Hook & eye
+      - Hook & loop
+      - Lace-up
+      - Magnetic
+      - None
+      - Screw-on
+      - Slip-on
+      - Snap
+      - Straps
+      - Ties
+      - Toggle
+      - Velcro
+      - Zipper
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: footwear-material
+    label: Footwear material
+    values:
+      - Canvas
+      - Cotton
+      - Faux fur
+      - Faux leather
+      - Fleece
+      - Leather
+      - Linen
+      - Mesh
+      - Neoprene
+      - Nylon
+      - Plastic
+      - Polyester
+      - Polyvinyl chloride (PVC)
+      - Rubber
+      - Satin
+      - Silk
+      - Spandex
+      - Suede
+      - Synthetic
+      - Thermoplastic polyurethane (TPU)
+      - Wool
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: heel-height-type
+    label: Heel height type
+    values:
+      - Flat
+      - High
+      - Low
+      - Mid
+      - Very high
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: occasion-style
+    label: Occasion style
+    values:
+      - Casual
+      - Dress
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: shoe-features
+    label: Shoe features
+    values:
+      - Anti-microbial
+      - Arch support
+      - Breathable design
+      - Cushioned
+      - Eco friendly
+      - Lightweight
+      - Orthopedic
+      - Recycled materials
+      - Slip resistant
+      - Sustainable sourcing
+      - Vegan friendly
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: shoe-fit
+    label: Shoe fit
+    values:
+      - Narrow
+      - Regular
+      - Wide
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: shoe-size
+    label: Shoe size
+    values:
+      - Extra small (XS)
+      - Small (S)
+      - Medium (M)
+      - Large (L)
+      - Extra large (XL)
+      - Double extra large (XXL)
+      - Triple extra large (XXXL)
+      - '0'
+      - '0.5'
+      - '1'
+      - '1.5'
+      - '2'
+      - '2.5'
+      - '3'
+      - '3.5'
+      - '4'
+      - '4.5'
+      - '5'
+      - '5.5'
+      - '6'
+      - '6.5'
+      - '7'
+      - '7.5'
+      - '8'
+      - '8.5'
+      - '9'
+      - '9.5'
+      - '10'
+      - '10.5'
+      - '11'
+      - '11.5'
+      - '12'
+      - '12.5'
+      - '13'
+      - '13.5'
+      - '14'
+      - '14.5'
+      - '15'
+      - '15.5'
+      - '16'
+      - '16.5'
+      - '17'
+      - '17.5'
+      - '18'
+      - '18.5'
+      - '19'
+      - '19.5'
+      - '20'
+      - '20.5'
+      - '21'
+      - '21.5'
+      - '22'
+      - '22.5'
+      - '23'
+      - '23.5'
+      - '24'
+      - '24.5'
+      - '25'
+      - '25.5'
+      - '26'
+      - '26.5'
+      - '27'
+      - '27.5'
+      - '28'
+      - '28.5'
+      - '29'
+      - '29.5'
+      - '30'
+      - '30.5'
+      - '31'
+      - '31.5'
+      - '32'
+      - '32.5'
+      - '33'
+      - '33.5'
+      - '34'
+      - '34.5'
+      - '35'
+      - '35.5'
+      - '36'
+      - '36.5'
+      - '37'
+      - '37.5'
+      - '38'
+      - '38.5'
+      - '39'
+      - '39.5'
+      - '40'
+      - '40.5'
+      - '41'
+      - '41.5'
+      - '42'
+      - '42.5'
+      - '43'
+      - '43.5'
+      - '44'
+      - '44.5'
+      - '45'
+      - '45.5'
+      - '46'
+      - '46.5'
+      - '47'
+      - '47.5'
+      - '48'
+      - '48.5'
+      - '49'
+      - '49.5'
+      - '50'
+      - '50.5'
+      - '51'
+      - '51.5'
+      - '52'
+      - '52.5'
+      - '53'
+      - '53.5'
+      - '54'
+      - '54.5'
+      - '55'
+      - '55.5'
+      - '56'
+      - '56.5'
+      - '57'
+      - '57.5'
+      - '58'
+      - '58.5'
+      - '59'
+      - '59.5'
+      - '60'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: sneaker-style
+    label: Sneaker style
+    values:
+      - Athletic
+      - Fashion
+      - High-top
+      - Low-top
+      - Slip-on
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: toe-style
+    label: Toe style
+    values:
+      - Almond
+      - Cap
+      - Moc
+      - Open
+      - Peep
+      - Pointed
+      - Round
+      - Square
+      - Wingtip
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-8
+  - handle: boot-style
+    label: Boot style
+    values:
+      - Biker
+      - Boot
+      - Booties
+      - Chelsea
+      - Chukka
+      - Classic
+      - Combat
+      - Cowboy
+      - Cut-out
+      - Duck
+      - Hiking
+      - Indian
+      - Rain
+      - Riding
+      - Sheepskin
+      - Slouch
+      - Snow
+      - Sock
+      - Strap
+      - Winter
+      - Work
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-3
+  - handle: sandal-style
+    label: Sandal style
+    values:
+      - Ankle strap
+      - Clogs
+      - Comfort
+      - Fisherman
+      - Flip-flop
+      - Gladiator
+      - Huarache
+      - Lace-up
+      - Mule flat
+      - Slide
+      - Slingback
+      - T-strap
+      - Thong
+      - Toe ring
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-6
+  - handle: heel-shoe-type
+    label: Heel shoe type
+    values:
+      - Ankle-strap d'Orsay
+      - Ankle-strap pumps
+      - Brogues heels
+      - Classic d'Orsay
+      - Classic pumps
+      - Loafer pumps
+      - Mary-Jane heels
+      - Mule heels
+      - Oxford heels
+      - Platform heels
+      - Slingback d'Orsay
+      - Slingback heels
+      - T-strap d'Orsay
+      - T-strap pumps
+      - Wedge heels
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-8-10
+  - handle: bag-case-closure
+    label: bag-case-closure
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-1
+  - handle: bag-case-features
+    label: Bag/Case features
+    values:
+      - Adjustable size
+      - Anti-theft
+      - Convertible
+      - Dustproof
+      - Easy to install
+      - Fire resistant
+      - Four-wheel spinner
+      - Internal padding
+      - Lightweight
+      - Lockable
+      - Luggage tag
+      - Reflective
+      - RFID protection
+      - Shockproof
+      - TSA approved
+      - Vegan friendly
+      - Waterproof
+      - Wheeled
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-1
+  - handle: bag-case-material
+    label: Bag/Case material
+    values:
+      - Acrylic
+      - Alcantara
+      - Aluminum
+      - Burlap
+      - Canvas
+      - Carbon fiber
+      - Cordura
+      - Cotton
+      - Denim
+      - Ethylene vinyl acetate (EVA)
+      - Faux leather
+      - Felt
+      - Fiberglass
+      - Leather
+      - Leatherette
+      - Linen
+      - Memory foam
+      - Mesh
+      - Metal
+      - Microfiber
+      - Neoprene
+      - Nylon
+      - Plastic
+      - Polyester
+      - Polyvinyl chloride (PVC)
+      - Ripstop
+      - Synthetic
+      - Thermoplastic polyurethane (TPU)
+      - Tweed
+      - Velvet
+      - Vinyl
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-1
+  - handle: bag-case-storage-features
+    label: Bag/Case storage features
+    values:
+      - Adjustable dividers
+      - Bow holders
+      - Built-in compartments
+      - Clear window
+      - Elastic loops
+      - External pockets
+      - Garment mesh
+      - Hanging toiletry
+      - Hidden pockets
+      - Insulated bottle pocket
+      - Keychain holder
+      - Laptop compartment
+      - Mallet holders
+      - Protective sleeves
+      - Removable pouch
+      - Sheet music pocket
+      - Single compartment
+      - Water bottle holder
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-1
+  - handle: carry-options
+    label: Carry options
+    values:
+      - Backpack strap
+      - Belt loops
+      - Chest/Waist strap
+      - Crossbody strap
+      - Detachable strap
+      - Handle
+      - Shoulder strap
+      - Stroller strap
+      - Trolley sleeve
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-1
+  - handle: luggage-bag-closure
+    label: luggage-bag-closure
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-1
+  - handle: spinner-type
+    label: Spinner type
+    values:
+      - 2-wheel
+      - 4-wheel
+      - 8-wheel
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-12
+  - handle: suitcase-handle-type
+    label: Suitcase handle type
+    values:
+      - Side carry
+      - Telescopic
+      - Top carry
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: lb-12
+  - handle: wallet-features
+    label: Wallet features
+    values:
+      - Card organization
+      - Compact design
+      - RFID protection
+      - Vegan friendly
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-5
+  - handle: eyewear-frame-color
+    label: eyewear-frame-color
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: eyewear-frame-design
+    label: Eyewear frame design
+    values:
+      - Aviator
+      - Cat-eye
+      - Rectangle
+      - Round
+      - Wayfarer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: eyewear-frame-material
+    label: Eyewear frame material
+    values:
+      - Acetate
+      - Bamboo
+      - Carbon fiber
+      - Metal
+      - Plastic
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: eyewear-frame-pattern
+    label: eyewear-frame-pattern
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: eyewear-lens-material
+    label: Eyewear lens material
+    values:
+      - CR-39
+      - Glass
+      - High-index plastic
+      - Nylon
+      - Plastic
+      - Polycarbonate (PC)
+      - Thermoplastic polyurethane (TPU)
+      - Trivex
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: lens-color
+    label: lens-color
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: lens-pattern
+    label: lens-pattern
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: lens-polarization
+    label: Lens polarization
+    values:
+      - Non-polarized
+      - Photo polarized
+      - Polarized
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: temple-color
+    label: temple-color
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
+  - handle: temple-pattern
+    label: temple-pattern
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-2-27
