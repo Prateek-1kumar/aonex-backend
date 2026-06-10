@@ -1,0 +1,9 @@
+# Media & Entertainment — CURATION MAP.
+department: Media & Entertainment
+tree:
+  - category: Books
+    leaves: { Books: auto }
+  - category: Movies & TV
+    leaves: { DVDs: auto, Blu-ray Discs: auto }
+  - category: Music & Instruments
+    leaves: { Guitars: auto, Drums: auto, Keyboards & Pianos: auto }

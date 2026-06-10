@@ -1,0 +1,5 @@
+# Baby & Kids — CURATION MAP. (Baby/kids CLOTHING lives in Fashion via age_group.)
+department: Baby & Kids
+tree:
+  - category: Baby Products
+    leaves: { Diapers: auto, Baby Bottles: auto, Strollers: auto, Car Seats: auto, Baby Monitors: auto }

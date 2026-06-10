@@ -1,0 +1,7 @@
+# Health & Wellness — CURATION MAP.
+department: Health & Wellness
+tree:
+  - category: Medical Supplies
+    leaves: { First Aid Kits: auto, Thermometers: auto, Blood Pressure Monitors: auto }
+  - category: Vitamins & Supplements
+    leaves: { Vitamins: auto, Dietary Supplements: auto, Protein Supplements: auto }

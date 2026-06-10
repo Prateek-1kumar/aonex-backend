@@ -1,0 +1,9 @@
+# Gifts & Occasions — CURATION MAP.
+department: Gifts & Occasions
+tree:
+  - category: Gifts
+    leaves: { Greeting Cards: auto, Gift Wrapping: auto }
+  - category: Party Supplies
+    leaves: { Balloons: auto, Party Decorations: auto, Disposable Tableware: auto }
+  - category: Event & Wedding
+    leaves: { Wedding Decorations: auto }

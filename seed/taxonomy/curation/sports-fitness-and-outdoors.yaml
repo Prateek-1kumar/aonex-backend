@@ -1,0 +1,9 @@
+# Sports, Fitness & Outdoors — CURATION MAP.
+department: Sports, Fitness & Outdoors
+tree:
+  - category: Sports & Fitness
+    leaves: { Treadmills: auto, Dumbbells: auto, Yoga Mats: auto, Exercise Bikes: auto, Resistance Bands: auto }
+  - category: Outdoor & Camping
+    leaves: { Tents: auto, Sleeping Bags: auto, Camping Stoves: auto, Coolers: auto }
+  - category: Cycling
+    leaves: { Bicycles: auto, Bicycle Helmets: auto, Bicycle Locks: auto }

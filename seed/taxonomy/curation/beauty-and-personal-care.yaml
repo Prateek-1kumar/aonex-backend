@@ -1,0 +1,13 @@
+# Beauty & Personal Care — CURATION MAP.
+department: Beauty & Personal Care
+tree:
+  - category: Skincare
+    leaves: { Moisturizers: auto, Cleansers: auto, Serums: auto, Sunscreen: auto }
+  - category: Makeup
+    leaves: { Lipstick: auto, Foundations: auto, Mascara: auto, Eyeshadow: auto }
+  - category: Hair Care
+    leaves: { Shampoo: auto, Conditioner: auto, Hair Styling Products: auto }
+  - category: Fragrances & Perfumes
+    leaves: { Perfumes & Colognes: auto }
+  - category: Personal Care
+    leaves: { Electric Toothbrushes: auto, Razors: auto, Nail Polish: auto }
