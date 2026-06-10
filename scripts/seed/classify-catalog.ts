@@ -90,7 +90,7 @@ try {
     const detail = r.outcome === "assign" ? r.nodeId : r.outcome === "propose_node" ? `propose "${r.proposedNode?.suggestedName}" under ${r.proposedNode?.parentId}` : "→ Lab";
     console.log(`  ${title.slice(0, 40).padEnd(41)} ${r.outcome.padEnd(8)} ${detail}${attrNote}`);
     if (apply && r.outcome === "assign" && r.nodeId) {
-      await db.update(schema.catalogProducts).set({ categoryNodeId: r.nodeId }).where(eq(schema.catalogProducts.productId, p.productId));
+      await db.update(schema.catalogProducts).set({ categoryNodeId: r.nodeId, categorySource: "auto" }).where(eq(schema.catalogProducts.productId, p.productId));
       wrote++;
     }
   }

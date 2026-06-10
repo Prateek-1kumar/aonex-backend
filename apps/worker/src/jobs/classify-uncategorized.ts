@@ -57,7 +57,7 @@ export async function runClassifyUncategorized(db: DrizzleClient, logger?: Logge
     };
     const r = await classifyWithFallback(signals, index, deterministicResolver);
     if (r.outcome === "assign" && r.nodeId) {
-      await db.update(schema.catalogProducts).set({ categoryNodeId: r.nodeId }).where(eq(schema.catalogProducts.productId, p.productId));
+      await db.update(schema.catalogProducts).set({ categoryNodeId: r.nodeId, categorySource: "auto" }).where(eq(schema.catalogProducts.productId, p.productId));
       res.assigned++;
     } else if (r.outcome === "propose_node") {
       res.proposed++;

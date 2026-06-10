@@ -31,6 +31,12 @@ const MANUAL_FILE = join(ROOT, "seed/taxonomy/manual-schemas.yaml");
 const MANUAL_SCHEMAS: Record<string, { key: string; tier: string; values?: string[] }[]> = existsSync(MANUAL_FILE)
   ? ((yaml.load(readFileSync(MANUAL_FILE, "utf8")) as { schemas?: Record<string, { key: string; tier: string; values?: string[] }[]> })?.schemas ?? {})
   : {};
+// Google export ids for manual leaves (no Shopify match, but a Google category exists).
+const MANUAL_GOOGLE: Record<string, string> = {
+  "electronics/mobile-phones-and-accessories/mobile-phones": "267",
+  "digital-products/software/computer-software": "313",
+  "garden-and-outdoor/outdoor-living/outdoor-heaters": "2649",
+};
 const SHOPIFY_TAG = "v2026-02";
 const BASE = `https://raw.githubusercontent.com/Shopify/product-taxonomy/${SHOPIFY_TAG}/dist/en`;
 
@@ -152,7 +158,7 @@ function buildLeaf(name: string, gidOrAuto: string, refs: Refs, attrAcc: Map<str
       if (existing) for (const v of a.values ?? []) existing.values.add(v);
       else attrAcc.set(a.key, { handle: a.key, label: titleCase(a.key), values: new Set(a.values ?? []), provenance: { sources: [{ system: "manual" }] } });
     }
-    return { name, shopify_ref: null, google_id: null, manual: true, attributes: ms.map((a) => ({ key: a.key, tier: a.tier })) };
+    return { name, shopify_ref: null, google_id: MANUAL_GOOGLE[nodeId] ?? null, manual: true, attributes: ms.map((a) => ({ key: a.key, tier: a.tier })) };
   }
   if (gid === "auto") {
     const resolved = resolveGeneric(refs, name);

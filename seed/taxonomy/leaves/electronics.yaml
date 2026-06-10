@@ -8,7 +8,7 @@ categories:
       - node_id: electronics/mobile-phones-and-accessories/mobile-phones
         name: Mobile Phones
         shopify_ref: null
-        google_id: null
+        google_id: '267'
         manual: true
         attributes:
           - key: brand

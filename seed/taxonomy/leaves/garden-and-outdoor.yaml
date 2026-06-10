@@ -127,7 +127,7 @@ categories:
       - node_id: garden-and-outdoor/outdoor-living/outdoor-heaters
         name: Outdoor Heaters
         shopify_ref: null
-        google_id: null
+        google_id: '2649'
         manual: true
         attributes:
           - key: fuel-type
