@@ -8,6 +8,7 @@ import { Hono } from "hono";
 import type { AuditEmitter } from "@aonex/audit";
 import type { DrizzleClient } from "@aonex/db";
 import { listQueue, queueStats, getStaged, getEvidence, approveStaged, rejectStaged, linkStaged } from "../handlers/anomaly-lab.js";
+import { searchTaxonomy, listUncategorized, categorizeProduct } from "../handlers/lab-taxonomy.js";
 
 export interface AnomalyLabRouteDeps {
   db: DrizzleClient;
@@ -23,5 +24,9 @@ export function anomalyLabRoutes(deps: AnomalyLabRouteDeps): Hono {
   app.post("/staged/:id/approve", (c) => approveStaged(c, deps));
   app.post("/staged/:id/reject", (c) => rejectStaged(c, deps));
   app.post("/staged/:id/link", (c) => linkStaged(c, deps));
+  // Taxonomy category-picker + learning loop (P1.4)
+  app.get("/taxonomy/search", (c) => searchTaxonomy(c, deps));
+  app.get("/taxonomy/uncategorized", (c) => listUncategorized(c, deps));
+  app.post("/products/:id/categorize", (c) => categorizeProduct(c, deps));
   return app;
 }
