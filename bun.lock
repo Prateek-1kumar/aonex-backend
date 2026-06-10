@@ -399,6 +399,14 @@
       "name": "@aonex/taxonomy-classifier",
       "version": "0.0.0",
     },
+    "packages/taxonomy-enrichment": {
+      "name": "@aonex/taxonomy-enrichment",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/taxonomy-validator": "workspace:*",
+        "zod": "^3.24.1",
+      },
+    },
     "packages/taxonomy-validator": {
       "name": "@aonex/taxonomy-validator",
       "version": "0.0.0",
@@ -495,6 +503,8 @@
     "@aonex/selector-health": ["@aonex/selector-health@workspace:packages/selector-health"],
 
     "@aonex/taxonomy-classifier": ["@aonex/taxonomy-classifier@workspace:packages/taxonomy-classifier"],
+
+    "@aonex/taxonomy-enrichment": ["@aonex/taxonomy-enrichment@workspace:packages/taxonomy-enrichment"],
 
     "@aonex/taxonomy-validator": ["@aonex/taxonomy-validator@workspace:packages/taxonomy-validator"],
 
