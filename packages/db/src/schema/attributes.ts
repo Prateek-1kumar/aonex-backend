@@ -54,6 +54,9 @@ export const attributeDefinitions = pgTable(
     /** active | candidate | deprecated */
     status: varchar("status", { length: 20 }).notNull().default("active"),
     proposedFromProductId: uuid("proposed_from_product_id"),
+    // Taxonomy spine (P0) — which external standard(s) this attribute/value-set was
+    // sourced or merged from, e.g. {"sources":[{"system":"shopify","ref":"gid://…/2777"}]}.
+    provenance: jsonb("provenance").$type<{ sources?: { system: string; ref?: string }[] }>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
