@@ -23,12 +23,20 @@ export async function listProducts(c: Context, deps: CatalogRouteDeps): Promise<
   // limit falls through to the service default rather than erroring.
   const rawLimit = Number(c.req.query("limit"));
   const cursor = c.req.query("cursor");
+  // Marketplace browse filters: ?category=<nodeId> (includes descendants),
+  // ?uncategorized=true (no taxonomy assignment), ?q= (title/brand search).
+  const category = c.req.query("category");
+  const uncategorized = c.req.query("uncategorized") === "true";
+  const q = c.req.query("q");
 
   const { products, nextCursor, total } = await listCatalogProducts(deps.db, {
     tenantId,
     merchantId,
     ...(Number.isFinite(rawLimit) && rawLimit > 0 ? { limit: rawLimit } : {}),
     ...(cursor ? { cursor } : {}),
+    ...(category ? { categoryNodeId: category } : {}),
+    ...(uncategorized ? { uncategorized: true } : {}),
+    ...(q ? { q } : {}),
   });
   return c.json({ data: { products, nextCursor, total } });
 }
