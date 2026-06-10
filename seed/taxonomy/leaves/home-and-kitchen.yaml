@@ -14,6 +14,8 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: control-type
             tier: optional
           - key: energy-efficiency-class
@@ -22,8 +24,6 @@ categories:
             tier: optional
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
           - key: washing-machine-features
@@ -39,16 +39,16 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: energy-efficiency-class
             tier: optional
           - key: finish
             tier: optional
-          - key: material
-            tier: required
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
           - key: refrigerator-configuration
@@ -64,10 +64,12 @@ categories:
         google_id: '619'
         google_path: Home & Garden > Household Appliances > Vacuums
         attributes:
-          - key: cleaning-surfaces
-            tier: optional
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
+          - key: cleaning-surfaces
+            tier: optional
           - key: dirt-separating-method
             tier: optional
           - key: dry-wet-cleaning
@@ -76,8 +78,6 @@ categories:
             tier: optional
           - key: energy-efficiency-class
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
           - key: vacuum-air-filtering-technology
@@ -91,12 +91,12 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: energy-efficiency-class
             tier: optional
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
       - node_id: home-and-kitchen/home-appliances/microwave-ovens
@@ -108,18 +108,18 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: control-type
             tier: optional
           - key: energy-efficiency-class
             tier: optional
-          - key: material
-            tier: required
           - key: microwave-oven-functions
             tier: optional
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
           - key: turntable-type
@@ -134,12 +134,12 @@ categories:
         google_id: '4474'
         google_path: Business & Industrial > Science & Laboratory > Laboratory Equipment > Laboratory Blenders
         attributes:
-          - key: blending-type
-            tier: optional
           - key: color
             tier: required
           - key: pattern
             tier: recommended
+          - key: blending-type
+            tier: optional
       - node_id: home-and-kitchen/kitchen-appliances/coffee-makers
         name: Coffee Makers
         shopify_ref: fb-1-3
@@ -172,12 +172,12 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: energy-efficiency-class
-            tier: optional
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: energy-efficiency-class
+            tier: optional
           - key: power-source
             tier: optional
           - key: temperature-control
@@ -191,21 +191,19 @@ categories:
         google_id: '6497'
         google_path: Home & Garden > Kitchen & Dining > Kitchen Tools & Utensils > Salad Dressing Mixers & Shakers
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: bottle-container-closure
             tier: optional
           - key: cleaning-instructions
             tier: optional
-          - key: color
-            tier: required
-          - key: handle-material
-            tier: optional
           - key: lid-type
             tier: optional
           - key: mixing-mechanism
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: tool-utensil-material
             tier: optional
       - node_id: home-and-kitchen/kitchen-appliances/electric-kettles
         name: Electric Kettles
@@ -216,14 +214,14 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: electric-kettle-features
-            tier: optional
-          - key: energy-efficiency-class
-            tier: optional
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: electric-kettle-features
+            tier: optional
+          - key: energy-efficiency-class
+            tier: optional
           - key: power-source
             tier: optional
           - key: temperature-control
@@ -238,25 +236,15 @@ categories:
         google_id: '460'
         google_path: Furniture > Sofas
         attributes:
-          - key: backrest-upholstery-color
-            tier: optional
-          - key: backrest-upholstery-material
-            tier: optional
-          - key: backrest-upholstery-pattern
-            tier: optional
           - key: color
             tier: required
-          - key: firmness
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
+          - key: firmness
+            tier: optional
           - key: seat-type
-            tier: optional
-          - key: seat-upholstery-color
-            tier: optional
-          - key: seat-upholstery-material
-            tier: optional
-          - key: seat-upholstery-pattern
             tier: optional
           - key: sofa-features
             tier: optional
@@ -267,12 +255,12 @@ categories:
         google_id: '6433'
         google_path: Furniture > Beds & Accessories
         attributes:
-          - key: bedding-size
-            tier: optional
           - key: color
             tier: required
           - key: pattern
             tier: recommended
+          - key: bedding-size
+            tier: optional
       - node_id: home-and-kitchen/furniture/chairs
         name: Chairs
         shopify_ref: fr-7
@@ -280,17 +268,17 @@ categories:
         google_id: '443'
         google_path: Furniture > Chairs
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: backrest-type
             tier: optional
           - key: chair-features
             tier: optional
-          - key: color
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: seat-type
-            tier: optional
-          - key: upholstery-material
             tier: optional
       - node_id: home-and-kitchen/furniture/tables
         name: Tables
@@ -299,18 +287,12 @@ categories:
         google_id: '6392'
         google_path: Furniture > Tables
         attributes:
-          - key: leg-color
-            tier: optional
-          - key: leg-material
-            tier: optional
-          - key: leg-pattern
-            tier: optional
-          - key: tabletop-color
-            tier: optional
-          - key: tabletop-material
-            tier: optional
-          - key: tabletop-pattern
-            tier: optional
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: tabletop-shape
             tier: optional
       - node_id: home-and-kitchen/furniture/desks
@@ -320,25 +302,13 @@ categories:
         google_id: '4191'
         google_path: Furniture > Office Furniture > Desks
         attributes:
-          - key: frame-color
-            tier: optional
-          - key: frame-material
-            tier: optional
-          - key: frame-pattern
-            tier: optional
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: furniture-fixture-features
-            tier: optional
-          - key: leg-color
-            tier: optional
-          - key: leg-material
-            tier: optional
-          - key: leg-pattern
-            tier: optional
-          - key: tabletop-color
-            tier: optional
-          - key: tabletop-material
-            tier: optional
-          - key: tabletop-pattern
             tier: optional
           - key: tabletop-shape
             tier: optional
@@ -351,8 +321,8 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: furniture-fixture-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
   - name: Home Decor
@@ -365,21 +335,19 @@ categories:
         google_id: '598'
         google_path: Home & Garden > Decor > Rugs
         attributes:
-          - key: allergy-friendly-features
-            tier: optional
-          - key: backing-material
-            tier: optional
-          - key: care-instructions
-            tier: optional
           - key: color
+            tier: required
+          - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: allergy-friendly-features
+            tier: optional
+          - key: care-instructions
+            tier: optional
           - key: pile-type
             tier: optional
           - key: rug-features
-            tier: optional
-          - key: rug-material
             tier: optional
           - key: rug-shape
             tier: optional
@@ -394,24 +362,24 @@ categories:
         google_id: '2882'
         google_path: Home & Garden > Decor > Window Treatments > Curtains & Drapes
         attributes:
-          - key: care-instructions
-            tier: optional
           - key: color
             tier: required
+          - key: fabric
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: care-instructions
+            tier: optional
           - key: curtain-heading-style
             tier: optional
           - key: curtain-lining-type
             tier: optional
-          - key: fabric
-            tier: required
           - key: light-control
             tier: optional
-          - key: material
-            tier: required
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: home-and-kitchen/home-decor/wall-art
         name: Wall Art
         shopify_ref: hg-3-4
@@ -419,24 +387,22 @@ categories:
         google_id: '9'
         google_path: Home & Garden > Decor > Artwork
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: art-movement
             tier: optional
           - key: artwork-authenticity
             tier: optional
-          - key: artwork-frame-material
-            tier: optional
-          - key: color
-            tier: required
           - key: condition
-            tier: optional
-          - key: decoration-material
             tier: optional
           - key: frame-style
             tier: optional
           - key: orientation
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: theme
             tier: optional
       - node_id: home-and-kitchen/home-decor/mirrors
@@ -448,22 +414,22 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: edge-style
             tier: optional
           - key: frame-design
             tier: optional
           - key: lighting-options
             tier: optional
-          - key: material
-            tier: required
           - key: mirror-type
             tier: optional
           - key: mounting-type
             tier: optional
           - key: orientation
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: shape
             tier: optional
       - node_id: home-and-kitchen/home-decor/vases
@@ -475,14 +441,12 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: decoration-material
-            tier: optional
-          - key: item-style
-            tier: optional
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: item-style
+            tier: optional
           - key: vase-shape
             tier: optional
   - name: Lighting
@@ -495,23 +459,19 @@ categories:
         google_id: '4636'
         google_path: Home & Garden > Lighting > Lamps
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: bulb-cap-type
             tier: optional
           - key: bulb-size
             tier: optional
           - key: bulb-type
             tier: optional
-          - key: color
-            tier: required
           - key: energy-efficiency-class
-            tier: optional
-          - key: furniture-fixture-material
-            tier: optional
-          - key: glazing-material
-            tier: optional
-          - key: light-color
-            tier: optional
-          - key: light-pattern
             tier: optional
           - key: light-temperature
             tier: optional
@@ -519,8 +479,6 @@ categories:
             tier: optional
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
           - key: switch-control-type
@@ -532,22 +490,18 @@ categories:
         google_id: '594'
         google_path: Home & Garden > Lighting
         attributes:
-          - key: bulb-size
-            tier: optional
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
+          - key: bulb-size
+            tier: optional
           - key: energy-efficiency-class
-            tier: optional
-          - key: light-color
-            tier: optional
-          - key: light-pattern
             tier: optional
           - key: light-temperature
             tier: optional
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: home-and-kitchen/lighting/light-bulbs
         name: Light Bulbs
         shopify_ref: hg-13-7
@@ -555,6 +509,10 @@ categories:
         google_id: '2425'
         google_path: Home & Garden > Lighting > Light Bulbs
         attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: bulb-cap-type
             tier: optional
           - key: bulb-finish
@@ -563,20 +521,12 @@ categories:
             tier: optional
           - key: bulb-size
             tier: optional
-          - key: color
-            tier: required
           - key: energy-efficiency-class
-            tier: optional
-          - key: light-color
-            tier: optional
-          - key: light-pattern
             tier: optional
           - key: light-temperature
             tier: optional
           - key: lighting-features
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: home-and-kitchen/lighting/string-lights
         name: String Lights
         shopify_ref: hg-13-8-2
@@ -602,18 +552,18 @@ categories:
         google_id: '2314'
         google_path: Home & Garden > Linens & Bedding > Bedding > Bed Sheets
         attributes:
-          - key: bedding-pieces-included
-            tier: optional
-          - key: bedding-size
-            tier: optional
-          - key: care-instructions
-            tier: optional
           - key: color
             tier: required
           - key: fabric
             tier: required
           - key: pattern
             tier: recommended
+          - key: bedding-pieces-included
+            tier: optional
+          - key: bedding-size
+            tier: optional
+          - key: care-instructions
+            tier: optional
           - key: product-certifications-standards
             tier: optional
       - node_id: home-and-kitchen/bedding-and-linen/pillows
@@ -623,26 +573,22 @@ categories:
         google_id: '2700'
         google_path: Home & Garden > Linens & Bedding > Bedding > Pillows
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: allergy-friendly-features
-            tier: optional
-          - key: co2-supplementation-requirement
             tier: optional
           - key: care-instructions
             tier: optional
+          - key: co2-supplementation-requirement
+            tier: optional
           - key: cover-closure-design
-            tier: optional
-          - key: cover-color
-            tier: optional
-          - key: cover-material
-            tier: optional
-          - key: cover-pattern
-            tier: optional
-          - key: filler-material
             tier: optional
           - key: filler-support
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: pillow-shape
             tier: optional
           - key: sleeping-position-suitability
@@ -654,18 +600,18 @@ categories:
         google_id: '505287'
         google_path: Home & Garden > Linens & Bedding > Bedding > Quilts & Comforters
         attributes:
-          - key: bedding-size
-            tier: optional
-          - key: care-instructions
-            tier: optional
           - key: color
             tier: required
           - key: fabric
             tier: required
-          - key: material-treatment
-            tier: optional
           - key: pattern
             tier: recommended
+          - key: bedding-size
+            tier: optional
+          - key: care-instructions
+            tier: optional
+          - key: material-treatment
+            tier: optional
           - key: quilt-construction-type
             tier: optional
           - key: warmth-level
@@ -677,20 +623,20 @@ categories:
         google_id: '1985'
         google_path: Home & Garden > Linens & Bedding > Bedding > Blankets
         attributes:
+          - key: color
+            tier: required
+          - key: fabric
+            tier: required
+          - key: material
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: bedding-size
             tier: optional
           - key: care-instructions
             tier: optional
-          - key: color
-            tier: required
-          - key: fabric
-            tier: required
-          - key: filler-material
-            tier: optional
-          - key: pattern
-            tier: recommended
           - key: season
             tier: optional
           - key: warmth-rating

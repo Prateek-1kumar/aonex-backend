@@ -27,20 +27,20 @@ categories:
         google_id: '517'
         google_path: Health & Beauty > Health Care > Incontinence Aids
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: absorbency-level
             tier: optional
           - key: accessory-size
             tier: optional
-          - key: color
-            tier: required
           - key: incontinence-aid-features
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
-          - key: target-gender
-            tier: required
           - key: usage-type
             tier: optional
       - node_id: beauty-and-personal-care/skincare/serums
@@ -50,10 +50,14 @@ categories:
         google_id: '567'
         google_path: Health & Beauty > Personal Care > Cosmetics > Skin Care
         attributes:
-          - key: active-ingredient
-            tier: optional
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
             tier: recommended
+          - key: active-ingredient
+            tier: optional
           - key: cosmetic-function
             tier: optional
           - key: dispenser-type
@@ -64,31 +68,11 @@ categories:
             tier: optional
           - key: ingredient-origin
             tier: optional
-          - key: material
-            tier: required
           - key: moisturizer-type
             tier: optional
           - key: package-type
             tier: optional
           - key: product-certifications-standards
-            tier: optional
-          - key: product-form
-            tier: optional
-          - key: spf-level
-            tier: optional
-          - key: serum-target-areas
-            tier: optional
-          - key: skin-care-effect
-            tier: optional
-          - key: skin-care-features
-            tier: optional
-          - key: suitable-for-skin-type
-            tier: optional
-          - key: target-gender
-            tier: required
-          - key: texture
-            tier: optional
-          - key: uva-protection-grade
             tier: optional
       - node_id: beauty-and-personal-care/skincare/sunscreen
         name: Sunscreen
@@ -97,6 +81,8 @@ categories:
         google_id: '2844'
         google_path: Health & Beauty > Personal Care > Cosmetics > Skin Care > Sunscreen
         attributes:
+          - key: material
+            tier: required
           - key: age-group
             tier: recommended
           - key: alcohol-solvent-content
@@ -115,27 +101,9 @@ categories:
             tier: optional
           - key: ingredient-origin
             tier: optional
-          - key: material
-            tier: required
           - key: pa-rating
             tier: optional
           - key: package-type
-            tier: optional
-          - key: product-certifications-standards
-            tier: optional
-          - key: product-form
-            tier: optional
-          - key: spf-level
-            tier: optional
-          - key: skin-care-effect
-            tier: optional
-          - key: skin-care-features
-            tier: optional
-          - key: suitable-for-skin-type
-            tier: optional
-          - key: sunscreen-filter-type
-            tier: optional
-          - key: uva-protection-grade
             tier: optional
   - name: Makeup
     node_id: beauty-and-personal-care/makeup
@@ -149,6 +117,10 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: cosmetic-finish
             tier: optional
           - key: coverage-level
@@ -165,23 +137,7 @@ categories:
             tier: optional
           - key: lipstick-effect
             tier: optional
-          - key: makeup-features
-            tier: optional
           - key: makeup-color-shade
-            tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
-          - key: product-certifications-standards
-            tier: optional
-          - key: product-form
-            tier: optional
-          - key: spf-level
-            tier: optional
-          - key: suitable-for-skin-type
-            tier: optional
-          - key: texture
             tier: optional
       - node_id: beauty-and-personal-care/makeup/foundations
         name: Foundations
@@ -190,6 +146,8 @@ categories:
         google_id: '2765'
         google_path: Health & Beauty > Personal Care > Cosmetics > Makeup > Face Makeup > Foundations & Concealers
         attributes:
+          - key: material
+            tier: required
           - key: cosmetic-finish
             tier: optional
           - key: coverage-level
@@ -200,25 +158,17 @@ categories:
             tier: optional
           - key: fragrance
             tier: optional
-          - key: makeup-features
-            tier: optional
           - key: makeup-color-shade
             tier: optional
-          - key: material
-            tier: required
+          - key: makeup-features
+            tier: optional
           - key: product-certifications-standards
             tier: optional
           - key: product-form
             tier: optional
-          - key: spf-level
-            tier: optional
           - key: skin-care-effect
             tier: optional
           - key: skin-tone
-            tier: optional
-          - key: skin-undertone
-            tier: optional
-          - key: suitable-for-skin-type
             tier: optional
       - node_id: beauty-and-personal-care/makeup/mascara
         name: Mascara
@@ -229,6 +179,10 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: coverage-level
             tier: optional
           - key: dispenser-type
@@ -237,27 +191,15 @@ categories:
             tier: optional
           - key: fragrance
             tier: optional
-          - key: makeup-features
-            tier: optional
           - key: makeup-color-shade
+            tier: optional
+          - key: makeup-features
             tier: optional
           - key: mascara-brush-shape
             tier: optional
           - key: mascara-effect
             tier: optional
           - key: mascara-formulation
-            tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
-          - key: product-certifications-standards
-            tier: optional
-          - key: product-form
-            tier: optional
-          - key: spf-level
-            tier: optional
-          - key: suitable-for-skin-type
             tier: optional
       - node_id: beauty-and-personal-care/makeup/eyeshadow
         name: Eyeshadow
@@ -268,6 +210,10 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: cosmetic-finish
             tier: optional
           - key: coverage-level
@@ -280,21 +226,11 @@ categories:
             tier: optional
           - key: fragrance
             tier: optional
-          - key: makeup-features
-            tier: optional
           - key: makeup-color-shade
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
+          - key: makeup-features
+            tier: optional
           - key: product-certifications-standards
-            tier: optional
-          - key: product-form
-            tier: optional
-          - key: spf-level
-            tier: optional
-          - key: suitable-for-skin-type
             tier: optional
   - name: Hair Care
     node_id: beauty-and-personal-care/hair-care
@@ -328,6 +264,10 @@ categories:
         google_id: '1901'
         google_path: Health & Beauty > Personal Care > Hair Care > Hair Styling Products
         attributes:
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
             tier: recommended
           - key: application-type
@@ -348,16 +288,6 @@ categories:
             tier: optional
           - key: hold-level
             tier: optional
-          - key: material
-            tier: required
-          - key: product-certifications-standards
-            tier: optional
-          - key: product-form
-            tier: optional
-          - key: suitable-for-hair-type
-            tier: optional
-          - key: target-gender
-            tier: required
   - name: Fragrances & Perfumes
     node_id: beauty-and-personal-care/fragrances-and-perfumes
     leaves:
@@ -368,6 +298,10 @@ categories:
         google_id: '479'
         google_path: Health & Beauty > Personal Care > Cosmetics > Perfume & Cologne
         attributes:
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
             tier: recommended
           - key: alcohol-solvent-content
@@ -378,8 +312,6 @@ categories:
             tier: optional
           - key: gift-set-format
             tier: optional
-          - key: material
-            tier: required
           - key: occasion
             tier: optional
           - key: olfactory-family
@@ -390,12 +322,6 @@ categories:
             tier: optional
           - key: scent
             tier: optional
-          - key: season
-            tier: optional
-          - key: suitable-for-skin-type
-            tier: optional
-          - key: target-gender
-            tier: required
   - name: Personal Care
     node_id: beauty-and-personal-care/personal-care
     leaves:
@@ -406,15 +332,19 @@ categories:
         google_id: '527'
         google_path: Health & Beauty > Personal Care > Oral Care > Toothbrushes
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
           - key: bristle-hardness
-            tier: optional
-          - key: bristle-material
             tier: optional
           - key: bristle-shape
             tier: optional
@@ -424,27 +354,7 @@ categories:
             tier: optional
           - key: cleaning-technology
             tier: optional
-          - key: color
-            tier: required
           - key: connectivity-technology
-            tier: optional
-          - key: firmness
-            tier: optional
-          - key: handle-material
-            tier: optional
-          - key: ingress-protection-ip-rating
-            tier: optional
-          - key: material
-            tier: required
-          - key: oral-care-function
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: product-form
-            tier: optional
-          - key: toothbrush-head-size
-            tier: optional
-          - key: usage-type
             tier: optional
       - node_id: beauty-and-personal-care/personal-care/razors
         name: Razors
@@ -453,26 +363,26 @@ categories:
         google_id: '532'
         google_path: Health & Beauty > Personal Care > Shaving & Grooming > Electric Razors
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
           - key: beard-care-benefits
             tier: optional
-          - key: color
-            tier: required
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: product-form
             tier: optional
           - key: razor-flexibility
             tier: optional
           - key: razor-head-design
             tier: optional
-          - key: target-gender
-            tier: required
           - key: usage-conditions
             tier: optional
       - node_id: beauty-and-personal-care/personal-care/nail-polish

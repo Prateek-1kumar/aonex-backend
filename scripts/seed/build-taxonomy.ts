@@ -27,6 +27,10 @@ const CACHE = join(ROOT, "seed/taxonomy/refs/.cache");
 const CURATION_DIR = join(ROOT, "seed/taxonomy/curation");
 const LEAVES_DIR = join(ROOT, "seed/taxonomy/leaves");
 const ATTR_OUT = join(ROOT, "seed/taxonomy/attribute-definitions.yaml");
+const MANUAL_FILE = join(ROOT, "seed/taxonomy/manual-schemas.yaml");
+const MANUAL_SCHEMAS: Record<string, { key: string; tier: string; values?: string[] }[]> = existsSync(MANUAL_FILE)
+  ? ((yaml.load(readFileSync(MANUAL_FILE, "utf8")) as { schemas?: Record<string, { key: string; tier: string; values?: string[] }[]> })?.schemas ?? {})
+  : {};
 const SHOPIFY_TAG = "v2026-02";
 const BASE = `https://raw.githubusercontent.com/Shopify/product-taxonomy/${SHOPIFY_TAG}/dist/en`;
 
@@ -126,11 +130,30 @@ function tierOf(handle: string): "required" | "recommended" | "optional" {
   return "optional";
 }
 
+// First-pass curation: merge near-duplicate handles and cap per-leaf breadth.
+const RENAME: Record<string, string> = { "recommended-age-group": "age-group" };
+function normHandle(h: string): string {
+  if (RENAME[h]) return RENAME[h];
+  for (const s of ["-color", "-pattern", "-material"]) if (h.endsWith(s) && h !== s.slice(1)) return s.slice(1);
+  return h;
+}
+const titleCase = (h: string) => h.split("-").map((w) => (w[0] ?? "").toUpperCase() + w.slice(1)).join(" ");
+const TIER_RANK: Record<string, number> = { required: 0, recommended: 1, optional: 2 };
+const LEAF_ATTR_CAP = 12;
+
 /** Resolve one leaf gid -> emitted leaf object + records its attribute defs. */
-function buildLeaf(name: string, gidOrAuto: string, refs: Refs, attrAcc: Map<string, unknown>) {
+function buildLeaf(name: string, gidOrAuto: string, refs: Refs, attrAcc: Map<string, unknown>, nodeId: string) {
   let gid = gidOrAuto;
-  // Intentional no-external-match leaf (e.g. Online Courses, Adult Products).
-  if (gid === "manual") return { name, shopify_ref: null, google_id: null, manual: true, attributes: [] };
+  // Intentional no-external-match leaf — attach a hand-authored schema if present.
+  if (gid === "manual") {
+    const ms = MANUAL_SCHEMAS[nodeId] ?? [];
+    for (const a of ms) {
+      const existing = attrAcc.get(a.key) as { values: Set<string> } | undefined;
+      if (existing) for (const v of a.values ?? []) existing.values.add(v);
+      else attrAcc.set(a.key, { handle: a.key, label: titleCase(a.key), values: new Set(a.values ?? []), provenance: { sources: [{ system: "manual" }] } });
+    }
+    return { name, shopify_ref: null, google_id: null, manual: true, attributes: ms.map((a) => ({ key: a.key, tier: a.tier })) };
+  }
   if (gid === "auto") {
     const resolved = resolveGeneric(refs, name);
     if (!resolved) return { name, shopify_ref: null, error: "auto: no generic Shopify match — pin an explicit gid" };
@@ -138,16 +161,25 @@ function buildLeaf(name: string, gidOrAuto: string, refs: Refs, attrAcc: Map<str
   }
   const cat = refs.byId.get(gid);
   if (!cat) return { name, shopify_ref: gid, error: "shopify gid not found" };
-  const handles = cat.attributes.map((a) => a.handle).filter((h) => !PRUNE_ATTRS.has(h));
-  for (const h of handles) {
-    if (attrAcc.has(h)) continue;
-    const av = refs.attrValues.get(h);
-    attrAcc.set(h, {
-      handle: h,
-      label: av?.label ?? h,
-      values: av?.values ?? [],
-      provenance: { sources: [{ system: "shopify", ref: gid }] },
-    });
+  // Normalize + merge near-duplicate handles (-color/-pattern/-material, renames),
+  // unioning their Shopify value sets.
+  const rawHandles = cat.attributes.map((a) => a.handle).filter((h) => !PRUNE_ATTRS.has(h));
+  const normValues = new Map<string, Set<string>>();
+  for (const rh of rawHandles) {
+    const nh = normHandle(rh);
+    const set = normValues.get(nh) ?? normValues.set(nh, new Set()).get(nh)!;
+    for (const v of refs.attrValues.get(rh)?.values ?? []) set.add(v);
+  }
+  // Cap leaf breadth: required first, then recommended, then optional; alpha within.
+  const capped = [...normValues.keys()]
+    .sort((a, b) => TIER_RANK[tierOf(a)]! - TIER_RANK[tierOf(b)]! || a.localeCompare(b))
+    .slice(0, LEAF_ATTR_CAP);
+  for (const nh of capped) {
+    const vals = normValues.get(nh)!;
+    for (const v of refs.attrValues.get(nh)?.values ?? []) vals.add(v);
+    const existing = attrAcc.get(nh) as { values: Set<string> } | undefined;
+    if (existing) for (const v of vals) existing.values.add(v);
+    else attrAcc.set(nh, { handle: nh, label: titleCase(nh), values: vals, provenance: { sources: [{ system: "shopify" }] } });
   }
   const g = refs.googleId.get(gid);
   return {
@@ -155,7 +187,7 @@ function buildLeaf(name: string, gidOrAuto: string, refs: Refs, attrAcc: Map<str
     shopify_ref: gid,
     shopify_path: cat.full_name,
     ...(g ? { google_id: g.id, google_path: g.path } : { google_id: null }),
-    attributes: handles.map((h) => ({ key: h, tier: tierOf(h) })),
+    attributes: capped.map((h) => ({ key: h, tier: tierOf(h) })),
   };
 }
 
@@ -170,10 +202,10 @@ function buildDept(map: CurationMap, refs: Refs, attrAcc: Map<string, unknown>) 
       const node: Record<string, unknown> = { name: c.category, node_id: [map.department, ...path].map(slug).join("/") };
       if (c.children) node.children = walk(c.children, path);
       if (c.leaves)
-        node.leaves = Object.entries(c.leaves).map(([n, gid]) => ({
-          node_id: [map.department, ...path, n].map(slug).join("/"),
-          ...buildLeaf(n, gid, refs, attrAcc),
-        }));
+        node.leaves = Object.entries(c.leaves).map(([n, gid]) => {
+          const nodeId = [map.department, ...path, n].map(slug).join("/");
+          return { node_id: nodeId, ...buildLeaf(n, gid, refs, attrAcc, nodeId) };
+        });
       return node;
     });
   return { department: map.department, node_id: slug(map.department), categories: walk(map.tree, []) };
@@ -210,7 +242,10 @@ async function main() {
     process.stdout.write(`${f}: ${leafCount} leaves\n`);
   }
 
-  const attrList = [...attrAcc.values()];
+  const attrList = [...attrAcc.values()].map((a) => {
+    const x = a as { handle: string; label: string; values: Set<string>; provenance: unknown };
+    return { handle: x.handle, label: x.label, values: [...x.values], provenance: x.provenance };
+  });
   writeFileSync(ATTR_OUT, "# GENERATED — shared canonical attributes (Shopify-sourced; tiers live on node_attributes).\n" + yaml.dump({ attributes: attrList }, { lineWidth: 200 }));
   process.stdout.write(`attribute-definitions.yaml: ${attrList.length} attributes\n`);
 }

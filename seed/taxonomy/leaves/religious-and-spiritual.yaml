@@ -12,10 +12,10 @@ categories:
         google_id: '97'
         google_path: Religious & Ceremonial > Religious Items
         attributes:
-          - key: age-group
-            tier: recommended
           - key: color
             tier: required
+          - key: age-group
+            tier: recommended
           - key: pattern
             tier: recommended
       - node_id: religious-and-spiritual/religious-and-spiritual-products/incense
@@ -25,18 +25,18 @@ categories:
         google_id: '3686'
         google_path: Home & Garden > Decor > Home Fragrances > Incense
         attributes:
-          - key: alcohol-solvent-content
-            tier: optional
           - key: color
             tier: required
-          - key: fragrance-level
-            tier: optional
-          - key: incense-type
-            tier: optional
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: alcohol-solvent-content
+            tier: optional
+          - key: fragrance-level
+            tier: optional
+          - key: incense-type
+            tier: optional
           - key: scent
             tier: optional
           - key: usage-type

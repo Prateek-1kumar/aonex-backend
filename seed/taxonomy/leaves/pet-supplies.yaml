@@ -31,16 +31,16 @@ categories:
         google_id: '2'
         google_path: Animals & Pet Supplies > Pet Supplies
         attributes:
-          - key: accessory-size
-            tier: optional
-          - key: animal-type
-            tier: optional
           - key: color
             tier: required
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: accessory-size
+            tier: optional
+          - key: animal-type
+            tier: optional
           - key: pet-bedding-features
             tier: optional
           - key: shape
@@ -54,21 +54,21 @@ categories:
         google_id: '5010'
         google_path: Animals & Pet Supplies > Pet Supplies > Dog Supplies > Dog Toys
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: dog-age-group
             tier: optional
           - key: dog-toy-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: suitable-for-breed-size
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: pet-supplies/dog-supplies/dog-leashes
         name: Dog Leashes
@@ -77,16 +77,16 @@ categories:
         google_id: '5049'
         google_path: Baby & Toddler > Baby Safety > Baby Safety Harnesses & Leashes
         attributes:
-          - key: closure-type
-            tier: recommended
           - key: color
             tier: required
-          - key: infant-age-group
-            tier: optional
           - key: material
             tier: required
+          - key: closure-type
+            tier: recommended
           - key: pattern
             tier: recommended
+          - key: infant-age-group
+            tier: optional
       - node_id: pet-supplies/dog-supplies/dog-collars
         name: Dog Collars
         shopify_ref: sg-4-9-3-4-1
@@ -127,16 +127,16 @@ categories:
         google_id: '2'
         google_path: Animals & Pet Supplies > Pet Supplies
         attributes:
-          - key: accessory-size
-            tier: optional
-          - key: animal-type
-            tier: optional
           - key: color
             tier: required
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: accessory-size
+            tier: optional
+          - key: animal-type
+            tier: optional
           - key: pet-bedding-features
             tier: optional
           - key: shape
@@ -150,19 +150,17 @@ categories:
         google_id: '5001'
         google_path: Animals & Pet Supplies > Pet Supplies > Cat Supplies > Cat Toys
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: material-treatment
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: plant-material
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: pet-supplies/cat-supplies/cat-litter
         name: Cat Litter
@@ -194,13 +192,13 @@ categories:
         google_id: '4989'
         google_path: Animals & Pet Supplies > Pet Supplies > Bird Supplies > Bird Cages & Stands
         attributes:
-          - key: accessory-size
-            tier: optional
-          - key: bird-cage-stand-design
-            tier: optional
           - key: color
             tier: required
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: accessory-size
+            tier: optional
+          - key: bird-cage-stand-design
+            tier: optional

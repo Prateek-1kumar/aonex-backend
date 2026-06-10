@@ -10,4 +10,10 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: material
+            tier: recommended
+          - key: color
+            tier: optional
+          - key: target-gender
+            tier: optional

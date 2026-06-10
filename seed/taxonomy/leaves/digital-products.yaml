@@ -10,7 +10,15 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: platform
+            tier: required
+          - key: license-type
+            tier: required
+          - key: software-category
+            tier: recommended
+          - key: delivery-method
+            tier: optional
   - name: Online Courses
     node_id: digital-products/online-courses
     leaves:
@@ -19,7 +27,17 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: subject
+            tier: required
+          - key: skill-level
+            tier: recommended
+          - key: duration
+            tier: recommended
+          - key: format
+            tier: optional
+          - key: language
+            tier: optional
   - name: Digital Downloads
     node_id: digital-products/digital-downloads
     leaves:
@@ -28,7 +46,13 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: file-format
+            tier: required
+          - key: license-type
+            tier: recommended
+          - key: file-size
+            tier: optional
   - name: Gift Cards
     node_id: digital-products/gift-cards
     leaves:

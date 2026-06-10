@@ -12,21 +12,21 @@ categories:
         google_id: '1257'
         google_path: Toys & Games > Toys > Dolls, Playsets & Toy Figures > Dolls
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: doll-features
             tier: optional
           - key: doll-type
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: toys-and-games/toys/action-figures
         name: Action Figures
@@ -35,19 +35,19 @@ categories:
         google_id: '6058'
         google_path: Toys & Games > Toys > Dolls, Playsets & Toy Figures > Action & Toy Figures
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
-          - key: pattern
-            tier: recommended
-          - key: recommended-age-group
-            tier: optional
           - key: toy-figure-features
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: toys-and-games/toys/building-sets
         name: Building Sets
@@ -56,15 +56,15 @@ categories:
         google_id: '1254'
         google_path: Toys & Games > Toys > Building Toys
         attributes:
-          - key: building-toy-type
-            tier: optional
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
           - key: pattern
             tier: recommended
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
+          - key: building-toy-type
             tier: optional
       - node_id: toys-and-games/toys/stuffed-animals
         name: Stuffed Animals
@@ -73,17 +73,17 @@ categories:
         google_id: '1259'
         google_path: Toys & Games > Toys > Dolls, Playsets & Toy Figures > Stuffed Animals
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
-            tier: optional
-          - key: color
-            tier: required
-          - key: pattern
-            tier: recommended
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: toys-and-games/toys/educational-toys
         name: Educational Toys
@@ -94,12 +94,12 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
           - key: pattern
             tier: recommended
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
-            tier: optional
   - name: Games & Puzzles
     node_id: toys-and-games/games-and-puzzles
     leaves:
@@ -110,19 +110,19 @@ categories:
         google_id: '1246'
         google_path: Toys & Games > Games > Board Games
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
+          - key: pattern
+            tier: recommended
           - key: board-game-features
             tier: optional
           - key: board-game-mechanics
             tier: optional
-          - key: color
-            tier: required
           - key: gameplay-skills
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: toys-and-games/games-and-puzzles/puzzles
         name: Puzzles
@@ -133,17 +133,17 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: difficulty-level
-            tier: optional
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
           - key: pattern
             tier: recommended
+          - key: difficulty-level
+            tier: optional
           - key: puzzle-theme
             tier: optional
           - key: puzzle-type
-            tier: optional
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: toys-and-games/games-and-puzzles/card-games
         name: Card Games
@@ -154,13 +154,13 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: condition
-            tier: optional
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
           - key: pattern
             tier: recommended
-          - key: recommended-age-group
+          - key: condition
             tier: optional
           - key: theme
-            tier: optional
-          - key: toy-game-material
             tier: optional

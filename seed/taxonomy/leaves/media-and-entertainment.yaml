@@ -12,11 +12,11 @@ categories:
         google_id: '784'
         google_path: Media > Books
         attributes:
+          - key: age-group
+            tier: recommended
           - key: genre
             tier: optional
           - key: language-version
-            tier: optional
-          - key: recommended-age-group
             tier: optional
           - key: target-audience
             tier: optional
@@ -34,9 +34,9 @@ categories:
             tier: optional
           - key: language-version
             tier: optional
-          - key: mpaa-rating
-            tier: optional
           - key: media-content-type
+            tier: optional
+          - key: mpaa-rating
             tier: optional
           - key: target-audience
             tier: optional
@@ -51,9 +51,9 @@ categories:
             tier: optional
           - key: language-version
             tier: optional
-          - key: mpaa-rating
-            tier: optional
           - key: media-content-type
+            tier: optional
+          - key: mpaa-rating
             tier: optional
           - key: target-audience
             tier: optional
@@ -67,35 +67,17 @@ categories:
         google_id: '80'
         google_path: Arts & Entertainment > Hobbies & Creative Arts > Musical Instruments > String Instruments > Guitars
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: fingerboard-color
-            tier: optional
-          - key: fingerboard-material
-            tier: optional
-          - key: fingerboard-pattern
-            tier: optional
           - key: guitar-size
-            tier: optional
-          - key: instrument-color
-            tier: optional
-          - key: instrument-material
-            tier: optional
-          - key: instrument-pattern
-            tier: optional
-          - key: instrument-string-color
-            tier: optional
-          - key: instrument-string-material
-            tier: optional
-          - key: instrument-string-pattern
-            tier: optional
-          - key: neck-color
-            tier: optional
-          - key: neck-material
-            tier: optional
-          - key: neck-pattern
             tier: optional
       - node_id: media-and-entertainment/music-and-instruments/drums
         name: Drums
@@ -106,13 +88,13 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
           - key: pattern
             tier: recommended
           - key: power-source
-            tier: optional
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
             tier: optional
       - node_id: media-and-entertainment/music-and-instruments/keyboards-and-pianos
         name: Keyboards & Pianos
@@ -121,11 +103,11 @@ categories:
         google_id: '76'
         google_path: Arts & Entertainment > Hobbies & Creative Arts > Musical Instruments > Pianos
         attributes:
+          - key: material
+            tier: required
           - key: battery-size
             tier: optional
           - key: battery-type
-            tier: optional
-          - key: instrument-material
             tier: optional
           - key: interface-type
             tier: optional

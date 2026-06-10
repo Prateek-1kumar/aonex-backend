@@ -12,17 +12,17 @@ categories:
         google_id: '510'
         google_path: Health & Beauty > Health Care > First Aid > First Aid Kits
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: allergy-friendly-features
             tier: optional
           - key: bag-case-features
             tier: optional
-          - key: bag-case-material
-            tier: recommended
           - key: body-area
-            tier: optional
-          - key: case-color
-            tier: optional
-          - key: case-pattern
             tier: optional
           - key: first-aid-container-type
             tier: optional
@@ -45,10 +45,10 @@ categories:
             tier: required
           - key: material
             tier: required
-          - key: mounting-type
-            tier: optional
           - key: pattern
             tier: recommended
+          - key: mounting-type
+            tier: optional
           - key: power-source
             tier: optional
           - key: suitable-space
@@ -62,14 +62,16 @@ categories:
         google_id: '495'
         google_path: Health & Beauty > Health Care > Biometric Monitors > Blood Pressure Monitors
         attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
           - key: body-area
             tier: optional
-          - key: color
-            tier: required
           - key: connectivity-technology
             tier: optional
           - key: display-technology
@@ -78,8 +80,6 @@ categories:
             tier: optional
           - key: medical-device-certification
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
           - key: tracking-metrics
@@ -134,6 +134,8 @@ categories:
         google_id: '525'
         google_path: Health & Beauty > Health Care > Fitness & Nutrition > Vitamins & Supplements
         attributes:
+          - key: target-gender
+            tier: required
           - key: age-group
             tier: recommended
           - key: allergen-information
@@ -156,11 +158,3 @@ categories:
             tier: optional
           - key: protein-processing-type
             tier: optional
-          - key: protein-source
-            tier: optional
-          - key: route-of-administration
-            tier: optional
-          - key: supplement-health-focus
-            tier: optional
-          - key: target-gender
-            tier: required
