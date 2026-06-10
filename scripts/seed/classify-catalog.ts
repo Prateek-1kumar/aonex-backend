@@ -14,7 +14,11 @@
 import { eq } from "drizzle-orm";
 import { schema, createDb } from "@aonex/db";
 import { buildIndex, classifyWithFallback, deterministicResolver, llmResolver, type ProductSignals } from "@aonex/taxonomy-classifier";
+import { validateAttributes, type AttributeSpec } from "@aonex/taxonomy-validator";
 import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
+
+/** winning_values keys that aren't product attributes. */
+const NON_ATTR = new Set(["title", "category_path", "_meta", "images", "description", "description_long", "description_short"]);
 
 const apply = process.argv.includes("--apply");
 const useLlm = process.argv.includes("--llm");
@@ -46,9 +50,20 @@ try {
   const departments = nodes.filter((n) => n.level === 0).map((n) => ({ id: n.nodeId, name: n.displayName }));
   const index = buildIndex(leaves, aliasMap, departments);
 
+  // Per-leaf attribute schema (node_attributes joined to attribute_definitions).
+  const adByKey = new Map((await db.select().from(schema.attributeDefinitions)).map((a) => [a.canonicalKey, a]));
+  const schemaByNode = new Map<string, AttributeSpec[]>();
+  for (const na of await db.select().from(schema.nodeAttributes)) {
+    const ad = adByKey.get(na.canonicalKey);
+    const spec: AttributeSpec = { key: na.canonicalKey, tier: na.tier as AttributeSpec["tier"] };
+    if (ad?.enumValues?.length) spec.enumValues = ad.enumValues;
+    if (ad?.canonicalUnit) { spec.unit = ad.canonicalUnit; spec.dataType = "number"; if (ad.allowedUnits?.length) spec.allowedUnits = ad.allowedUnits; }
+    (schemaByNode.get(na.nodeId) ?? schemaByNode.set(na.nodeId, []).get(na.nodeId)!).push(spec);
+  }
+
   const products = await db.select().from(schema.catalogProducts);
   const out: Record<string, number> = { assign: 0, propose_node: 0, abstain: 0 };
-  let wrote = 0;
+  let wrote = 0, cSum = 0, cN = 0;
 
   /* eslint-disable no-console */
   console.log(`\n=== classify-catalog (${apply ? "APPLY" : "dry-run"}, resolver=${resolver === deterministicResolver ? "deterministic" : "llm"}) — ${products.length} products ===`);
@@ -63,14 +78,24 @@ try {
     };
     const r = await classifyWithFallback(signals, index, resolver);
     out[r.outcome] = (out[r.outcome] ?? 0) + 1;
+    // Once on a node, validate/normalize the product's attributes against THAT node's schema.
+    let attrNote = "";
+    if (r.outcome === "assign" && r.nodeId && schemaByNode.has(r.nodeId)) {
+      const pattrs: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(wv)) if (!NON_ATTR.has(k)) pattrs[k] = firstScoped(v);
+      const vr = validateAttributes({ nodeId: r.nodeId, attributes: schemaByNode.get(r.nodeId)! }, pattrs);
+      attrNote = `  ·attrs ${vr.completeness.score}/100${vr.violations ? ` ${vr.violations}✗` : ""}`;
+      cSum += vr.completeness.score; cN++;
+    }
     const detail = r.outcome === "assign" ? r.nodeId : r.outcome === "propose_node" ? `propose "${r.proposedNode?.suggestedName}" under ${r.proposedNode?.parentId}` : "→ Lab";
-    console.log(`  ${title.slice(0, 42).padEnd(43)} ${r.outcome.padEnd(13)} ${detail}`);
+    console.log(`  ${title.slice(0, 40).padEnd(41)} ${r.outcome.padEnd(8)} ${detail}${attrNote}`);
     if (apply && r.outcome === "assign" && r.nodeId) {
       await db.update(schema.catalogProducts).set({ categoryNodeId: r.nodeId }).where(eq(schema.catalogProducts.productId, p.productId));
       wrote++;
     }
   }
-  console.log(`\n  assign ${out.assign ?? 0} · propose_node ${out.propose_node ?? 0} · abstain ${out.abstain ?? 0}${apply ? ` · wrote ${wrote}` : ""}\n`);
+  console.log(`\n  assign ${out.assign ?? 0} · propose_node ${out.propose_node ?? 0} · abstain ${out.abstain ?? 0}${apply ? ` · wrote ${wrote}` : ""}`);
+  console.log(`  avg attr-completeness vs node schema: ${cN ? (cSum / cN).toFixed(1) : "n/a"}/100  (the "before-enrichment" number P2 raises)\n`);
   /* eslint-enable no-console */
 } finally {
   await close();
