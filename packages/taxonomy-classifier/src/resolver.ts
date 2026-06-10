@@ -65,10 +65,13 @@ export function llmResolver(provider: ChatProvider, model: string): ClassifierRe
   return {
     async resolve(input: ResolverInput): Promise<ResolverDecision> {
       const s = input.signals;
+      const byDept = new Map<string, string[]>();
+      for (const l of input.allLeaves) (byDept.get(l.departmentId) ?? byDept.set(l.departmentId, []).get(l.departmentId)!).push(`${l.nodeId}=${l.displayName}`);
+      const catalog = input.departments.map((d) => `[${d.name}] ${(byDept.get(d.id) ?? []).join(", ")}`).join("\n");
       const user = [
         `PRODUCT: ${s.title ?? ""}${s.brand ? ` | brand: ${s.brand}` : ""}${s.sourceCategory ? ` | source: ${s.sourceCategory}` : ""}`,
-        `CANDIDATES:\n${input.candidates.map((c) => `  ${c.nodeId} : ${c.displayName}`).join("\n") || "  (none)"}`,
-        `DEPARTMENTS:\n${input.departments.map((d) => `  ${d.id} : ${d.name}`).join("\n")}`,
+        `Pick the single best leaf node_id from the CATALOG. If none fit, propose a new_node under the right department, else none.`,
+        `CATALOG (node_id=name, by department):\n${catalog}`,
       ].join("\n\n");
       let parsed: { decision?: string; nodeId?: string; parentDepartment?: string; name?: string; reason?: string } = {};
       try {
@@ -77,7 +80,7 @@ export function llmResolver(provider: ChatProvider, model: string): ClassifierRe
       } catch {
         return { kind: "abstain", reason: "llm error" };
       }
-      const valid = new Set(input.candidates.map((c) => c.nodeId));
+      const valid = new Set(input.allLeaves.map((l) => l.nodeId));
       if (parsed.decision === "assign" && parsed.nodeId && valid.has(parsed.nodeId))
         return { kind: "assign", nodeId: parsed.nodeId, confidence: 0.85, ...(parsed.reason ? { reason: parsed.reason } : {}) };
       if (parsed.decision === "new_node" && parsed.parentDepartment && parsed.name)

@@ -13,10 +13,20 @@
  */
 import { eq } from "drizzle-orm";
 import { schema, createDb } from "@aonex/db";
-import { buildIndex, classifyWithFallback, deterministicResolver, type ProductSignals } from "@aonex/taxonomy-classifier";
+import { buildIndex, classifyWithFallback, deterministicResolver, llmResolver, type ProductSignals } from "@aonex/taxonomy-classifier";
+import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
 
 const apply = process.argv.includes("--apply");
+const useLlm = process.argv.includes("--llm");
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
+
+const llmKey = process.env.GROQ_API_KEY ?? process.env.OPENAI_API_KEY;
+const resolver = useLlm && llmKey
+  ? llmResolver(
+      new OpenAIProvider({ apiKey: llmKey, baseUrl: process.env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1" }),
+      process.env.GROQ_MODEL_ENRICH ?? "llama-3.3-70b-versatile"
+    )
+  : deterministicResolver;
 
 /** winning_values are channel/locale-scoped: {channel: {locale: value}}. Take the first. */
 function firstScoped(v: unknown): unknown {
@@ -41,7 +51,7 @@ try {
   let wrote = 0;
 
   /* eslint-disable no-console */
-  console.log(`\n=== classify-catalog (${apply ? "APPLY" : "dry-run"}) — ${products.length} products ===`);
+  console.log(`\n=== classify-catalog (${apply ? "APPLY" : "dry-run"}, resolver=${resolver === deterministicResolver ? "deterministic" : "llm"}) — ${products.length} products ===`);
   for (const p of products) {
     const wv = (p.winningValues ?? {}) as Record<string, unknown>;
     const identity = (p.identity ?? {}) as Record<string, unknown>;
@@ -51,7 +61,7 @@ try {
       brand: identity.brand ? String(identity.brand) : undefined,
       sourceCategory: asText(firstScoped(wv.category_path)),
     };
-    const r = await classifyWithFallback(signals, index, deterministicResolver);
+    const r = await classifyWithFallback(signals, index, resolver);
     out[r.outcome] = (out[r.outcome] ?? 0) + 1;
     const detail = r.outcome === "assign" ? r.nodeId : r.outcome === "propose_node" ? `propose "${r.proposedNode?.suggestedName}" under ${r.proposedNode?.parentId}` : "→ Lab";
     console.log(`  ${title.slice(0, 42).padEnd(43)} ${r.outcome.padEnd(13)} ${detail}`);

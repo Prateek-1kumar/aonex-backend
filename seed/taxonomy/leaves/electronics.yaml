@@ -604,3 +604,102 @@ categories:
             tier: optional
           - key: display-technology
             tier: optional
+  - name: TV & Video
+    node_id: electronics/tv-and-video
+    leaves:
+      - node_id: electronics/tv-and-video/televisions
+        name: Televisions
+        shopify_ref: el-17-4
+        shopify_path: Electronics > Video > Televisions
+        google_id: '404'
+        google_path: Electronics > Video > Televisions
+        attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: audio-technology
+            tier: optional
+          - key: compatible-voice-assistant
+            tier: optional
+          - key: contrast-ratio-typical
+            tier: optional
+          - key: display-resolution
+            tier: optional
+          - key: display-technology
+            tier: optional
+          - key: energy-efficiency-class-hdr
+            tier: optional
+          - key: energy-efficiency-class-sdr
+            tier: optional
+          - key: hdr-format
+            tier: optional
+          - key: native-aspect-ratio
+            tier: optional
+          - key: smart-tv-platform
+            tier: optional
+      - node_id: electronics/tv-and-video/projectors
+        name: Projectors
+        shopify_ref: el-17-2
+        shopify_path: Electronics > Video > Projectors
+        google_id: '396'
+        google_path: Electronics > Video > Projectors
+        attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: device-interface
+            tier: optional
+          - key: display-resolution
+            tier: optional
+          - key: display-technology
+            tier: optional
+          - key: energy-efficiency-class
+            tier: optional
+          - key: keystone-correction-type
+            tier: optional
+          - key: mounting-type
+            tier: optional
+          - key: native-aspect-ratio
+            tier: optional
+          - key: projector-light-source
+            tier: optional
+      - node_id: electronics/tv-and-video/soundbars
+        name: Soundbars
+        shopify_ref: el-2-2-10-6
+        shopify_path: Electronics > Audio > Audio Components > Speakers > Soundbars
+        google_id: '249'
+        google_path: Electronics > Audio > Audio Components > Speakers
+        attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: audio-component-form-factor
+            tier: optional
+          - key: audio-output-channel
+            tier: optional
+          - key: audio-purpose
+            tier: optional
+          - key: compatible-voice-assistant
+            tier: optional
+          - key: connectivity-technology
+            tier: optional
+          - key: device-interface
+            tier: optional
+          - key: maximum-bit-depth
+            tier: optional
+          - key: mounting-type
+            tier: optional
+          - key: power-source
+            tier: optional
+      - node_id: electronics/tv-and-video/streaming-media-players
+        name: Streaming Media Players
+        shopify_ref: me
+        shopify_path: Media
+        google_id: '783'
+        google_path: Media
+        attributes: []
