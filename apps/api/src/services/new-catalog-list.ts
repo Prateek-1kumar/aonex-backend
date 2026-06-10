@@ -36,7 +36,7 @@
 // Until then, the null sentinel is the contract: a product that has
 // current_version=null in the list response was migrated to the new schema.
 
-import { and, count, desc, eq, inArray, ne, or, lt } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, like, ne, or, lt, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import type { DrizzleClient } from "@aonex/db";
 import type { TenantId, MerchantId } from "@aonex/types";
@@ -90,6 +90,10 @@ export interface ListCatalogProductRow {
   gtin: string | null;
   /** Projected from winning_values.category_path (first available scope). Null when uncategorised. */
   category: string | null;
+  /** Canonical taxonomy assignment (catalog_products.category_node_id). Null when unclassified. */
+  categoryNodeId: string | null;
+  /** Display breadcrumb of the assigned taxonomy node ("Fashion › Clothing › Jeans"). */
+  categoryPath: string | null;
   /**
    * Always null for new-schema rows. Legacy concept: typed product versions
    * don't exist in the new catalog. Frontend code that depends on this field
@@ -135,6 +139,13 @@ export interface ListCatalogProductsOptions {
   merchantId: MerchantId;
   /** Optional status filter. Default: exclude "merged_into". */
   status?: string;
+  /** Filter to a taxonomy node INCLUDING its descendants (node ids are
+   *  hierarchical slugs, so descendants are a prefix match). */
+  categoryNodeId?: string;
+  /** Only products with no taxonomy assignment (the "Uncategorized" bucket). */
+  uncategorized?: boolean;
+  /** Case-insensitive title/brand search. */
+  q?: string;
   /** Page size. Defaults to 50, clamped to [1, 200]. Bounds the formerly-unbounded scan. */
   limit?: number;
   /** Opaque keyset cursor from a prior page's `nextCursor`. */
@@ -321,6 +332,23 @@ export async function listCatalogProducts(
     ne(schema.catalogProducts.status, "merged_into"),
     ne(schema.catalogProducts.status, "deleted"),
   ];
+  if (options.categoryNodeId) {
+    // Node ids are hierarchical slugs ("fashion/clothing/jeans"), so a category
+    // page includes every descendant leaf via a prefix match.
+    baseConds.push(
+      or(
+        eq(schema.catalogProducts.categoryNodeId, options.categoryNodeId),
+        like(schema.catalogProducts.categoryNodeId, `${options.categoryNodeId}/%`)
+      )!
+    );
+  }
+  if (options.uncategorized) {
+    baseConds.push(isNull(schema.catalogProducts.categoryNodeId));
+  }
+  if (options.q && options.q.trim().length > 0) {
+    const pattern = `%${options.q.trim()}%`;
+    baseConds.push(sql`(gen_title ILIKE ${pattern} OR gen_brand ILIKE ${pattern})`);
+  }
 
   // Full count of the filtered set (cursor-independent) so callers can show a
   // real total alongside the keyset-paginated page.
@@ -359,6 +387,20 @@ export async function listCatalogProducts(
   //   2. Fallback: most-recently-observed row (observedAt DESC).
 
   const productIds = rows.map((r) => r.productId);
+
+  // Batch-resolve taxonomy display paths for the page's category nodes.
+  const nodeIds = [...new Set(rows.map((r) => r.categoryNodeId).filter((n): n is string => n != null))];
+  const pathByNode = new Map<string, string>();
+  if (nodeIds.length > 0) {
+    const nodeRows = await db
+      .select({
+        nodeId: schema.taxonomyNodes.nodeId,
+        displayPath: schema.taxonomyNodes.displayPath,
+      })
+      .from(schema.taxonomyNodes)
+      .where(inArray(schema.taxonomyNodes.nodeId, nodeIds));
+    for (const n of nodeRows) pathByNode.set(n.nodeId, n.displayPath);
+  }
 
   const pricingRows = await db
     .select({
@@ -414,6 +456,8 @@ export async function listCatalogProducts(
       brand: extractWinningString(wv, "brand"),
       gtin: extractWinningString(wv, "gtin"),
       category: extractWinningString(wv, "category_path"),
+      categoryNodeId: row.categoryNodeId ?? null,
+      categoryPath: row.categoryNodeId ? (pathByNode.get(row.categoryNodeId) ?? null) : null,
       current_version: null,
       variants: [],
       pricing: pickPricing(pricingByProduct.get(row.productId)),

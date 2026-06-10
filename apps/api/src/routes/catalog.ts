@@ -30,6 +30,7 @@ import {
   getProductProvenanceTrace,
   getProductTrace,
 } from "../handlers/admin-trace.js";
+import { getTaxonomyTree } from "../handlers/taxonomy.js";
 
 export interface CatalogRouteDeps {
   db: DrizzleClient;
@@ -40,6 +41,9 @@ export interface CatalogRouteDeps {
 
 export function catalogRoutes(deps: CatalogRouteDeps): Hono {
   const app = new Hono();
+  // Taxonomy tree for the marketplace category browse (active nodes +
+  // per-node direct product counts for this workspace).
+  app.get("/taxonomy/tree", (c) => getTaxonomyTree(c, deps));
   app.get("/products", (c) => listProducts(c, deps));
   app.delete("/products/:id", (c) => deleteProduct(c, deps));
   // ORDER MATTERS: hono matches in declaration order. The `/products/:id`
