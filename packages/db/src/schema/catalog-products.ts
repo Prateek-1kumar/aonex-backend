@@ -30,6 +30,10 @@ export const catalogProducts = pgTable(
     primaryIdentifier:   text("primary_identifier").notNull(),
     identity:            jsonb("identity").notNull(),
     family:              text("family"),
+    // Taxonomy spine (P0) — FK into taxonomy_nodes (the canonical tree). Nullable
+    // until the P1 classifier populates it; the real FK lives in the SQL migration
+    // (0031) to keep this file import-clean. family/category_path stay as fallback.
+    categoryNodeId:      text("category_node_id"),
     status:              text("status").notNull().default("draft"),
     mergedIntoProductId: uuid("merged_into_product_id").references((): AnyPgColumn => catalogProducts.productId),
     values:              jsonb("values").notNull().default(sql`'{}'::jsonb`),
@@ -53,6 +57,7 @@ export const catalogProducts = pgTable(
     parentIdx:          index("idx_catalog_products_parent").on(t.parentProductId),
     tenantStatusIdx:    index("idx_catalog_products_tenant_status").on(t.tenantId, t.status),
     familyIdx:          index("idx_catalog_products_family").on(t.family),
+    categoryNodeIdx:    index("idx_catalog_products_category_node").on(t.categoryNodeId),
     // Phase 4 perf — see migrations/0023_perf_indexes.sql.
     // Serves the keyset-paginated list (filter tenant+merchant, order by updated_at, product_id).
     tenantMerchantUpdatedIdx: index("idx_catalog_products_tenant_merchant_updated").on(
