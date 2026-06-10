@@ -1,21 +1,19 @@
 // Normalization primitives: fuzzy enum coercion + unit parsing.
 
-/** Levenshtein distance (small bounded use for "did you mean"). */
-export function editDistance(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const d: number[][] = Array.from({ length: m + 1 }, (_, i) => [i, ...Array<number>(n).fill(0)]);
-  for (let j = 0; j <= n; j++) d[0]![j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost);
-    }
-  }
-  return d[m]![n]!;
-}
+import { editDistance } from "@aonex/lib-utils";
+
+export { editDistance };
 
 const canon = (s: string) => s.toLowerCase().replace(/[\s_-]+/g, " ").trim();
+
+/** Digits of a string in order — "usb 3.0" -> "30". Fuzzy coercion must never
+ *  change a number: "6G" and "5G" are DIFFERENT values, not typos of each other. */
+const digitsOf = (s: string) => s.replace(/\D+/g, "");
+
+/** Minimum edit-distance similarity (1 - dist/maxLen) for a fuzzy coercion.
+ *  A plain edit-distance budget coerced "6G" -> "5G" (distance 1); a ratio
+ *  threshold makes short strings effectively uncoercible by fuzz. */
+const FUZZY_SIMILARITY_MIN = 0.75;
 
 export interface EnumCoercion {
   status: "ok" | "coerced" | "invalid";
@@ -30,7 +28,9 @@ export function coerceEnum(raw: unknown, allowed: string[]): EnumCoercion {
   if (exact) return { status: "ok", value: exact };
   const ci = allowed.find((a) => canon(a) === canon(raw));
   if (ci) return { status: "coerced", value: ci };
-  // Fuzzy: nearest within an edit-distance budget that scales with length.
+  // Fuzzy: nearest allowed value, accepted only when (a) the similarity ratio
+  // clears the threshold AND (b) no digit changes — a 1-char edit that flips a
+  // number ("6G" -> "5G", "USB 3" -> "USB 2") is a wrong value, not a typo.
   const c = canon(raw);
   let best: string | undefined;
   let bestDist = Infinity;
@@ -41,8 +41,13 @@ export function coerceEnum(raw: unknown, allowed: string[]): EnumCoercion {
       best = a;
     }
   }
-  const budget = Math.max(1, Math.floor(c.length / 4));
-  if (best && bestDist <= budget) return { status: "coerced", value: best };
+  if (best) {
+    const bc = canon(best);
+    const similarity = 1 - bestDist / Math.max(c.length, bc.length, 1);
+    if (similarity >= FUZZY_SIMILARITY_MIN && digitsOf(c) === digitsOf(bc)) {
+      return { status: "coerced", value: best };
+    }
+  }
   return { status: "invalid", ...(best ? { suggestion: best } : {}) };
 }
 

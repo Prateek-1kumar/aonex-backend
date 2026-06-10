@@ -274,6 +274,7 @@
       "name": "@aonex/ingestion-deduplicator",
       "version": "0.1.0",
       "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
         "@aonex/types": "workspace:*",
       },
     },
@@ -282,6 +283,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/ingestion-field-extractor": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
         "@aonex/types": "workspace:*",
       },
     },
@@ -398,18 +400,34 @@
     "packages/taxonomy-classifier": {
       "name": "@aonex/taxonomy-classifier",
       "version": "0.0.0",
+      "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
+      },
     },
     "packages/taxonomy-enrichment": {
       "name": "@aonex/taxonomy-enrichment",
       "version": "0.0.0",
       "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
         "@aonex/taxonomy-validator": "workspace:*",
         "zod": "^3.24.1",
+      },
+    },
+    "packages/taxonomy-schema": {
+      "name": "@aonex/taxonomy-schema",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/db": "workspace:*",
+        "@aonex/taxonomy-enrichment": "workspace:*",
+        "@aonex/taxonomy-validator": "workspace:*",
       },
     },
     "packages/taxonomy-validator": {
       "name": "@aonex/taxonomy-validator",
       "version": "0.0.0",
+      "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
+      },
     },
     "packages/types": {
       "name": "@aonex/types",
@@ -505,6 +523,8 @@
     "@aonex/taxonomy-classifier": ["@aonex/taxonomy-classifier@workspace:packages/taxonomy-classifier"],
 
     "@aonex/taxonomy-enrichment": ["@aonex/taxonomy-enrichment@workspace:packages/taxonomy-enrichment"],
+
+    "@aonex/taxonomy-schema": ["@aonex/taxonomy-schema@workspace:packages/taxonomy-schema"],
 
     "@aonex/taxonomy-validator": ["@aonex/taxonomy-validator@workspace:packages/taxonomy-validator"],
 

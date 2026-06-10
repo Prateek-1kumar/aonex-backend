@@ -11,3 +11,7 @@ export * from "./clock.js";
 export * from "./backoff.js";
 export * from "./url.js";
 export { convertToCanonical, canonicalUnitFor, type Dimension } from "./units.js";
+export * from "./edit-distance.js";
+export * from "./text-normalize.js";
+export * from "./gtin.js";
+export type { ChatProvider } from "./chat-provider.js";
