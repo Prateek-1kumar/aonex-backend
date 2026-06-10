@@ -34,6 +34,9 @@ export const catalogProducts = pgTable(
     // until the P1 classifier populates it; the real FK lives in the SQL migration
     // (0031) to keep this file import-clean. family/category_path stay as fallback.
     categoryNodeId:      text("category_node_id"),
+    // P1.5 — how category_node_id was set: 'auto' (classifier) | 'human' (Lab).
+    // 'human' is sticky: the classifier never overwrites it.
+    categorySource:      text("category_source"),
     status:              text("status").notNull().default("draft"),
     mergedIntoProductId: uuid("merged_into_product_id").references((): AnyPgColumn => catalogProducts.productId),
     values:              jsonb("values").notNull().default(sql`'{}'::jsonb`),

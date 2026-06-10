@@ -96,7 +96,7 @@ export async function categorizeProduct(c: Context, deps: AnomalyLabRouteDeps): 
 
   const updated = await deps.db
     .update(schema.catalogProducts)
-    .set({ categoryNodeId: nodeId })
+    .set({ categoryNodeId: nodeId, categorySource: "human" })
     .where(and(eq(schema.catalogProducts.productId, productId), eq(schema.catalogProducts.tenantId, tenantId)))
     .returning({ productId: schema.catalogProducts.productId });
   if (updated.length === 0) return c.json({ error: { code: "NOT_FOUND", message: "Product not found" } }, 404);
