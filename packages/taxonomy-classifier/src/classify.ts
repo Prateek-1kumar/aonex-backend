@@ -29,11 +29,16 @@ export function tokenize(s: string): string[] {
     .map(singular);
 }
 
-/** Build a classifier index from leaf {nodeId, displayName} + the alias map. */
+const titleCaseSlug = (s: string) => s.split("-").map((w) => (w[0] ?? "").toUpperCase() + w.slice(1)).join(" ");
+
+/** Build a classifier index from leaf {nodeId, displayName} + the alias map.
+ *  `departments` (id+display name) may be supplied; else derived from slugs. */
 export function buildIndex(
   leaves: { nodeId: string; displayName: string }[],
-  aliases: Map<string, string>
+  aliases: Map<string, string>,
+  departments?: { id: string; name: string }[]
 ): ClassifierIndex {
+  const deptIds = [...new Set(leaves.map((l) => l.nodeId.split("/")[0] ?? ""))].filter(Boolean);
   return {
     aliases,
     leaves: leaves.map((l): LeafEntry => ({
@@ -42,6 +47,7 @@ export function buildIndex(
       departmentId: l.nodeId.split("/")[0] ?? "",
       nameTokens: tokenize(l.displayName),
     })),
+    departments: departments ?? deptIds.map((id) => ({ id, name: titleCaseSlug(id) })),
   };
 }
 
@@ -57,7 +63,9 @@ function aliasLayer(signals: ProductSignals, index: ClassifierIndex): { nodeId: 
     const hit = index.aliases.get(cand);
     if (hit) return { nodeId: hit, confidence: 0.92 };
   }
-  const toks = normLabel(signals.title ?? "").split(" ").filter(Boolean);
+  // Exclude brand tokens — a brand like "Ring" must not match the "Rings" alias.
+  const brandToks = new Set(normLabel(signals.brand ?? "").split(" ").filter(Boolean));
+  const toks = normLabel(signals.title ?? "").split(" ").filter((t) => t && !brandToks.has(t));
   let best: string | null = null;
   let bestLevel = -1;
   for (let i = 0; i < toks.length; i++) {
@@ -87,9 +95,13 @@ export function classify(signals: ProductSignals, index: ClassifierIndex, opts: 
     [...tokenize(signals.title ?? ""), ...tokenize(signals.sourceCategory ?? "")].filter((t) => !brandTokens.has(t))
   );
   const scored: Candidate[] = index.leaves.map((leaf) => {
-    if (leaf.nameTokens.length === 0) return { nodeId: leaf.nodeId, score: 0 };
-    const matched = leaf.nameTokens.filter((t) => query.has(t)).length;
-    return { nodeId: leaf.nodeId, score: matched / leaf.nameTokens.length };
+    const nt = leaf.nameTokens;
+    if (nt.length === 0) return { nodeId: leaf.nodeId, score: 0 };
+    // The leaf's HEAD noun (last token) must appear — stops "electric" matching
+    // "Electric Kettles" or "video" matching "Video Games" on a stray token.
+    if (!query.has(nt[nt.length - 1]!)) return { nodeId: leaf.nodeId, score: 0 };
+    const matched = nt.filter((t) => query.has(t)).length;
+    return { nodeId: leaf.nodeId, score: matched / nt.length };
   });
   scored.sort((a, b) => b.score - a.score);
   const top = scored.slice(0, topN);

@@ -28,6 +28,46 @@ export interface ClassifierIndex {
   aliases: Map<string, string>;
   /** Leaf nodes to score lexically. */
   leaves: LeafEntry[];
+  /** Departments (level-0) for fallback routing / new-node proposals. */
+  departments: { id: string; name: string }[];
+}
+
+// ── Fallback resolver (P1.2): pluggable layer below the deterministic abstain ──
+
+export interface ResolverInput {
+  signals: ProductSignals;
+  /** Top deterministic candidates with display names + scores. */
+  candidates: { nodeId: string; displayName: string; score: number }[];
+  departments: { id: string; name: string }[];
+}
+
+export type ResolverDecision =
+  | { kind: "assign"; nodeId: string; confidence: number; reason?: string }
+  | { kind: "propose_node"; parentId: string; suggestedName: string; reason?: string }
+  | { kind: "abstain"; reason?: string };
+
+/** Swappable fallback. The deterministic resolver needs no LLM (dry-run); the
+ *  LLM resolver wraps a chat provider — same interface. */
+export interface ClassifierResolver {
+  resolve(input: ResolverInput): Promise<ResolverDecision>;
+}
+
+export type FallbackOutcome = "assign" | "propose_node" | "abstain";
+
+export interface FallbackResult {
+  outcome: FallbackOutcome;
+  nodeId: string | null;
+  confidence: number;
+  source: "alias" | "lexical" | "resolver";
+  alternatives: Candidate[];
+  /** Set when outcome === "propose_node" — a draft node to create + review. */
+  proposedNode?: { parentId: string; suggestedName: string };
+  reason?: string;
+}
+
+export interface FallbackOptions extends ClassifyOptions {
+  /** Deterministic confidence >= this auto-assigns and skips the resolver. Default 0.7. */
+  autoThreshold?: number;
 }
 
 export interface Candidate {
