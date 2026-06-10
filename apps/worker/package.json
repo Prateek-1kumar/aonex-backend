@@ -26,6 +26,8 @@
     "@aonex/lib-utils": "workspace:*",
     "@aonex/db": "workspace:*",
     "@aonex/archetypes": "workspace:*",
+    "@aonex/taxonomy-classifier": "workspace:*",
+    "@aonex/taxonomy-validator": "workspace:*",
     "@aonex/catalog-service": "workspace:*",
     "@aonex/catalog-enrichment": "workspace:*",
     "@aonex/catalog-event-outbox": "workspace:*",
