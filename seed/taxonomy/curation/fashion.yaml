@@ -1,0 +1,37 @@
+# Fashion — CURATION MAP (judgment input). Lean: leaf -> generic Shopify gid.
+# `bun scripts/seed/build-taxonomy.ts --dept fashion` fills attrs/google/tiers.
+department: Fashion
+tree:
+  - category: Clothing
+    children:
+      - category: Tops
+        leaves:
+          T-Shirts: aa-1-13-8
+          Shirts: aa-1-13-7
+          Polos: aa-1-13-6
+          Sweaters & Hoodies: aa-1-13-12
+      - category: Bottoms
+        leaves:
+          Jeans: aa-1-12-4
+          Trousers: aa-1-12-11
+          Chinos: aa-1-12-3
+          Shorts: aa-1-14
+          Skirts: aa-1-15
+          Leggings: aa-1-12-8
+      - category: Dresses
+        leaves:
+          Dresses: aa-1-4
+  - category: Footwear
+    leaves:
+      Sneakers: aa-8-8
+      Boots: aa-8-3
+      Sandals: aa-8-6
+      Heels: aa-8-10
+  - category: Bags & Luggage
+    leaves:
+      Backpacks: lb-1
+      Suitcases: lb-12
+      Handbags: aa-5
+  - category: Sunglasses & Eyewear
+    leaves:
+      Sunglasses: aa-2-27
