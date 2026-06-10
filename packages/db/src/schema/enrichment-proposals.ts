@@ -16,6 +16,9 @@ export const enrichmentProposals = pgTable(
       .references(() => catalogProducts.productId, { onDelete: "cascade" }),
     /** pending | generating | ready | applied | rejected | failed */
     status:        text("status").notNull().default("pending"),
+    /** The proposal's schema source. Since the node-schema migration this holds
+     *  the taxonomy node id (e.g. "fashion/clothing/jeans"); the column name
+     *  predates the taxonomy spine, when it held archetype ids. */
     archetype:     text("archetype"),
     model:         text("model"),
     promptVersion: text("prompt_version").notNull().default("enrich-v1"),

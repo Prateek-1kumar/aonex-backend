@@ -20,6 +20,7 @@ export interface AttributeDefinitionLike {
   enumValues?: string[] | null;
   canonicalUnit?: string | null;
   allowedUnits?: string[] | null;
+  enrichmentGroup?: string | null;
 }
 
 /** The node_attributes columns the schema join reads. */
@@ -35,6 +36,8 @@ export interface LeafSchemaIndex {
   schemaByNode: Map<string, EnrichField[]>;
   /** nodeId -> display breadcrumb ("Fashion › Clothing › Jeans"). */
   pathByNode: Map<string, string>;
+  /** canonicalKey -> attribute_definitions.enrichment_group (UI badge group). */
+  groupByKey: Map<string, string>;
 }
 
 const mapType = (t: string | null | undefined): AttrDataType | undefined =>
@@ -64,7 +67,12 @@ export function buildLeafSchemaIndex(
     (schemaByNode.get(na.nodeId) ?? schemaByNode.set(na.nodeId, []).get(na.nodeId)!).push(f);
   }
   const pathByNode = new Map(nodes.filter((n) => n.displayPath != null).map((n) => [n.nodeId, n.displayPath!]));
-  return { schemaByNode, pathByNode };
+  const groupByKey = new Map(
+    attributeDefinitions
+      .filter((a) => a.enrichmentGroup != null)
+      .map((a) => [a.canonicalKey, a.enrichmentGroup!])
+  );
+  return { schemaByNode, pathByNode, groupByKey };
 }
 
 /** Load the full per-leaf schema index from the database. */

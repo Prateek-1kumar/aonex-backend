@@ -34,8 +34,15 @@ export function buildRagCorpus(products: CatalogProductLike[]): CatalogEntry[] {
   return products.map(toCatalogEntry).filter((e): e is CatalogEntry => e !== null);
 }
 
-/** Load the corpus from the whole catalog. Fine at current catalog sizes; cap
- *  or sample at the call-site if the catalog grows large. */
-export async function loadRagCorpus(db: DrizzleClient): Promise<CatalogEntry[]> {
-  return buildRagCorpus(await db.select().from(schema.catalogProducts));
+/** Load the corpus from the whole catalog. `excludeProductId` keeps the
+ *  product being enriched out of its own few-shot examples. Fine at current
+ *  catalog sizes; cap or sample at the call-site if the catalog grows large. */
+export async function loadRagCorpus(
+  db: DrizzleClient,
+  opts: { excludeProductId?: string } = {}
+): Promise<CatalogEntry[]> {
+  const rows = await db.select().from(schema.catalogProducts);
+  return buildRagCorpus(
+    opts.excludeProductId ? rows.filter((r) => r.productId !== opts.excludeProductId) : rows
+  );
 }
