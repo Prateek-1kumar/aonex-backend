@@ -25,16 +25,16 @@ categories:
         google_id: '1361'
         google_path: Hardware > Building Consumables > Painting Consumables > Paint
         attributes:
-          - key: alcohol-solvent-content
-            tier: optional
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
+          - key: alcohol-solvent-content
+            tier: optional
           - key: finish
             tier: optional
           - key: intended-application
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: suitable-space
             tier: optional
       - node_id: arts-crafts-and-hobbies/arts-and-crafts/sewing-supplies
@@ -48,8 +48,8 @@ categories:
             tier: required
           - key: fabric
             tier: required
-          - key: fastener-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
       - node_id: arts-crafts-and-hobbies/arts-and-crafts/yarn
@@ -63,13 +63,13 @@ categories:
             tier: required
           - key: fabric
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: knitting-project-type
             tier: optional
           - key: material-treatment
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: plant-material
             tier: optional
           - key: yarn-weight-category
             tier: optional

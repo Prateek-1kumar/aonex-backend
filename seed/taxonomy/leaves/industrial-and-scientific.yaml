@@ -14,6 +14,8 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: illumination-technique
             tier: optional
           - key: magnification
@@ -22,8 +24,6 @@ categories:
             tier: optional
           - key: microscope-features
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: industrial-and-scientific/lab-equipment/lab-glassware
         name: Lab Glassware
         shopify_ref: ha-2-6
@@ -45,14 +45,14 @@ categories:
         google_id: '5591'
         google_path: Business & Industrial > Work Safety Protective Gear > Safety Gloves
         attributes:
-          - key: accessory-size
-            tier: optional
           - key: color
             tier: required
-          - key: handwear-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
+          - key: accessory-size
+            tier: optional
       - node_id: industrial-and-scientific/safety-equipment/safety-glasses
         name: Safety Glasses
         shopify_ref: bi-25-6-3
@@ -60,14 +60,10 @@ categories:
         google_id: '2227'
         google_path: Business & Industrial > Work Safety Protective Gear > Protective Eyewear
         attributes:
-          - key: frame-color
-            tier: optional
-          - key: frame-pattern
-            tier: optional
-          - key: lens-color
-            tier: optional
-          - key: lens-pattern
-            tier: optional
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: protective-gear-features
             tier: optional
       - node_id: industrial-and-scientific/safety-equipment/hard-hats
@@ -77,22 +73,22 @@ categories:
         google_id: '173'
         google_path: Apparel & Accessories > Clothing Accessories > Hats
         attributes:
-          - key: accessory-size
-            tier: optional
-          - key: age-group
-            tier: recommended
           - key: color
             tier: required
           - key: fabric
             tier: required
-          - key: headwear-features
-            tier: optional
-          - key: pattern
-            tier: recommended
           - key: size
             tier: required
           - key: target-gender
             tier: required
+          - key: age-group
+            tier: recommended
+          - key: pattern
+            tier: recommended
+          - key: accessory-size
+            tier: optional
+          - key: headwear-features
+            tier: optional
       - node_id: industrial-and-scientific/safety-equipment/respirators
         name: Respirators
         shopify_ref: bi-25-7-3
@@ -100,14 +96,14 @@ categories:
         google_id: '2473'
         google_path: Business & Industrial > Work Safety Protective Gear > Protective Masks > Gas Masks & Respirators
         attributes:
-          - key: accessory-size
-            tier: optional
           - key: color
             tier: required
-          - key: gear-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
+          - key: accessory-size
+            tier: optional
           - key: protective-mask-design
             tier: optional
           - key: protective-mask-features

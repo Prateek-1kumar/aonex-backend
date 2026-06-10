@@ -12,16 +12,16 @@ categories:
         google_id: '997'
         google_path: Sporting Goods > Exercise & Fitness > Cardio > Cardio Machines > Treadmills
         attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: exercise-machine-features
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: sports-fitness-and-outdoors/sports-and-fitness/dumbbells
         name: Dumbbells
         shopify_ref: sg-2-24-2-1
@@ -44,12 +44,12 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: age-group
+            tier: recommended
           - key: pattern
             tier: recommended
-          - key: recommended-age-group
-            tier: optional
-          - key: toy-game-material
-            tier: optional
       - node_id: sports-fitness-and-outdoors/sports-and-fitness/exercise-bikes
         name: Exercise Bikes
         shopify_ref: sg-2-4-2-2
@@ -57,16 +57,16 @@ categories:
         google_id: '994'
         google_path: Sporting Goods > Exercise & Fitness > Cardio > Cardio Machines > Exercise Bikes
         attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: exercise-machine-features
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: resistance-system
             tier: optional
       - node_id: sports-fitness-and-outdoors/sports-and-fitness/resistance-bands
@@ -76,14 +76,14 @@ categories:
         google_id: '5870'
         google_path: Health & Beauty > Health Care > Occupational & Physical Therapy Equipment
         attributes:
-          - key: body-area
-            tier: optional
           - key: color
             tier: required
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: body-area
+            tier: optional
           - key: power-source
             tier: optional
   - name: Outdoor & Camping
@@ -116,7 +116,15 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: fuel-type
+            tier: required
+          - key: burner-count
+            tier: recommended
+          - key: material
+            tier: optional
+          - key: weight
+            tier: optional
       - node_id: sports-fitness-and-outdoors/outdoor-and-camping/coolers
         name: Coolers
         shopify_ref: hg-11-3-3
@@ -124,22 +132,20 @@ categories:
         google_id: '1017'
         google_path: Home & Garden > Kitchen & Dining > Food & Beverage Carriers > Coolers
         attributes:
-          - key: cleaning-instructions
-            tier: optional
-          - key: closure-type
-            tier: recommended
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: closure-type
+            tier: recommended
+          - key: pattern
+            tier: recommended
+          - key: cleaning-instructions
+            tier: optional
           - key: cooler-style
             tier: optional
           - key: handle-type
             tier: optional
-          - key: insulation-material
-            tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: safety-certifications
             tier: optional
   - name: Cycling
@@ -152,7 +158,15 @@ categories:
         google_id: '1026'
         google_path: Sporting Goods > Outdoor Recreation > Cycling > Bicycles
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: battery-size
             tier: optional
@@ -160,16 +174,8 @@ categories:
             tier: optional
           - key: bicycle-features
             tier: optional
-          - key: color
-            tier: required
           - key: gearing-type
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
-          - key: target-gender
-            tier: required
       - node_id: sports-fitness-and-outdoors/cycling/bicycle-helmets
         name: Bicycle Helmets
         shopify_ref: sg-4-4-4-5
@@ -177,18 +183,18 @@ categories:
         google_id: '1029'
         google_path: Sporting Goods > Outdoor Recreation > Cycling > Cycling Apparel & Accessories > Bicycle Helmets
         attributes:
-          - key: accessory-size
-            tier: optional
+          - key: color
+            tier: required
           - key: age-group
             tier: recommended
+          - key: pattern
+            tier: recommended
+          - key: accessory-size
+            tier: optional
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
-          - key: pattern
-            tier: recommended
       - node_id: sports-fitness-and-outdoors/cycling/bicycle-locks
         name: Bicycle Locks
         shopify_ref: sg-4-4-1-13
@@ -198,7 +204,7 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: compatible-bike-type
-            tier: optional
           - key: pattern
             tier: recommended
+          - key: compatible-bike-type
+            tier: optional

@@ -12,13 +12,11 @@ categories:
         google_id: '217'
         google_path: Arts & Entertainment > Hobbies & Creative Arts > Collectibles > Collectible Coins & Currency
         attributes:
+          - key: material
+            tier: required
           - key: condition
             tier: optional
           - key: construction
-            tier: optional
-          - key: embellishment-trim-material
-            tier: optional
-          - key: jewelry-material
             tier: optional
           - key: material-origin
             tier: optional
@@ -35,17 +33,13 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: customization
-            tier: optional
-          - key: ink-color
-            tier: optional
-          - key: ink-pattern
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
-          - key: stamp-type
+          - key: customization
             tier: optional
-          - key: text-plate-material
+          - key: stamp-type
             tier: optional
       - node_id: collectibles-and-antiques/collectibles/trading-cards
         name: Trading Cards
@@ -54,6 +48,8 @@ categories:
         google_id: '6997'
         google_path: Arts & Entertainment > Hobbies & Creative Arts > Collectibles > Collectible Trading Cards
         attributes:
+          - key: age-group
+            tier: recommended
           - key: card-attributes
             tier: optional
           - key: condition
@@ -66,8 +62,6 @@ categories:
             tier: optional
           - key: rarity
             tier: optional
-          - key: recommended-age-group
-            tier: optional
           - key: sports-theme
             tier: optional
           - key: theme
@@ -79,7 +73,15 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: sport
+            tier: required
+          - key: team
+            tier: optional
+          - key: condition
+            tier: required
+          - key: authenticity
+            tier: required
   - name: Antiques
     node_id: collectibles-and-antiques/antiques
     leaves:
@@ -88,4 +90,12 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: era
+            tier: recommended
+          - key: material
+            tier: recommended
+          - key: condition
+            tier: required
+          - key: authenticity
+            tier: optional

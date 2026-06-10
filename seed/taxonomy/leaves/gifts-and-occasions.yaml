@@ -12,6 +12,12 @@ categories:
         google_id: '95'
         google_path: Arts & Entertainment > Party & Celebration > Gift Giving > Greeting & Note Cards
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
@@ -20,16 +26,8 @@ categories:
             tier: optional
           - key: celebration-type
             tier: optional
-          - key: color
-            tier: required
-          - key: embellishment-trim-material
-            tier: optional
           - key: item-style
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: personalization-design
             tier: optional
           - key: theme
@@ -57,18 +55,18 @@ categories:
         google_id: '2587'
         google_path: Arts & Entertainment > Party & Celebration > Party Supplies > Balloons
         attributes:
-          - key: accessory-size
-            tier: optional
-          - key: balloon-shape
-            tier: optional
-          - key: celebration-type
-            tier: optional
           - key: color
             tier: required
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: accessory-size
+            tier: optional
+          - key: balloon-shape
+            tier: optional
+          - key: celebration-type
+            tier: optional
       - node_id: gifts-and-occasions/party-supplies/party-decorations
         name: Party Decorations
         shopify_ref: hg-3
@@ -78,8 +76,8 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: decoration-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
       - node_id: gifts-and-occasions/party-supplies/disposable-tableware
@@ -91,8 +89,8 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: disposable-tableware-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
   - name: Event & Wedding
@@ -107,7 +105,7 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: decoration-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended

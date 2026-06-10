@@ -12,6 +12,12 @@ categories:
         google_id: '276'
         google_path: Electronics > Electronics Accessories > Power > Batteries
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-features
             tier: optional
           - key: battery-size
@@ -20,18 +26,12 @@ categories:
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: compatible-battery-technology
             tier: optional
           - key: connector-gender
             tier: optional
           - key: connector-type
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: plug-type
             tier: optional
           - key: product-certifications-standards
@@ -45,12 +45,12 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: item-condition
             tier: optional
           - key: manufacturer-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: vehicle-braking-features
             tier: optional
       - node_id: automotive/car-parts-and-accessories/floor-mats
@@ -64,6 +64,8 @@ categories:
             tier: required
           - key: fabric
             tier: required
+          - key: pattern
+            tier: recommended
           - key: fit-type
             tier: optional
           - key: item-condition
@@ -72,8 +74,6 @@ categories:
             tier: optional
           - key: motor-vehicle-type
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: automotive/car-parts-and-accessories/seat-covers
         name: Seat Covers
         shopify_ref: vp-1-4-11-5
@@ -83,8 +83,10 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: cover-material
-            tier: optional
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: fit-type
             tier: optional
           - key: item-condition
@@ -93,8 +95,6 @@ categories:
             tier: optional
           - key: motor-vehicle-type
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: automotive/car-parts-and-accessories/windshield-wipers
         name: Windshield Wipers
         shopify_ref: vp-1-4-21-4
@@ -104,14 +104,14 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: item-condition
-            tier: optional
-          - key: item-material
             tier: optional
           - key: manufacturer-type
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: automotive/car-parts-and-accessories/motor-oil
         name: Motor Oil
         shopify_ref: vp-1-5-5-8
@@ -139,22 +139,22 @@ categories:
         google_id: '2110'
         google_path: Vehicles & Parts > Vehicle Parts & Accessories > Vehicle Safety & Security > Motorcycle Protective Gear > Motorcycle Helmets
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: accessory-size
             tier: optional
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
-          - key: gear-material
-            tier: optional
-          - key: pattern
-            tier: recommended
           - key: protective-gear-features
             tier: optional
-          - key: target-gender
-            tier: required
           - key: vehicle-type
             tier: optional
       - node_id: automotive/motorcycle-parts-and-accessories/motorcycle-tires
@@ -166,16 +166,16 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: item-condition
-            tier: optional
-          - key: item-material
             tier: optional
           - key: manufacturer-type
             tier: optional
           - key: motorcycle-tire-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: vehicle-drive-handling-features
             tier: optional
   - name: Tires & Wheels
@@ -190,15 +190,13 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: manufacturer-type
-            tier: optional
           - key: material
             tier: required
           - key: pattern
             tier: recommended
-          - key: tire-construction-type
+          - key: manufacturer-type
             tier: optional
-          - key: tire-tread-pattern
+          - key: tire-construction-type
             tier: optional
       - node_id: automotive/tires-and-wheels/wheels
         name: Wheels
@@ -207,31 +205,27 @@ categories:
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: shoe-size
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: closure-type
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: care-instructions
             tier: optional
-          - key: closure-type
-            tier: recommended
-          - key: color
-            tier: required
-          - key: footwear-material
-            tier: required
           - key: heel-height-type
             tier: optional
           - key: heel-shoe-type
             tier: optional
           - key: occasion-style
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: shoe-features
-            tier: optional
-          - key: shoe-fit
-            tier: optional
-          - key: shoe-size
-            tier: required
-          - key: target-gender
-            tier: required
-          - key: toe-style
             tier: optional

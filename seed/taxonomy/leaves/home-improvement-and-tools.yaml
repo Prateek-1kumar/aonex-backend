@@ -12,16 +12,16 @@ categories:
         google_id: '1361'
         google_path: Hardware > Building Consumables > Painting Consumables > Paint
         attributes:
-          - key: alcohol-solvent-content
-            tier: optional
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
+          - key: alcohol-solvent-content
+            tier: optional
           - key: finish
             tier: optional
           - key: intended-application
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: suitable-space
             tier: optional
       - node_id: home-improvement-and-tools/home-improvement/plumbing-fixtures
@@ -46,8 +46,8 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: hardware-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
       - node_id: home-improvement-and-tools/home-improvement/flooring
@@ -101,14 +101,14 @@ categories:
         google_id: '1217'
         google_path: Hardware > Tools > Drills
         attributes:
-          - key: chuck-type
-            tier: optional
           - key: color
             tier: required
-          - key: drill-features
-            tier: optional
           - key: pattern
             tier: recommended
+          - key: chuck-type
+            tier: optional
+          - key: drill-features
+            tier: optional
           - key: power-source
             tier: optional
       - node_id: home-improvement-and-tools/tools-and-hardware/fasteners
@@ -120,12 +120,12 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: fastener-finish
-            tier: optional
-          - key: hardware-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
+          - key: fastener-finish
+            tier: optional
       - node_id: home-improvement-and-tools/tools-and-hardware/ladders
         name: Ladders
         shopify_ref: ha-15-27-2
@@ -135,9 +135,9 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: features
-            tier: optional
-          - key: hardware-material
-            tier: optional
+          - key: material
+            tier: required
           - key: pattern
             tier: recommended
+          - key: features
+            tier: optional

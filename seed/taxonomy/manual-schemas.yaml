@@ -1,0 +1,81 @@
+# Hand-authored attribute schemas for MANUAL leaves (no clean Shopify match).
+# These are the "Aonex extension" cases. Keyed by node_id. Reviewed by owner.
+schemas:
+  electronics/mobile-phones-and-accessories/mobile-phones:
+    - { key: brand, tier: required }
+    - { key: storage, tier: required, values: ["32GB", "64GB", "128GB", "256GB", "512GB", "1TB"] }
+    - { key: ram, tier: required, values: ["2GB", "3GB", "4GB", "6GB", "8GB", "12GB", "16GB"] }
+    - { key: operating-system, tier: required, values: ["Android", "iOS"] }
+    - { key: screen-size, tier: recommended }
+    - { key: battery-capacity, tier: recommended }
+    - { key: rear-camera, tier: recommended }
+    - { key: network, tier: recommended, values: ["3G", "4G", "5G"] }
+    - { key: sim-type, tier: optional, values: ["Single SIM", "Dual SIM", "eSIM"] }
+    - { key: color, tier: required }
+
+  electronics/tablets-and-accessories/tablet-cases:
+    - { key: compatible-device, tier: required }
+    - { key: material, tier: recommended, values: ["Silicone", "Leather", "Faux Leather", "Plastic", "Fabric", "TPU"] }
+    - { key: color, tier: recommended }
+    - { key: closure-type, tier: optional, values: ["Magnetic", "Snap", "Zippered", "None"] }
+
+  electronics/smartwatches-and-wearables/activity-trackers:
+    - { key: brand, tier: required }
+    - { key: display-type, tier: recommended, values: ["OLED", "AMOLED", "LCD", "E-Ink", "None"] }
+    - { key: battery-life, tier: recommended }
+    - { key: water-resistance, tier: recommended }
+    - { key: connectivity, tier: optional, values: ["Bluetooth", "Wi-Fi", "GPS", "NFC"] }
+    - { key: color, tier: optional }
+
+  garden-and-outdoor/outdoor-living/outdoor-heaters:
+    - { key: fuel-type, tier: required, values: ["Propane", "Natural Gas", "Electric", "Wood"] }
+    - { key: heat-output, tier: recommended }
+    - { key: material, tier: optional, values: ["Stainless Steel", "Aluminum", "Steel"] }
+    - { key: mounting-type, tier: optional, values: ["Freestanding", "Tabletop", "Wall-Mounted", "Hanging"] }
+
+  office-and-school-supplies/office-supplies/printer-paper:
+    - { key: paper-size, tier: required, values: ["A4", "A3", "Letter", "Legal", "A5"] }
+    - { key: sheet-count, tier: recommended }
+    - { key: weight-gsm, tier: recommended }
+    - { key: color, tier: optional, values: ["White", "Cream", "Assorted"] }
+
+  sports-fitness-and-outdoors/outdoor-and-camping/camping-stoves:
+    - { key: fuel-type, tier: required, values: ["Propane", "Butane", "White Gas", "Wood", "Alcohol"] }
+    - { key: burner-count, tier: recommended, values: ["1", "2", "3"] }
+    - { key: material, tier: optional, values: ["Stainless Steel", "Aluminum", "Cast Iron"] }
+    - { key: weight, tier: optional }
+
+  collectibles-and-antiques/antiques/antiques:
+    - { key: era, tier: recommended }
+    - { key: material, tier: recommended }
+    - { key: condition, tier: required, values: ["Mint", "Excellent", "Good", "Fair", "Restored"] }
+    - { key: authenticity, tier: optional, values: ["Verified", "Unverified"] }
+
+  collectibles-and-antiques/collectibles/sports-memorabilia:
+    - { key: sport, tier: required }
+    - { key: team, tier: optional }
+    - { key: condition, tier: required, values: ["Mint", "Near Mint", "Excellent", "Good", "Fair"] }
+    - { key: authenticity, tier: required, values: ["Certified", "Autographed", "Unverified"] }
+
+  digital-products/software/computer-software:
+    - { key: platform, tier: required, values: ["Windows", "macOS", "Linux", "Cross-Platform", "Web"] }
+    - { key: license-type, tier: required, values: ["Perpetual", "Subscription", "Freeware", "Open Source"] }
+    - { key: software-category, tier: recommended }
+    - { key: delivery-method, tier: optional, values: ["Download", "Physical", "Cloud Key"] }
+
+  digital-products/online-courses/online-courses:
+    - { key: subject, tier: required }
+    - { key: skill-level, tier: recommended, values: ["Beginner", "Intermediate", "Advanced", "All Levels"] }
+    - { key: duration, tier: recommended }
+    - { key: format, tier: optional, values: ["Video", "Text", "Live", "Interactive"] }
+    - { key: language, tier: optional }
+
+  digital-products/digital-downloads/digital-goods:
+    - { key: file-format, tier: required }
+    - { key: license-type, tier: recommended, values: ["Personal Use", "Commercial Use", "Royalty-Free"] }
+    - { key: file-size, tier: optional }
+
+  adult-products/adult-products/adult-products:
+    - { key: material, tier: recommended }
+    - { key: color, tier: optional }
+    - { key: target-gender, tier: optional, values: ["Male", "Female", "Unisex"] }

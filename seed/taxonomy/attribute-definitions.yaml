@@ -1,48 +1,34 @@
 # GENERATED — shared canonical attributes (Shopify-sourced; tiers live on node_attributes).
 attributes:
-  - handle: allergy-friendly-features
-    label: Allergy-friendly features
+  - handle: color
+    label: Color
     values:
-      - Chemical-free
-      - Dust mite resistant
-      - Hypoallergenic
-      - Latex-free
-      - Low VOC
-      - Mold resistant
-      - Natural materials
-      - Other
+      - Beige
+      - Black
+      - Blue
+      - Bronze
+      - Brown
+      - Clear
+      - Gold
+      - Gray
+      - Green
+      - Multicolor
+      - Navy
+      - Orange
+      - Pink
+      - Purple
+      - Red
+      - Rose gold
+      - Silver
+      - White
+      - Yellow
+      - Cream
+      - Assorted
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
-  - handle: bag-case-features
-    label: Bag/Case features
-    values:
-      - Adjustable size
-      - Anti-theft
-      - Convertible
-      - Dustproof
-      - Easy to install
-      - Fire resistant
-      - Four-wheel spinner
-      - Internal padding
-      - Lightweight
-      - Lockable
-      - Luggage tag
-      - Reflective
-      - RFID protection
-      - Shockproof
-      - TSA approved
-      - Vegan friendly
-      - Waterproof
-      - Wheeled
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-1-8-4
-  - handle: bag-case-material
-    label: Bag/Case material
+  - handle: material
+    label: Material
     values:
       - Acrylic
       - Alcantara
@@ -77,12 +63,331 @@ attributes:
       - Vinyl
       - Wood
       - Other
+      - Angora
+      - Bamboo
+      - Biodegradable materials
+      - Brass
+      - Bronze
+      - Carbon
+      - Cardboard
+      - Cashmere
+      - Ceramic
+      - Chrome
+      - Clay
+      - Coir
+      - Concrete
+      - Copper
+      - Corduroy
+      - Cork
+      - Fabric
+      - Faux fur
+      - Flannel
+      - Fleece
+      - Fur
+      - Glass
+      - Graphite
+      - Hemp
+      - Iron
+      - Jute
+      - Latex
+      - Lycra
+      - Lyocell
+      - Marble
+      - Medium density fiberboard (MDF)
+      - Merino
+      - Modal
+      - Mohair
+      - Paper
+      - Plush
+      - Plywood
+      - Polyethylene (PE)
+      - Polypropylene (PP)
+      - Polyurethane (PU)
+      - Porcelain
+      - Rattan
+      - Rayon
+      - Resin
+      - Rubber
+      - Satin
+      - Sherpa
+      - Silicone
+      - Silk
+      - Stainless steel
+      - Stone
+      - Suede
+      - Terrycloth
+      - Thermoplastic elastomer (TPE)
+      - Twill
+      - Velour
+      - Viscose
+      - Wool
+      - Elastomer
+      - Kevlar
+      - Nitrile
+      - Spandex
+      - Acrylonitrile butadiene styrene (ABS)
+      - Elastane
+      - Foam
+      - Polyamide (PA)
+      - Rope
+      - Steel
+      - Tarpaulin
+      - Titanium
+      - Tin
+      - Artificial
+      - Dried/preserved
+      - Live
+      - Buckwheat hulls
+      - Down feather
+      - Feathers
+      - Microbeads
+      - Polystyrene (PS)
+      - Polycarbonate (PC)
+      - Thermoplastic
+      - Coral
+      - Crystal
+      - Gemstone
+      - Gold
+      - Pearl
+      - Rose gold
+      - Sequins
+      - Silver
+      - Wax
+      - Alloy
+      - Bakelite
+      - Black rhodium-plated
+      - Bronze-plated
+      - Copper-plated
+      - Diamond
+      - Duralumin
+      - Enamel
+      - Gold-plated
+      - Nickel
+      - Nickel-plated
+      - Non-precious metals
+      - Palladium
+      - Palladium-plated
+      - Pearls
+      - Platinum
+      - Platinum-plated
+      - Precious resin
+      - Precious/Semiprecious stones
+      - Red gold
+      - Rhodium-plated
+      - Rose gold-plated
+      - Silver-plated
+      - Sterling silver
+      - Tin-plated
+      - White gold
+      - White gold-plated
+      - Beech wood
+      - Cedar wood
+      - Cherry wood
+      - Fiber reinforced plastic (FRP)
+      - Granite
+      - High density fiberboard (HDF)
+      - Maple wood
+      - Melamine
+      - Oak wood
+      - Particle board
+      - Pine wood
+      - Teak wood
+      - Walnut wood
+      - Wicker
+      - Wood plastic composite (WPC)
+      - African blackwood
+      - Alder wood
+      - Ash wood
+      - Basswood
+      - Birch wood
+      - Brazilwood
+      - Cocobolo
+      - Ebony wood
+      - Hard rubber
+      - Mahogany
+      - Nickel silver
+      - Pernambuco
+      - Rosewood
+      - Spruce wood
+      - Fluorocarbon
+      - Carbon steel
+      - Cast iron
+      - Chrome-plated
+      - Galvanized iron
+      - Zinc
+      - Bone
+      - Pewter
+      - Seashell
+      - ABS
+      - Double-shot ABS
+      - Dye-sublimated PBT
+      - PBT
+      - POM
+      - PPS
+      - PVC
+      - Faux Leather
+      - TPU
+      - Beryllium
+      - Carbide
+      - Duroplast
+      - G-10
+      - Galvanized steel
+      - Teflon
+      - Acacia wood
+      - Olive wood
+      - Composite
+      - Capiz
+      - Papier-mâché
+      - Terracotta
+      - Veneer
+      - None
+      - Stainless Steel
+      - Cast Iron
+      - Cellulose
+      - Mineral wool
+      - Phenolic foam
+      - Polyisocyanurate (PIR)
+      - Straw
+      - Acetate
+      - CR-39
+      - High-index plastic
+      - Trivex
+      - Badger
+      - Boar bristle
+      - Goat
+      - Hog
+      - Horsehair
+      - Natural bristle
+      - Pony
+      - Sable
+      - Synthetic bristle
+      - Unknown
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
+  - handle: pattern
+    label: Pattern
+    values:
+      - Abstract
+      - Animal
+      - Art
+      - Bead & reel
+      - Birds
+      - Brick
+      - Bull's eye
+      - Camouflage
+      - Characters
+      - Checkered
+      - Chevron
+      - Chinoiserie
+      - Christmas
+      - Collage
+      - Coral
+      - Damask
+      - Diagonal
+      - Diamond
+      - Dog's tooth
+      - Dots
+      - Egg & dart
+      - Ethnic
+      - Everlasting knot
+      - Floral
+      - Fret
+      - Geometric
+      - Guilloche
+      - Hearts
+      - Illusion
+      - Lace
+      - Leaves
+      - Logo
+      - Mosaic
+      - Ogee
+      - Organic
+      - Paisley
+      - Plaid
+      - Rainbow
+      - Random
+      - Scale
+      - Scroll
+      - Solid
+      - Stars
+      - Striped
+      - Swirl
+      - Text
+      - Texture
+      - Tie-dye
+      - Trellis
+      - Vehicle
+      - Other
+      - All-terrain
+      - Knobby
+      - Lug/Bar
+      - Multi-trac
+      - Rib
+      - Smooth
+      - Snow
+      - Turf
+      - 75 x 75 mm
+      - 100 x 100 mm
+      - 100 x 200 mm
+      - 200 x 100 mm
+      - 200 x 200 mm
+      - 300 x 300 mm
+      - 400 x 200 mm
+      - 400 x 400 mm
+      - 600 x 400 mm
+      - Cardioid
+      - Figure-8
+      - Hypercardioid
+      - Multi-pattern
+      - Omnidirectional
+      - Shotgun
+      - Subcardioid
+      - Super-cardioid
+    provenance:
+      sources:
+        - system: shopify
+  - handle: allergy-friendly-features
+    label: Allergy Friendly Features
+    values:
+      - Chemical-free
+      - Dust mite resistant
+      - Hypoallergenic
+      - Latex-free
+      - Low VOC
+      - Mold resistant
+      - Natural materials
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bag-case-features
+    label: Bag Case Features
+    values:
+      - Adjustable size
+      - Anti-theft
+      - Convertible
+      - Dustproof
+      - Easy to install
+      - Fire resistant
+      - Four-wheel spinner
+      - Internal padding
+      - Lightweight
+      - Lockable
+      - Luggage tag
+      - Reflective
+      - RFID protection
+      - Shockproof
+      - TSA approved
+      - Vegan friendly
+      - Waterproof
+      - Wheeled
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: body-area
-    label: Body area
+    label: Body Area
     values:
       - Abdomen
       - Arms
@@ -115,23 +420,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
-  - handle: case-color
-    label: case-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-1-8-4
-  - handle: case-pattern
-    label: case-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-1-8-4
   - handle: first-aid-container-type
-    label: First aid container type
+    label: First Aid Container Type
     values:
       - Backpack
       - Cabinet
@@ -146,9 +436,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
   - handle: first-aid-kit-compliance-standard
-    label: First aid kit compliance standard
+    label: First Aid Kit Compliance Standard
     values:
       - ANSI/ISEA Z308.1-2015 Class A
       - ANSI/ISEA Z308.1-2021 Class A
@@ -163,9 +452,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
   - handle: first-aid-kit-usage
-    label: First aid kit usage
+    label: First Aid Kit Usage
     values:
       - Bicycle
       - Car
@@ -178,9 +466,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
   - handle: product-certifications-standards
-    label: Product certifications & standards
+    label: Product Certifications Standards
     values:
       - Alcohol-free
       - All-natural ingredients
@@ -241,9 +528,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
   - handle: usage-type
-    label: Usage type
+    label: Usage Type
     values:
       - Disposable
       - Refillable
@@ -252,124 +538,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-8-4
-  - handle: color
-    label: Color
-    values:
-      - Beige
-      - Black
-      - Blue
-      - Bronze
-      - Brown
-      - Clear
-      - Gold
-      - Gray
-      - Green
-      - Multicolor
-      - Navy
-      - Orange
-      - Pink
-      - Purple
-      - Red
-      - Rose gold
-      - Silver
-      - White
-      - Yellow
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-10-8
-  - handle: material
-    label: Material
-    values:
-      - Acrylic
-      - Aluminum
-      - Angora
-      - Bamboo
-      - Biodegradable materials
-      - Brass
-      - Bronze
-      - Canvas
-      - Carbon
-      - Cardboard
-      - Cashmere
-      - Ceramic
-      - Chrome
-      - Clay
-      - Coir
-      - Concrete
-      - Copper
-      - Corduroy
-      - Cork
-      - Cotton
-      - Denim
-      - Fabric
-      - Faux fur
-      - Faux leather
-      - Felt
-      - Fiberglass
-      - Flannel
-      - Fleece
-      - Fur
-      - Glass
-      - Graphite
-      - Hemp
-      - Iron
-      - Jute
-      - Latex
-      - Leather
-      - Linen
-      - Lycra
-      - Lyocell
-      - Marble
-      - Medium density fiberboard (MDF)
-      - Merino
-      - Mesh
-      - Metal
-      - Modal
-      - Mohair
-      - Neoprene
-      - Nylon
-      - Paper
-      - Plastic
-      - Plush
-      - Plywood
-      - Polyester
-      - Polyethylene (PE)
-      - Polypropylene (PP)
-      - Polyurethane (PU)
-      - Polyvinyl chloride (PVC)
-      - Porcelain
-      - Rattan
-      - Rayon
-      - Resin
-      - Rubber
-      - Satin
-      - Sherpa
-      - Silicone
-      - Silk
-      - Stainless steel
-      - Stone
-      - Suede
-      - Synthetic
-      - Terrycloth
-      - Thermoplastic elastomer (TPE)
-      - Thermoplastic polyurethane (TPU)
-      - Tweed
-      - Twill
-      - Velour
-      - Velvet
-      - Vinyl
-      - Viscose
-      - Wood
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-10-8
   - handle: mounting-type
-    label: Mounting type
+    label: Mounting Type
     values:
       - Built-in
       - Ceiling
@@ -383,70 +553,13 @@ attributes:
       - Undercounter
       - Wall
       - Other
+      - Freestanding
+      - Wall-Mounted
     provenance:
       sources:
         - system: shopify
-          ref: hg-10-8
-  - handle: pattern
-    label: Pattern
-    values:
-      - Abstract
-      - Animal
-      - Art
-      - Bead & reel
-      - Birds
-      - Brick
-      - Bull's eye
-      - Camouflage
-      - Characters
-      - Checkered
-      - Chevron
-      - Chinoiserie
-      - Christmas
-      - Collage
-      - Coral
-      - Damask
-      - Diagonal
-      - Diamond
-      - Dog's tooth
-      - Dots
-      - Egg & dart
-      - Ethnic
-      - Everlasting knot
-      - Floral
-      - Fret
-      - Geometric
-      - Guilloche
-      - Hearts
-      - Illusion
-      - Lace
-      - Leaves
-      - Logo
-      - Mosaic
-      - Ogee
-      - Organic
-      - Paisley
-      - Plaid
-      - Rainbow
-      - Random
-      - Scale
-      - Scroll
-      - Solid
-      - Stars
-      - Striped
-      - Swirl
-      - Text
-      - Texture
-      - Tie-dye
-      - Trellis
-      - Vehicle
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-10-8
   - handle: power-source
-    label: Power source
+    label: Power Source
     values:
       - AC-powered
       - Alcohol
@@ -479,9 +592,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-10-8
   - handle: suitable-space
-    label: Suitable space
+    label: Suitable Space
     values:
       - Indoors
       - Outdoors
@@ -489,9 +601,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-10-8
   - handle: thermometer-design
-    label: Thermometer design
+    label: Thermometer Design
     values:
       - Analog
       - Bimetallic
@@ -504,9 +615,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-10-8
   - handle: battery-size
-    label: Battery size
+    label: Battery Size
     values:
       - '10'
       - '13'
@@ -613,9 +723,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-4-3
   - handle: battery-type
-    label: Battery type
+    label: Battery Type
     values:
       - Contained-detachable
       - Contained-undetachable
@@ -627,9 +736,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-4-3
   - handle: connectivity-technology
-    label: Connectivity technology
+    label: Connectivity Technology
     values:
       - AirPlay
       - ANT
@@ -656,9 +764,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-4-3
   - handle: display-technology
-    label: Display technology
+    label: Display Technology
     values:
       - AHVA
       - AMOLED
@@ -694,9 +801,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-4-3
   - handle: ingress-protection-ip-rating
-    label: Ingress protection (IP) rating
+    label: Ingress Protection Ip Rating
     values:
       - IP20
       - IP22
@@ -724,9 +830,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-4-3
   - handle: medical-device-certification
-    label: Medical device certification
+    label: Medical Device Certification
     values:
       - CE
       - FDA 510(k)
@@ -739,9 +844,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-4-3
   - handle: tracking-metrics
-    label: Tracking metrics
+    label: Tracking Metrics
     values:
       - Blood pressure
       - Body fat
@@ -754,9 +858,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-4-3
   - handle: pet-dietary-preferences
-    label: Pet dietary preferences
+    label: Pet Dietary Preferences
     values:
       - All natural ingredients
       - Grain free
@@ -768,9 +871,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-42
   - handle: pet-dietary-requirements
-    label: Pet dietary requirements
+    label: Pet Dietary Requirements
     values:
       - Allergy & food sensitivity
       - Cardiovascular care
@@ -793,9 +895,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-42
   - handle: pet-food-flavor
-    label: Pet food flavor
+    label: Pet Food Flavor
     values:
       - Apple
       - Avocado
@@ -843,9 +944,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-42
   - handle: pet-supply-product-form
-    label: Pet supply product form
+    label: Pet Supply Product Form
     values:
       - Balm
       - Capsules
@@ -867,9 +967,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-42
   - handle: age-group
-    label: Age group
+    label: Age Group
     values:
       - 0-6 months
       - 6-12 months
@@ -883,12 +982,31 @@ attributes:
       - Toddlers
       - Universal
       - Other
+      - 0-1 year
+      - 1 year or older
+      - 1-3 years
+      - 3-5 years
+      - 6-8 years
+      - 9-12 years
+      - 13-18 years
+      - 2 years or older
+      - 3 years or older
+      - 4 years or older
+      - 5 years or older
+      - 6 years or older
+      - 7 years or older
+      - 8 years or older
+      - 9 years or older
+      - 10 years or older
+      - 12 years or older
+      - 18 years or older
+      - Preschoolers
+      - School-age children
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-19-3-3
   - handle: application-method
-    label: Application method
+    label: Application Method
     values:
       - Cream
       - Gel
@@ -902,9 +1020,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-19-3-3
   - handle: chemical-product-form
-    label: Chemical product form
+    label: Chemical Product Form
     values:
       - Flakes
       - Gel
@@ -918,9 +1035,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-19-3-3
   - handle: nutrient-content
-    label: Nutrient content
+    label: Nutrient Content
     values:
       - Boron
       - Calcium
@@ -938,9 +1054,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-19-3-3
   - handle: ph-level
-    label: PH level
+    label: Ph Level
     values:
       - 4.0 (moderately acidic)
       - 4.5 (moderately acidic)
@@ -975,9 +1090,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-19-3-3
   - handle: plant-stage
-    label: Plant stage
+    label: Plant Stage
     values:
       - Cloning
       - Flowering
@@ -990,9 +1104,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-19-3-3
   - handle: supplement-function
-    label: Supplement function
+    label: Supplement Function
     values:
       - Amino Acids
       - Beneficial Bacteria
@@ -1010,9 +1123,18 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-19-3-3
+  - handle: target-gender
+    label: Target Gender
+    values:
+      - Female
+      - Male
+      - Unisex
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: allergen-information
-    label: Allergen information
+    label: Allergen Information
     values:
       - Celery
       - Crustaceans
@@ -1033,9 +1155,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: detailed-ingredients
-    label: Detailed ingredients
+    label: Detailed Ingredients
     values:
       - Acacia
       - Acai
@@ -1126,9 +1247,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: dietary-preferences
-    label: Dietary preferences
+    label: Dietary Preferences
     values:
       - Alcohol-free
       - Dairy-free
@@ -1161,9 +1281,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: dietary-supplements
-    label: Dietary supplements
+    label: Dietary Supplements
     values:
       - Aloe vera
       - Caffeine
@@ -1196,9 +1315,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: dietary-use
-    label: Dietary use
+    label: Dietary Use
     values:
       - Balanced nutrition
       - Blood sugar control
@@ -1219,7 +1337,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: flavor
     label: Flavor
     values:
@@ -1256,16 +1373,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: food-supplement-form
-    label: food-supplement-form
+    label: Food Supplement Form
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: ingredient-category
-    label: Ingredient category
+    label: Ingredient Category
     values:
       - Amino acids
       - Animal-derived
@@ -1293,9 +1408,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
   - handle: protein-processing-type
-    label: Protein processing type
+    label: Protein Processing Type
     values:
       - Blend
       - Clear protein
@@ -1308,79 +1422,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-9-6-8
-  - handle: protein-source
-    label: Protein source
-    values:
-      - Beef
-      - Casein
-      - Collagen
-      - Egg
-      - Hemp
-      - Mixed blend
-      - Pea
-      - Rice
-      - Soy
-      - Whey
-      - Whey concentrate
-      - Whey hydrolyzed
-      - Whey isolate
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-1-9-6-8
-  - handle: route-of-administration
-    label: Route of administration
-    values:
-      - Inhalation
-      - Intramuscular injection
-      - Intravenous injection
-      - Nasal spray
-      - Oral
-      - Subcutaneous injection
-      - Sublingual
-      - Suppository
-      - Topical
-      - Transdermal patch
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-1-9-6-8
-  - handle: supplement-health-focus
-    label: Supplement health focus
-    values:
-      - Bone and joint support
-      - Brain and cognitive health
-      - Digestive health
-      - Energy and metabolism
-      - Eye health
-      - Hair
-      - Heart health
-      - Immune support
-      - Nails
-      - Prenatal and maternal health
-      - Skin health
-      - Weight management
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-1-9-6-8
-  - handle: target-gender
-    label: Target gender
-    values:
-      - Female
-      - Male
-      - Unisex
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-1-9-6-8
   - handle: diaper-size
-    label: Diaper size
+    label: Diaper Size
     values:
       - Preemie
       - Newborn
@@ -1396,9 +1439,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bt-9-12
   - handle: accessory-size
-    label: Accessory size
+    label: Accessory Size
     values:
       - Triple extra small (XXXS)
       - Double extra small (XXS)
@@ -1426,9 +1468,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-39
   - handle: stroller-features
-    label: Stroller features
+    label: Stroller Features
     values:
       - Adjustable handlebar
       - Canopy
@@ -1445,9 +1486,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-39
   - handle: baby-monitor-features
-    label: Baby monitor features
+    label: Baby Monitor Features
     values:
       - Infrared sensor
       - Lullabies
@@ -1459,9 +1499,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bt-4-3
   - handle: display-color-mode
-    label: Display color mode
+    label: Display Color Mode
     values:
       - Black & white
       - Color
@@ -1469,9 +1508,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bt-4-3
   - handle: range-type
-    label: Range type
+    label: Range Type
     values:
       - Long-range
       - Short-range
@@ -1479,9 +1517,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bt-4-3
   - handle: illumination-technique
-    label: Illumination technique
+    label: Illumination Technique
     values:
       - Brightfield
       - Darkfield
@@ -1492,7 +1529,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bi-23-4-11
   - handle: magnification
     label: Magnification
     values:
@@ -1514,9 +1550,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bi-23-4-11
   - handle: maximum-magnification
-    label: Maximum magnification
+    label: Maximum Magnification
     values:
       - 0.5x
       - 1x
@@ -1536,77 +1571,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bi-23-4-11
   - handle: microscope-features
-    label: microscope-features
+    label: Microscope Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: bi-23-4-11
-  - handle: handwear-material
-    label: Handwear material
-    values:
-      - Acrylic
-      - Bamboo
-      - Cotton
-      - Elastomer
-      - Ethylene vinyl acetate (EVA)
-      - Faux fur
-      - Faux leather
-      - Fleece
-      - Kevlar
-      - Latex
-      - Leather
-      - Mesh
-      - Microfiber
-      - Neoprene
-      - Nitrile
-      - Nylon
-      - Polyester
-      - Polyethylene (PE)
-      - Polyurethane (PU)
-      - Polyvinyl chloride (PVC)
-      - Satin
-      - Silk
-      - Spandex
-      - Synthetic
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: bi-25-8
-  - handle: frame-color
-    label: frame-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: bi-25-6-3
-  - handle: frame-pattern
-    label: frame-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: bi-25-6-3
-  - handle: lens-color
-    label: lens-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: bi-25-6-3
-  - handle: lens-pattern
-    label: lens-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: bi-25-6-3
   - handle: protective-gear-features
-    label: Protective gear features
+    label: Protective Gear Features
     values:
       - Adjustable
       - Anti-fog
@@ -1627,7 +1599,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bi-25-6-3
   - handle: fabric
     label: Fabric
     values:
@@ -1682,19 +1653,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-2-17
-  - handle: headwear-features
-    label: Headwear features
-    values:
-      - Adjustable fit
-      - Collapsible
-      - UV protection
-      - Versatile
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-2-17
   - handle: size
     label: Size
     values:
@@ -1759,57 +1717,19 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-2-17
-  - handle: gear-material
-    label: Gear material
+  - handle: headwear-features
+    label: Headwear Features
     values:
-      - Acrylic
-      - Acrylonitrile butadiene styrene (ABS)
-      - Aluminum
-      - Canvas
-      - Carbon fiber
-      - Ceramic
-      - Cotton
-      - Denim
-      - Elastane
-      - Faux fur
-      - Faux leather
-      - Fiberglass
-      - Foam
-      - Fur
-      - Jute
-      - Kevlar
-      - Latex
-      - Leather
-      - Linen
-      - Lyocell
-      - Metal
-      - Microfiber
-      - Nylon
-      - Paper
-      - Plastic
-      - Polyamide (PA)
-      - Polyethylene (PE)
-      - Polypropylene (PP)
-      - Polyurethane (PU)
-      - Polyvinyl chloride (PVC)
-      - Rope
-      - Rubber
-      - Silk
-      - Spandex
-      - Steel
-      - Synthetic
-      - Tarpaulin
-      - Titanium
-      - Vinyl
-      - Wool
+      - Adjustable fit
+      - Collapsible
+      - UV protection
+      - Versatile
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: bi-25-7-3
   - handle: protective-mask-design
-    label: Protective mask design
+    label: Protective Mask Design
     values:
       - Full face
       - Half mask
@@ -1817,9 +1737,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bi-25-7-3
   - handle: protective-mask-features
-    label: Protective mask features
+    label: Protective Mask Features
     values:
       - Adjustable strap
       - Anti-fog
@@ -1835,9 +1754,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bi-25-7-3
   - handle: dog-age-group
-    label: Dog age group
+    label: Dog Age Group
     values:
       - Adult
       - Junior
@@ -1847,9 +1765,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-3-3
   - handle: package-type
-    label: Package type
+    label: Package Type
     values:
       - Bag
       - Bottle
@@ -1881,9 +1798,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-3-3
   - handle: pet-food-form
-    label: Pet food form
+    label: Pet Food Form
     values:
       - Dry
       - Semi-moist
@@ -1892,9 +1808,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-3-3
   - handle: pet-food-supplements
-    label: Pet food supplements
+    label: Pet Food Supplements
     values:
       - Canola oil
       - CBD oil
@@ -1908,9 +1823,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-3-3
   - handle: animal-type
-    label: Animal type
+    label: Animal Type
     values:
       - Beavers
       - Birds
@@ -1959,14 +1873,12 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-9
   - handle: pet-bedding-features
-    label: pet-bedding-features
+    label: Pet Bedding Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-9
   - handle: shape
     label: Shape
     values:
@@ -1995,9 +1907,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-9
   - handle: dog-toy-type
-    label: Dog toy type
+    label: Dog Toy Type
     values:
       - Aggressive chewer
       - Chew
@@ -2010,9 +1921,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-3-7
   - handle: suitable-for-breed-size
-    label: Suitable for breed size
+    label: Suitable For Breed Size
     values:
       - Small
       - Medium
@@ -2021,55 +1931,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-3-7
-  - handle: toy-game-material
-    label: Toy/Game material
-    values:
-      - Acrylic
-      - Aluminum
-      - Bamboo
-      - Canvas
-      - Cardboard
-      - Cork
-      - Cotton
-      - Denim
-      - Fabric
-      - Faux fur
-      - Faux leather
-      - Felt
-      - Fiberglass
-      - Fleece
-      - Foam
-      - Latex
-      - Leather
-      - Mesh
-      - Metal
-      - Neoprene
-      - Nylon
-      - Plastic
-      - Plush
-      - Polyester
-      - Rattan
-      - Rubber
-      - Satin
-      - Silicone
-      - Silk
-      - Steel
-      - Suede
-      - Synthetic
-      - Tin
-      - Velour
-      - Velvet
-      - Vinyl
-      - Wood
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ap-2-3-7
   - handle: closure-type
-    label: Closure type
+    label: Closure Type
     values:
       - Adjustable straps
       - Adjustable/Pull
@@ -2093,12 +1956,12 @@ attributes:
       - Velcro
       - Zipper
       - Other
+      - Zippered
     provenance:
       sources:
         - system: shopify
-          ref: bt-4-4-2
   - handle: infant-age-group
-    label: Infant age group
+    label: Infant Age Group
     values:
       - 0-3 months
       - 0-6 months
@@ -2118,9 +1981,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bt-4-4-2
   - handle: cat-age-group
-    label: Cat age group
+    label: Cat Age Group
     values:
       - Adult
       - Kitten
@@ -2129,9 +1991,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-2-1
   - handle: material-treatment
-    label: Material treatment
+    label: Material Treatment
     values:
       - Chemically treated
       - Fumigated
@@ -2140,20 +2001,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-2-5
-  - handle: plant-material
-    label: Plant material
-    values:
-      - Artificial
-      - Dried/preserved
-      - Live
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ap-2-2-5
   - handle: cat-litter-formula
-    label: Cat litter formula
+    label: Cat Litter Formula
     values:
       - Clay
       - Crystals
@@ -2163,9 +2012,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-2-4
   - handle: lumber-wood-type
-    label: Lumber/Wood type
+    label: Lumber Wood Type
     values:
       - Ash wood
       - Balsa wood
@@ -2194,9 +2042,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-2-4
   - handle: wood-finish
-    label: Wood finish
+    label: Wood Finish
     values:
       - Engineered (plywood/MDF)
       - Lacquered/varnished
@@ -2209,9 +2056,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-2-4
   - handle: bird-cage-stand-design
-    label: Bird cage/stand design
+    label: Bird Cage Stand Design
     values:
       - Aviary cage
       - Breeding cage
@@ -2232,9 +2078,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ap-2-1-2
   - handle: care-instructions
-    label: Care instructions
+    label: Care Instructions
     values:
       - Dry clean only
       - Dryer safe
@@ -2246,48 +2091,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-15-3
-  - handle: cover-material
-    label: Cover material
-    values:
-      - Acrylic
-      - Bamboo
-      - Canvas
-      - Cork
-      - Cotton
-      - Denim
-      - Faux fur
-      - Faux leather
-      - Felt
-      - Flannel
-      - Fleece
-      - Fur
-      - Hemp
-      - Jute
-      - Latex
-      - Leather
-      - Linen
-      - Lycra
-      - Mesh
-      - Modal
-      - Mohair
-      - Neoprene
-      - Nylon
-      - Plastic
-      - Polyester
-      - Rattan
-      - Rubber
-      - Synthetic
-      - Tarpaulin
-      - Twill
-      - Vinyl
-      - Viscose
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-15-3
   - handle: features
     label: Features
     values:
@@ -2307,31 +2110,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-15-3
-  - handle: filler-material
-    label: Filler material
-    values:
-      - Buckwheat hulls
-      - Cotton
-      - Down feather
-      - Feathers
-      - Felt
-      - Fleece
-      - Memory foam
-      - Microbeads
-      - Plush
-      - Polyester
-      - Polystyrene (PS)
-      - Polyurethane (PU)
-      - Synthetic
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-15-3
   - handle: filler-support
-    label: Filler support
+    label: Filler Support
     values:
       - Adjustable
       - Buckwheat
@@ -2349,9 +2129,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-15-3
   - handle: inflation-method
-    label: Inflation method
+    label: Inflation Method
     values:
       - Automatic
       - Hydrostatic
@@ -2360,9 +2139,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-15-3
   - handle: product-form
-    label: Product form
+    label: Product Form
     values:
       - Cream
       - Cream-to-powder
@@ -2396,9 +2174,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-15-3
   - handle: travel-pillow-features
-    label: Travel pillow features
+    label: Travel Pillow Features
     values:
       - Adjustable strap
       - Chin support
@@ -2414,9 +2191,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-15-3
   - handle: travel-pillow-shape
-    label: Travel pillow shape
+    label: Travel Pillow Shape
     values:
       - J-shaped
       - U-shaped
@@ -2424,16 +2200,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-15-3
   - handle: luggage-bag-closure
-    label: luggage-bag-closure
+    label: Luggage Bag Closure
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: lb-9-6
   - handle: tag-fastening
-    label: Tag fastening
+    label: Tag Fastening
     values:
       - Buckles
       - Loop
@@ -2442,9 +2216,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: lb-9-5
   - handle: battery-features
-    label: Battery features
+    label: Battery Features
     values:
       - Battery life indicator
       - Cold resistant
@@ -2457,9 +2230,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-1
   - handle: battery-technology
-    label: Battery technology
+    label: Battery Technology
     values:
       - Alkaline
       - Gel cell
@@ -2491,9 +2263,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-1
   - handle: compatible-battery-technology
-    label: Compatible battery technology
+    label: Compatible Battery Technology
     values:
       - Alkaline
       - Gel cell
@@ -2525,9 +2296,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-1
   - handle: connector-gender
-    label: Connector gender
+    label: Connector Gender
     values:
       - Female
       - Female to female
@@ -2539,9 +2309,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-1
   - handle: connector-type
-    label: Connector type
+    label: Connector Type
     values:
       - Alligator clip
       - Banana plug
@@ -2557,9 +2326,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-1
   - handle: plug-type
-    label: Plug type
+    label: Plug Type
     values:
       - AU
       - BR
@@ -2581,9 +2349,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-1
   - handle: item-condition
-    label: Item condition
+    label: Item Condition
     values:
       - Certified pre-owned
       - New
@@ -2593,9 +2360,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-4-1-7
   - handle: manufacturer-type
-    label: Manufacturer type
+    label: Manufacturer Type
     values:
       - Aftermarket
       - Genuine
@@ -2605,9 +2371,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-4-1-7
   - handle: vehicle-braking-features
-    label: Vehicle braking features
+    label: Vehicle Braking Features
     values:
       - Corrosion resistant
       - Drilled
@@ -2619,9 +2384,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-4-1-7
   - handle: fit-type
-    label: Fit type
+    label: Fit Type
     values:
       - Custom
       - Direct
@@ -2630,9 +2394,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-4-11-3
   - handle: motor-vehicle-type
-    label: Motor vehicle type
+    label: Motor Vehicle Type
     values:
       - Car
       - SUV
@@ -2642,45 +2405,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-4-11-3
-  - handle: item-material
-    label: Item material
-    values:
-      - Acrylonitrile butadiene styrene (ABS)
-      - Aluminum
-      - Brass
-      - Carbon fiber
-      - Ceramic
-      - Chrome
-      - Copper
-      - Faux leather
-      - Fiberglass
-      - Glass
-      - Leather
-      - Metal
-      - Neoprene
-      - Nylon
-      - Plastic
-      - Polycarbonate (PC)
-      - Polyethylene (PE)
-      - Polypropylene (PP)
-      - Polyurethane (PU)
-      - Polyvinyl chloride (PVC)
-      - Rubber
-      - Silicone
-      - Stainless steel
-      - Synthetic
-      - Thermoplastic
-      - Titanium
-      - Vinyl
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: vp-1-4-21-4
   - handle: vehicle-oil-features
-    label: Vehicle oil features
+    label: Vehicle Oil Features
     values:
       - Corrosion resistant
       - Energy conserving
@@ -2694,9 +2420,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-5-5-8
   - handle: vehicle-type
-    label: Vehicle type
+    label: Vehicle Type
     values:
       - Car
       - Golf cart
@@ -2710,7 +2435,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-5-5-8
   - handle: viscosity
     label: Viscosity
     values:
@@ -2735,9 +2459,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-5-5-8
   - handle: motorcycle-tire-type
-    label: Motorcycle tire type
+    label: Motorcycle Tire Type
     values:
       - Adventure
       - Cruiser
@@ -2751,9 +2474,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-4-20-3-2
   - handle: vehicle-drive-handling-features
-    label: Vehicle drive/handling features
+    label: Vehicle Drive Handling Features
     values:
       - Adjustable
       - Corrosion resistant
@@ -2765,9 +2487,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: vp-1-4-20-3-2
   - handle: tire-construction-type
-    label: Tire construction type
+    label: Tire Construction Type
     values:
       - Bias-ply
       - Radial
@@ -2775,132 +2496,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-4-4-10
-  - handle: tire-tread-pattern
-    label: Tire tread pattern
-    values:
-      - All-terrain
-      - Chevron
-      - Knobby
-      - Lug/Bar
-      - Multi-trac
-      - Rib
-      - Smooth
-      - Snow
-      - Turf
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-12-4-4-10
-  - handle: footwear-material
-    label: Footwear material
-    values:
-      - Canvas
-      - Cotton
-      - Faux fur
-      - Faux leather
-      - Fleece
-      - Leather
-      - Linen
-      - Mesh
-      - Neoprene
-      - Nylon
-      - Plastic
-      - Polyester
-      - Polyvinyl chloride (PVC)
-      - Rubber
-      - Satin
-      - Silk
-      - Spandex
-      - Suede
-      - Synthetic
-      - Thermoplastic polyurethane (TPU)
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-8-10
-  - handle: heel-height-type
-    label: Heel height type
-    values:
-      - Flat
-      - High
-      - Low
-      - Mid
-      - Very high
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-8-10
-  - handle: heel-shoe-type
-    label: Heel shoe type
-    values:
-      - Ankle-strap d'Orsay
-      - Ankle-strap pumps
-      - Brogues heels
-      - Classic d'Orsay
-      - Classic pumps
-      - Loafer pumps
-      - Mary-Jane heels
-      - Mule heels
-      - Oxford heels
-      - Platform heels
-      - Slingback d'Orsay
-      - Slingback heels
-      - T-strap d'Orsay
-      - T-strap pumps
-      - Wedge heels
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-8-10
-  - handle: occasion-style
-    label: Occasion style
-    values:
-      - Casual
-      - Dress
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-8-10
-  - handle: shoe-features
-    label: Shoe features
-    values:
-      - Anti-microbial
-      - Arch support
-      - Breathable design
-      - Cushioned
-      - Eco friendly
-      - Lightweight
-      - Orthopedic
-      - Recycled materials
-      - Slip resistant
-      - Sustainable sourcing
-      - Vegan friendly
-      - Waterproof
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-8-10
-  - handle: shoe-fit
-    label: Shoe fit
-    values:
-      - Narrow
-      - Regular
-      - Wide
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-8-10
   - handle: shoe-size
-    label: Shoe size
+    label: Shoe Size
     values:
       - Extra small (XS)
       - Small (S)
@@ -3034,24 +2631,68 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-8-10
-  - handle: toe-style
-    label: Toe style
+  - handle: heel-height-type
+    label: Heel Height Type
     values:
-      - Almond
-      - Cap
-      - Moc
-      - Open
-      - Peep
-      - Pointed
-      - Round
-      - Square
-      - Wingtip
+      - Flat
+      - High
+      - Low
+      - Mid
+      - Very high
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: aa-8-10
+  - handle: heel-shoe-type
+    label: Heel Shoe Type
+    values:
+      - Ankle-strap d'Orsay
+      - Ankle-strap pumps
+      - Brogues heels
+      - Classic d'Orsay
+      - Classic pumps
+      - Loafer pumps
+      - Mary-Jane heels
+      - Mule heels
+      - Oxford heels
+      - Platform heels
+      - Slingback d'Orsay
+      - Slingback heels
+      - T-strap d'Orsay
+      - T-strap pumps
+      - Wedge heels
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: occasion-style
+    label: Occasion Style
+    values:
+      - Casual
+      - Dress
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: shoe-features
+    label: Shoe Features
+    values:
+      - Anti-microbial
+      - Arch support
+      - Breathable design
+      - Cushioned
+      - Eco friendly
+      - Lightweight
+      - Orthopedic
+      - Recycled materials
+      - Slip resistant
+      - Sustainable sourcing
+      - Vegan friendly
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: condition
     label: Condition
     values:
@@ -3071,10 +2712,15 @@ attributes:
       - Very good (VG)
       - Very good-excellent (VG-EX)
       - Other
+      - Mint
+      - Near Mint
+      - Excellent
+      - Good
+      - Fair
+      - Restored
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-2
   - handle: construction
     label: Construction
     values:
@@ -3089,136 +2735,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-2
-  - handle: embellishment-trim-material
-    label: Embellishment/Trim material
-    values:
-      - Acrylic
-      - Bamboo
-      - Ceramic
-      - Copper
-      - Coral
-      - Cork
-      - Cotton
-      - Crystal
-      - Felt
-      - Gemstone
-      - Glass
-      - Gold
-      - Linen
-      - Metal
-      - Nylon
-      - Paper
-      - Pearl
-      - Plastic
-      - Polyester
-      - Polypropylene (PP)
-      - Resin
-      - Rose gold
-      - Rubber
-      - Satin
-      - Sequins
-      - Silk
-      - Silver
-      - Spandex
-      - Stone
-      - Velvet
-      - Vinyl
-      - Viscose
-      - Wax
-      - Wood
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-2-2
-  - handle: jewelry-material
-    label: Jewelry material
-    values:
-      - Acrylic
-      - Alcantara
-      - Alloy
-      - Aluminum
-      - Bakelite
-      - Bamboo
-      - Black rhodium-plated
-      - Brass
-      - Bronze
-      - Bronze-plated
-      - Carbon fiber
-      - Ceramic
-      - Chrome
-      - Copper
-      - Copper-plated
-      - Cordura
-      - Cork
-      - Cotton
-      - Diamond
-      - Duralumin
-      - Enamel
-      - Fabric
-      - Faux fur
-      - Faux leather
-      - Felt
-      - Fiberglass
-      - Fur
-      - Glass
-      - Gold
-      - Gold-plated
-      - Hemp
-      - Iron
-      - Jute
-      - Latex
-      - Leather
-      - Linen
-      - Marble
-      - Mesh
-      - Metal
-      - Microfiber
-      - Nickel
-      - Nickel-plated
-      - Non-precious metals
-      - Nylon
-      - Palladium
-      - Palladium-plated
-      - Pearls
-      - Plastic
-      - Platinum
-      - Platinum-plated
-      - Polyester
-      - Porcelain
-      - Precious resin
-      - Precious/Semiprecious stones
-      - Red gold
-      - Resin
-      - Rhodium-plated
-      - Rose gold
-      - Rose gold-plated
-      - Rubber
-      - Satin
-      - Silk
-      - Silver
-      - Silver-plated
-      - Stainless steel
-      - Sterling silver
-      - Suede
-      - Synthetic
-      - Tin-plated
-      - Titanium
-      - Velvet
-      - Vinyl
-      - White gold
-      - White gold-plated
-      - Wood
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-2-2
   - handle: material-origin
-    label: Material origin
+    label: Material Origin
     values:
       - Finished product (jewelry/watch)
       - Loose/unmounted
@@ -3229,9 +2747,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-2
   - handle: product-classification
-    label: Product classification
+    label: Product Classification
     values:
       - Bullion
       - Coupon
@@ -3245,9 +2762,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-2
   - handle: product-use
-    label: Product use
+    label: Product Use
     values:
       - Collectible/numismatic
       - Currency/legal tender
@@ -3257,30 +2773,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-2
   - handle: customization
-    label: customization
+    label: Customization
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: os-11-5
-  - handle: ink-color
-    label: ink-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: os-11-5
-  - handle: ink-pattern
-    label: ink-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: os-11-5
   - handle: stamp-type
-    label: Stamp type
+    label: Stamp Type
     values:
       - Pre-inked
       - Self-inking
@@ -3289,16 +2789,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: os-11-5
-  - handle: text-plate-material
-    label: text-plate-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: os-11-5
   - handle: card-attributes
-    label: Card attributes
+    label: Card Attributes
     values:
       - Autographed
       - Foil
@@ -3311,7 +2803,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-3
   - handle: grading
     label: Grading
     values:
@@ -3331,7 +2822,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-3
   - handle: rarity
     label: Rarity
     values:
@@ -3346,42 +2836,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-3
-  - handle: recommended-age-group
-    label: Recommended age group
-    values:
-      - 0-1 year
-      - 1 year or older
-      - 1-3 years
-      - 3-5 years
-      - 6-8 years
-      - 9-12 years
-      - 13-18 years
-      - 2 years or older
-      - 3 years or older
-      - 4 years or older
-      - 5 years or older
-      - 6 years or older
-      - 7 years or older
-      - 8 years or older
-      - 9 years or older
-      - 10 years or older
-      - 12 years or older
-      - 18 years or older
-      - Adults
-      - All ages
-      - Babies
-      - Preschoolers
-      - School-age children
-      - Teens
-      - Toddlers
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-2-3
   - handle: sports-theme
-    label: Sports theme
+    label: Sports Theme
     values:
       - Aerobics
       - Aikido
@@ -3452,7 +2908,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-3
   - handle: theme
     label: Theme
     values:
@@ -3501,9 +2956,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-3
   - handle: trading-card-packaging
-    label: Trading card packaging
+    label: Trading Card Packaging
     values:
       - Blister pack
       - Booster pack
@@ -3514,9 +2968,36 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-2-3
+  - handle: sport
+    label: Sport
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: team
+    label: Team
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: authenticity
+    label: Authenticity
+    values:
+      - Certified
+      - Autographed
+      - Unverified
+      - Verified
+    provenance:
+      sources:
+        - system: manual
+  - handle: era
+    label: Era
+    values: []
+    provenance:
+      sources:
+        - system: manual
   - handle: bed-leveling-type
-    label: Bed leveling type
+    label: Bed Leveling Type
     values:
       - Assisted
       - Automatic
@@ -3529,9 +3010,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: compatible-filament
-    label: Compatible filament
+    label: Compatible Filament
     values:
       - Acrylonitrile butadiene styrene (ABS)
       - Carbon fiber
@@ -3562,9 +3042,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: compatible-resin-type
-    label: Compatible resin type
+    label: Compatible Resin Type
     values:
       - ABS-like
       - Bio-compatible
@@ -3588,9 +3067,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: enclosure-type
-    label: Enclosure type
+    label: Enclosure Type
     values:
       - DIY enclosure
       - Fully enclosed
@@ -3602,9 +3080,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: energy-efficiency-class
-    label: Energy efficiency class
+    label: Energy Efficiency Class
     values:
       - A
       - A+
@@ -3620,9 +3097,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: file-format-type
-    label: File format type
+    label: File Format Type
     values:
       - AI
       - AVI
@@ -3657,9 +3133,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: memory-technology
-    label: Memory technology
+    label: Memory Technology
     values:
       - Asynchronous SRAM
       - DDR
@@ -3701,9 +3176,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: print-technology
-    label: Print technology
+    label: Print Technology
     values:
       - 3D printing
       - Additive manufacturing
@@ -3724,9 +3198,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
   - handle: printer-functions
-    label: Printer functions
+    label: Printer Functions
     values:
       - CD/DVD print
       - Cloud print
@@ -3743,9 +3216,31 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-13-2
+  - handle: paper-size
+    label: Paper Size
+    values:
+      - A4
+      - A3
+      - Letter
+      - Legal
+      - A5
+    provenance:
+      sources:
+        - system: manual
+  - handle: sheet-count
+    label: Sheet Count
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: weight-gsm
+    label: Weight Gsm
+    values: []
+    provenance:
+      sources:
+        - system: manual
   - handle: backrest-type
-    label: Backrest type
+    label: Backrest Type
     values:
       - Hard
       - Mesh
@@ -3758,79 +3253,12 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fr-12-2
   - handle: chair-features
-    label: chair-features
+    label: Chair Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: fr-12-2
-  - handle: furniture-fixture-material
-    label: Furniture/Fixture material
-    values:
-      - Acrylic
-      - Aluminum
-      - Bamboo
-      - Beech wood
-      - Brass
-      - Canvas
-      - Cedar wood
-      - Ceramic
-      - Cherry wood
-      - Concrete
-      - Cork
-      - Cotton
-      - Fabric
-      - Faux fur
-      - Faux leather
-      - Fiber reinforced plastic (FRP)
-      - Fiberglass
-      - Foam
-      - Glass
-      - Granite
-      - Hemp
-      - High density fiberboard (HDF)
-      - Iron
-      - Jute
-      - Latex
-      - Leather
-      - Linen
-      - Maple wood
-      - Marble
-      - Medium density fiberboard (MDF)
-      - Melamine
-      - Mesh
-      - Metal
-      - Oak wood
-      - Particle board
-      - Pine wood
-      - Plastic
-      - Plywood
-      - Polyester
-      - Polyurethane (PU)
-      - Polyvinyl chloride (PVC)
-      - Rattan
-      - Resin
-      - Rubber
-      - Stainless steel
-      - Steel
-      - Suede
-      - Synthetic
-      - Teak wood
-      - Velour
-      - Velvet
-      - Vinyl
-      - Walnut wood
-      - Wicker
-      - Wood
-      - Wood plastic composite (WPC)
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-12-2
   - handle: genre
     label: Genre
     values:
@@ -3890,9 +3318,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: me-1
   - handle: language-version
-    label: Language version
+    label: Language Version
     values:
       - AAR- Afar
       - AFR- Afrikaans
@@ -4050,9 +3477,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: me-1
   - handle: target-audience
-    label: Target audience
+    label: Target Audience
     values:
       - Adults
       - Kids
@@ -4062,16 +3488,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: me-1
   - handle: bag-case-closure
-    label: bag-case-closure
+    label: Bag Case Closure
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: lb-1
   - handle: bag-case-storage-features
-    label: Bag/Case storage features
+    label: Bag Case Storage Features
     values:
       - Adjustable dividers
       - Bow holders
@@ -4095,9 +3519,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: lb-1
   - handle: carry-options
-    label: Carry options
+    label: Carry Options
     values:
       - Backpack strap
       - Belt loops
@@ -4112,24 +3535,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: lb-1
-  - handle: mpaa-rating
-    label: MPAA rating
-    values:
-      - G
-      - NC-17
-      - NR
-      - PG
-      - PG-13
-      - R
-      - U
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: me-7-3
   - handle: media-content-type
-    label: Media content type
+    label: Media Content Type
     values:
       - Animated series
       - Concert
@@ -4150,30 +3557,22 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: me-7-3
-  - handle: fingerboard-color
-    label: fingerboard-color
-    values: []
+  - handle: mpaa-rating
+    label: Mpaa Rating
+    values:
+      - G
+      - NC-17
+      - NR
+      - PG
+      - PG-13
+      - R
+      - U
+      - Other
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-8-7-2
-  - handle: fingerboard-material
-    label: fingerboard-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: fingerboard-pattern
-    label: fingerboard-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
   - handle: guitar-size
-    label: Guitar size
+    label: Guitar Size
     values:
       - 1/4
       - 1/2
@@ -4187,119 +3586,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-8-7-2
-  - handle: instrument-color
-    label: instrument-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: instrument-material
-    label: Instrument material
-    values:
-      - African blackwood
-      - Alder wood
-      - Aluminum
-      - Ash wood
-      - Basswood
-      - Beech wood
-      - Birch wood
-      - Brass
-      - Brazilwood
-      - Bronze
-      - Carbon fiber
-      - Ceramic
-      - Cocobolo
-      - Copper
-      - Ebony wood
-      - Fiberglass
-      - Gold
-      - Gold-plated
-      - Hard rubber
-      - Mahogany
-      - Maple wood
-      - Metal
-      - Nickel
-      - Nickel silver
-      - Nickel-plated
-      - Nylon
-      - Oak wood
-      - Pernambuco
-      - Plastic
-      - Rosewood
-      - Rubber
-      - Silicone
-      - Silver
-      - Silver-plated
-      - Spruce wood
-      - Stainless steel
-      - Steel
-      - Synthetic
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: instrument-pattern
-    label: instrument-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: instrument-string-color
-    label: instrument-string-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: instrument-string-material
-    label: Instrument string material
-    values:
-      - Bronze
-      - Fluorocarbon
-      - Nickel
-      - Nylon
-      - Steel
-      - Synthetic
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: instrument-string-pattern
-    label: instrument-string-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: neck-color
-    label: neck-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: neck-material
-    label: neck-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
-  - handle: neck-pattern
-    label: neck-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-8-7-2
   - handle: interface-type
-    label: Interface type
+    label: Interface Type
     values:
       - Audio output
       - Bluetooth
@@ -4309,9 +3597,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-8-6
   - handle: keyboard-action
-    label: Keyboard action
+    label: Keyboard Action
     values:
       - Hammer action
       - Weighted keys
@@ -4319,9 +3606,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-8-6
   - handle: piano-additional-features
-    label: Piano additional features
+    label: Piano Additional Features
     values:
       - Built-in speakers
       - Metronome
@@ -4330,9 +3616,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-8-6
   - handle: piano-pedals
-    label: Piano pedals
+    label: Piano Pedals
     values:
       - Soft
       - Sostenuto
@@ -4341,9 +3626,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-8-6
   - handle: piano-size
-    label: Piano size
+    label: Piano Size
     values:
       - Baby grand
       - Concert grand
@@ -4358,9 +3642,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-8-6
   - handle: alcohol-solvent-content
-    label: Alcohol/Solvent content
+    label: Alcohol Solvent Content
     values:
       - Alcohol >24%
       - Alcohol ≤24%
@@ -4370,7 +3653,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-1-6-1
   - handle: finish
     label: Finish
     values:
@@ -4382,9 +3664,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-1-6-1
   - handle: intended-application
-    label: Intended application
+    label: Intended Application
     values:
       - Cabinets
       - Ceilings
@@ -4407,35 +3688,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-1-6-1
-  - handle: hardware-material
-    label: Hardware material
-    values:
-      - Aluminum
-      - Brass
-      - Bronze
-      - Carbon steel
-      - Cast iron
-      - Ceramic
-      - Chrome-plated
-      - Copper
-      - Galvanized iron
-      - Iron
-      - Metal
-      - Nickel-plated
-      - Nylon
-      - Plastic
-      - Polyvinyl chloride (PVC)
-      - Stainless steel
-      - Steel
-      - Titanium
-      - Vinyl
-      - Zinc
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ha-2-2
   - handle: style
     label: Style
     values:
@@ -4458,9 +3710,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-2-5
   - handle: suitable-location
-    label: Suitable location
+    label: Suitable Location
     values:
       - Balcony
       - Bathroom
@@ -4484,9 +3735,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-2-5
   - handle: chuck-type
-    label: Chuck type
+    label: Chuck Type
     values:
       - Key
       - Keyless
@@ -4498,9 +3748,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-15-14
   - handle: drill-features
-    label: Drill features
+    label: Drill Features
     values:
       - Adjustable speed
       - Adjustable torque
@@ -4512,9 +3761,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-15-14
   - handle: fastener-finish
-    label: Fastener finish
+    label: Fastener Finish
     values:
       - Aluminum
       - Anodized
@@ -4540,70 +3788,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ha-6-14
-  - handle: fastener-material
-    label: Fastener material
-    values:
-      - Acrylic
-      - Aluminum
-      - Bamboo
-      - Bone
-      - Brass
-      - Canvas
-      - Copper
-      - Cork
-      - Cotton
-      - Denim
-      - Fabric
-      - Faux leather
-      - Felt
-      - Glass
-      - Hemp
-      - Jute
-      - Latex
-      - Leather
-      - Linen
-      - Lycra
-      - Mesh
-      - Metal
-      - Neoprene
-      - Nickel
-      - Nylon
-      - Pewter
-      - Plastic
-      - Polyamide (PA)
-      - Polyester
-      - Polypropylene (PP)
-      - Rattan
-      - Resin
-      - Rubber
-      - Satin
-      - Seashell
-      - Silicone
-      - Silk
-      - Stainless steel
-      - Suede
-      - Synthetic
-      - Velour
-      - Velvet
-      - Vinyl
-      - Wood
-      - Wool
-      - Zinc
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ae-2-1-7
   - handle: knitting-project-type
-    label: knitting-project-type
+    label: Knitting Project Type
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-1-2-6-4
   - handle: yarn-weight-category
-    label: Yarn weight category
+    label: Yarn Weight Category
     values:
       - Afghan
       - Aran
@@ -4625,9 +3817,98 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-2-1-2-6-4
+  - handle: brand
+    label: Brand
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: storage
+    label: Storage
+    values:
+      - 32GB
+      - 64GB
+      - 128GB
+      - 256GB
+      - 512GB
+      - 1TB
+    provenance:
+      sources:
+        - system: manual
+  - handle: ram
+    label: Ram
+    values:
+      - 2GB
+      - 3GB
+      - 4GB
+      - 6GB
+      - 8GB
+      - 12GB
+      - 16GB
+    provenance:
+      sources:
+        - system: manual
+  - handle: operating-system
+    label: Operating System
+    values:
+      - Android
+      - iOS
+      - Android TV
+      - Chrome OS
+      - Cross-platform
+      - Fire OS
+      - FreeBSD
+      - Linux
+      - macOS
+      - Raspberry Pi OS
+      - Tizen
+      - tvOS
+      - Unix
+      - watchOS
+      - webOS
+      - Windows
+      - Other
+    provenance:
+      sources:
+        - system: manual
+  - handle: screen-size
+    label: Screen Size
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: battery-capacity
+    label: Battery Capacity
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: rear-camera
+    label: Rear Camera
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: network
+    label: Network
+    values:
+      - 3G
+      - 4G
+      - 5G
+    provenance:
+      sources:
+        - system: manual
+  - handle: sim-type
+    label: Sim Type
+    values:
+      - Single SIM
+      - Dual SIM
+      - eSIM
+    provenance:
+      sources:
+        - system: manual
   - handle: attachment-method
-    label: Attachment method
+    label: Attachment Method
     values:
       - Clamping
       - Clip-on
@@ -4638,9 +3919,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-4-8-4-2
   - handle: attachment-options
-    label: Attachment options
+    label: Attachment Options
     values:
       - Clip
       - Lanyard
@@ -4650,9 +3930,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-4-8-4-2
   - handle: case-transparency-level
-    label: Case transparency level
+    label: Case Transparency Level
     values:
       - Clear
       - Frosted
@@ -4667,9 +3946,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-4-8-4-2
   - handle: case-type
-    label: Case type
+    label: Case Type
     values:
       - Armband
       - Back cover
@@ -4695,9 +3973,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-4-8-4-2
   - handle: connection-type
-    label: Connection type
+    label: Connection Type
     values:
       - AC adapter
       - AirPlay
@@ -4741,112 +4018,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-4-8-4-2
-  - handle: hand-side
-    label: Hand side
-    values:
-      - Both sides
-      - Left
-      - Right
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
-  - handle: integrated-stand-type
-    label: Integrated stand type
-    values:
-      - 360° rotatable stand
-      - Adjustable multi-angle stand
-      - Fold-out kickstand
-      - Grip stand
-      - Lanyard stand
-      - Magnetic stand
-      - Ring stand
-      - Wallet fold stand
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
-  - handle: magsafe-compatibility
-    label: MagSafe compatibility
-    values:
-      - MagSafe compatible
-      - Not MagSafe compatible
-      - Requires adhesive ring
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
-  - handle: mobile-phone-case-features
-    label: Mobile phone case features
-    values:
-      - AI-powered
-      - Anti-fingerprint
-      - Finger loop
-      - Modular
-      - Pocket friendly
-      - Ring grip
-      - Shockproof
-      - Snug fit
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
-  - handle: personalization-options
-    label: Personalization options
-    values:
-      - Custom message
-      - Monogram
-      - None
-      - Personalized name
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
-  - handle: screen-protection-features
-    label: Screen protection features
-    values:
-      - Built-in screen protector
-      - Flip cover
-      - None
-      - Raised edges
-      - Tempered glass included
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
-  - handle: sustainability
-    label: Sustainability
-    values:
-      - Fair trade
-      - Handcrafted
-      - Responsibly sourced
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
-  - handle: wallet-features
-    label: Wallet features
-    values:
-      - Card organization
-      - Compact design
-      - RFID protection
-      - Vegan friendly
-      - Waterproof
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-4-8-4-2
   - handle: compatible-device
-    label: Compatible device
+    label: Compatible Device
     values:
       - Digital camera
       - Keyboard
@@ -4860,9 +4033,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-11-5
   - handle: hardness-rating-pencil-scale
-    label: Hardness rating (pencil scale)
+    label: Hardness Rating Pencil Scale
     values:
       - 1H
       - 2H
@@ -4877,9 +4049,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-11-5
   - handle: screen-protector-coverage-style
-    label: Screen protector coverage style
+    label: Screen Protector Coverage Style
     values:
       - Case-friendly (slightly smaller)
       - Curved / 2.5D glass
@@ -4895,9 +4066,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-11-5
   - handle: screen-protector-features
-    label: Screen protector features
+    label: Screen Protector Features
     values:
       - Anti-blue light
       - Anti-fingerprint
@@ -4913,9 +4083,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-11-5
   - handle: signal-types-blocked
-    label: Signal types blocked
+    label: Signal Types Blocked
     values:
       - 5G
       - Bluetooth
@@ -4931,16 +4100,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-11-5
   - handle: charging-method
-    label: charging-method
+    label: Charging Method
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-5-1
   - handle: power-conversion-semiconductor-type
-    label: Power conversion semiconductor type
+    label: Power Conversion Semiconductor Type
     values:
       - Gallium nitride (GaN)
       - Silicon (Si)
@@ -4949,9 +4116,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-5-1
   - handle: usb-connector-type
-    label: USB connector type
+    label: Usb Connector Type
     values:
       - Proprietary USB
       - USB Micro-B
@@ -4963,9 +4129,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-15-5-1
   - handle: computer-form
-    label: Computer form
+    label: Computer Form
     values:
       - All-in-one
       - Blade server
@@ -4989,9 +4154,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-6
   - handle: computer-specialized-features
-    label: Computer specialized features
+    label: Computer Specialized Features
     values:
       - AI-powered
       - BIOS security
@@ -5009,9 +4173,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-6
   - handle: cosmetic-condition
-    label: Cosmetic condition
+    label: Cosmetic Condition
     values:
       - New
       - Opened-never used
@@ -5024,9 +4187,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-6
   - handle: display-resolution
-    label: Display resolution
+    label: Display Resolution
     values:
       - 1024 x 768
       - 1280 x 768
@@ -5057,9 +4219,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-6
   - handle: graphics-card-type
-    label: Graphics card type
+    label: Graphics Card Type
     values:
       - Dedicated
       - Integrated
@@ -5069,9 +4230,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-6
   - handle: keyboard-layout
-    label: Keyboard layout
+    label: Keyboard Layout
     values:
       - AZERTY
       - BÉPO
@@ -5087,9 +4247,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-6
   - handle: keyboard-type
-    label: Keyboard type
+    label: Keyboard Type
     values:
       - Backlit
       - Butterfly
@@ -5104,191 +4263,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-6
-  - handle: operating-system
-    label: Operating system
-    values:
-      - Android
-      - Android TV
-      - Chrome OS
-      - Cross-platform
-      - Fire OS
-      - FreeBSD
-      - iOS
-      - Linux
-      - macOS
-      - Raspberry Pi OS
-      - Tizen
-      - tvOS
-      - Unix
-      - watchOS
-      - webOS
-      - Windows
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-6
-  - handle: optical-drive-type
-    label: Optical drive type
-    values:
-      - Blu-ray disc
-      - Blu-ray disc RE
-      - CD-ROM
-      - CD-RW
-      - Combo
-      - DVD+RW
-      - DVD-ROM
-      - DVD-RW
-      - Super multi
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-6
-  - handle: processor-cores
-    label: Processor cores
-    values:
-      - Deca
-      - Dodeca
-      - Dual
-      - Hexa
-      - Hexadeca
-      - Multi
-      - Octa
-      - Quad
-      - Single
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-6
-  - handle: processor-family
-    label: Processor family
-    values:
-      - AMD Ryzen
-      - Apple M1
-      - ARM Cortex
-      - IBM power
-      - Intel celeron
-      - Intel core i3
-      - Intel core i5
-      - Intel core i7
-      - Intel core i9
-      - Intel pentium
-      - Intel xeon
-      - MediaTek helio
-      - Nvidia tegra
-      - Qualcomm snapdragon
-      - Samsung exynos
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-6
-  - handle: removable-storage-formats-supported
-    label: Removable storage formats supported
-    values:
-      - CF
-      - CF Type II
-      - CF+
-      - CFast
-      - CFast 2.0
-      - CFexpress
-      - DV RS-MMC
-      - EXD
-      - expressP2
-      - Eye-Fi
-      - FLU
-      - HC MMC+
-      - Microdrive
-      - MicroP2
-      - microSD
-      - microSDHC
-      - microSDXC
-      - MiniMMC
-      - MiniSD
-      - MiniSDHC
-      - MiniSDXC
-      - MMC
-      - MMC micro
-      - MMC mobile
-      - MMCplus
-      - MS
-      - MS duo
-      - MS micro (M2)
-      - MS PRO
-      - MS PRO duo
-      - MS PRO duo HS
-      - MS PRO duo mark 2
-      - MS Pro-HG
-      - MS Pro-HG duo
-      - MS Pro-HG duo HX
-      - MS XC-HG duo
-      - MSXC
-      - Nano memory (NM)
-      - P2
-      - PSVita
-      - RS-MMC
-      - SD
-      - SDHC
-      - SDIO
-      - SDXC
-      - Smart media xD
-      - Smartmedia
-      - SRMemory
-      - SxS
-      - SxS Pro
-      - SxS-1
-      - USB flash drive
-      - xD
-      - xD-picture card
-      - XQD
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-6
-  - handle: storage-drive-type-installed
-    label: Storage drive type installed
-    values:
-      - Cloud storage
-      - eMMC
-      - Hard disk drive (HDD)
-      - Hybrid drive (HDD/SSD)
-      - M.2 SSD
-      - NAS
-      - Optical drive
-      - PCIe/NVMe SSD
-      - RAID
-      - SATA SSD
-      - Solid-state drive (SSD)
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-6
-  - handle: storage-types-supported
-    label: Storage types supported
-    values:
-      - Cloud storage
-      - eMMC
-      - Hard disk drive (HDD)
-      - Hybrid drive (HDD/SSD)
-      - M.2 SSD
-      - NAS
-      - Optical drive
-      - PCIe/NVMe SSD
-      - RAID
-      - SATA SSD
-      - Solid-state drive (SSD)
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-6
   - handle: cooling-technology
-    label: Cooling technology
+    label: Cooling Technology
     values:
       - Active
       - Air
@@ -5314,9 +4290,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-3
   - handle: internal-drive-form-factor-supported
-    label: Internal drive form factor supported
+    label: Internal Drive Form Factor Supported
     values:
       - 2.5-inch
       - 3.5-inch
@@ -5325,9 +4300,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-3
   - handle: memory-form-factor
-    label: Memory form factor
+    label: Memory Form Factor
     values:
       - DIMM
       - Micro-DIMM
@@ -5338,24 +4312,24 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-3
-  - handle: power-supply-efficiency-rating
-    label: Power supply efficiency rating
+  - handle: optical-drive-type
+    label: Optical Drive Type
     values:
-      - 80 Plus
-      - 80 Plus Bronze
-      - 80 Plus Gold
-      - 80 Plus Platinum
-      - 80 Plus Silver
-      - 80 Plus Titanium
-      - Not rated
+      - Blu-ray disc
+      - Blu-ray disc RE
+      - CD-ROM
+      - CD-RW
+      - Combo
+      - DVD+RW
+      - DVD-ROM
+      - DVD-RW
+      - Super multi
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: el-6-3
   - handle: adaptive-sync-technology
-    label: Adaptive sync technology
+    label: Adaptive Sync Technology
     values:
       - AMD FreeSync
       - AMD FreeSync Premium
@@ -5368,9 +4342,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
   - handle: color-accuracy-standards
-    label: Color accuracy standards
+    label: Color Accuracy Standards
     values:
       - Adobe RGB
       - CIE lab
@@ -5391,9 +4364,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
   - handle: contrast-ratio-typical
-    label: Contrast ratio (typical)
+    label: Contrast Ratio Typical
     values:
       - '100000000:1'
       - '10000000:1'
@@ -5479,9 +4451,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
   - handle: device-interface
-    label: Device interface
+    label: Device Interface
     values:
       - 2.5 mm
       - 3.5 mm
@@ -5554,9 +4525,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
   - handle: energy-efficiency-class-hdr
-    label: Energy efficiency class (HDR)
+    label: Energy Efficiency Class Hdr
     values:
       - A
       - A+
@@ -5572,9 +4542,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
   - handle: energy-efficiency-class-sdr
-    label: Energy efficiency class (SDR)
+    label: Energy Efficiency Class Sdr
     values:
       - A
       - A+
@@ -5590,9 +4559,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
   - handle: monitor-shape
-    label: Monitor shape
+    label: Monitor Shape
     values:
       - Curved
       - Flat
@@ -5600,76 +4568,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
   - handle: monitor-specialized-features
-    label: monitor-specialized-features
+    label: Monitor Specialized Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: el-17-1
-  - handle: native-aspect-ratio
-    label: Native aspect ratio
-    values:
-      - '15:9'
-      - '16:10'
-      - '16:18'
-      - '16:9'
-      - '17:10'
-      - '17:9'
-      - '1:1'
-      - '21:9'
-      - '24:10:00'
-      - '32:10:00'
-      - '32:9'
-      - '3:2'
-      - '3:4'
-      - '4:3'
-      - '4:5'
-      - '5:4'
-      - '8:5'
-      - '9:16'
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-17-1
-  - handle: screen-curvature-rating
-    label: Screen curvature rating
-    values:
-      - 1000R
-      - 1500R
-      - 1800R
-      - 1900R
-      - 2000R
-      - 2300R
-      - 3000R
-      - 3800R
-      - Flat (0R)
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-17-1
-  - handle: vesa-mounting-pattern
-    label: VESA mounting pattern
-    values:
-      - 75 x 75 mm
-      - 100 x 100 mm
-      - 100 x 200 mm
-      - 200 x 100 mm
-      - 200 x 200 mm
-      - 300 x 300 mm
-      - 400 x 200 mm
-      - 400 x 400 mm
-      - 600 x 400 mm
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-17-1
   - handle: keyboard-backlight-type
-    label: Keyboard backlight type
+    label: Keyboard Backlight Type
     values:
       - Edge lighting
       - Multi-color fixed-zone RGB
@@ -5685,9 +4591,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-9-12-8
   - handle: keyboard-format
-    label: Keyboard format
+    label: Keyboard Format
     values:
       - '0.4'
       - '0.6'
@@ -5703,16 +4608,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-9-12-8
   - handle: keyboard-language
-    label: keyboard-language
+    label: Keyboard Language
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: el-7-9-12-8
   - handle: keyboard-mounting-style
-    label: Keyboard mounting style
+    label: Keyboard Mounting Style
     values:
       - Block mount
       - Gasket mount
@@ -5726,9 +4629,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-9-12-8
   - handle: keyboard-specialized-features
-    label: Keyboard specialized features
+    label: Keyboard Specialized Features
     values:
       - Adjustable angle
       - Adjustable height
@@ -5753,51 +4655,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-7-9-12-8
-  - handle: keyboard-switch-type
-    label: Keyboard switch type
-    values:
-      - Clicky
-      - Linear
-      - Tactile
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-7-9-12-8
-  - handle: keycap-material
-    label: Keycap material
-    values:
-      - ABS
-      - Aluminum
-      - Double-shot ABS
-      - Dye-sublimated PBT
-      - PBT
-      - Polycarbonate (PC)
-      - POM
-      - PPS
-      - PVC
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-7-9-12-8
-  - handle: pointing-device
-    label: Pointing device
-    values:
-      - D-pad
-      - Mouse buttons
-      - Pointing stick
-      - Scroll wheel
-      - Touchpad
-      - Trackball
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-7-9-12-8
   - handle: cellular-capability
-    label: Cellular capability
+    label: Cellular Capability
     values:
       - Wi-Fi + Cellular
       - Wi-Fi only
@@ -5805,9 +4664,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-8
   - handle: data-network
-    label: Data network
+    label: Data Network
     values:
       - 3G
       - 4G
@@ -5817,75 +4675,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-6-8
-  - handle: sim-card-type
-    label: SIM card type
-    values:
-      - eSIM
-      - Micro SIM
-      - Nano SIM
-      - Standard SIM
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-8
-  - handle: stylus-support-type
-    label: Stylus support type
-    values:
-      - Active stylus
-      - Both active and passive
-      - No stylus support
-      - Passive stylus
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-8
-  - handle: subscription-type
-    label: Subscription type
-    values:
-      - Contract
-      - Pay as you go
-      - Post-paid
-      - Pre-paid
-      - Satellite
-      - Unlocked
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-6-8
-  - handle: band-color
-    label: band-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-6-12
-  - handle: band-pattern
-    label: band-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-6-12
-  - handle: dial-color
-    label: dial-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-6-12
-  - handle: dial-pattern
-    label: dial-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-6-12
   - handle: smart-watch-features
-    label: Smart watch features
+    label: Smart Watch Features
     values:
       - Alarm
       - Anti-reflective
@@ -5914,9 +4705,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-12
   - handle: watch-display
-    label: Watch display
+    label: Watch Display
     values:
       - Ana-Digi
       - Analog
@@ -5925,9 +4715,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-12
   - handle: watch-features
-    label: Watch features
+    label: Watch Features
     values:
       - Alarm
       - Anti-reflective
@@ -5957,16 +4746,41 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-12
-  - handle: watch-material
-    label: watch-material
+  - handle: display-type
+    label: Display Type
+    values:
+      - OLED
+      - AMOLED
+      - LCD
+      - E-Ink
+      - None
+    provenance:
+      sources:
+        - system: manual
+  - handle: battery-life
+    label: Battery Life
     values: []
     provenance:
       sources:
-        - system: shopify
-          ref: aa-6-12
+        - system: manual
+  - handle: water-resistance
+    label: Water Resistance
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: connectivity
+    label: Connectivity
+    values:
+      - Bluetooth
+      - Wi-Fi
+      - GPS
+      - NFC
+    provenance:
+      sources:
+        - system: manual
   - handle: auto-focusing-modes
-    label: Auto focusing modes
+    label: Auto Focusing Modes
     values:
       - AI
       - Area
@@ -5987,32 +4801,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
-  - handle: camera-hd-type
-    label: Camera HD type
-    values:
-      - 4K
-      - 4.4K
-      - 5.7K
-      - 5.8K
-      - 8K
-      - 4K ultra HD
-      - 5K ultra HD
-      - 6K ultra HD
-      - 8K ultra HD
-      - Full HD
-      - HD
-      - Not supported
-      - Quad HD
-      - SD
-      - VGA
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
   - handle: camera-display-technology
-    label: Camera display technology
+    label: Camera Display Technology
     values:
       - AMOLED
       - LCD
@@ -6023,9 +4813,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
   - handle: camera-features
-    label: Camera features
+    label: Camera Features
     values:
       - Adjustable aperture
       - Adjustable ISO
@@ -6055,9 +4844,30 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
+  - handle: camera-hd-type
+    label: Camera Hd Type
+    values:
+      - 4K
+      - 4.4K
+      - 5.7K
+      - 5.8K
+      - 8K
+      - 4K ultra HD
+      - 5K ultra HD
+      - 6K ultra HD
+      - 8K ultra HD
+      - Full HD
+      - HD
+      - Not supported
+      - Quad HD
+      - SD
+      - VGA
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: camera-sensor-type
-    label: Camera sensor type
+    label: Camera Sensor Type
     values:
       - 3CMOS
       - 3MOS
@@ -6082,9 +4892,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
   - handle: compatible-memory-cards
-    label: Compatible memory cards
+    label: Compatible Memory Cards
     values:
       - CF
       - CF Type II
@@ -6143,9 +4952,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
   - handle: flash-modes
-    label: Flash modes
+    label: Flash Modes
     values:
       - Auto
       - Fill-in
@@ -6171,9 +4979,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
   - handle: focus-adjustment
-    label: Focus adjustment
+    label: Focus Adjustment
     values:
       - Auto
       - Manual
@@ -6181,9 +4988,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
   - handle: focus-type
-    label: Focus type
+    label: Focus Type
     values:
       - TTL
       - TTL iESP
@@ -6192,179 +4998,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-2-2
-  - handle: image-formats-supported
-    label: Image formats supported
-    values:
-      - C-RAW
-      - DNG
-      - EXIF
-      - HEIF
-      - JPEG
-      - JPG
-      - NEF
-      - RAW
-      - sRAW
-      - TIFF
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
-  - handle: image-sensor-size
-    label: Image sensor size
-    values:
-      - 1/4
-      - 1/3
-      - 1/2
-      - 2/3
-      - '1'
-      - 4/3
-      - '1.5'
-      - 1/1.2
-      - 1/1.6
-      - 1/1.63
-      - 1/1.65
-      - 1/1.7
-      - 1/1.8
-      - 1/2.3
-      - 1/2.33
-      - 1/2.4
-      - 1/2.5
-      - 1/2.7
-      - 1/2.8
-      - 1/2.9
-      - 1/3.1
-      - 1/3.2
-      - 1/5.8
-      - APS-C
-      - Full frame
-      - Micro four thirds
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
-  - handle: light-exposure-modes
-    label: Light exposure modes
-    values:
-      - Aperture priority AE
-      - Auto
-      - Manual
-      - Shutter priority AE
-      - Touch priority AE
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
-  - handle: optical-zoom
-    label: Optical zoom
-    values:
-      - 10-20x
-      - 20-30x
-      - Less than 10x
-      - More than 30x
-      - No zoom
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
-  - handle: photo-effects-type
-    label: Photo effects type
-    values:
-      - Antique
-      - Art
-      - Black
-      - Calm
-      - Cinema
-      - Emboss
-      - Fader
-      - Gray
-      - Mirror
-      - Mosaic
-      - Muted
-      - Negative film
-      - Neutral
-      - Pastel
-      - Positive film
-      - Sepia
-      - Skin tones
-      - Solarisation
-      - Split screen
-      - Vintage
-      - Vivid
-      - White
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
-  - handle: scene-modes
-    label: Scene modes
-    values:
-      - 3D photography
-      - Auto
-      - Backlight
-      - Beach
-      - Candlelight
-      - Close-up
-      - Cuisine
-      - Dawn
-      - Documents
-      - Dusk
-      - Faithful
-      - Fine detail
-      - Fireworks
-      - Flower
-      - Food
-      - Group photo
-      - Handheld night scene
-      - HDR backlight control
-      - Landscape
-      - Monochrome
-      - Night
-      - Panorama
-      - Portrait
-      - Smooth skin
-      - Snow
-      - Sport
-      - Spotlight
-      - Underwater
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
-  - handle: shooting-modes
-    label: Shooting modes
-    values:
-      - Aperture priority
-      - Auto
-      - Flexible priority
-      - Intelligent auto
-      - Lens priority
-      - Manual
-      - Movie
-      - Program
-      - Scene
-      - Sensitivity priority
-      - Shutter priority
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-2-2
-  - handle: camera-lens-material
-    label: camera-lens-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: co-1-2-1
   - handle: camera-lens-type
-    label: Camera lens type
+    label: Camera Lens Type
     values:
       - Cinema
       - Extender
@@ -6389,9 +5024,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-1-2-1
   - handle: suitable-for-camera-type
-    label: Suitable for camera type
+    label: Suitable For Camera Type
     values:
       - Action sports camera
       - Bridge camera
@@ -6411,9 +5045,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-1-2-1
   - handle: feet-type
-    label: Feet type
+    label: Feet Type
     values:
       - Pivoting
       - Retractable
@@ -6423,9 +5056,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-1-7
   - handle: leg-lock-type
-    label: Leg lock type
+    label: Leg Lock Type
     values:
       - Flip lock
       - Push-pull lock
@@ -6434,9 +5066,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-1-7
   - handle: leg-sections
-    label: Leg sections
+    label: Leg Sections
     values:
       - '1'
       - '2'
@@ -6447,9 +5078,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-1-7
   - handle: mount-stand-features
-    label: Mount/Stand features
+    label: Mount Stand Features
     values:
       - 360 degree rotation
       - Adjustable angle
@@ -6475,9 +5105,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: co-1-7
   - handle: audio-component-form-factor
-    label: Audio component form factor
+    label: Audio Component Form Factor
     values:
       - 500-series module
       - Desktop
@@ -6491,9 +5120,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-7-1
   - handle: audio-connectivity
-    label: Audio connectivity
+    label: Audio Connectivity
     values:
       - 2.5 mm
       - 3.5 mm
@@ -6509,9 +5137,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-7-1
   - handle: charging-interface-type
-    label: Charging interface type
+    label: Charging Interface Type
     values:
       - DC barrel connector
       - Lightning
@@ -6526,9 +5153,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-7-1
   - handle: earphone-features
-    label: Earphone features
+    label: Earphone Features
     values:
       - AI-powered
       - Awareness mode
@@ -6541,9 +5167,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-7-1
   - handle: headphone-driver-technology
-    label: Headphone driver technology
+    label: Headphone Driver Technology
     values:
       - Balanced armature
       - Bone conduction
@@ -6556,69 +5181,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-7-1
-  - handle: headphone-style
-    label: Headphone style
-    values:
-      - Behind-the-neck
-      - Canal
-      - Closed-back
-      - Ear hook
-      - Ear hooks
-      - Earbuds
-      - Open-back
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-7-1
-  - handle: maximum-bit-depth
-    label: Maximum bit depth
-    values:
-      - 12-bit
-      - 16-bit
-      - 20-bit
-      - 24-bit
-      - 32-bit
-      - 48-bit
-      - 8-bit
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-7-1
-  - handle: microphone-type
-    label: Microphone type
-    values:
-      - Bi-directional
-      - Boom
-      - Built-in
-      - Condenser
-      - Dynamic
-      - Inline
-      - Noise-canceling
-      - Omnidirectional
-      - Unidirectional
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-7-1
-  - handle: noise-cancellation-technology
-    label: Noise cancellation technology
-    values:
-      - Active noise cancellation (ANC)
-      - Adaptive noise cancellation
-      - Environmental noise cancellation (ENC)
-      - None
-      - Passive noise isolation
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-7-1
   - handle: audio-output-channel
-    label: Audio output channel
+    label: Audio Output Channel
     values:
       - '2'
       - '2.1'
@@ -6641,9 +5205,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-10
   - handle: audio-purpose
-    label: Audio purpose
+    label: Audio Purpose
     values:
       - Car audio
       - Computer audio
@@ -6659,9 +5222,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-10
   - handle: compatible-voice-assistant
-    label: Compatible voice assistant
+    label: Compatible Voice Assistant
     values:
       - Amazon Alexa
       - Apple Siri
@@ -6672,84 +5234,22 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-10
-  - handle: speaker-design
-    label: Speaker design
+  - handle: maximum-bit-depth
+    label: Maximum Bit Depth
     values:
-      - Bookshelf
-      - Center channel
-      - Floorstanding
-      - In-ceiling
-      - In-wall
-      - Outdoor
-      - Portable
-      - Satellite
-      - Smart speakers
-      - Soundbar
-      - Subwoofer
-      - Tower
+      - 12-bit
+      - 16-bit
+      - 20-bit
+      - 24-bit
+      - 32-bit
+      - 48-bit
+      - 8-bit
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-10
-  - handle: speaker-enclosure-type
-    label: Speaker enclosure type
-    values:
-      - Acoustic suspension (sealed)
-      - Band-pass
-      - Bass reflex (ported)
-      - Dipole (open baffle)
-      - Electrostatic panel
-      - Horn-loaded
-      - Infinite baffle
-      - On-wall
-      - Passive radiator
-      - Planar magnetic
-      - Transmission line
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-10
-  - handle: speaker-features
-    label: Speaker features
-    values:
-      - AI-powered
-      - Auto pairing
-      - Auto power-off
-      - Built-in amplifier
-      - Built-in display
-      - Built-in memory
-      - Echo cancellation
-      - External amplifier
-      - Noise cancellation
-      - Shockproof
-      - Subwoofer
-      - Voice control
-      - Volume control
-      - Weather resistant
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-10
-  - handle: speaker-technology
-    label: Speaker technology
-    values:
-      - Dynamic
-      - Electrostatic
-      - Horn
-      - Piezoelectric
-      - Planar magnetic
-      - Smart
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-10
   - handle: microphone-design
-    label: Microphone design
+    label: Microphone Design
     values:
       - Boundary
       - Condenser
@@ -6761,9 +5261,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-8
   - handle: microphone-thread
-    label: Microphone thread
+    label: Microphone Thread
     values:
       - 1/4"-20
       - 3/8"-16
@@ -6775,25 +5274,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-2-2-8
-  - handle: polar-pattern
-    label: Polar pattern
-    values:
-      - Cardioid
-      - Figure-8
-      - Hypercardioid
-      - Multi-pattern
-      - Omnidirectional
-      - Shotgun
-      - Subcardioid
-      - Super-cardioid
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: el-2-2-8
   - handle: compatible-game-format
-    label: Compatible game format
+    label: Compatible Game Format
     values:
       - Backward compatibility
       - Digital download only
@@ -6803,9 +5285,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-19
   - handle: compatible-resolution
-    label: Compatible resolution
+    label: Compatible Resolution
     values:
       - 4K ultra HD
       - 8K ultra HD
@@ -6826,9 +5307,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-19
   - handle: console-accessories-included
-    label: Console accessories included
+    label: Console Accessories Included
     values:
       - Carrying case
       - Charging cable
@@ -6844,9 +5324,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-19
   - handle: console-type
-    label: Console type
+    label: Console Type
     values:
       - Handheld
       - Home
@@ -6856,9 +5335,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-19
   - handle: region-code
-    label: Region code
+    label: Region Code
     values:
       - Africa (AF)
       - Asia (AS)
@@ -6873,9 +5351,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-19
   - handle: video-game-platform
-    label: Video game platform
+    label: Video Game Platform
     values:
       - Amiga
       - Arcade
@@ -6916,16 +5393,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: el-18-5
-  - handle: band-material
-    label: band-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-6-10-1
   - handle: clasp-type
-    label: Clasp type
+    label: Clasp Type
     values:
       - Buckle
       - Butterfly
@@ -6934,9 +5403,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-10-1
   - handle: watch-accessory-style
-    label: Watch accessory style
+    label: Watch Accessory Style
     values:
       - Classic
       - Modern
@@ -6945,9 +5413,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-10-1
   - handle: gemstone-type
-    label: Gemstone type
+    label: Gemstone Type
     values:
       - Abalone
       - Agate
@@ -7025,9 +5492,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-9
   - handle: jewelry-type
-    label: Jewelry type
+    label: Jewelry Type
     values:
       - Fine jewelry
       - Imitation jewelry
@@ -7035,9 +5501,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-9
   - handle: ring-design
-    label: Ring design
+    label: Ring Design
     values:
       - Band
       - Beaded
@@ -7059,9 +5524,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-9
   - handle: ring-size
-    label: Ring size
+    label: Ring Size
     values:
       - '0.25'
       - '0.5'
@@ -7181,9 +5645,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-9
   - handle: stone-shape
-    label: Stone shape
+    label: Stone Shape
     values:
       - Heart
       - Hexagonal
@@ -7199,9 +5662,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-9
   - handle: necklace-design
-    label: Necklace design
+    label: Necklace Design
     values:
       - Beaded
       - Chain
@@ -7218,9 +5680,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-8
   - handle: earring-design
-    label: Earring design
+    label: Earring Design
     values:
       - Chandelier
       - Clip-On
@@ -7238,9 +5699,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-6
   - handle: bracelet-design
-    label: Bracelet design
+    label: Bracelet Design
     values:
       - Bangle
       - Beaded
@@ -7258,9 +5718,97 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-3
+  - handle: platform
+    label: Platform
+    values:
+      - Windows
+      - macOS
+      - Linux
+      - Cross-Platform
+      - Web
+    provenance:
+      sources:
+        - system: manual
+  - handle: license-type
+    label: License Type
+    values:
+      - Perpetual
+      - Subscription
+      - Freeware
+      - Open Source
+      - Personal Use
+      - Commercial Use
+      - Royalty-Free
+    provenance:
+      sources:
+        - system: manual
+  - handle: software-category
+    label: Software Category
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: delivery-method
+    label: Delivery Method
+    values:
+      - Download
+      - Physical
+      - Cloud Key
+    provenance:
+      sources:
+        - system: manual
+  - handle: subject
+    label: Subject
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: skill-level
+    label: Skill Level
+    values:
+      - Beginner
+      - Intermediate
+      - Advanced
+      - All Levels
+    provenance:
+      sources:
+        - system: manual
+  - handle: duration
+    label: Duration
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: format
+    label: Format
+    values:
+      - Video
+      - Text
+      - Live
+      - Interactive
+    provenance:
+      sources:
+        - system: manual
+  - handle: language
+    label: Language
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: file-format
+    label: File Format
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: file-size
+    label: File Size
+    values: []
+    provenance:
+      sources:
+        - system: manual
   - handle: control-type
-    label: Control type
+    label: Control Type
     values:
       - Button
       - Lever
@@ -7276,9 +5824,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-8-6
   - handle: loading-type
-    label: Loading type
+    label: Loading Type
     values:
       - Front-load
       - Top-load
@@ -7286,16 +5833,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-8-6
   - handle: washing-machine-features
-    label: washing-machine-features
+    label: Washing Machine Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-8-6
   - handle: washing-programs
-    label: Washing programs
+    label: Washing Programs
     values:
       - Anti-allergy
       - Auto
@@ -7332,9 +5877,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-8-6
   - handle: refrigerator-configuration
-    label: Refrigerator configuration
+    label: Refrigerator Configuration
     values:
       - Beverage center
       - Bottom freezer
@@ -7351,9 +5895,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-41
   - handle: star-rating
-    label: Star rating
+    label: Star Rating
     values:
       - '1'
       - '2'
@@ -7365,9 +5908,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-41
   - handle: umbrella-opening-mechanism
-    label: Umbrella opening mechanism
+    label: Umbrella Opening Mechanism
     values:
       - Automatic
       - Manual
@@ -7376,9 +5918,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-41
   - handle: cleaning-surfaces
-    label: Cleaning surfaces
+    label: Cleaning Surfaces
     values:
       - Appliances
       - Bathroom fixtures
@@ -7404,9 +5945,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-10
   - handle: dirt-separating-method
-    label: Dirt separating method
+    label: Dirt Separating Method
     values:
       - Aqua filtering
       - Cyclonic
@@ -7416,9 +5956,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-10
   - handle: dry-wet-cleaning
-    label: Dry/Wet cleaning
+    label: Dry Wet Cleaning
     values:
       - Dry
       - Dry & wet
@@ -7427,9 +5966,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-10
   - handle: dust-container-type
-    label: Dust container type
+    label: Dust Container Type
     values:
       - Bagless
       - Combi
@@ -7438,9 +5976,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-10
   - handle: vacuum-air-filtering-technology
-    label: Vacuum air filtering technology
+    label: Vacuum Air Filtering Technology
     values:
       - Allergy
       - Carbon
@@ -7459,9 +5996,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-9-10
   - handle: microwave-oven-functions
-    label: Microwave oven functions
+    label: Microwave Oven Functions
     values:
       - Air fry
       - Auto defrost
@@ -7479,9 +6015,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-31
   - handle: turntable-type
-    label: Turntable type
+    label: Turntable Type
     values:
       - Flatbed
       - Removable turntable with ring
@@ -7491,9 +6026,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-31
   - handle: blending-type
-    label: Blending type
+    label: Blending Type
     values:
       - Batch
       - Continuous
@@ -7501,9 +6035,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: bi-23-4-5
   - handle: caffeine-content
-    label: Caffeine content
+    label: Caffeine Content
     values:
       - Decaf
       - Low caffeine
@@ -7512,9 +6045,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-1-3
   - handle: coffee-product-form
-    label: Coffee product form
+    label: Coffee Product Form
     values:
       - Ground
       - Whole bean
@@ -7522,9 +6054,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-1-3
   - handle: coffee-roast
-    label: Coffee roast
+    label: Coffee Roast
     values:
       - Dark
       - Light
@@ -7535,7 +6066,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-1-3
   - handle: country
     label: Country
     values:
@@ -7780,9 +6310,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-1-3
   - handle: temperature-control
-    label: Temperature control
+    label: Temperature Control
     values:
       - Adjustable temperature
       - Preset temperature
@@ -7790,9 +6319,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-46-8
   - handle: toaster-features
-    label: Toaster features
+    label: Toaster Features
     values:
       - Automatic shut-off
       - Bagel function
@@ -7818,9 +6346,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-46-8
   - handle: bottle-container-closure
-    label: Bottle/Container closure
+    label: Bottle Container Closure
     values:
       - Flip cap
       - Pump
@@ -7829,9 +6356,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-8-63-1
   - handle: cleaning-instructions
-    label: Cleaning instructions
+    label: Cleaning Instructions
     values:
       - Dishwasher safe
       - Hand wash only
@@ -7839,47 +6365,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-8-63-1
-  - handle: handle-material
-    label: Handle material
-    values:
-      - Aluminum
-      - Bamboo
-      - Beryllium
-      - Brass
-      - Bronze
-      - Carbide
-      - Carbon steel
-      - Ceramic
-      - Copper
-      - Cork
-      - Duroplast
-      - Ethylene vinyl acetate (EVA)
-      - Fiberglass
-      - G-10
-      - Galvanized steel
-      - Graphite
-      - Iron
-      - Leather
-      - Metal
-      - Nylon
-      - Plastic
-      - Polyvinyl chloride (PVC)
-      - Rubber
-      - Silicone
-      - Stainless steel
-      - Synthetic
-      - Teflon
-      - Thermoplastic elastomer (TPE)
-      - Titanium
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-11-8-63-1
   - handle: lid-type
-    label: Lid type
+    label: Lid Type
     values:
       - Flip-top
       - Screw-on
@@ -7888,9 +6375,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-8-63-1
   - handle: mixing-mechanism
-    label: Mixing mechanism
+    label: Mixing Mechanism
     values:
       - Electric motor
       - Manual plunger
@@ -7902,47 +6388,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-8-63-1
-  - handle: tool-utensil-material
-    label: Tool/Utensil material
-    values:
-      - Acacia wood
-      - Acrylic
-      - Alder wood
-      - Aluminum
-      - Bamboo
-      - Beech wood
-      - Brass
-      - Cast iron
-      - Ceramic
-      - Cotton
-      - Glass
-      - Granite
-      - Iron
-      - Marble
-      - Melamine
-      - Metal
-      - Nylon
-      - Olive wood
-      - Plastic
-      - Polyethylene (PE)
-      - Polypropylene (PP)
-      - Polyvinyl chloride (PVC)
-      - Porcelain
-      - Rubber
-      - Silicone
-      - Stainless steel
-      - Steel
-      - Synthetic
-      - Teak wood
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-11-8-63-1
   - handle: electric-kettle-features
-    label: Electric kettle features
+    label: Electric Kettle Features
     values:
       - 360-degree swivel base
       - Auto shut-off
@@ -7957,28 +6404,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-11
-  - handle: backrest-upholstery-color
-    label: backrest-upholstery-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-22
-  - handle: backrest-upholstery-material
-    label: backrest-upholstery-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-22
-  - handle: backrest-upholstery-pattern
-    label: backrest-upholstery-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-22
   - handle: firmness
     label: Firmness
     values:
@@ -7993,9 +6418,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fr-22
   - handle: seat-type
-    label: Seat type
+    label: Seat Type
     values:
       - Air filled
       - Bucket (cradle)
@@ -8013,37 +6437,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fr-22
-  - handle: seat-upholstery-color
-    label: seat-upholstery-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-22
-  - handle: seat-upholstery-material
-    label: seat-upholstery-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-22
-  - handle: seat-upholstery-pattern
-    label: seat-upholstery-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-22
   - handle: sofa-features
-    label: sofa-features
+    label: Sofa Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: fr-22
   - handle: bedding-size
-    label: Bedding size
+    label: Bedding Size
     values:
       - Single
       - Twin
@@ -8058,89 +6459,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fr-2
-  - handle: upholstery-material
-    label: Upholstery material
-    values:
-      - Acrylic
-      - Canvas
-      - Cotton
-      - Faux leather
-      - Leather
-      - Leatherette
-      - Linen
-      - Microfiber
-      - Nylon
-      - Polyester
-      - Polyurethane (PU)
-      - Satin
-      - Suede
-      - Velvet
-      - Vinyl
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-7
-  - handle: leg-color
-    label: leg-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-24
-  - handle: leg-material
-    label: leg-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-24
-  - handle: leg-pattern
-    label: leg-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-24
-  - handle: tabletop-color
-    label: tabletop-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-24
-  - handle: tabletop-material
-    label: tabletop-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-24
-  - handle: tabletop-pattern
-    label: tabletop-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-24
   - handle: tabletop-shape
-    label: tabletop-shape
+    label: Tabletop Shape
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: fr-24
-  - handle: frame-material
-    label: frame-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: fr-12-1
   - handle: furniture-fixture-features
-    label: Furniture/Fixture features
+    label: Furniture Fixture Features
     values:
       - Adjustable shelves
       - Assembly required
@@ -8164,22 +6490,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fr-12-1
-  - handle: backing-material
-    label: Backing material
-    values:
-      - Plastic
-      - Polyester
-      - Polyurethane (PU)
-      - Polyvinyl chloride (PVC)
-      - Rubber
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-3-57
   - handle: pile-type
-    label: Pile type
+    label: Pile Type
     values:
       - Berber
       - Braided
@@ -8205,30 +6517,20 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-57
   - handle: rug-features
-    label: rug-features
+    label: Rug Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-57
-  - handle: rug-material
-    label: rug-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-3-57
   - handle: rug-shape
-    label: rug-shape
+    label: Rug Shape
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-57
   - handle: curtain-heading-style
-    label: Curtain heading style
+    label: Curtain Heading Style
     values:
       - Back tab
       - Box pleat
@@ -8246,9 +6548,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-74-1-1
   - handle: curtain-lining-type
-    label: Curtain lining type
+    label: Curtain Lining Type
     values:
       - Blackout Lined
       - Dimout Lined
@@ -8262,9 +6563,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-74-1-1
   - handle: light-control
-    label: Light control
+    label: Light Control
     values:
       - Blackout
       - Light filtering
@@ -8278,9 +6578,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-74-1-1
   - handle: art-movement
-    label: Art movement
+    label: Art Movement
     values:
       - Abstract
       - Art deco
@@ -8311,9 +6610,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-4
   - handle: artwork-authenticity
-    label: Artwork authenticity
+    label: Artwork Authenticity
     values:
       - Original
       - Reproduction
@@ -8321,95 +6619,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-4
-  - handle: artwork-frame-material
-    label: Artwork frame material
-    values:
-      - Aluminum
-      - Composite
-      - Gold
-      - Gold-plated
-      - Metal
-      - Plastic
-      - Silver
-      - Silver-plated
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-3-4
-  - handle: decoration-material
-    label: Decoration material
-    values:
-      - Acrylic
-      - Aluminum
-      - Bamboo
-      - Brass
-      - Bronze
-      - Canvas
-      - Capiz
-      - Cardboard
-      - Cast iron
-      - Ceramic
-      - Chrome
-      - Concrete
-      - Copper
-      - Cork
-      - Cotton
-      - Crystal
-      - Fabric
-      - Faux fur
-      - Faux leather
-      - Feathers
-      - Felt
-      - Glass
-      - Hemp
-      - Iron
-      - Jute
-      - Latex
-      - Leather
-      - Marble
-      - Medium density fiberboard (MDF)
-      - Melamine
-      - Metal
-      - Nylon
-      - Paper
-      - Papier-mâché
-      - Plastic
-      - Plush
-      - Polyester
-      - Polypropylene (PP)
-      - Polyvinyl chloride (PVC)
-      - Porcelain
-      - Rattan
-      - Resin
-      - Rubber
-      - Satin
-      - Sequins
-      - Silicone
-      - Silk
-      - Stainless steel
-      - Steel
-      - Stone
-      - Suede
-      - Synthetic
-      - Terracotta
-      - Velour
-      - Velvet
-      - Veneer
-      - Vinyl
-      - Wax
-      - Wood
-      - Wool
-      - Zinc
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-3-4
   - handle: frame-style
-    label: Frame style
+    label: Frame Style
     values:
       - Acrylic
       - Braided
@@ -8429,7 +6640,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-4
   - handle: orientation
     label: Orientation
     values:
@@ -8439,9 +6649,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-4
   - handle: edge-style
-    label: Edge style
+    label: Edge Style
     values:
       - Beveled
       - Bullnose
@@ -8452,9 +6661,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-47
   - handle: frame-design
-    label: Frame design
+    label: Frame Design
     values:
       - Aluminum
       - Frameless
@@ -8465,9 +6673,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-47
   - handle: lighting-options
-    label: Lighting options
+    label: Lighting Options
     values:
       - Illuminated
       - Non-illuminated
@@ -8476,9 +6683,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-47
   - handle: mirror-type
-    label: Mirror type
+    label: Mirror Type
     values:
       - Bathroom vanity
       - Cheval
@@ -8493,9 +6699,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-47
   - handle: item-style
-    label: Item style
+    label: Item Style
     values:
       - Abstract
       - Colorful
@@ -8512,9 +6717,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-67
   - handle: vase-shape
-    label: Vase shape
+    label: Vase Shape
     values:
       - Bottle
       - Conical
@@ -8532,9 +6736,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-67
   - handle: bulb-cap-type
-    label: Bulb cap type
+    label: Bulb Cap Type
     values:
       - B22
       - E5
@@ -8564,9 +6767,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-5
   - handle: bulb-size
-    label: Bulb size
+    label: Bulb Size
     values:
       - A15
       - A19
@@ -8587,42 +6789,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-5
   - handle: bulb-type
-    label: bulb-type
+    label: Bulb Type
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-5
-  - handle: glazing-material
-    label: Glazing material
-    values:
-      - Acrylic
-      - Glass
-      - None
-      - Plastic
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-13-5
-  - handle: light-color
-    label: light-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-13-5
-  - handle: light-pattern
-    label: light-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-13-5
   - handle: light-temperature
-    label: Light temperature
+    label: Light Temperature
     values:
       - Blue light
       - Cool white
@@ -8633,9 +6807,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-5
   - handle: lighting-features
-    label: Lighting features
+    label: Lighting Features
     values:
       - Adjustable angle
       - Adjustable brightness
@@ -8651,9 +6824,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-5
   - handle: switch-control-type
-    label: Switch control type
+    label: Switch Control Type
     values:
       - Button
       - Lever
@@ -8667,9 +6839,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-5
   - handle: bulb-finish
-    label: Bulb finish
+    label: Bulb Finish
     values:
       - Amber tinted
       - Clear
@@ -8684,9 +6855,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-7
   - handle: bulb-shape
-    label: Bulb shape
+    label: Bulb Shape
     values:
       - A-shape
       - Bullet
@@ -8701,9 +6871,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-13-7
   - handle: bedding-pieces-included
-    label: Bedding pieces included
+    label: Bedding Pieces Included
     values:
       - Bottom sheet
       - Pillowcase
@@ -8712,9 +6881,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-2
   - handle: co2-supplementation-requirement
-    label: CO2 supplementation requirement
+    label: Co2 Supplementation Requirement
     values:
       - High
       - Low
@@ -8724,9 +6892,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-9
   - handle: cover-closure-design
-    label: Cover closure design
+    label: Cover Closure Design
     values:
       - Envelope
       - Zipper
@@ -8734,23 +6901,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-9
-  - handle: cover-color
-    label: cover-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-15-1-9
-  - handle: cover-pattern
-    label: cover-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-15-1-9
   - handle: pillow-shape
-    label: Pillow shape
+    label: Pillow Shape
     values:
       - Bolster
       - Lumbar
@@ -8762,9 +6914,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-9
   - handle: sleeping-position-suitability
-    label: Sleeping position suitability
+    label: Sleeping Position Suitability
     values:
       - Back
       - Combination
@@ -8774,9 +6925,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-9
   - handle: quilt-construction-type
-    label: Quilt construction type
+    label: Quilt Construction Type
     values:
       - Baffle box
       - Box stitch
@@ -8791,9 +6941,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-10
   - handle: warmth-level
-    label: Warmth level
+    label: Warmth Level
     values:
       - Extra warm
       - Lightweight (summer)
@@ -8803,7 +6952,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-10
   - handle: season
     label: Season
     values:
@@ -8815,9 +6963,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-4
   - handle: warmth-rating
-    label: Warmth rating
+    label: Warmth Rating
     values:
       - All season
       - Extra warm
@@ -8828,9 +6975,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-1-4
   - handle: towel-weave
-    label: Towel weave
+    label: Towel Weave
     values:
       - Flat weave
       - Honeycomb
@@ -8843,9 +6989,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-15-4
   - handle: exercise-machine-features
-    label: Exercise machine features
+    label: Exercise Machine Features
     values:
       - Adjustable inclination
       - Adjustable speed
@@ -8860,9 +7005,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: sg-2-4-2-5
   - handle: resistance-system
-    label: Resistance system
+    label: Resistance System
     values:
       - Air
       - Electromagnetic
@@ -8873,9 +7017,36 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: sg-2-4-2-2
+  - handle: fuel-type
+    label: Fuel Type
+    values:
+      - Propane
+      - Butane
+      - White Gas
+      - Wood
+      - Alcohol
+      - Natural Gas
+      - Electric
+    provenance:
+      sources:
+        - system: manual
+  - handle: burner-count
+    label: Burner Count
+    values:
+      - '1'
+      - '2'
+      - '3'
+    provenance:
+      sources:
+        - system: manual
+  - handle: weight
+    label: Weight
+    values: []
+    provenance:
+      sources:
+        - system: manual
   - handle: cooler-style
-    label: Cooler style
+    label: Cooler Style
     values:
       - Backpack
       - Bucket
@@ -8890,9 +7061,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-3-3
   - handle: handle-type
-    label: Handle type
+    label: Handle Type
     values:
       - Long
       - No handle
@@ -8901,27 +7071,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-3-3
-  - handle: insulation-material
-    label: Insulation material
-    values:
-      - Cellulose
-      - Cotton
-      - Fiberglass
-      - Mineral wool
-      - Phenolic foam
-      - Polyisocyanurate (PIR)
-      - Polystyrene (PS)
-      - Polyurethane (PU)
-      - Straw
-      - Wool
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-11-3-3
   - handle: safety-certifications
-    label: Safety certifications
+    label: Safety Certifications
     values:
       - ASTM F1967-19
       - BPA-free
@@ -8931,9 +7082,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-3-3
   - handle: bicycle-features
-    label: Bicycle features
+    label: Bicycle Features
     values:
       - Adjustable handlebar
       - Built-in brake light
@@ -8948,9 +7098,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: sg-4-4-3
   - handle: gearing-type
-    label: Gearing type
+    label: Gearing Type
     values:
       - Belt
       - Chain
@@ -8959,9 +7108,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: sg-4-4-3
   - handle: compatible-bike-type
-    label: Compatible bike type
+    label: Compatible Bike Type
     values:
       - Downhill
       - Electric
@@ -8972,9 +7120,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: sg-4-4-1-13
   - handle: food-product-form
-    label: Food product form
+    label: Food Product Form
     values:
       - Dried
       - Fresh
@@ -8990,9 +7137,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-2-17
   - handle: tea-input-type
-    label: Tea input type
+    label: Tea Input Type
     values:
       - Bags
       - Blossoms
@@ -9007,9 +7153,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-1-14-2
   - handle: chocolate-type
-    label: Chocolate type
+    label: Chocolate Type
     values:
       - Dark chocolate
       - Milk chocolate
@@ -9018,9 +7163,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-2-3-2
   - handle: soda-variety
-    label: Soda variety
+    label: Soda Variety
     values:
       - Cola
       - Ginger ale
@@ -9033,9 +7177,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: fb-1-12
   - handle: cultivar-type
-    label: Cultivar type
+    label: Cultivar Type
     values:
       - Genetically modified
       - Heirloom
@@ -9045,23 +7188,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-17-5-2-2
-  - handle: flower-color
-    label: flower-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-17-5-2-2
-  - handle: flower-pattern
-    label: flower-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-17-5-2-2
   - handle: hardiness-zone
-    label: Hardiness zone
+    label: Hardiness Zone
     values:
       - 1a
       - 2a
@@ -9093,9 +7221,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-17-5-2-2
   - handle: plant-characteristics
-    label: Plant characteristics
+    label: Plant Characteristics
     values:
       - Attracts pollinators
       - Cold hardy
@@ -9114,9 +7241,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-17-5-2-2
   - handle: plant-class
-    label: Plant class
+    label: Plant Class
     values:
       - Apiales
       - Aquifoliaceae
@@ -9171,9 +7297,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-17-5-2-2
   - handle: plant-life-cycle
-    label: Plant life cycle
+    label: Plant Life Cycle
     values:
       - Annual
       - Biennial
@@ -9182,9 +7307,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-17-5-2-2
   - handle: plant-name
-    label: Plant name
+    label: Plant Name
     values:
       - Aeonium
       - Allium
@@ -9294,46 +7418,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-17-5-2-2
-  - handle: seed-treatment
-    label: Seed treatment
-    values:
-      - Coated
-      - Inoculated
-      - Pelleted
-      - Primed
-      - Seed tape
-      - Treated (chemical)
-      - Untreated
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-17-5-2-2
-  - handle: sunlight
-    label: Sunlight
-    values:
-      - Full sun
-      - Partial shade
-      - Shade
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-17-5-2-2
-  - handle: watering-needs
-    label: Watering needs
-    values:
-      - High
-      - Low
-      - Moderate
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-17-5-2-2
   - handle: gardening-use
-    label: Gardening use
+    label: Gardening Use
     values:
       - Flower gardening
       - Landscaping
@@ -9347,9 +7433,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-3
   - handle: release-type
-    label: Release type
+    label: Release Type
     values:
       - Controlled release
       - Extended release
@@ -9363,9 +7448,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-12-1-3
   - handle: cookware-bakeware-features
-    label: Cookware/Bakeware features
+    label: Cookware Bakeware Features
     values:
       - Induction ready
       - Lid
@@ -9377,28 +7461,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-11-7-10
-  - handle: cookware-bakeware-material
-    label: Cookware/Bakeware material
-    values:
-      - Aluminum
-      - Carbon steel
-      - Cast iron
-      - Ceramic
-      - Copper
-      - Enamel
-      - Glass
-      - Metal
-      - Silicone
-      - Stainless steel
-      - Teflon
-      - Other
+  - handle: heat-output
+    label: Heat Output
+    values: []
     provenance:
       sources:
-        - system: shopify
-          ref: hg-11-7-10
+        - system: manual
   - handle: pool-type
-    label: Pool type
+    label: Pool Type
     values:
       - Above-ground
       - In-ground
@@ -9411,29 +7481,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-18-5
-  - handle: shell-frame-material
-    label: Shell/Frame material
-    values:
-      - Aluminum
-      - Composite
-      - Plastic
-      - Polyurethane (PU)
-      - Rubber
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-18-4-3
   - handle: card-size
-    label: card-size
+    label: Card Size
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: ae-3-1-6-2
   - handle: celebration-type
-    label: Celebration type
+    label: Celebration Type
     values:
       - Baby gender reveal
       - Baby shower
@@ -9454,9 +7509,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-3-1-6-2
   - handle: personalization-design
-    label: Personalization design
+    label: Personalization Design
     values:
       - Blank
       - Customizable
@@ -9465,9 +7519,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-3-1-6-2
   - handle: balloon-shape
-    label: Balloon shape
+    label: Balloon Shape
     values:
       - Animal-shaped
       - Cartoon character
@@ -9478,23 +7531,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: ae-3-2-3
-  - handle: disposable-tableware-material
-    label: disposable-tableware-material
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: bi-8-7
   - handle: doll-features
-    label: doll-features
+    label: Doll Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: tg-5-8-6
   - handle: doll-type
-    label: Doll type
+    label: Doll Type
     values:
       - Baby
       - Collectible
@@ -9506,16 +7550,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-5-8-6
   - handle: toy-figure-features
-    label: toy-figure-features
+    label: Toy Figure Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: tg-5-8-1-1
   - handle: building-toy-type
-    label: Building toy type
+    label: Building Toy Type
     values:
       - Architectural construction
       - Building blocks
@@ -9528,9 +7570,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-5-7
   - handle: board-game-features
-    label: Board game features
+    label: Board Game Features
     values:
       - Award winning
       - Expansion available
@@ -9540,9 +7581,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-2-5
   - handle: board-game-mechanics
-    label: Board game mechanics
+    label: Board Game Mechanics
     values:
       - Adventure & travel
       - Area control
@@ -9569,9 +7609,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-2-5
   - handle: gameplay-skills
-    label: Gameplay skills
+    label: Gameplay Skills
     values:
       - Arithmetic
       - Concentration
@@ -9590,9 +7629,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-2-5
   - handle: difficulty-level
-    label: Difficulty level
+    label: Difficulty Level
     values:
       - Easy
       - Expert
@@ -9602,9 +7640,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-4
   - handle: puzzle-theme
-    label: Puzzle theme
+    label: Puzzle Theme
     values:
       - Aircraft
       - Animals
@@ -9649,9 +7686,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-4
   - handle: puzzle-type
-    label: Puzzle type
+    label: Puzzle Type
     values:
       - 3D
       - Block
@@ -9670,26 +7706,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: tg-4
-  - handle: clothing-features
-    label: Clothing features
-    values:
-      - Hypoallergenic
-      - Insulated
-      - Moisture wicking
-      - Quick drying
-      - Reversible
-      - Stretchable
-      - UV protection
-      - Vegan friendly
-      - Water resistant
-      - Windproof
-      - Wrinkle resistant
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-1-13-8
   - handle: neckline
     label: Neckline
     values:
@@ -9714,9 +7730,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-13-8
   - handle: sleeve-length-type
-    label: Sleeve length type
+    label: Sleeve Length Type
     values:
       - 3/4
       - Cap
@@ -9729,9 +7744,26 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-13-8
+  - handle: clothing-features
+    label: Clothing Features
+    values:
+      - Hypoallergenic
+      - Insulated
+      - Moisture wicking
+      - Quick drying
+      - Reversible
+      - Stretchable
+      - UV protection
+      - Vegan friendly
+      - Water resistant
+      - Windproof
+      - Wrinkle resistant
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: top-length-type
-    label: Top length type
+    label: Top Length Type
     values:
       - Bodysuit
       - Crop top
@@ -9741,7 +7773,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-13-8
   - handle: fit
     label: Fit
     values:
@@ -9756,9 +7787,18 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-12-4
+  - handle: waist-rise
+    label: Waist Rise
+    values:
+      - High
+      - Low
+      - Mid
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: pants-length-type
-    label: Pants length type
+    label: Pants Length Type
     values:
       - Above the knee
       - Capri
@@ -9770,20 +7810,20 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-12-4
-  - handle: waist-rise
-    label: Waist rise
+  - handle: skirt-dress-length-type
+    label: Skirt Dress Length Type
     values:
-      - High
-      - Low
-      - Mid
+      - Knee
+      - Maxi
+      - Midi
+      - Mini
+      - Short
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-12-4
   - handle: skirt-style
-    label: Skirt style
+    label: Skirt Style
     values:
       - Bracer
       - Circle
@@ -9804,22 +7844,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-15
-  - handle: skirt-dress-length-type
-    label: Skirt/Dress length type
-    values:
-      - Knee
-      - Maxi
-      - Midi
-      - Mini
-      - Short
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-1-15
   - handle: dress-occasion
-    label: Dress occasion
+    label: Dress Occasion
     values:
       - Birthday
       - Casual
@@ -9837,9 +7863,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-4
   - handle: dress-style
-    label: Dress style
+    label: Dress Style
     values:
       - A-line
       - Babydoll
@@ -9866,22 +7891,18 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-1-4
-  - handle: sneaker-style
-    label: Sneaker style
+  - handle: shoe-fit
+    label: Shoe Fit
     values:
-      - Athletic
-      - Fashion
-      - High-top
-      - Low-top
-      - Slip-on
+      - Narrow
+      - Regular
+      - Wide
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: aa-8-8
   - handle: boot-style
-    label: Boot style
+    label: Boot Style
     values:
       - Biker
       - Boot
@@ -9908,9 +7929,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-8-3
   - handle: sandal-style
-    label: Sandal style
+    label: Sandal Style
     values:
       - Ankle strap
       - Clogs
@@ -9930,9 +7950,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-8-6
   - handle: spinner-type
-    label: Spinner type
+    label: Spinner Type
     values:
       - 2-wheel
       - 4-wheel
@@ -9941,9 +7960,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: lb-12
   - handle: suitcase-handle-type
-    label: Suitcase handle type
+    label: Suitcase Handle Type
     values:
       - Side carry
       - Telescopic
@@ -9952,16 +7970,20 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: lb-12
-  - handle: eyewear-frame-color
-    label: eyewear-frame-color
-    values: []
+  - handle: wallet-features
+    label: Wallet Features
+    values:
+      - Card organization
+      - Compact design
+      - RFID protection
+      - Vegan friendly
+      - Waterproof
+      - Other
     provenance:
       sources:
         - system: shopify
-          ref: aa-2-27
   - handle: eyewear-frame-design
-    label: Eyewear frame design
+    label: Eyewear Frame Design
     values:
       - Aviator
       - Cat-eye
@@ -9972,46 +7994,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-2-27
-  - handle: eyewear-frame-material
-    label: Eyewear frame material
-    values:
-      - Acetate
-      - Bamboo
-      - Carbon fiber
-      - Metal
-      - Plastic
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-2-27
-  - handle: eyewear-frame-pattern
-    label: eyewear-frame-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-2-27
-  - handle: eyewear-lens-material
-    label: Eyewear lens material
-    values:
-      - CR-39
-      - Glass
-      - High-index plastic
-      - Nylon
-      - Plastic
-      - Polycarbonate (PC)
-      - Thermoplastic polyurethane (TPU)
-      - Trivex
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-2-27
   - handle: lens-polarization
-    label: Lens polarization
+    label: Lens Polarization
     values:
       - Non-polarized
       - Photo polarized
@@ -10020,23 +8004,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-2-27
-  - handle: temple-color
-    label: temple-color
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-2-27
-  - handle: temple-pattern
-    label: temple-pattern
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: aa-2-27
   - handle: treatment-objective
-    label: Treatment objective
+    label: Treatment Objective
     values:
       - Bowel cleansing
       - Comfort
@@ -10060,9 +8029,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-8-8
   - handle: absorbency-level
-    label: Absorbency level
+    label: Absorbency Level
     values:
       - Heavy
       - Light
@@ -10074,16 +8042,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-11-11
   - handle: incontinence-aid-features
-    label: incontinence-aid-features
+    label: Incontinence Aid Features
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hb-1-11-11
   - handle: active-ingredient
-    label: Active ingredient
+    label: Active Ingredient
     values:
       - Aloe vera
       - Caffeine
@@ -10103,9 +8069,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
   - handle: cosmetic-function
-    label: Cosmetic function
+    label: Cosmetic Function
     values:
       - Anti-aging
       - Brightening
@@ -10124,9 +8089,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
   - handle: dispenser-type
-    label: Dispenser type
+    label: Dispenser Type
     values:
       - Ampoule
       - Bottle
@@ -10152,7 +8116,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
   - handle: fragrance
     label: Fragrance
     values:
@@ -10183,9 +8146,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
   - handle: fragrance-level
-    label: Fragrance level
+    label: Fragrance Level
     values:
       - Fragrance-free
       - Lightly scented
@@ -10193,9 +8155,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
   - handle: ingredient-origin
-    label: Ingredient origin
+    label: Ingredient Origin
     values:
       - Natural
       - Synthetic
@@ -10203,9 +8164,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
   - handle: moisturizer-type
-    label: Moisturizer type
+    label: Moisturizer Type
     values:
       - All day
       - Day care
@@ -10214,39 +8174,270 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
-  - handle: spf-level
-    label: SPF level
-    values:
-      - SPF 4
-      - SPF 8
-      - SPF 15
-      - SPF 20
-      - SPF 25
-      - SPF 30
-      - SPF 35
-      - SPF 40
-      - SPF 45
-      - SPF 50
-      - SPF 50+
-      - SPF 60
-      - SPF 70
-      - SPF 85
-      - SPF 100
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-21
-  - handle: serum-target-areas
-    label: serum-target-areas
+  - handle: application-area
+    label: Application Area
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
+  - handle: constitutive-ingredients
+    label: Constitutive Ingredients
+    values:
+      - Acacia honey
+      - Acerola cherry
+      - Alcohol
+      - Almond oil
+      - Aloe vera
+      - Aluminum sulfate
+      - Apricot oil
+      - Argan oil
+      - Avocado oil
+      - Beeswax
+      - Blueberry seed oil
+      - Calendula
+      - Calendula oil
+      - Castor oil
+      - Catnip oil
+      - CBD
+      - Chamomile
+      - Charcoal
+      - Cherry oil
+      - Citronella oil
+      - Clay
+      - Cocoa butter
+      - Coconut oil
+      - Collagen
+      - Cucumber extract
+      - Essential oil
+      - Eucalyptus
+      - Ferulic acid
+      - Fruit extracts
+      - Glycerin
+      - Glycolic acid
+      - Goji berry extract
+      - Grapeseed oil
+      - Green tea
+      - Hazelnut oil
+      - Hemp oil
+      - Honey
+      - Hyaluronic acid
+      - Jojoba oil
+      - Keratin
+      - Lactic acid
+      - Lanolin
+      - Lavender oil
+      - Lemon butter
+      - Lemongrass oil
+      - Macadamia oil
+      - Menthol
+      - Moringa butter
+      - Olive oil
+      - Orange
+      - Peppermint oil
+      - Retinol
+      - Rose extract
+      - Rosehip oil
+      - Rosemary oil
+      - Salicylic acid
+      - Shea butter
+      - Sodium lauryl sulfate
+      - Sorbitol
+      - Sunflower seed oil
+      - Tea tree oil
+      - Titanium dioxide
+      - Vitamin A
+      - Vitamin C
+      - Vitamin E
+      - Walnut oil
+      - Water
+      - Wheat protein
+      - Zinc oxide
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pa-rating
+    label: Pa Rating
+    values:
+      - Not rated
+      - PA+
+      - PA++
+      - PA+++
+      - PA++++
+      - PA+++++
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cosmetic-finish
+    label: Cosmetic Finish
+    values:
+      - Dewy
+      - Embossed
+      - Glitter
+      - Glossy
+      - Holographic
+      - Luminous
+      - Matte
+      - Metallic
+      - Natural
+      - Neon
+      - Opaque
+      - Pearlescent
+      - Radiant
+      - Satin
+      - Satin-matte
+      - Semi-matte
+      - Sheer
+      - Shimmer
+      - Shine-free
+      - Smooth
+      - Soft-focus
+      - Sparkly
+      - Velvet
+      - Velvet-matte
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: coverage-level
+    label: Coverage Level
+    values:
+      - Adjustable
+      - Buildable
+      - Color correcting
+      - Full
+      - High coverage
+      - Light
+      - Medium
+      - Sheer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lip-makeup-opacity
+    label: Lip Makeup Opacity
+    values:
+      - Buildable
+      - Full
+      - High pigment
+      - Medium
+      - Semi-sheer
+      - Sheer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lipstick-coverage
+    label: Lipstick Coverage
+    values:
+      - Buildable
+      - Full
+      - High-pigment
+      - Medium
+      - Sheer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lipstick-effect
+    label: Lipstick Effect
+    values:
+      - Coloring
+      - Conditioning
+      - Firming
+      - Hydrating
+      - Moisturizing
+      - Nourishing
+      - Plumping
+      - Protection
+      - Refreshing
+      - Smoothing
+      - Softening
+      - Soothing
+      - Volumizing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: makeup-color-shade
+    label: Makeup Color Shade
+    values:
+      - Beige
+      - Blue
+      - Brown
+      - Deep beige
+      - Deep brown
+      - Gold
+      - Green
+      - Light beige
+      - Light gold
+      - Light peach
+      - Light pink
+      - Light rose gold
+      - Medium beige
+      - Medium gold
+      - Medium peach
+      - Medium pink
+      - Medium rose gold
+      - Multicolor
+      - Natural
+      - Peach
+      - Pink
+      - Purple
+      - Red
+      - Rose gold
+      - Silver
+      - Tan beige
+      - Tan brown
+      - White
+      - Yellow
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: durability-features
+    label: Durability Features
+    values:
+      - Cold resistant
+      - Fire resistant
+      - Heat resistant
+      - Moisture resistant
+      - Mold resistant
+      - Rustproof
+      - Shockproof
+      - UV resistant
+      - Waterproof
+      - Weather resistant
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: makeup-features
+    label: Makeup Features
+    values:
+      - Buildable coverage
+      - Conditioning
+      - Contains hyaluronic acid
+      - Contains vitamins
+      - Durable
+      - Easy to apply
+      - Easy to remove
+      - Fragrance-free
+      - High pigmentation
+      - Hydrating
+      - Long lasting
+      - Moisturizing
+      - Non-comedogenic
+      - Non-drying
+      - Non-irritating
+      - Nourishing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: skin-care-effect
-    label: Skin care effect
+    label: Skin Care Effect
     values:
       - Anti-acne
       - Anti-aging
@@ -10334,366 +8525,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-9-21
-  - handle: skin-care-features
-    label: Skin care features
-    values:
-      - Durable
-      - Easy to apply
-      - Fast acting
-      - Long lasting
-      - Moisturizing
-      - Neutral pH
-      - Non-greasy
-      - Soothing
-      - UVA/UVB protection
-      - Waterproof
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-21
-  - handle: suitable-for-skin-type
-    label: Suitable for skin type
-    values:
-      - Aging
-      - All skin types
-      - Combination
-      - Demanding
-      - Dry
-      - Mature
-      - Normal
-      - Oily
-      - Problem
-      - Rough
-      - Sensitive
-      - Universal
-      - Very dry
-      - Wet
-      - With redness
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-21
-  - handle: texture
-    label: Texture
-    values:
-      - Absorbent
-      - Butter-like
-      - Creamy
-      - Cushiony
-      - Heavyweight
-      - Lightweight
-      - Non-greasy
-      - Silky
-      - Smooth
-      - Soft
-      - Velvety
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-21
-  - handle: uva-protection-grade
-    label: UVA protection grade
-    values:
-      - Not rated
-      - PA+
-      - PA++
-      - PA+++
-      - PA++++
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-21
-  - handle: application-area
-    label: application-area
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-15
-  - handle: constitutive-ingredients
-    label: Constitutive ingredients
-    values:
-      - Acacia honey
-      - Acerola cherry
-      - Alcohol
-      - Almond oil
-      - Aloe vera
-      - Aluminum sulfate
-      - Apricot oil
-      - Argan oil
-      - Avocado oil
-      - Beeswax
-      - Blueberry seed oil
-      - Calendula
-      - Calendula oil
-      - Castor oil
-      - Catnip oil
-      - CBD
-      - Chamomile
-      - Charcoal
-      - Cherry oil
-      - Citronella oil
-      - Clay
-      - Cocoa butter
-      - Coconut oil
-      - Collagen
-      - Cucumber extract
-      - Essential oil
-      - Eucalyptus
-      - Ferulic acid
-      - Fruit extracts
-      - Glycerin
-      - Glycolic acid
-      - Goji berry extract
-      - Grapeseed oil
-      - Green tea
-      - Hazelnut oil
-      - Hemp oil
-      - Honey
-      - Hyaluronic acid
-      - Jojoba oil
-      - Keratin
-      - Lactic acid
-      - Lanolin
-      - Lavender oil
-      - Lemon butter
-      - Lemongrass oil
-      - Macadamia oil
-      - Menthol
-      - Moringa butter
-      - Olive oil
-      - Orange
-      - Peppermint oil
-      - Retinol
-      - Rose extract
-      - Rosehip oil
-      - Rosemary oil
-      - Salicylic acid
-      - Shea butter
-      - Sodium lauryl sulfate
-      - Sorbitol
-      - Sunflower seed oil
-      - Tea tree oil
-      - Titanium dioxide
-      - Vitamin A
-      - Vitamin C
-      - Vitamin E
-      - Walnut oil
-      - Water
-      - Wheat protein
-      - Zinc oxide
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-15
-  - handle: pa-rating
-    label: PA rating
-    values:
-      - Not rated
-      - PA+
-      - PA++
-      - PA+++
-      - PA++++
-      - PA+++++
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-15
-  - handle: sunscreen-filter-type
-    label: Sunscreen filter type
-    values:
-      - Chemical
-      - Hybrid
-      - Mineral (physical)
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-9-15
-  - handle: cosmetic-finish
-    label: Cosmetic finish
-    values:
-      - Dewy
-      - Embossed
-      - Glitter
-      - Glossy
-      - Holographic
-      - Luminous
-      - Matte
-      - Metallic
-      - Natural
-      - Neon
-      - Opaque
-      - Pearlescent
-      - Radiant
-      - Satin
-      - Satin-matte
-      - Semi-matte
-      - Sheer
-      - Shimmer
-      - Shine-free
-      - Smooth
-      - Soft-focus
-      - Sparkly
-      - Velvet
-      - Velvet-matte
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-5-6
-  - handle: coverage-level
-    label: Coverage level
-    values:
-      - Adjustable
-      - Buildable
-      - Color correcting
-      - Full
-      - High coverage
-      - Light
-      - Medium
-      - Sheer
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-5-6
-  - handle: lip-makeup-opacity
-    label: Lip makeup opacity
-    values:
-      - Buildable
-      - Full
-      - High pigment
-      - Medium
-      - Semi-sheer
-      - Sheer
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-5-6
-  - handle: lipstick-coverage
-    label: Lipstick coverage
-    values:
-      - Buildable
-      - Full
-      - High-pigment
-      - Medium
-      - Sheer
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-5-6
-  - handle: lipstick-effect
-    label: Lipstick effect
-    values:
-      - Coloring
-      - Conditioning
-      - Firming
-      - Hydrating
-      - Moisturizing
-      - Nourishing
-      - Plumping
-      - Protection
-      - Refreshing
-      - Smoothing
-      - Softening
-      - Soothing
-      - Volumizing
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-5-6
-  - handle: makeup-features
-    label: Makeup features
-    values:
-      - Buildable coverage
-      - Conditioning
-      - Contains hyaluronic acid
-      - Contains vitamins
-      - Durable
-      - Easy to apply
-      - Easy to remove
-      - Fragrance-free
-      - High pigmentation
-      - Hydrating
-      - Long lasting
-      - Moisturizing
-      - Non-comedogenic
-      - Non-drying
-      - Non-irritating
-      - Nourishing
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-5-6
-  - handle: makeup-color-shade
-    label: Makeup shade
-    values:
-      - Beige
-      - Blue
-      - Brown
-      - Deep beige
-      - Deep brown
-      - Gold
-      - Green
-      - Light beige
-      - Light gold
-      - Light peach
-      - Light pink
-      - Light rose gold
-      - Medium beige
-      - Medium gold
-      - Medium peach
-      - Medium pink
-      - Medium rose gold
-      - Multicolor
-      - Natural
-      - Peach
-      - Pink
-      - Purple
-      - Red
-      - Rose gold
-      - Silver
-      - Tan beige
-      - Tan brown
-      - White
-      - Yellow
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-5-6
-  - handle: durability-features
-    label: Durability features
-    values:
-      - Cold resistant
-      - Fire resistant
-      - Heat resistant
-      - Moisture resistant
-      - Mold resistant
-      - Rustproof
-      - Shockproof
-      - UV resistant
-      - Waterproof
-      - Weather resistant
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-4-4-4
   - handle: skin-tone
-    label: Skin tone
+    label: Skin Tone
     values:
       - All skin tones
       - Cafe skin
@@ -10709,31 +8542,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-6-4-4-4
-  - handle: skin-undertone
-    label: Skin undertone
-    values:
-      - Brown/Red/Yellow
-      - Cool
-      - Cool/Pink
-      - Gold
-      - Neutral
-      - Neutral/Warm
-      - Neutral/Warm/Pink
-      - Olive/Yellow
-      - Pink/Yellow
-      - Red/Yellow
-      - Rose
-      - Warm
-      - Warm/Yellow
-      - Yellow
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-2-6-4-4-4
   - handle: mascara-brush-shape
-    label: Mascara brush shape
+    label: Mascara Brush Shape
     values:
       - Ball
       - Comb
@@ -10753,9 +8563,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-6-3-8
   - handle: mascara-effect
-    label: Mascara effect
+    label: Mascara Effect
     values:
       - Coloring
       - Curling
@@ -10778,9 +8587,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-6-3-8
   - handle: mascara-formulation
-    label: Mascara formulation
+    label: Mascara Formulation
     values:
       - Cake
       - Cream
@@ -10794,9 +8602,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-6-3-8
   - handle: eye-shadow-effect
-    label: Eye shadow effect
+    label: Eye Shadow Effect
     values:
       - Glitter
       - Metallic
@@ -10807,9 +8614,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-6-3-2-4
   - handle: eye-shadow-palette-size
-    label: Eye shadow palette size
+    label: Eye Shadow Palette Size
     values:
       - 20+ pan
       - 5 pan
@@ -10826,9 +8632,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-6-3-2-4
   - handle: application-type
-    label: Application type
+    label: Application Type
     values:
       - Heat-activated
       - Leave-in
@@ -10839,9 +8644,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-10-10
   - handle: conditioner-effect
-    label: Conditioner effect
+    label: Conditioner Effect
     values:
       - Anti hair loss
       - Anti-dandruff
@@ -10866,9 +8670,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-10-10
   - handle: hair-care-finish
-    label: Hair care finish
+    label: Hair Care Finish
     values:
       - Glossy
       - Matte
@@ -10877,9 +8680,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-10-10
   - handle: hair-care-items-included
-    label: Hair care items included
+    label: Hair Care Items Included
     values:
       - Conditioner
       - Hair balm
@@ -10895,9 +8697,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-10-10
   - handle: hair-styling-benefits
-    label: Hair styling benefits
+    label: Hair Styling Benefits
     values:
       - Anti-frizz
       - Color protection
@@ -10927,9 +8728,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-10-10
   - handle: hair-type
-    label: Hair type
+    label: Hair Type
     values:
       - Curly
       - Dry
@@ -10940,9 +8740,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-10-10
   - handle: hold-level
-    label: Hold level
+    label: Hold Level
     values:
       - Light
       - Medium
@@ -10951,46 +8750,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-10-10
-  - handle: suitable-for-hair-type
-    label: Suitable for hair type
-    values:
-      - All hair types
-      - Bleached
-      - Blonde
-      - Brittle
-      - Brunette
-      - Colored
-      - Combination
-      - Curly
-      - Damaged
-      - Demanding
-      - Dry
-      - Dull
-      - Dyed
-      - Fine
-      - Frizzy
-      - Gray
-      - Highlighted
-      - Lifeless
-      - Loss
-      - Normal
-      - Oily
-      - Sensitive
-      - Split
-      - Straight
-      - Thick
-      - Thin
-      - Treated
-      - Unruly
-      - Weakened
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-10-10
   - handle: gift-set-format
-    label: Gift set format
+    label: Gift Set Format
     values:
       - Gift bag
       - Gift basket
@@ -10999,7 +8760,6 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-8
   - handle: occasion
     label: Occasion
     values:
@@ -11011,9 +8771,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-8
   - handle: olfactory-family
-    label: Olfactory family
+    label: Olfactory Family
     values:
       - Aldehydic
       - Animalic
@@ -11042,16 +8801,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-8
   - handle: scent
-    label: scent
+    label: Scent
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-2-8
   - handle: bristle-hardness
-    label: Bristle hardness
+    label: Bristle Hardness
     values:
       - Extra-soft
       - Hard
@@ -11061,42 +8818,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-12-17-1
-  - handle: bristle-material
-    label: Bristle material
-    values:
-      - Badger
-      - Boar bristle
-      - Cotton
-      - Faux leather
-      - Goat
-      - Hog
-      - Horsehair
-      - Leather
-      - Linen
-      - Metal
-      - Microfiber
-      - Natural bristle
-      - Nylon
-      - Plastic
-      - Polypropylene (PP)
-      - Polyvinyl chloride (PVC)
-      - Pony
-      - Rubber
-      - Sable
-      - Silicone
-      - Stainless steel
-      - Synthetic bristle
-      - Teflon
-      - Unknown
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-12-17-1
   - handle: bristle-shape
-    label: Bristle shape
+    label: Bristle Shape
     values:
       - Angled
       - Flat
@@ -11106,9 +8829,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-12-17-1
   - handle: brushing-mode
-    label: Brushing mode
+    label: Brushing Mode
     values:
       - Clean
       - Daily Clean
@@ -11124,9 +8846,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-12-17-1
   - handle: cleaning-technology
-    label: Cleaning technology
+    label: Cleaning Technology
     values:
       - Hybrid
       - Ionic
@@ -11139,51 +8860,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-12-17-1
-  - handle: oral-care-function
-    label: Oral care function
-    values:
-      - Anti-inflammatory
-      - Antibacterial
-      - Breath freshening
-      - Canker relief
-      - Cavity protection
-      - Denture care
-      - Dry mouth relief
-      - Enamel strengthening
-      - Gum health
-      - Kids teething
-      - Oil pulling detox
-      - Orthodontic care
-      - Pain relief
-      - Plaque control
-      - Probiotic support
-      - Remineralization
-      - Sensitivity relief
-      - Stain removal
-      - Tartar control
-      - Ulcer relief
-      - Whitening
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-12-17-1
-  - handle: toothbrush-head-size
-    label: Toothbrush head size
-    values:
-      - Compact
-      - Full size
-      - Large
-      - Medium
-      - Small
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hb-3-12-17-1
   - handle: beard-care-benefits
-    label: Beard care benefits
+    label: Beard Care Benefits
     values:
       - Anti-dandruff
       - Conditioning
@@ -11199,9 +8877,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-14-4
   - handle: razor-flexibility
-    label: Razor flexibility
+    label: Razor Flexibility
     values:
       - Fixed
       - Flexible
@@ -11209,9 +8886,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-14-4
   - handle: razor-head-design
-    label: Razor head design
+    label: Razor Head Design
     values:
       - Double
       - Single
@@ -11220,9 +8896,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-14-4
   - handle: usage-conditions
-    label: Usage conditions
+    label: Usage Conditions
     values:
       - Dry
       - Wet
@@ -11230,9 +8905,8 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hb-3-14-4
   - handle: incense-type
-    label: Incense type
+    label: Incense Type
     values:
       - Cone
       - Powder
@@ -11242,4 +8916,3 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-40-4

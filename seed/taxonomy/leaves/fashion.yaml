@@ -15,26 +15,26 @@ categories:
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: neckline
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: sleeve-length-type
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
-              - key: fabric
-                tier: required
-              - key: neckline
-                tier: recommended
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: sleeve-length-type
-                tier: recommended
-              - key: target-gender
-                tier: required
               - key: top-length-type
                 tier: optional
           - node_id: fashion/clothing/tops/shirts
@@ -44,26 +44,26 @@ categories:
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: neckline
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: sleeve-length-type
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
-              - key: fabric
-                tier: required
-              - key: neckline
-                tier: recommended
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: sleeve-length-type
-                tier: recommended
-              - key: target-gender
-                tier: required
               - key: top-length-type
                 tier: optional
           - node_id: fashion/clothing/tops/polos
@@ -73,24 +73,24 @@ categories:
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
-              - key: age-group
-                tier: recommended
-              - key: clothing-features
-                tier: optional
               - key: color
                 tier: required
               - key: fabric
                 tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
+              - key: age-group
+                tier: recommended
               - key: neckline
                 tier: recommended
               - key: pattern
                 tier: recommended
-              - key: size
-                tier: required
               - key: sleeve-length-type
                 tier: recommended
-              - key: target-gender
-                tier: required
+              - key: clothing-features
+                tier: optional
               - key: top-length-type
                 tier: optional
           - node_id: fashion/clothing/tops/sweaters-and-hoodies
@@ -100,26 +100,26 @@ categories:
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: neckline
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: sleeve-length-type
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
-              - key: fabric
-                tier: required
-              - key: neckline
-                tier: recommended
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: sleeve-length-type
-                tier: recommended
-              - key: target-gender
-                tier: required
               - key: top-length-type
                 tier: optional
       - name: Bottoms
@@ -132,28 +132,28 @@ categories:
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: fit
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: waist-rise
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
-              - key: fabric
-                tier: required
-              - key: fit
-                tier: recommended
               - key: pants-length-type
                 tier: optional
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: target-gender
-                tier: required
-              - key: waist-rise
-                tier: recommended
           - node_id: fashion/clothing/bottoms/trousers
             name: Trousers
             shopify_ref: aa-1-12-11
@@ -161,28 +161,28 @@ categories:
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: fit
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: waist-rise
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
-              - key: fabric
-                tier: required
-              - key: fit
-                tier: recommended
               - key: pants-length-type
                 tier: optional
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: target-gender
-                tier: required
-              - key: waist-rise
-                tier: recommended
           - node_id: fashion/clothing/bottoms/chinos
             name: Chinos
             shopify_ref: aa-1-12-3
@@ -190,26 +190,26 @@ categories:
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
-              - key: age-group
-                tier: recommended
-              - key: clothing-features
-                tier: optional
               - key: color
                 tier: required
               - key: fabric
                 tier: required
-              - key: fit
-                tier: recommended
-              - key: pants-length-type
-                tier: optional
-              - key: pattern
-                tier: recommended
               - key: size
                 tier: required
               - key: target-gender
                 tier: required
+              - key: age-group
+                tier: recommended
+              - key: fit
+                tier: recommended
+              - key: pattern
+                tier: recommended
               - key: waist-rise
                 tier: recommended
+              - key: clothing-features
+                tier: optional
+              - key: pants-length-type
+                tier: optional
           - node_id: fashion/clothing/bottoms/shorts
             name: Shorts
             shopify_ref: aa-1-14
@@ -217,26 +217,26 @@ categories:
             google_id: '207'
             google_path: Apparel & Accessories > Clothing > Shorts
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: fit
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: waist-rise
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
-              - key: fabric
-                tier: required
-              - key: fit
-                tier: recommended
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: target-gender
-                tier: required
-              - key: waist-rise
-                tier: recommended
           - node_id: fashion/clothing/bottoms/skirts
             name: Skirts
             shopify_ref: aa-1-15
@@ -244,28 +244,28 @@ categories:
             google_id: '1581'
             google_path: Apparel & Accessories > Clothing > Skirts
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: waist-rise
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
-              - key: fabric
-                tier: required
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: skirt-style
-                tier: optional
               - key: skirt-dress-length-type
                 tier: optional
-              - key: target-gender
-                tier: required
-              - key: waist-rise
-                tier: recommended
+              - key: skirt-style
+                tier: optional
           - node_id: fashion/clothing/bottoms/leggings
             name: Leggings
             shopify_ref: aa-1-12-8
@@ -273,26 +273,26 @@ categories:
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
-              - key: age-group
-                tier: recommended
-              - key: clothing-features
-                tier: optional
               - key: color
                 tier: required
               - key: fabric
                 tier: required
-              - key: fit
-                tier: recommended
-              - key: pants-length-type
-                tier: optional
-              - key: pattern
-                tier: recommended
               - key: size
                 tier: required
               - key: target-gender
                 tier: required
+              - key: age-group
+                tier: recommended
+              - key: fit
+                tier: recommended
+              - key: pattern
+                tier: recommended
               - key: waist-rise
                 tier: recommended
+              - key: clothing-features
+                tier: optional
+              - key: pants-length-type
+                tier: optional
       - name: Dresses
         node_id: fashion/clothing/dresses
         leaves:
@@ -303,33 +303,29 @@ categories:
             google_id: '2271'
             google_path: Apparel & Accessories > Clothing > Dresses
             attributes:
+              - key: color
+                tier: required
+              - key: fabric
+                tier: required
+              - key: size
+                tier: required
+              - key: target-gender
+                tier: required
               - key: age-group
+                tier: recommended
+              - key: neckline
+                tier: recommended
+              - key: pattern
+                tier: recommended
+              - key: sleeve-length-type
                 tier: recommended
               - key: care-instructions
                 tier: optional
               - key: clothing-features
                 tier: optional
-              - key: color
-                tier: required
               - key: dress-occasion
                 tier: optional
               - key: dress-style
-                tier: optional
-              - key: fabric
-                tier: required
-              - key: neckline
-                tier: recommended
-              - key: pattern
-                tier: recommended
-              - key: size
-                tier: required
-              - key: skirt-dress-length-type
-                tier: optional
-              - key: sleeve-length-type
-                tier: recommended
-              - key: target-gender
-                tier: required
-              - key: top-length-type
                 tier: optional
   - name: Footwear
     node_id: fashion/footwear
@@ -341,33 +337,29 @@ categories:
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: shoe-size
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: closure-type
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: care-instructions
             tier: optional
-          - key: closure-type
-            tier: recommended
-          - key: color
-            tier: required
-          - key: footwear-material
-            tier: required
           - key: heel-height-type
             tier: optional
           - key: occasion-style
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: shoe-features
             tier: optional
           - key: shoe-fit
-            tier: optional
-          - key: shoe-size
-            tier: required
-          - key: sneaker-style
-            tier: optional
-          - key: target-gender
-            tier: required
-          - key: toe-style
             tier: optional
       - node_id: fashion/footwear/boots
         name: Boots
@@ -376,33 +368,29 @@ categories:
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: shoe-size
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: closure-type
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: boot-style
             tier: optional
           - key: care-instructions
             tier: optional
-          - key: closure-type
-            tier: recommended
-          - key: color
-            tier: required
-          - key: footwear-material
-            tier: required
           - key: heel-height-type
             tier: optional
           - key: occasion-style
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: shoe-features
-            tier: optional
-          - key: shoe-fit
-            tier: optional
-          - key: shoe-size
-            tier: required
-          - key: target-gender
-            tier: required
-          - key: toe-style
             tier: optional
       - node_id: fashion/footwear/sandals
         name: Sandals
@@ -411,33 +399,29 @@ categories:
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
-          - key: age-group
-            tier: recommended
-          - key: care-instructions
-            tier: optional
-          - key: closure-type
-            tier: recommended
           - key: color
             tier: required
-          - key: footwear-material
+          - key: material
             tier: required
-          - key: heel-height-type
-            tier: optional
-          - key: occasion-style
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: sandal-style
-            tier: optional
-          - key: shoe-features
-            tier: optional
-          - key: shoe-fit
-            tier: optional
           - key: shoe-size
             tier: required
           - key: target-gender
             tier: required
-          - key: toe-style
+          - key: age-group
+            tier: recommended
+          - key: closure-type
+            tier: recommended
+          - key: pattern
+            tier: recommended
+          - key: care-instructions
+            tier: optional
+          - key: heel-height-type
+            tier: optional
+          - key: occasion-style
+            tier: optional
+          - key: sandal-style
+            tier: optional
+          - key: shoe-features
             tier: optional
       - node_id: fashion/footwear/heels
         name: Heels
@@ -446,33 +430,29 @@ categories:
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: shoe-size
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: closure-type
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: care-instructions
             tier: optional
-          - key: closure-type
-            tier: recommended
-          - key: color
-            tier: required
-          - key: footwear-material
-            tier: required
           - key: heel-height-type
             tier: optional
           - key: heel-shoe-type
             tier: optional
           - key: occasion-style
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: shoe-features
-            tier: optional
-          - key: shoe-fit
-            tier: optional
-          - key: shoe-size
-            tier: required
-          - key: target-gender
-            tier: required
-          - key: toe-style
             tier: optional
   - name: Bags & Luggage
     node_id: fashion/bags-and-luggage
@@ -484,26 +464,26 @@ categories:
         google_id: '100'
         google_path: Luggage & Bags > Backpacks
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: bag-case-closure
             tier: optional
           - key: bag-case-features
             tier: optional
-          - key: bag-case-material
-            tier: recommended
           - key: bag-case-storage-features
             tier: optional
           - key: care-instructions
             tier: optional
           - key: carry-options
             tier: optional
-          - key: color
-            tier: required
           - key: luggage-bag-closure
             tier: optional
-          - key: pattern
-            tier: recommended
       - node_id: fashion/bags-and-luggage/suitcases
         name: Suitcases
         shopify_ref: lb-12
@@ -511,22 +491,22 @@ categories:
         google_id: '107'
         google_path: Luggage & Bags > Suitcases
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: bag-case-closure
             tier: optional
           - key: bag-case-features
             tier: optional
-          - key: bag-case-material
-            tier: recommended
           - key: bag-case-storage-features
             tier: optional
           - key: care-instructions
             tier: optional
           - key: carry-options
             tier: optional
-          - key: color
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: spinner-type
             tier: optional
           - key: suitcase-handle-type
@@ -538,16 +518,16 @@ categories:
         google_id: '6551'
         google_path: Apparel & Accessories > Handbags, Wallets & Cases
         attributes:
+          - key: color
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: carry-options
             tier: optional
-          - key: color
-            tier: required
-          - key: pattern
-            tier: recommended
-          - key: target-gender
-            tier: required
           - key: wallet-features
             tier: optional
   - name: Sunglasses & Eyewear
@@ -560,33 +540,19 @@ categories:
         google_id: '178'
         google_path: Apparel & Accessories > Clothing Accessories > Sunglasses
         attributes:
-          - key: age-group
-            tier: recommended
           - key: color
             tier: required
-          - key: eyewear-frame-color
-            tier: optional
-          - key: eyewear-frame-design
-            tier: optional
-          - key: eyewear-frame-material
-            tier: recommended
-          - key: eyewear-frame-pattern
-            tier: optional
-          - key: eyewear-lens-material
-            tier: optional
           - key: fabric
             tier: required
-          - key: lens-color
-            tier: optional
-          - key: lens-pattern
-            tier: optional
-          - key: lens-polarization
-            tier: optional
-          - key: pattern
-            tier: recommended
+          - key: material
+            tier: required
           - key: target-gender
             tier: required
-          - key: temple-color
+          - key: age-group
+            tier: recommended
+          - key: pattern
+            tier: recommended
+          - key: eyewear-frame-design
             tier: optional
-          - key: temple-pattern
+          - key: lens-polarization
             tier: optional

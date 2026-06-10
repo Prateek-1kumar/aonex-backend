@@ -12,10 +12,12 @@ categories:
         google_id: '6865'
         google_path: Electronics > Print, Copy, Scan & Fax > 3D Printers
         attributes:
-          - key: bed-leveling-type
-            tier: optional
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
+          - key: bed-leveling-type
+            tier: optional
           - key: compatible-filament
             tier: optional
           - key: compatible-resin-type
@@ -28,8 +30,6 @@ categories:
             tier: optional
           - key: memory-technology
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: print-technology
             tier: optional
           - key: printer-functions
@@ -41,10 +41,10 @@ categories:
         google_id: '982'
         google_path: Office Supplies > Office Instruments > Writing & Drawing Instruments > Pens & Pencils > Pens
         attributes:
-          - key: ink-color
-            tier: optional
-          - key: ink-pattern
-            tier: optional
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: lumber-wood-type
             tier: optional
           - key: wood-finish
@@ -54,7 +54,15 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: paper-size
+            tier: required
+          - key: sheet-count
+            tier: recommended
+          - key: weight-gsm
+            tier: recommended
+          - key: color
+            tier: optional
       - node_id: office-and-school-supplies/office-supplies/staplers
         name: Staplers
         shopify_ref: os-11-8
@@ -69,16 +77,16 @@ categories:
         google_id: '2045'
         google_path: Furniture > Office Furniture > Office Chairs
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: backrest-type
             tier: optional
           - key: chair-features
             tier: optional
-          - key: color
-            tier: required
-          - key: furniture-fixture-material
-            tier: optional
-          - key: pattern
-            tier: recommended
   - name: School Supplies
     node_id: office-and-school-supplies/school-supplies
     leaves:
@@ -89,11 +97,11 @@ categories:
         google_id: '784'
         google_path: Media > Books
         attributes:
+          - key: age-group
+            tier: recommended
           - key: genre
             tier: optional
           - key: language-version
-            tier: optional
-          - key: recommended-age-group
             tier: optional
           - key: target-audience
             tier: optional
@@ -111,23 +119,23 @@ categories:
         google_id: '100'
         google_path: Luggage & Bags > Backpacks
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: bag-case-closure
             tier: optional
           - key: bag-case-features
             tier: optional
-          - key: bag-case-material
-            tier: recommended
           - key: bag-case-storage-features
             tier: optional
           - key: care-instructions
             tier: optional
           - key: carry-options
             tier: optional
-          - key: color
-            tier: required
           - key: luggage-bag-closure
             tier: optional
-          - key: pattern
-            tier: recommended

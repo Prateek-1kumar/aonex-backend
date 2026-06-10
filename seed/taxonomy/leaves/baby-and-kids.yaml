@@ -28,14 +28,14 @@ categories:
         google_id: '6276'
         google_path: Animals & Pet Supplies > Pet Supplies > Pet Strollers
         attributes:
-          - key: accessory-size
-            tier: optional
           - key: color
             tier: required
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: accessory-size
+            tier: optional
           - key: stroller-features
             tier: optional
       - node_id: baby-and-kids/baby-products/car-seats

@@ -10,7 +10,27 @@ categories:
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: brand
+            tier: required
+          - key: storage
+            tier: required
+          - key: ram
+            tier: required
+          - key: operating-system
+            tier: required
+          - key: screen-size
+            tier: recommended
+          - key: battery-capacity
+            tier: recommended
+          - key: rear-camera
+            tier: recommended
+          - key: network
+            tier: recommended
+          - key: sim-type
+            tier: optional
+          - key: color
+            tier: required
       - node_id: electronics/mobile-phones-and-accessories/phone-cases
         name: Phone Cases
         shopify_ref: el-4-8-4-2
@@ -18,12 +38,18 @@ categories:
         google_id: '2353'
         google_path: Electronics > Communications > Telephony > Mobile Phone Accessories > Mobile Phone Cases
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: closure-type
+            tier: recommended
+          - key: pattern
+            tier: recommended
           - key: attachment-method
             tier: optional
           - key: attachment-options
             tier: optional
-          - key: bag-case-material
-            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
@@ -32,43 +58,9 @@ categories:
             tier: optional
           - key: case-type
             tier: optional
-          - key: closure-type
-            tier: recommended
-          - key: color
-            tier: required
           - key: connection-type
             tier: optional
           - key: connectivity-technology
-            tier: optional
-          - key: finish
-            tier: optional
-          - key: hand-side
-            tier: optional
-          - key: ingress-protection-ip-rating
-            tier: optional
-          - key: integrated-stand-type
-            tier: optional
-          - key: magsafe-compatibility
-            tier: optional
-          - key: material
-            tier: required
-          - key: mobile-phone-case-features
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: personalization-options
-            tier: optional
-          - key: power-source
-            tier: optional
-          - key: product-certifications-standards
-            tier: optional
-          - key: screen-protection-features
-            tier: optional
-          - key: sustainability
-            tier: optional
-          - key: theme
-            tier: optional
-          - key: wallet-features
             tier: optional
       - node_id: electronics/mobile-phones-and-accessories/screen-protectors
         name: Screen Protectors
@@ -77,10 +69,14 @@ categories:
         google_id: '5468'
         google_path: Electronics > Electronics Accessories > Electronics Films & Shields > Screen Protectors
         attributes:
-          - key: attachment-method
-            tier: optional
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: attachment-method
+            tier: optional
           - key: compatible-device
             tier: optional
           - key: connector-gender
@@ -89,10 +85,6 @@ categories:
             tier: optional
           - key: hardness-rating-pencil-scale
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: screen-protector-coverage-style
             tier: optional
           - key: screen-protector-features
@@ -106,22 +98,22 @@ categories:
         google_id: '505295'
         google_path: Electronics > Electronics Accessories > Power > Power Adapters & Chargers
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
           - key: charging-method
             tier: optional
-          - key: color
-            tier: required
           - key: compatible-device
             tier: optional
           - key: connector-gender
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: plug-type
             tier: optional
           - key: power-conversion-semiconductor-type
@@ -142,6 +134,8 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: computer-form
             tier: optional
           - key: computer-specialized-features
@@ -162,22 +156,6 @@ categories:
             tier: optional
           - key: operating-system
             tier: optional
-          - key: optical-drive-type
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: power-source
-            tier: optional
-          - key: processor-cores
-            tier: optional
-          - key: processor-family
-            tier: optional
-          - key: removable-storage-formats-supported
-            tier: optional
-          - key: storage-drive-type-installed
-            tier: optional
-          - key: storage-types-supported
-            tier: optional
       - node_id: electronics/computers-and-laptops/desktop-computers
         name: Desktop Computers
         shopify_ref: el-6-3
@@ -187,6 +165,8 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: computer-form
             tier: optional
           - key: computer-specialized-features
@@ -207,22 +187,6 @@ categories:
             tier: optional
           - key: optical-drive-type
             tier: optional
-          - key: pattern
-            tier: recommended
-          - key: power-source
-            tier: optional
-          - key: power-supply-efficiency-rating
-            tier: optional
-          - key: processor-cores
-            tier: optional
-          - key: processor-family
-            tier: optional
-          - key: removable-storage-formats-supported
-            tier: optional
-          - key: storage-drive-type-installed
-            tier: optional
-          - key: storage-types-supported
-            tier: optional
       - node_id: electronics/computers-and-laptops/computer-monitors
         name: Computer Monitors
         shopify_ref: el-17-1
@@ -230,10 +194,12 @@ categories:
         google_id: '305'
         google_path: Electronics > Video > Computer Monitors
         attributes:
-          - key: adaptive-sync-technology
-            tier: optional
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
+          - key: adaptive-sync-technology
+            tier: optional
           - key: color-accuracy-standards
             tier: optional
           - key: contrast-ratio-typical
@@ -252,14 +218,6 @@ categories:
             tier: optional
           - key: monitor-specialized-features
             tier: optional
-          - key: native-aspect-ratio
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: screen-curvature-rating
-            tier: optional
-          - key: vesa-mounting-pattern
-            tier: optional
       - node_id: electronics/computers-and-laptops/computer-keyboards
         name: Computer Keyboards
         shopify_ref: el-7-9-12-8
@@ -267,12 +225,16 @@ categories:
         google_id: '303'
         google_path: Electronics > Electronics Accessories > Computer Components > Input Devices > Keyboards
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: connector-gender
             tier: optional
           - key: keyboard-backlight-type
@@ -287,22 +249,6 @@ categories:
             tier: optional
           - key: keyboard-specialized-features
             tier: optional
-          - key: keyboard-switch-type
-            tier: optional
-          - key: keyboard-type
-            tier: optional
-          - key: keycap-material
-            tier: optional
-          - key: material
-            tier: required
-          - key: operating-system
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: pointing-device
-            tier: optional
-          - key: power-source
-            tier: optional
       - node_id: electronics/computers-and-laptops/mice
         name: Mice
         shopify_ref: el-7-9-11-4
@@ -310,24 +256,24 @@ categories:
         google_id: '500052'
         google_path: Electronics > Electronics Accessories > Computer Components > Input Device Accessories > Mice & Trackball Accessories
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: compatible-device
             tier: optional
           - key: connector-gender
             tier: optional
           - key: finish
             tier: optional
-          - key: material
-            tier: required
           - key: mounting-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
   - name: Tablets & Accessories
@@ -340,12 +286,14 @@ categories:
         google_id: '4745'
         google_path: Electronics > Computers > Tablet Computers
         attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: battery-technology
             tier: optional
           - key: cellular-capability
             tier: optional
-          - key: color
-            tier: required
           - key: computer-form
             tier: optional
           - key: cosmetic-condition
@@ -362,30 +310,20 @@ categories:
             tier: optional
           - key: memory-technology
             tier: optional
-          - key: operating-system
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: power-source
-            tier: optional
-          - key: processor-cores
-            tier: optional
-          - key: processor-family
-            tier: optional
-          - key: sim-card-type
-            tier: optional
-          - key: storage-drive-type-installed
-            tier: optional
-          - key: stylus-support-type
-            tier: optional
-          - key: subscription-type
-            tier: optional
       - node_id: electronics/tablets-and-accessories/tablet-cases
         name: Tablet Cases
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: compatible-device
+            tier: required
+          - key: material
+            tier: recommended
+          - key: color
+            tier: recommended
+          - key: closure-type
+            tier: optional
   - name: Smartwatches & Wearables
     node_id: electronics/smartwatches-and-wearables
     leaves:
@@ -396,38 +334,42 @@ categories:
         google_id: '201'
         google_path: Apparel & Accessories > Jewelry > Watches
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: target-gender
+            tier: required
           - key: age-group
             tier: recommended
-          - key: band-color
-            tier: optional
-          - key: band-pattern
-            tier: optional
-          - key: case-color
-            tier: optional
-          - key: case-pattern
-            tier: optional
+          - key: pattern
+            tier: recommended
           - key: connectivity-technology
-            tier: optional
-          - key: dial-color
-            tier: optional
-          - key: dial-pattern
             tier: optional
           - key: smart-watch-features
             tier: optional
-          - key: target-gender
-            tier: required
           - key: watch-display
             tier: optional
           - key: watch-features
-            tier: optional
-          - key: watch-material
             tier: optional
       - node_id: electronics/smartwatches-and-wearables/activity-trackers
         name: Activity Trackers
         shopify_ref: null
         google_id: null
         manual: true
-        attributes: []
+        attributes:
+          - key: brand
+            tier: required
+          - key: display-type
+            tier: recommended
+          - key: battery-life
+            tier: recommended
+          - key: water-resistance
+            tier: recommended
+          - key: connectivity
+            tier: optional
+          - key: color
+            tier: optional
   - name: Cameras & Photography
     node_id: electronics/cameras-and-photography
     leaves:
@@ -438,18 +380,20 @@ categories:
         google_id: '152'
         google_path: Cameras & Optics > Cameras > Digital Cameras
         attributes:
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: auto-focusing-modes
-            tier: optional
-          - key: camera-hd-type
             tier: optional
           - key: camera-display-technology
             tier: optional
           - key: camera-features
             tier: optional
+          - key: camera-hd-type
+            tier: optional
           - key: camera-sensor-type
             tier: optional
-          - key: color
-            tier: required
           - key: compatible-memory-cards
             tier: optional
           - key: connectivity-technology
@@ -460,22 +404,6 @@ categories:
             tier: optional
           - key: focus-type
             tier: optional
-          - key: image-formats-supported
-            tier: optional
-          - key: image-sensor-size
-            tier: optional
-          - key: light-exposure-modes
-            tier: optional
-          - key: optical-zoom
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: photo-effects-type
-            tier: optional
-          - key: scene-modes
-            tier: optional
-          - key: shooting-modes
-            tier: optional
       - node_id: electronics/cameras-and-photography/camera-lenses
         name: Camera Lenses
         shopify_ref: co-1-2-1
@@ -483,18 +411,18 @@ categories:
         google_id: '4432'
         google_path: Cameras & Optics > Camera & Optic Accessories > Camera & Video Camera Lenses > Camera Lenses
         attributes:
-          - key: camera-lens-material
-            tier: optional
-          - key: camera-lens-type
-            tier: optional
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: camera-lens-type
+            tier: optional
           - key: focus-adjustment
             tier: optional
           - key: focus-type
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: suitable-for-camera-type
             tier: optional
       - node_id: electronics/cameras-and-photography/tripods
@@ -506,18 +434,18 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: feet-type
             tier: optional
           - key: leg-lock-type
             tier: optional
           - key: leg-sections
             tier: optional
-          - key: material
-            tier: required
           - key: mount-stand-features
             tier: optional
-          - key: pattern
-            tier: recommended
   - name: Audio & Headphones
     node_id: electronics/audio-and-headphones
     leaves:
@@ -528,6 +456,12 @@ categories:
         google_id: '543626'
         google_path: Electronics > Audio > Audio Components > Headphones & Headsets > Headphones
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: audio-component-form-factor
             tier: optional
           - key: audio-connectivity
@@ -538,8 +472,6 @@ categories:
             tier: optional
           - key: charging-interface-type
             tier: optional
-          - key: color
-            tier: required
           - key: connectivity-technology
             tier: optional
           - key: device-interface
@@ -548,22 +480,6 @@ categories:
             tier: optional
           - key: headphone-driver-technology
             tier: optional
-          - key: headphone-style
-            tier: optional
-          - key: ingress-protection-ip-rating
-            tier: optional
-          - key: material
-            tier: required
-          - key: maximum-bit-depth
-            tier: optional
-          - key: microphone-type
-            tier: optional
-          - key: noise-cancellation-technology
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: power-source
-            tier: optional
       - node_id: electronics/audio-and-headphones/speakers
         name: Speakers
         shopify_ref: el-2-2-10
@@ -571,6 +487,12 @@ categories:
         google_id: '249'
         google_path: Electronics > Audio > Audio Components > Speakers
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: audio-component-form-factor
             tier: optional
           - key: audio-output-channel
@@ -581,31 +503,13 @@ categories:
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: compatible-voice-assistant
             tier: optional
           - key: connectivity-technology
             tier: optional
           - key: device-interface
             tier: optional
-          - key: material
-            tier: required
           - key: maximum-bit-depth
-            tier: optional
-          - key: mounting-type
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: power-source
-            tier: optional
-          - key: speaker-design
-            tier: optional
-          - key: speaker-enclosure-type
-            tier: optional
-          - key: speaker-features
-            tier: optional
-          - key: speaker-technology
             tier: optional
       - node_id: electronics/audio-and-headphones/microphones
         name: Microphones
@@ -614,29 +518,27 @@ categories:
         google_id: '234'
         google_path: Electronics > Audio > Audio Components > Microphones
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
           - key: audio-component-form-factor
             tier: optional
           - key: battery-size
             tier: optional
           - key: battery-type
             tier: optional
-          - key: color
-            tier: required
           - key: connectivity-technology
             tier: optional
           - key: device-interface
             tier: optional
-          - key: material
-            tier: required
           - key: maximum-bit-depth
             tier: optional
           - key: microphone-design
             tier: optional
           - key: microphone-thread
-            tier: optional
-          - key: pattern
-            tier: recommended
-          - key: polar-pattern
             tier: optional
           - key: power-source
             tier: optional
@@ -652,6 +554,8 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: compatible-game-format
             tier: optional
           - key: compatible-resolution
@@ -662,8 +566,6 @@ categories:
             tier: optional
           - key: energy-efficiency-class
             tier: optional
-          - key: pattern
-            tier: recommended
           - key: power-source
             tier: optional
           - key: region-code
@@ -679,12 +581,12 @@ categories:
         attributes:
           - key: color
             tier: required
-          - key: connectivity-technology
-            tier: optional
           - key: material
             tier: required
           - key: pattern
             tier: recommended
+          - key: connectivity-technology
+            tier: optional
           - key: video-game-platform
             tier: optional
       - node_id: electronics/video-games-and-consoles/video-games
@@ -696,9 +598,9 @@ categories:
         attributes:
           - key: color
             tier: required
+          - key: pattern
+            tier: recommended
           - key: display-resolution
             tier: optional
           - key: display-technology
             tier: optional
-          - key: pattern
-            tier: recommended

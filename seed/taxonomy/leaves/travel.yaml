@@ -12,26 +12,22 @@ categories:
         google_id: '4211'
         google_path: Health & Beauty > Personal Care > Sleeping Aids > Travel Pillows
         attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
           - key: age-group
+            tier: recommended
+          - key: pattern
             tier: recommended
           - key: care-instructions
             tier: optional
-          - key: color
-            tier: required
-          - key: cover-material
-            tier: optional
           - key: features
-            tier: optional
-          - key: filler-material
             tier: optional
           - key: filler-support
             tier: optional
           - key: inflation-method
             tier: optional
-          - key: material
-            tier: required
-          - key: pattern
-            tier: recommended
           - key: product-form
             tier: optional
           - key: travel-pillow-features
@@ -49,10 +45,10 @@ categories:
             tier: required
           - key: fabric
             tier: required
-          - key: luggage-bag-closure
-            tier: optional
           - key: pattern
             tier: recommended
+          - key: luggage-bag-closure
+            tier: optional
       - node_id: travel/travel-accessories/luggage-tags
         name: Luggage Tags
         shopify_ref: lb-9-5
