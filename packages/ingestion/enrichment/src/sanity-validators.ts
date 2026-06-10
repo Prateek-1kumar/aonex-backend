@@ -1,6 +1,8 @@
 // Sanity validators — soft checks producing warnings + value normalization.
 // Failures DO NOT block output; they get attached to _extraction_meta.
 
+import { gtinIssue } from "@aonex/lib-utils";
+
 export interface ValidationWarning {
   field: string;
   reason: string;
@@ -37,21 +39,12 @@ export function validatePricing(p: PricingInput): ValidationResult<PricingInput>
 
 export function validateGtin(gtin: string | null): ValidationResult<string | null> {
   if (!gtin) return { value: null, warnings: [] };
-  if (!/^\d{8,14}$/.test(gtin)) {
-    return { value: gtin, warnings: [{ field: "gtin", reason: "format invalid" }] };
-  }
-  // mod-10 checksum (GS1 algorithm — works for GTIN-8/12/13/14)
-  const digits = gtin.split("").map(Number);
-  const check = digits.pop()!;
-  // From right-to-left of remaining digits: alternating *3, *1
-  let sum = 0;
-  for (let i = digits.length - 1, mul = 3; i >= 0; i--, mul = mul === 3 ? 1 : 3) {
-    sum += digits[i]! * mul;
-  }
-  const expected = (10 - (sum % 10)) % 10;
-  return expected === check
-    ? { value: gtin, warnings: [] }
-    : { value: gtin, warnings: [{ field: "gtin", reason: "checksum failed" }] };
+  // Shared strict GS1 validator: exact 8/12/13/14 length + mod-10 check digit.
+  // (Previously this accepted lengths 9-11, which are not valid GTIN formats.)
+  const issue = gtinIssue(gtin);
+  if (issue === null) return { value: gtin, warnings: [] };
+  const reason = issue === "checksum" ? "checksum failed" : "format invalid";
+  return { value: gtin, warnings: [{ field: "gtin", reason }] };
 }
 
 export function dedupeVariantSkus<T extends { sku: string | null }>(

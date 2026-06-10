@@ -2,6 +2,7 @@
 // token-overlap) with calibrated abstain. The LLM/embedding fallback (P1.2)
 // slots in below the abstain line.
 
+import { normalizeText } from "@aonex/lib-utils";
 import type {
   Candidate,
   ClassifierIndex,
@@ -16,8 +17,9 @@ const STOPWORDS = new Set([
   "kit", "size", "color", "colour", "inch", "men", "women", "kids", "unisex",
 ]);
 
-export const normLabel = (s: string) =>
-  s.toLowerCase().replace(/&/g, " and ").replace(/'/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+/** Label normalization — the shared kernel's normalizeText (aliases, taxonomy
+ *  labels and product signals must all normalize identically). */
+export const normLabel: (s: string) => string = normalizeText;
 
 const singular = (t: string) => (t.endsWith("s") && !t.endsWith("ss") ? t.slice(0, -1) : t);
 

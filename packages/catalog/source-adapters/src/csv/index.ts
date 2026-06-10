@@ -8,6 +8,7 @@
 
 import { parse } from "csv-parse/sync";
 import type { ArtifactId } from "@aonex/types";
+import { editDistance } from "@aonex/lib-utils";
 import { parseDecimal } from "./number-parse.js";
 import { gtinIssue } from "./gtin.js";
 import { detectDelimiter, type Delimiter } from "./delimiter.js";
@@ -204,20 +205,6 @@ function assertWithinRowCap(text: string): void {
       }
     }
   }
-}
-
-/** Levenshtein distance — bounded use for "did you mean" header suggestions. */
-function editDistance(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
-  for (let j = 0; j <= n; j++) d[0]![j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost);
-    }
-  }
-  return d[m]![n]!;
 }
 
 /** Nearest known column within edit distance 2, else null. */

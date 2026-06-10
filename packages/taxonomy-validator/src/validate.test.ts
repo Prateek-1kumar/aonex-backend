@@ -21,6 +21,18 @@ describe("coerceEnum", () => {
     expect(coerceEnum("skiny", jeans.attributes[1]!.enumValues!)).toMatchObject({ status: "coerced", value: "Skinny" });
     expect(coerceEnum("banana", jeans.attributes[1]!.enumValues!).status).toBe("invalid");
   });
+
+  test("never fuzzes a value whose digits differ ('6G' is not a typo of '5G')", () => {
+    expect(coerceEnum("6G", ["4G", "5G"]).status).toBe("invalid");
+    expect(coerceEnum("USB 3", ["USB 2", "USB 4"]).status).toBe("invalid");
+    // digit-preserving format coercion still works
+    expect(coerceEnum("5g", ["4G", "5G"])).toMatchObject({ status: "coerced", value: "5G" });
+  });
+
+  test("short strings are not fuzz-coerced (similarity ratio, not flat budget)", () => {
+    // one edit on a 2-char value = 0.5 similarity -> reject even without digits
+    expect(coerceEnum("XL", ["XS", "SL"]).status).toBe("invalid");
+  });
 });
 
 describe("parseUnit", () => {

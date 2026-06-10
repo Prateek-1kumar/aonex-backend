@@ -162,13 +162,4 @@ export type { Completeness } from "@aonex/taxonomy-validator";
 
 // ── Provider injection (structurally compatible with IModelProvider) ─────────
 
-export interface ChatProvider {
-  chatCompletion(params: {
-    model: string;
-    messages: { role: "system" | "user"; content: string }[];
-    maxTokens: number;
-    temperature: number;
-    jsonMode: boolean;
-  }): Promise<{ content: string; model?: string; usage?: { promptTokens: number; completionTokens: number } }>;
-  estimateCost?(model: string, usage: { promptTokens: number; completionTokens: number; totalTokens: number }): number;
-}
+export type { ChatProvider } from "@aonex/lib-utils";
