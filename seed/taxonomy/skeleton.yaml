@@ -1,0 +1,142 @@
+# Canonical taxonomy — SKELETON (levels 0-1). First pass for owner review.
+# Leaves (levels 2-3) are added in Task 4 (deepen). The loader derives each
+# node_id as a slug of the display path, e.g. "Electronics > Mobile Phones &
+# Accessories" -> "electronics/mobile-phones-accessories".
+#
+# Gender & age are ATTRIBUTES (target_gender, age_group), NOT tree nodes — so
+# "Men's/Women's/Kids Clothing" are browse facets over the gender-neutral
+# Clothing subtree, not departments. Items flagged ⚑ below are open placement
+# decisions called out in the review notes.
+version: 0.1-skeleton
+
+departments:
+  - name: Electronics
+    children:
+      - Mobile Phones & Accessories
+      - Computers & Laptops
+      - Tablets & Accessories
+      - Smartwatches & Wearables
+      - Cameras & Photography
+      - Audio & Headphones
+      - Video Games & Consoles
+      - Software            # ⚑ Electronics vs Digital Products
+
+  - name: Home & Kitchen
+    children:
+      - Home Appliances
+      - Kitchen Appliances
+      - Furniture
+      - Home Decor
+      - Lighting
+      - Bedding & Linen
+
+  - name: Home Improvement & Tools
+    children:
+      - Home Improvement
+      - Tools & Hardware
+
+  - name: Garden & Outdoor      # ⚑ own department vs child of Home & Kitchen
+    children: []
+
+  - name: Automotive
+    children:
+      - Car Parts & Accessories
+      - Motorcycle Parts & Accessories
+      - Tires & Wheels
+
+  - name: Sports, Fitness & Outdoors
+    children:
+      - Sports & Fitness
+      - Outdoor & Camping
+      - Cycling
+
+  - name: Fashion
+    children:
+      - Clothing             # gender-neutral; Men's/Women's/Kids = target_gender facet
+      - Footwear
+      - Bags & Luggage       # ⚑ Fashion vs Travel
+      - Sunglasses & Eyewear
+
+  - name: Jewelry & Watches     # ⚑ own department vs child of Fashion
+    children:
+      - Watches
+      - Jewelry
+
+  - name: Beauty & Personal Care
+    children:
+      - Skincare
+      - Makeup
+      - Hair Care
+      - Fragrances & Perfumes
+      - Personal Care
+
+  - name: Health & Wellness
+    children:
+      - Medical Supplies
+      - Vitamins & Supplements
+
+  - name: Grocery & Gourmet
+    children:
+      - Food & Beverages
+      - Organic Foods        # ⚑ "organic" is arguably a facet, not a category
+
+  - name: Baby & Kids
+    children:
+      - Baby Products
+      - Kids & Baby Clothing # ⚑ overlaps Fashion (age_group facet) — pick one home
+
+  - name: Pet Supplies
+    children: []
+
+  - name: Toys & Games
+    children: []
+
+  - name: Media & Entertainment
+    children:
+      - Books
+      - Movies & TV
+      - Music & Instruments
+
+  - name: Arts, Crafts & Hobbies
+    children:
+      - Arts & Crafts
+
+  - name: Office & School Supplies
+    children:
+      - Office Supplies
+      - School Supplies
+
+  - name: Industrial & Scientific
+    children:
+      - Lab Equipment
+      - Safety Equipment
+
+  - name: Collectibles & Antiques
+    children:
+      - Collectibles
+      - Antiques
+      - Luxury Goods         # ⚑ "luxury" is arguably a tier/facet, not a category
+
+  - name: Gifts & Occasions
+    children:
+      - Gift Items
+      - Party Supplies
+      - Event & Wedding Supplies
+      - Gift Cards           # ⚑ Gifts vs Digital Products
+
+  - name: Travel
+    children:
+      - Travel Accessories
+
+  - name: Digital Products
+    children:
+      - Online Courses
+      - Subscription Boxes   # ⚑ can be physical too
+      - Digital Downloads
+
+  - name: Religious & Spiritual
+    children:
+      - Religious & Spiritual Products
+
+  - name: Adult Products
+    children: []
