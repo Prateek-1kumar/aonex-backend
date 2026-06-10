@@ -392,6 +392,10 @@
         "@aonex/types": "workspace:*",
       },
     },
+    "packages/taxonomy-classifier": {
+      "name": "@aonex/taxonomy-classifier",
+      "version": "0.0.0",
+    },
     "packages/taxonomy-validator": {
       "name": "@aonex/taxonomy-validator",
       "version": "0.0.0",
@@ -486,6 +490,8 @@
     "@aonex/schema-validator": ["@aonex/schema-validator@workspace:packages/schema-validator"],
 
     "@aonex/selector-health": ["@aonex/selector-health@workspace:packages/selector-health"],
+
+    "@aonex/taxonomy-classifier": ["@aonex/taxonomy-classifier@workspace:packages/taxonomy-classifier"],
 
     "@aonex/taxonomy-validator": ["@aonex/taxonomy-validator@workspace:packages/taxonomy-validator"],
 
