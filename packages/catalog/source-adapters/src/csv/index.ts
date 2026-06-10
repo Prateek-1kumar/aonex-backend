@@ -8,6 +8,9 @@
 
 import { parse } from "csv-parse/sync";
 import type { ArtifactId } from "@aonex/types";
+import { parseDecimal } from "./number-parse.js";
+import { gtinIssue } from "./gtin.js";
+import { detectDelimiter, type Delimiter } from "./delimiter.js";
 import type {
   SourceAdapter,
   AdapterOutput,
@@ -43,8 +46,14 @@ export const KNOWN_CSV_COLUMNS = [
   "title", "brand", "gtin", "mpn", "category", "description_long",
   "list_price", "sale_price", "currency", "weight_value", "weight_unit",
   "variant_sku", "variant_color", "variant_size", "variant_gtin", "variant_inventory_qty",
+  "variant_list_price", "variant_sale_price", "variant_currency",
   "picture", "image_url", "image_urls", "variant_image_url", "variant_image", "variant_images",
 ] as const;
+
+/** Hard cap on data rows — guards against a multi-GB upload OOMing the sync
+ *  parser/event loop. Beyond this the upload must be chunked (streaming is a
+ *  follow-up; see the worker). Tunable but deliberately generous. */
+export const MAX_CSV_ROWS = 50_000;
 
 /**
  * Alias mapping — maps common non-canonical column names to their canonical
@@ -121,7 +130,7 @@ export interface CsvAdaptGroupsResult {
 export interface CsvInspectResult {
   headers: string[];
   rowCount: number;
-  delimiter: "," | ";";
+  delimiter: Delimiter;
 }
 
 /** Default confidence stamp on every CSV-sourced observation. */
@@ -162,22 +171,39 @@ function hasAnyVariantField(row: CsvRow): boolean {
   return VARIANT_VALUE_COLUMNS.some((col) => nonEmpty(row, col) !== undefined);
 }
 
+interface IndexedRow { row: CsvRow; index: number; }
+
+/**
+ * First non-empty value for a parent-level column ACROSS the whole group, not
+ * just row 0. Sellers commonly put the product title/brand/description on a
+ * single "lead" row that isn't necessarily the first, or spread parent fields
+ * across variant rows. Reading row[0] only silently dropped that data.
+ */
+function firstNonEmptyInGroup(rows: IndexedRow[], col: string): { value: string; index: number } | undefined {
+  for (const { row, index } of rows) {
+    const v = nonEmpty(row, col);
+    if (v !== undefined) return { value: v, index };
+  }
+  return undefined;
+}
+
 /** Strip a UTF-8 BOM if present. Excel/Sheets prepend one and it corrupts the first header. */
 function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
-/** Sniff the delimiter from the header line: ';' (common in European locales) else ','. */
-function detectDelimiter(text: string): "," | ";" {
-  const firstLine = text.slice(0, text.indexOf("\n") === -1 ? text.length : text.indexOf("\n"));
-  const commas = (firstLine.match(/,/g) ?? []).length;
-  const semis = (firstLine.match(/;/g) ?? []).length;
-  return semis > commas ? ";" : ",";
-}
-
-/** Strip currency symbols and thousands separators so "$1,299.00" parses as 1299. */
-function cleanNumeric(raw: string): string {
-  return raw.replace(/[^0-9.-]/g, "");
+/** Cheap upper-bound row-count guard before the (synchronous) full-file parse —
+ *  a newline scan over-counts on quoted newlines but never under-counts, so it
+ *  safely rejects pathologically large uploads early. */
+function assertWithinRowCap(text: string): void {
+  let newlines = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10 /* \n */) {
+      if (++newlines > MAX_CSV_ROWS) {
+        throw new Error(`csvAdapter: file exceeds ${MAX_CSV_ROWS} rows — split the upload into smaller batches`);
+      }
+    }
+  }
 }
 
 /** Levenshtein distance — bounded use for "did you mean" header suggestions. */
@@ -206,17 +232,29 @@ function suggestColumn(header: string): string | null {
 }
 
 function parseNumber(raw: string, col: string, rowIndex: number): number {
-  const cleaned = cleanNumeric(raw);
-  const n = cleaned === "" ? NaN : Number(cleaned);
-  if (!Number.isFinite(n)) {
+  const parsed = parseDecimal(raw);
+  if (parsed === null) {
     throw new Error(
       `csvAdapter: row ${rowIndex}: ${col} is not a number (got "${raw}")`,
     );
   }
-  return n;
+  return parsed.value;
 }
 
-interface IndexedRow { row: CsvRow; index: number; }
+/** Warn (don't drop) on a GTIN that fails GS1 format or check-digit validation. */
+function warnIfBadGtin(value: string, rowIndex: number, label: string, primaryIdentifier: string, warnings: CsvRowIssue[]): void {
+  const issue = gtinIssue(value);
+  if (!issue) return;
+  const reason = issue === "checksum"
+    ? "is invalid (failed GS1 check digit)"
+    : "is invalid (must be 8, 12, 13, or 14 digits)";
+  warnings.push({
+    row: rowIndex,
+    code: "INVALID_GTIN",
+    message: `row ${rowIndex}: ${label} GTIN "${value}" ${reason}`,
+    primaryIdentifier,
+  });
+}
 
 interface GroupShared {
   channelCode: string;
@@ -244,14 +282,17 @@ function adaptGroup(
   const pricing: PricingObservation[] = [];
   const inventory: InventoryObservation[] = [];
 
-  const first = groupRows[0]!;
-  const firstRow = first.row;
-  const firstIndex = first.index;
+  const firstIndex = groupRows[0]!.index;
   const productHint = primaryIdentifier;
   const parentRecordId = primaryIdentifier;
 
-  const titleVal = nonEmpty(firstRow, "title");
-  const brandVal = nonEmpty(firstRow, "brand");
+  // Parent-level fields: take the first non-empty across the WHOLE group, not
+  // row[0] only, so a lead row that isn't first (or fields spread across variant
+  // rows) is still captured.
+  const titleHit = firstNonEmptyInGroup(groupRows, "title");
+  const brandHit = firstNonEmptyInGroup(groupRows, "brand");
+  const titleVal = titleHit?.value;
+  const brandVal = brandHit?.value;
 
   // NEW: title-or-brand presence rule — a product with neither is unusable.
   if (titleVal === undefined && brandVal === undefined) {
@@ -260,7 +301,7 @@ function adaptGroup(
     );
   }
 
-  // --- Parent observations (first row in group only) ----------------------
+  // --- Parent observations (consolidated across the group) -----------------
 
   if (titleVal !== undefined) {
     observations.push({
@@ -290,7 +331,7 @@ function adaptGroup(
     });
   }
 
-  const mpnVal = nonEmpty(firstRow, "mpn");
+  const mpnVal = firstNonEmptyInGroup(groupRows, "mpn")?.value;
   if (mpnVal !== undefined) {
     observations.push({
       attributeCode: "identity.mpn",
@@ -305,17 +346,10 @@ function adaptGroup(
     });
   }
 
-  const gtinVal = nonEmpty(firstRow, "gtin");
-  if (gtinVal !== undefined) {
-    const isValidGtin = /^\d+$/.test(gtinVal) && [8, 12, 13, 14].includes(gtinVal.length);
-    if (!isValidGtin) {
-      shared.warnings.push({
-        row: firstIndex,
-        code: "INVALID_GTIN",
-        message: `row ${firstIndex}: parent GTIN "${gtinVal}" is invalid (must be 8, 12, 13, or 14 digits)`,
-        primaryIdentifier,
-      });
-    }
+  const gtinHit = firstNonEmptyInGroup(groupRows, "gtin");
+  const gtinVal = gtinHit?.value;
+  if (gtinHit !== undefined && gtinVal !== undefined) {
+    warnIfBadGtin(gtinVal, gtinHit.index, "parent", primaryIdentifier, shared.warnings);
     observations.push({
       attributeCode: "identity.gtin",
       target: "parent",
@@ -329,7 +363,7 @@ function adaptGroup(
     });
   }
 
-  const categoryVal = nonEmpty(firstRow, "category");
+  const categoryVal = firstNonEmptyInGroup(groupRows, "category")?.value;
   if (categoryVal !== undefined) {
     observations.push({
       attributeCode: "category_path",
@@ -344,7 +378,7 @@ function adaptGroup(
     });
   }
 
-  const descLongVal = nonEmpty(firstRow, "description_long");
+  const descLongVal = firstNonEmptyInGroup(groupRows, "description_long")?.value;
   if (descLongVal !== undefined) {
     observations.push({
       attributeCode: "description_long",
@@ -360,10 +394,11 @@ function adaptGroup(
   }
 
   // weight: emitted as a single observation with unit preserved in extras
-  const weightValRaw = nonEmpty(firstRow, "weight_value");
-  const weightUnitVal = nonEmpty(firstRow, "weight_unit");
-  if (weightValRaw !== undefined) {
-    const weight = parseNumber(weightValRaw, "weight_value", firstIndex);
+  const weightHit = firstNonEmptyInGroup(groupRows, "weight_value");
+  const weightValRaw = weightHit?.value;
+  const weightUnitVal = firstNonEmptyInGroup(groupRows, "weight_unit")?.value;
+  if (weightHit !== undefined && weightValRaw !== undefined) {
+    const weight = parseNumber(weightValRaw, "weight_value", weightHit.index);
     observations.push({
       attributeCode: "weight",
       target: "parent",
@@ -380,24 +415,18 @@ function adaptGroup(
     });
   }
 
-  // --- Parent pricing (first row in group) -------------------------------
+  // --- Parent pricing (consolidated across the group) --------------------
 
-  const listPriceRaw = nonEmpty(firstRow, "list_price");
-  const salePriceRaw = nonEmpty(firstRow, "sale_price");
-  const parentCurrency = nonEmpty(firstRow, "currency") ?? shared.channelDefaultCurrency;
+  const listHit = firstNonEmptyInGroup(groupRows, "list_price");
+  const saleHit = firstNonEmptyInGroup(groupRows, "sale_price");
+  const parentCurrency = firstNonEmptyInGroup(groupRows, "currency")?.value ?? shared.channelDefaultCurrency;
 
   const parentTiers: PricingObservation["tiers"] = [];
-  if (listPriceRaw !== undefined) {
-    parentTiers.push({
-      kind: "list",
-      amount: parseNumber(listPriceRaw, "list_price", firstIndex),
-    });
+  if (listHit !== undefined) {
+    parentTiers.push({ kind: "list", amount: parseNumber(listHit.value, "list_price", listHit.index) });
   }
-  if (salePriceRaw !== undefined) {
-    parentTiers.push({
-      kind: "sale",
-      amount: parseNumber(salePriceRaw, "sale_price", firstIndex),
-    });
+  if (saleHit !== undefined) {
+    parentTiers.push({ kind: "sale", amount: parseNumber(saleHit.value, "sale_price", saleHit.index) });
   }
 
   if (parentTiers.length > 0) {
@@ -456,15 +485,7 @@ function adaptGroup(
 
     // identity.gtin (global / _unscoped)
     if (variantGtinVal !== undefined) {
-      const isValidGtin = /^\d+$/.test(variantGtinVal) && [8, 12, 13, 14].includes(variantGtinVal.length);
-      if (!isValidGtin) {
-        shared.warnings.push({
-          row: index,
-          code: "INVALID_GTIN",
-          message: `row ${index}: variant GTIN "${variantGtinVal}" is invalid (must be 8, 12, 13, or 14 digits)`,
-          primaryIdentifier,
-        });
-      }
+      warnIfBadGtin(variantGtinVal, index, "variant", primaryIdentifier, shared.warnings);
       observations.push({
         attributeCode: "identity.gtin",
         target: "variant",
@@ -479,8 +500,22 @@ function adaptGroup(
       });
     }
 
-    // Pricing
-    if (parentTiers.length > 0) {
+    // Pricing — a variant's OWN price columns override the parent's tiers/currency;
+    // otherwise it inherits the parent price (the common single-price-per-product case).
+    const vListRaw = nonEmpty(row, "variant_list_price");
+    const vSaleRaw = nonEmpty(row, "variant_sale_price");
+    const ownTiers: PricingObservation["tiers"] = [];
+    if (vListRaw !== undefined) ownTiers.push({ kind: "list", amount: parseNumber(vListRaw, "variant_list_price", index) });
+    if (vSaleRaw !== undefined) ownTiers.push({ kind: "sale", amount: parseNumber(vSaleRaw, "variant_sale_price", index) });
+    const variantTiers = ownTiers.length > 0 ? ownTiers : parentTiers;
+    const variantCurrency = nonEmpty(row, "variant_currency") ?? parentCurrency;
+
+    if (variantTiers.length > 0) {
+      if (variantCurrency === null || variantCurrency === undefined) {
+        throw new Error(
+          `csvAdapter: row ${index}: variant pricing currency missing (column blank and ctx.channelDefaultCurrency is null)`,
+        );
+      }
       pricing.push({
         productHint,
         variantAxes,
@@ -488,8 +523,8 @@ function adaptGroup(
         locale,
         source,
         sourceRecordId: variantRecordId,
-        currency: parentCurrency as string,
-        tiers: parentTiers,
+        currency: variantCurrency,
+        tiers: variantTiers,
         observedAt,
         ...(shared.artifactId !== undefined
           ? { artifactId: shared.artifactId }
@@ -594,7 +629,7 @@ function adaptGroup(
   // taken from the first row only (same as parent-level fields like title/brand).
 
   for (const col of customColumns) {
-    const customVal = nonEmpty(firstRow, col);
+    const customVal = firstNonEmptyInGroup(groupRows, col)?.value;
     if (customVal !== undefined) {
       observations.push({
         attributeCode: `custom.${col}`,
@@ -638,6 +673,7 @@ function adaptGroup(
  */
 export function inspectCsv(csvText: string): CsvInspectResult {
   const text = stripBom(csvText);
+  assertWithinRowCap(text);
   const delimiter = detectDelimiter(text);
   const rows = parse(text, {
     columns: (headers: string[]) => headers.map(h => applyAlias(h.trim().toLowerCase().replace(/[-\s]/g, "_"))),
@@ -665,6 +701,7 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
     throw new Error("csvAdapter: expected CsvAdapterInput { csv, filename, observedAt }");
   }
   const text = stripBom(input.csv);
+  assertWithinRowCap(text);
   const delimiter = detectDelimiter(text);
 
   // Track original headers before aliasing so we can identify custom columns.
@@ -708,18 +745,24 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
   }
 
   for (const h of headerKeys) {
-    if (!(KNOWN_CSV_COLUMNS as readonly string[]).includes(h) && !ALIAS_SOURCE_NAMES.has(h)) {
-      // Only warn if it's not being captured as a custom column
-      if (!customColumns.includes(h)) {
-        const suggestion = suggestColumn(h);
-        warnings.push({
-          row: 0,
-          code: "UNKNOWN_COLUMN",
-          message: suggestion
-            ? `unrecognized column "${h}" — did you mean "${suggestion}"?`
-            : `unrecognized column "${h}" — stored as custom attribute`,
-        });
-      }
+    if ((KNOWN_CSV_COLUMNS as readonly string[]).includes(h) || ALIAS_SOURCE_NAMES.has(h)) continue;
+    const suggestion = suggestColumn(h);
+    if (suggestion) {
+      // A near-miss of a known column is almost certainly a typo (e.g.
+      // "primary_identifer"). Surface the suggestion EVEN THOUGH we also keep it
+      // as a custom attribute, so the user can correct the header — previously
+      // this warning was dead code because every unknown header is a custom one.
+      warnings.push({
+        row: 0,
+        code: "UNKNOWN_COLUMN",
+        message: `unrecognized column "${h}" — did you mean "${suggestion}"?`,
+      });
+    } else if (!customColumns.includes(h)) {
+      warnings.push({
+        row: 0,
+        code: "UNKNOWN_COLUMN",
+        message: `unrecognized column "${h}" — stored as custom attribute`,
+      });
     }
   }
 

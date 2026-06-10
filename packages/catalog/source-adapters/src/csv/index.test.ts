@@ -292,6 +292,70 @@ describe("csvAdapter.adaptGroups", () => {
   });
 });
 
+describe("csvAdapter - P3 hardening", () => {
+  test("parses European-formatted price (dot-thousands / comma-decimal)", () => {
+    const csv = [HEADER, `P1,,,Acme,Widget,,,EUR,"1.234,56",,,,,,,,`].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.errors).toHaveLength(0);
+    expect(res.groups[0]!.output.pricingObservations[0]!.tiers[0]!.amount).toBe(1234.56);
+  });
+
+  test("US money still parses (no regression)", () => {
+    const csv = [HEADER, `P1,,,Acme,Widget,,,USD,"$1,299.00",,,,,,,,`].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.groups[0]!.output.pricingObservations[0]!.tiers[0]!.amount).toBe(1299);
+  });
+
+  test("flags a GTIN with the right length but a bad GS1 check digit", () => {
+    // 13 digits, all numeric — passes the old length-only check, fails the checksum.
+    const csv = [HEADER, "P1,1234567890123,,Acme,Widget,,,USD,,,,,,,,,"].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.groups).toHaveLength(1); // still admitted (warn, don't drop)
+    expect(res.warnings.some((w) => w.code === "INVALID_GTIN" && /check digit/.test(w.message))).toBe(true);
+  });
+
+  test("per-variant price overrides the parent; absent variant price inherits it", () => {
+    const h = "primary_identifier,brand,title,currency,list_price,variant_color,variant_sku,variant_list_price,variant_sale_price,variant_currency";
+    const csv = [h,
+      "P1,Acme,Shirt,USD,20,Red,SKU-R,25,22,USD", // own price 25/22
+      "P1,,,,,Blue,SKU-B,,,",                      // inherits parent 20
+    ].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    const vp = res.groups[0]!.output.pricingObservations.filter((p) => p.variantAxes !== undefined);
+    const red = vp.find((p) => p.variantAxes!.color === "Red")!;
+    const blue = vp.find((p) => p.variantAxes!.color === "Blue")!;
+    expect(red.tiers).toEqual([{ kind: "list", amount: 25 }, { kind: "sale", amount: 22 }]);
+    expect(blue.tiers).toEqual([{ kind: "list", amount: 20 }]);
+  });
+
+  test("parent fields are consolidated across the group, not read from row 0 only", () => {
+    // Row 1 is a variant with no title/brand; the parent title/brand live on row 2.
+    const csv = [HEADER,
+      "P1,,,,,,,,,,,,Red,,,SKU-R,",          // variant only — no title/brand
+      "P1,,,Acme,Widget,,,,,,,,Blue,,,SKU-B,", // parent title+brand here
+    ].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.errors).toHaveLength(0); // would throw "neither title nor brand" under row-0-only
+    const title = res.groups[0]!.output.observations.find((o) => o.attributeCode === "title");
+    expect(title!.value).toBe("Widget");
+    expect(res.groups[0]!.output.observations.filter((o) => o.attributeCode === "identity.sku").length).toBe(2);
+  });
+
+  test("semicolon delimiter + European decimal, end to end", () => {
+    const csv = [
+      HEADER.replace(/,/g, ";"),
+      `SHO-1;;;Shomed;"Shomed Balm";Health;Desc;EUR;12,99;9,99;50;g;;;;;`,
+    ].join("\n");
+    const res = adaptGroups(makeInput(csv), makeCtx());
+    expect(res.errors).toHaveLength(0);
+    expect(res.groups[0]!.output.observations.find((o) => o.attributeCode === "title")!.value).toBe("Shomed Balm");
+    expect(res.groups[0]!.output.pricingObservations[0]!.tiers).toEqual([
+      { kind: "list", amount: 12.99 },
+      { kind: "sale", amount: 9.99 },
+    ]);
+  });
+});
+
 describe("csvAdapter.inspectCsv", () => {
   test("returns headers + rowCount, throws on missing required column", () => {
     const ok = inspectCsv([HEADER, "P1,,,Acme,Widget,,,USD,,,,,,,,,"].join("\n"));
