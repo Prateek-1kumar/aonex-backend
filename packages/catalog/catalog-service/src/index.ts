@@ -138,6 +138,7 @@ export type {
 // ---------------------------------------------------------------------------
 export {
   appendEnrichmentObservations,
+  removeEnrichmentObservations,
   ENRICHMENT_SOURCE
 } from "./enrichment-observations.js";
 export type {

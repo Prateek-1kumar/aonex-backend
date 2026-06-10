@@ -93,3 +93,45 @@ export async function appendEnrichmentObservations(
 
   return [...new Set(writable.map((o) => o.code))];
 }
+
+/**
+ * Strip every observation a proposal wrote (matched by source +
+ * source_record_id) from catalog_products.values — the inverse of
+ * appendEnrichmentObservations, used by revert. Also clears the
+ * content-quality score the apply may have set. Returns the affected
+ * attribute codes; the caller runs projectSync over them.
+ */
+export async function removeEnrichmentObservations(
+  executor: DrizzleExecutor,
+  args: { productId: string; proposalId: string; now: Date }
+): Promise<string[]> {
+  const rows = await executor
+    .select({ values: schema.catalogProducts.values })
+    .from(schema.catalogProducts)
+    .where(eq(schema.catalogProducts.productId, args.productId))
+    .limit(1);
+  const values = (rows[0]?.values ?? {}) as ValuesJson;
+
+  const affected: string[] = [];
+  for (const [attr, byChannel] of Object.entries(values)) {
+    for (const byLocale of Object.values(byChannel)) {
+      for (const [loc, obs] of Object.entries(byLocale)) {
+        if (!Array.isArray(obs)) continue;
+        const kept = obs.filter(
+          (o) => !(o.source === ENRICHMENT_SOURCE && o.source_record_id === args.proposalId)
+        );
+        if (kept.length !== obs.length) {
+          byLocale[loc] = kept;
+          if (!affected.includes(attr)) affected.push(attr);
+        }
+      }
+    }
+  }
+
+  await executor
+    .update(schema.catalogProducts)
+    .set({ values, contentQualityScore: null, updatedAt: args.now })
+    .where(eq(schema.catalogProducts.productId, args.productId));
+
+  return affected;
+}

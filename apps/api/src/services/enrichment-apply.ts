@@ -16,8 +16,12 @@
 import { and, eq } from "drizzle-orm";
 import type { DrizzleClient } from "@aonex/db";
 import { schema } from "@aonex/db";
-import { PROTECTED_KEYS } from "@aonex/types";
-import { appendEnrichmentObservations, ENRICHMENT_SOURCE, projectSync } from "@aonex/catalog-service";
+import { PROTECTED_KEYS, type PersistedProposalField } from "@aonex/types";
+import {
+  appendEnrichmentObservations,
+  removeEnrichmentObservations,
+  projectSync,
+} from "@aonex/catalog-service";
 
 export class EnrichmentApplyError extends Error {
   constructor(
@@ -30,15 +34,10 @@ export class EnrichmentApplyError extends Error {
   }
 }
 
-interface ProposalFieldRow {
-  attributeCode: string;
-  after: unknown;
-  confidence: number;
-  reasoning?: string;
-  valid: boolean;
-  /** Already auto-applied by the worker (source-grounded) — never re-applied here. */
-  accepted?: boolean;
-}
+/** Stored field rows: the shared PersistedProposalField contract, with every
+ *  property treated as possibly-absent because pre-migration proposal rows
+ *  (old archetype engine) lack the newer metadata. */
+type ProposalFieldRow = Partial<PersistedProposalField> & Pick<PersistedProposalField, "attributeCode" | "after">;
 interface CandidateRow {
   key: string;
   label?: string;
@@ -76,16 +75,6 @@ export interface ApplyEnrichmentResult {
   score: number;
   contentScore?: number;
 }
-
-interface StoredObservation {
-  source: string;
-  source_record_id: string;
-  value: unknown;
-  confidence: number;
-  observed_at: string;
-  extras?: Record<string, unknown>;
-}
-type ValuesJson = Record<string, Record<string, Record<string, StoredObservation[]>>>;
 
 export async function applyEnrichmentProposal(
   db: DrizzleClient,
@@ -126,18 +115,21 @@ export async function applyEnrichmentProposal(
     if (f.accepted === true) continue;
     const d = fieldDec.get(f.attributeCode);
     if (!d) continue;
+    // Human-confirmed values default to mid confidence if the stored row
+    // predates calibrated confidences.
+    const confidence = f.confidence ?? 0.5;
     if (d.decision === "accept") {
       accepted.push({
         code: f.attributeCode,
         value: f.after,
-        confidence: f.confidence,
+        confidence,
         ...(f.reasoning ? { reasoning: f.reasoning } : {}),
       });
     } else if (d.decision === "edit") {
       accepted.push({
         code: f.attributeCode,
         value: d.editedValue,
-        confidence: f.confidence,
+        confidence,
         ...(f.reasoning ? { reasoning: f.reasoning } : {}),
       });
     }
@@ -267,35 +259,14 @@ export async function revertEnrichmentProposal(
     throw new EnrichmentApplyError(`Proposal is '${prop.status}', not applied`, 409, "INVALID_STATE");
   }
 
-  const affected: string[] = [];
+  let affected: string[] = [];
   const now = new Date();
   await db.transaction(async (tx) => {
-    const rows = await tx
-      .select({ values: schema.catalogProducts.values })
-      .from(schema.catalogProducts)
-      .where(eq(schema.catalogProducts.productId, input.productId))
-      .limit(1);
-    const values = (rows[0]?.values ?? {}) as ValuesJson;
-
-    for (const [attr, byChannel] of Object.entries(values)) {
-      for (const byLocale of Object.values(byChannel)) {
-        for (const [loc, obs] of Object.entries(byLocale)) {
-          if (!Array.isArray(obs)) continue;
-          const kept = obs.filter(
-            (o) => !(o.source === ENRICHMENT_SOURCE && o.source_record_id === prop.proposalId)
-          );
-          if (kept.length !== obs.length) {
-            byLocale[loc] = kept;
-            if (!affected.includes(attr)) affected.push(attr);
-          }
-        }
-      }
-    }
-
-    await tx
-      .update(schema.catalogProducts)
-      .set({ values, contentQualityScore: null, updatedAt: now })
-      .where(eq(schema.catalogProducts.productId, input.productId));
+    affected = await removeEnrichmentObservations(tx, {
+      productId: input.productId,
+      proposalId: prop.proposalId,
+      now,
+    });
     await tx
       .update(schema.enrichmentProposals)
       .set({ status: "rejected", updatedAt: now })

@@ -25,13 +25,17 @@ import {
 } from "@aonex/taxonomy-enrichment";
 import {
   loadLeafSchemas,
-  loadRagCorpus,
+  loadRagCorpusEntries,
   flattenWinningAttrs,
   firstScoped,
   asText,
+  type CorpusEntryWithId,
+  type LeafSchemaIndex,
 } from "@aonex/taxonomy-schema";
 import { appendEnrichmentObservations, projectSync } from "@aonex/catalog-service";
-import { QUEUE, PROTECTED_KEYS } from "@aonex/types";
+import { QUEUE, PROTECTED_KEYS, type PersistedProposalField } from "@aonex/types";
+
+export type { PersistedProposalField };
 
 export interface ProductEnrichJobData {
   tenantId: string;
@@ -47,29 +51,30 @@ export interface EnrichProcessorDeps {
   model: string;
 }
 
-/** The persisted per-field proposal row. Shape-compatible with the Lab UI's
- *  ProposalFieldView (attributeCode/before/after/confidence/valid/action) and
- *  the API apply flow; the grounding fields are additive metadata. */
-export interface PersistedProposalField {
-  attributeCode: string;
-  group?: string;
-  before: unknown;
-  after: unknown;
-  confidence: number;
-  reasoning?: string;
-  action: "fill" | "improve";
-  valid: boolean;
-  validationError?: string;
-  grounding: string;
-  support: number;
-  evidence?: string;
-  /** Auto-applied by this processor — the API apply flow must skip it. */
-  accepted: boolean;
-  proposable: boolean;
+/** The per-job read-mostly context: the leaf-schema index + the RAG corpus.
+ *  Both are full-table loads of effectively static data, so the processor
+ *  caches them across jobs (a bulk enrich of 50 products must not run 50
+ *  full-catalog scans). Injectable so tests can supply a fixture context. */
+export interface EnrichContext {
+  index: LeafSchemaIndex;
+  corpusEntries: CorpusEntryWithId[];
 }
 
-/** Project the engine result onto the persisted proposal-field rows: only
- *  fields the model actually proposed, with the UI/apply-compatible shape. */
+export type EnrichContextLoader = () => Promise<EnrichContext>;
+
+export function makeEnrichContextLoader(db: DrizzleClient, ttlMs = 60_000): EnrichContextLoader {
+  let cached: { ctx: EnrichContext; at: number } | null = null;
+  return async () => {
+    if (cached && Date.now() - cached.at < ttlMs) return cached.ctx;
+    const [index, corpusEntries] = await Promise.all([loadLeafSchemas(db), loadRagCorpusEntries(db)]);
+    cached = { ctx: { index, corpusEntries }, at: Date.now() };
+    return cached.ctx;
+  };
+}
+
+/** Project the engine result onto the persisted proposal-field rows
+ *  (PersistedProposalField, the shared contract in @aonex/types): only fields
+ *  the model actually proposed, with the UI/apply-compatible shape. */
 export function toProposalFields(
   result: EnrichmentResult,
   knownAttrs: Record<string, unknown>,
@@ -102,7 +107,8 @@ export function toProposalFields(
 
 export async function runEnrich(
   deps: EnrichProcessorDeps,
-  data: ProductEnrichJobData
+  data: ProductEnrichJobData,
+  loadContext: EnrichContextLoader = makeEnrichContextLoader(deps.db, 0)
 ): Promise<void> {
   const { db } = deps;
   await db
@@ -139,7 +145,7 @@ export async function runEnrich(
       );
     }
 
-    const index = await loadLeafSchemas(db);
+    const { index, corpusEntries } = await loadContext();
     const fields = index.schemaByNode.get(nodeId);
     if (!fields || fields.length === 0) {
       throw new Error(`enrich: taxonomy node "${nodeId}" has no attribute schema (node_attributes)`);
@@ -154,7 +160,9 @@ export async function runEnrich(
     const description = asText(firstScoped(wv.description_long));
     const sourceCategory = asText(firstScoped(wv.category_path));
 
-    const corpus = await loadRagCorpus(db, { excludeProductId: data.productId });
+    const corpus = corpusEntries
+      .filter((e) => e.productId !== data.productId)
+      .map((e) => e.entry);
     const examples = retrieveExamples(
       { ...(title ? { title } : {}), ...(brand ? { brand } : {}), nodeId },
       corpus,
@@ -240,8 +248,9 @@ export async function runEnrich(
 }
 
 export function makeEnrichProcessor(deps: EnrichProcessorDeps) {
+  const loadContext = makeEnrichContextLoader(deps.db);
   return async (job: Job<ProductEnrichJobData>): Promise<void> => {
-    await runEnrich(deps, job.data);
+    await runEnrich(deps, job.data, loadContext);
   };
 }
 

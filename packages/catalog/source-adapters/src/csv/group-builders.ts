@@ -133,7 +133,8 @@ export interface ParentFields {
  * Declarative registry for scalar parent columns: adding a parent-level CSV
  * column means adding a row here, not editing builder code. `scoped: true`
  * emits under the file's channel/locale; identity-class fields are
- * channel-independent (`_unscoped`).
+ * channel-independent (`_unscoped`). `fieldKey` surfaces the value on
+ * ParentFields (for the identity hint).
  */
 const PARENT_COLUMN_SPECS: {
   col: string;
@@ -141,11 +142,12 @@ const PARENT_COLUMN_SPECS: {
   scoped: boolean;
   confidence: number;
   validateGtin?: boolean;
+  fieldKey?: keyof ParentFields;
 }[] = [
-  { col: "title", attributeCode: "title", scoped: true, confidence: DEFAULT_CONFIDENCE },
-  { col: "brand", attributeCode: "brand", scoped: false, confidence: IDENTITY_CONFIDENCE },
-  { col: "mpn", attributeCode: "identity.mpn", scoped: false, confidence: IDENTITY_CONFIDENCE },
-  { col: "gtin", attributeCode: "identity.gtin", scoped: false, confidence: IDENTITY_CONFIDENCE, validateGtin: true },
+  { col: "title", attributeCode: "title", scoped: true, confidence: DEFAULT_CONFIDENCE, fieldKey: "title" },
+  { col: "brand", attributeCode: "brand", scoped: false, confidence: IDENTITY_CONFIDENCE, fieldKey: "brand" },
+  { col: "mpn", attributeCode: "identity.mpn", scoped: false, confidence: IDENTITY_CONFIDENCE, fieldKey: "mpn" },
+  { col: "gtin", attributeCode: "identity.gtin", scoped: false, confidence: IDENTITY_CONFIDENCE, validateGtin: true, fieldKey: "gtin" },
   { col: "category", attributeCode: "category_path", scoped: true, confidence: DEFAULT_CONFIDENCE },
   { col: "description_long", attributeCode: "description_long", scoped: true, confidence: DEFAULT_CONFIDENCE },
 ];
@@ -182,10 +184,7 @@ export function buildParentObservations(
     if (spec.validateGtin) {
       warnIfBadGtin(hit.value, hit.index, "parent", primaryIdentifier, shared.warnings);
     }
-    if (spec.col === "title") fields.title = hit.value;
-    if (spec.col === "brand") fields.brand = hit.value;
-    if (spec.col === "mpn") fields.mpn = hit.value;
-    if (spec.col === "gtin") fields.gtin = hit.value;
+    if (spec.fieldKey) fields[spec.fieldKey] = hit.value;
     observations.push({
       attributeCode: spec.attributeCode,
       target: "parent",

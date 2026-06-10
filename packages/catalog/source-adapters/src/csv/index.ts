@@ -30,7 +30,7 @@ import type {
   IdentityHint,
 } from "../types.js";
 
-export type { CsvRowIssue, GroupShared, IndexedRow } from "./group-builders.js";
+export type { CsvRowIssue } from "./group-builders.js";
 
 /**
  * Envelope shape consumed by the csv adapter.
