@@ -15,6 +15,7 @@ import yaml from "js-yaml";
 import { schema, createDb } from "@aonex/db";
 import { validateAttributes, type AttributeSpec } from "@aonex/taxonomy-validator";
 import { scoreClassification, aggregateClassification, type ClassRow } from "@aonex/ingestion-eval";
+import { classify as classifyV2, buildIndex } from "@aonex/taxonomy-classifier";
 
 const GOLDEN = "packages/ingestion-eval/fixtures/golden-taxonomy/products.yaml";
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
@@ -58,6 +59,7 @@ try {
   const nodes = await db.select().from(schema.taxonomyNodes);
   const parentOf = new Map(nodes.map((n) => [n.nodeId, n.parentId]));
   const exists = new Set(nodes.map((n) => n.nodeId));
+  const cidx = buildIndex(nodes.filter((n) => n.isLeaf).map((n) => ({ nodeId: n.nodeId, displayName: n.displayName })), aliasMap);
   const ancestorsOf = (id: string): string[] => {
     const out: string[] = [];
     let p = parentOf.get(id);
@@ -79,10 +81,13 @@ try {
   const badGold = golden.filter((p) => !exists.has(p.gold.node_id)).map((p) => p.id);
 
   const classRows: ClassRow[] = [];
+  const v2Rows: ClassRow[] = [];
   let attrProducts = 0, attrComplete = 0, attrViolations = 0, attrFields = 0;
   for (const p of golden) {
     const predicted = classify(p.input, aliasMap);
     classRows.push({ ...scoreClassification(predicted, p.gold.node_id, ancestorsOf), predicted });
+    const v2 = classifyV2(p.input, cidx);
+    v2Rows.push({ ...scoreClassification(v2.nodeId, p.gold.node_id, ancestorsOf), predicted: v2.nodeId });
     const sch = schemaByNode.get(p.gold.node_id);
     const attrs = p.input.attrs ?? {};
     if (sch && Object.keys(attrs).length > 0) {
@@ -92,13 +97,15 @@ try {
   }
 
   const agg = aggregateClassification(classRows);
+  const agg2 = aggregateClassification(v2Rows);
   const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
   /* eslint-disable no-console */
-  console.log("\n===== TAXONOMY BASELINE (alias-only classifier) =====");
+  console.log("\n===== TAXONOMY EVAL =====");
   console.log(`golden products:        ${golden.length}${badGold.length ? `  (⚠ unknown gold nodes: ${badGold.join(", ")})` : ""}`);
-  console.log(`classification top-1:   ${pct(agg.top1)}`);
-  console.log(`classification weighted:${pct(agg.weighted)}  (ancestor/dept partial credit)`);
-  console.log(`abstained (no match):   ${pct(agg.abstained)}`);
+  console.log(`-- baseline (alias-only) --`);
+  console.log(`  top-1:    ${pct(agg.top1)}   weighted: ${pct(agg.weighted)}   abstain: ${pct(agg.abstained)}`);
+  console.log(`-- classifier core (alias + lexical) --`);
+  console.log(`  top-1:    ${pct(agg2.top1)}   weighted: ${pct(agg2.weighted)}   abstain: ${pct(agg2.abstained)}`);
   console.log(`attribute products:     ${attrProducts}  (${attrFields} provided fields)`);
   console.log(`attr completeness avg:  ${attrProducts ? (attrComplete / attrProducts).toFixed(1) : "n/a"} / 100`);
   console.log(`attr violations:        ${attrViolations}`);
