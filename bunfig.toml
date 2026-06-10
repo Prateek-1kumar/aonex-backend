@@ -8,6 +8,9 @@ exact = false
 # (private registry config goes here when we publish @aonex/*)
 
 [test]
-# Co-located *.test.ts files
+# Co-located *.test.ts files. Compiled copies under dist/ are excluded —
+# without this, a repo-root `bun test` after `bun run build` re-runs every
+# suite from stale build artifacts.
+pathIgnorePatterns = ["**/dist/**"]
 # preload = []
 coverage = false

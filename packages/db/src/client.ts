@@ -11,6 +11,11 @@ import * as schema from "./schema/index.js";
 
 export type DrizzleClient = ReturnType<typeof drizzle<typeof schema>>;
 
+/** A query executor — either the client or a transaction handle. Lets shared
+ *  write-helpers compose into a caller's transaction without importing
+ *  drizzle-orm outside this package. */
+export type DrizzleExecutor = DrizzleClient | Parameters<Parameters<DrizzleClient["transaction"]>[0]>[0];
+
 export function createDb(databaseUrl: string, opts: { max?: number } = {}): {
   client: DrizzleClient;
   pool: Pool;
