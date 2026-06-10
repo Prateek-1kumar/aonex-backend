@@ -2,8 +2,8 @@
 department: Pet Supplies
 tree:
   - category: Dog Supplies
-    leaves: { Dog Food: auto, Dog Beds: auto, Dog Toys: auto, Dog Leashes: auto, Dog Collars: auto }
+    leaves: { Dog Food: auto, Dog Beds: ap-2-9, Dog Toys: auto, Dog Leashes: auto, Dog Collars: auto }
   - category: Cat Supplies
-    leaves: { Cat Food: auto, Cat Beds: auto, Cat Toys: auto, Cat Litter: auto }
+    leaves: { Cat Food: auto, Cat Beds: ap-2-9, Cat Toys: auto, Cat Litter: auto }
   - category: Other Pets
     leaves: { Aquariums: auto, Bird Cages: auto }

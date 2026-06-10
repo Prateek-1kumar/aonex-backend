@@ -8,4 +8,6 @@ categories:
       - node_id: adult-products/adult-products/adult-products
         name: Adult Products
         shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        google_id: null
+        manual: true
+        attributes: []

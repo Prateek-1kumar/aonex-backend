@@ -4,10 +4,10 @@
 department: Digital Products
 tree:
   - category: Software
-    leaves: { Computer Software: auto }
+    leaves: { Computer Software: manual }
   - category: Online Courses
-    leaves: { Online Courses: auto }
+    leaves: { Online Courses: manual }
   - category: Digital Downloads
-    leaves: { Digital Goods: auto }
+    leaves: { Digital Goods: manual }
   - category: Gift Cards
     leaves: { Gift Cards: auto }

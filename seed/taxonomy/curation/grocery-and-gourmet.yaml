@@ -2,4 +2,4 @@
 department: Grocery & Gourmet
 tree:
   - category: Food & Beverages
-    leaves: { Snack Foods: auto, Coffee: auto, Tea: auto, Chocolate: auto, Soft Drinks: auto }
+    leaves: { Snack Foods: auto, Coffee: auto, Tea: auto, Chocolate: auto, Soft Drinks: fb-1-12 }

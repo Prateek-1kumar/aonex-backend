@@ -2,4 +2,4 @@
 department: Adult Products
 tree:
   - category: Adult Products
-    leaves: { Adult Products: auto }
+    leaves: { Adult Products: manual }

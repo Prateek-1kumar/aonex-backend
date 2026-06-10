@@ -52,7 +52,9 @@ categories:
       - node_id: office-and-school-supplies/office-supplies/printer-paper
         name: Printer Paper
         shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        google_id: null
+        manual: true
+        attributes: []
       - node_id: office-and-school-supplies/office-supplies/staplers
         name: Staplers
         shopify_ref: os-11-8

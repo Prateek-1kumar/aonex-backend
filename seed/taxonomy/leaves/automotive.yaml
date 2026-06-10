@@ -97,8 +97,21 @@ categories:
             tier: recommended
       - node_id: automotive/car-parts-and-accessories/windshield-wipers
         name: Windshield Wipers
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: vp-1-4-21-4
+        shopify_path: Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Parts > Motor Vehicle Window Parts & Accessories > Windshield Wiper Systems & Components
+        google_id: '2534'
+        google_path: Vehicles & Parts > Vehicle Parts & Accessories > Motor Vehicle Parts > Motor Vehicle Window Parts & Accessories
+        attributes:
+          - key: color
+            tier: required
+          - key: item-condition
+            tier: optional
+          - key: item-material
+            tier: optional
+          - key: manufacturer-type
+            tier: optional
+          - key: pattern
+            tier: recommended
       - node_id: automotive/car-parts-and-accessories/motor-oil
         name: Motor Oil
         shopify_ref: vp-1-5-5-8

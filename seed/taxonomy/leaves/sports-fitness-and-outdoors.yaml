@@ -114,7 +114,9 @@ categories:
       - node_id: sports-fitness-and-outdoors/outdoor-and-camping/camping-stoves
         name: Camping Stoves
         shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        google_id: null
+        manual: true
+        attributes: []
       - node_id: sports-fitness-and-outdoors/outdoor-and-camping/coolers
         name: Coolers
         shopify_ref: hg-11-3-3

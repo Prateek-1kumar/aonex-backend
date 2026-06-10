@@ -8,7 +8,9 @@ categories:
       - node_id: electronics/mobile-phones-and-accessories/mobile-phones
         name: Mobile Phones
         shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        google_id: null
+        manual: true
+        attributes: []
       - node_id: electronics/mobile-phones-and-accessories/phone-cases
         name: Phone Cases
         shopify_ref: el-4-8-4-2
@@ -381,14 +383,16 @@ categories:
       - node_id: electronics/tablets-and-accessories/tablet-cases
         name: Tablet Cases
         shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        google_id: null
+        manual: true
+        attributes: []
   - name: Smartwatches & Wearables
     node_id: electronics/smartwatches-and-wearables
     leaves:
       - node_id: electronics/smartwatches-and-wearables/smartwatches
         name: Smartwatches
-        shopify_ref: aa-6-11
-        shopify_path: Apparel & Accessories > Jewelry > Watches
+        shopify_ref: aa-6-12
+        shopify_path: Apparel & Accessories > Jewelry > Smart Watches
         google_id: '201'
         google_path: Apparel & Accessories > Jewelry > Watches
         attributes:
@@ -402,9 +406,13 @@ categories:
             tier: optional
           - key: case-pattern
             tier: optional
+          - key: connectivity-technology
+            tier: optional
           - key: dial-color
             tier: optional
           - key: dial-pattern
+            tier: optional
+          - key: smart-watch-features
             tier: optional
           - key: target-gender
             tier: required
@@ -417,7 +425,9 @@ categories:
       - node_id: electronics/smartwatches-and-wearables/activity-trackers
         name: Activity Trackers
         shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        google_id: null
+        manual: true
+        attributes: []
   - name: Cameras & Photography
     node_id: electronics/cameras-and-photography
     leaves:

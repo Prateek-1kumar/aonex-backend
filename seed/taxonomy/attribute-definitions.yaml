@@ -1909,6 +1909,93 @@ attributes:
       sources:
         - system: shopify
           ref: ap-2-3-3
+  - handle: animal-type
+    label: Animal type
+    values:
+      - Beavers
+      - Birds
+      - Boars
+      - Bobcats
+      - Cats
+      - Cattle
+      - Chameleons
+      - Chickens
+      - Chinchillas
+      - Chipmunks
+      - Coyotes
+      - Deer
+      - Dogs
+      - Ducks
+      - Ferrets
+      - Foxes
+      - Frogs
+      - Geckos
+      - Geese
+      - Gerbils
+      - Goats
+      - Gophers
+      - Groundhogs
+      - Guinea pigs
+      - Hamsters
+      - Hermit crabs
+      - Lizards
+      - Mice
+      - Mixed herd
+      - Moles
+      - Pigs
+      - Possums
+      - Rabbits
+      - Raccoons
+      - Rats
+      - Reptiles
+      - Rodents
+      - Sheep
+      - Skunks
+      - Snakes
+      - Squirrels
+      - Turkeys
+      - Turtles
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: ap-2-9
+  - handle: pet-bedding-features
+    label: pet-bedding-features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+          ref: ap-2-9
+  - handle: shape
+    label: Shape
+    values:
+      - Arrow
+      - Conical
+      - Custom
+      - Cylindrical
+      - Diamond
+      - Flower
+      - Free-form
+      - Heart
+      - Heptagonal
+      - Hexagonal
+      - Kidney-shaped
+      - Octagonal
+      - Oval
+      - Pentagonal
+      - Rectangular
+      - Round
+      - Semicircular
+      - Square
+      - Star
+      - Trapezoidal
+      - Triangular
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: ap-2-9
   - handle: dog-toy-type
     label: Dog toy type
     values:
@@ -2345,35 +2432,6 @@ attributes:
       sources:
         - system: shopify
           ref: lb-9-6
-  - handle: shape
-    label: Shape
-    values:
-      - Arrow
-      - Conical
-      - Custom
-      - Cylindrical
-      - Diamond
-      - Flower
-      - Free-form
-      - Heart
-      - Heptagonal
-      - Hexagonal
-      - Kidney-shaped
-      - Octagonal
-      - Oval
-      - Pentagonal
-      - Rectangular
-      - Round
-      - Semicircular
-      - Square
-      - Star
-      - Trapezoidal
-      - Triangular
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: lb-9-5
   - handle: tag-fastening
     label: Tag fastening
     values:
@@ -2585,6 +2643,42 @@ attributes:
       sources:
         - system: shopify
           ref: vp-1-4-11-3
+  - handle: item-material
+    label: Item material
+    values:
+      - Acrylonitrile butadiene styrene (ABS)
+      - Aluminum
+      - Brass
+      - Carbon fiber
+      - Ceramic
+      - Chrome
+      - Copper
+      - Faux leather
+      - Fiberglass
+      - Glass
+      - Leather
+      - Metal
+      - Neoprene
+      - Nylon
+      - Plastic
+      - Polycarbonate (PC)
+      - Polyethylene (PE)
+      - Polypropylene (PP)
+      - Polyurethane (PU)
+      - Polyvinyl chloride (PVC)
+      - Rubber
+      - Silicone
+      - Stainless steel
+      - Synthetic
+      - Thermoplastic
+      - Titanium
+      - Vinyl
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: vp-1-4-21-4
   - handle: vehicle-oil-features
     label: Vehicle oil features
     values:
@@ -2642,42 +2736,6 @@ attributes:
       sources:
         - system: shopify
           ref: vp-1-5-5-8
-  - handle: item-material
-    label: Item material
-    values:
-      - Acrylonitrile butadiene styrene (ABS)
-      - Aluminum
-      - Brass
-      - Carbon fiber
-      - Ceramic
-      - Chrome
-      - Copper
-      - Faux leather
-      - Fiberglass
-      - Glass
-      - Leather
-      - Metal
-      - Neoprene
-      - Nylon
-      - Plastic
-      - Polycarbonate (PC)
-      - Polyethylene (PE)
-      - Polypropylene (PP)
-      - Polyurethane (PU)
-      - Polyvinyl chloride (PVC)
-      - Rubber
-      - Silicone
-      - Stainless steel
-      - Synthetic
-      - Thermoplastic
-      - Titanium
-      - Vinyl
-      - Wood
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: vp-1-4-20-3-2
   - handle: motorcycle-tire-type
     label: Motorcycle tire type
     values:
@@ -4483,6 +4541,60 @@ attributes:
       sources:
         - system: shopify
           ref: ha-6-14
+  - handle: fastener-material
+    label: Fastener material
+    values:
+      - Acrylic
+      - Aluminum
+      - Bamboo
+      - Bone
+      - Brass
+      - Canvas
+      - Copper
+      - Cork
+      - Cotton
+      - Denim
+      - Fabric
+      - Faux leather
+      - Felt
+      - Glass
+      - Hemp
+      - Jute
+      - Latex
+      - Leather
+      - Linen
+      - Lycra
+      - Mesh
+      - Metal
+      - Neoprene
+      - Nickel
+      - Nylon
+      - Pewter
+      - Plastic
+      - Polyamide (PA)
+      - Polyester
+      - Polypropylene (PP)
+      - Rattan
+      - Resin
+      - Rubber
+      - Satin
+      - Seashell
+      - Silicone
+      - Silk
+      - Stainless steel
+      - Suede
+      - Synthetic
+      - Velour
+      - Velvet
+      - Vinyl
+      - Wood
+      - Wool
+      - Zinc
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: ae-2-1-7
   - handle: knitting-project-type
     label: knitting-project-type
     values: []
@@ -5750,28 +5862,59 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-11
+          ref: aa-6-12
   - handle: band-pattern
     label: band-pattern
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-11
+          ref: aa-6-12
   - handle: dial-color
     label: dial-color
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-11
+          ref: aa-6-12
   - handle: dial-pattern
     label: dial-pattern
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-11
+          ref: aa-6-12
+  - handle: smart-watch-features
+    label: Smart watch features
+    values:
+      - Alarm
+      - Anti-reflective
+      - Blood oxygen level monitoring
+      - Blood pressure monitoring
+      - Camera control
+      - Compass
+      - Customizable watch faces
+      - Device location feature
+      - ECG monitoring
+      - Fitness tracker
+      - GPS support
+      - Heart rate monitor
+      - Interchangeable strap
+      - Music control
+      - Offline music storage
+      - Sleep tracker
+      - Step counter
+      - Thermometer
+      - Touchscreen
+      - Vibration
+      - Voice control
+      - Waterproof
+      - World timer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: aa-6-12
   - handle: watch-display
     label: Watch display
     values:
@@ -5782,7 +5925,7 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-11
+          ref: aa-6-12
   - handle: watch-features
     label: Watch features
     values:
@@ -5814,14 +5957,14 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-11
+          ref: aa-6-12
   - handle: watch-material
     label: watch-material
     values: []
     provenance:
       sources:
         - system: shopify
-          ref: aa-6-11
+          ref: aa-6-12
   - handle: auto-focusing-modes
     label: Auto focusing modes
     values:
@@ -7116,66 +7259,6 @@ attributes:
       sources:
         - system: shopify
           ref: aa-6-3
-  - handle: license-type
-    label: License type
-    values:
-      - Free to use
-      - Freemium
-      - One-time purchase
-      - Open-source
-      - Subscription-based
-      - Trial version
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: so-1
-  - handle: software-features
-    label: Software features
-    values:
-      - AI-powered
-      - Auto backup
-      - Auto data recovery
-      - Automatic updates
-      - Built-in templates
-      - Cloud based
-      - Customizable interface
-      - Data import/export
-      - Encryption
-      - Mobile access
-      - Multi-user access
-      - Multilingual support
-      - Offline access
-      - Parental control
-      - Phishing protection
-      - Privacy protection
-      - Ransomware protection
-      - Real-time updates
-      - Technical support
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: so-1
-  - handle: supported-language
-    label: supported-language
-    values: []
-    provenance:
-      sources:
-        - system: shopify
-          ref: so-1
-  - handle: user-type
-    label: User type
-    values:
-      - Individual
-      - Large enterprise
-      - Medium-sized business/enterprise
-      - Small business
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: so-1
   - handle: control-type
     label: Control type
     values:
@@ -8196,70 +8279,66 @@ attributes:
       sources:
         - system: shopify
           ref: hg-3-74-1-1
-  - handle: edge-style
-    label: Edge style
+  - handle: art-movement
+    label: Art movement
     values:
-      - Beveled
-      - Bullnose
-      - Eased
-      - Ogee
-      - Square
+      - Abstract
+      - Art deco
+      - Art nouveau
+      - Baroque
+      - Bauhaus
+      - Classicism
+      - Cubism
+      - Dadaism
+      - Expressionism
+      - Fauvism
+      - Futurism
+      - Gothic
+      - Impressionism
+      - Minimalism
+      - Modernism
+      - Neoclassicism
+      - Pop art
+      - Post-Impressionism
+      - Realism
+      - Renaissance
+      - Rococo
+      - Romanticism
+      - Surrealism
+      - Symbolism
+      - Victorian
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-47
-  - handle: frame-design
-    label: Frame design
+          ref: hg-3-4
+  - handle: artwork-authenticity
+    label: Artwork authenticity
+    values:
+      - Original
+      - Reproduction
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: hg-3-4
+  - handle: artwork-frame-material
+    label: Artwork frame material
     values:
       - Aluminum
-      - Frameless
+      - Composite
+      - Gold
+      - Gold-plated
       - Metal
       - Plastic
+      - Silver
+      - Silver-plated
       - Wood
       - Other
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-47
-  - handle: lighting-options
-    label: Lighting options
-    values:
-      - Illuminated
-      - Non-illuminated
-      - Photoluminescent
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-3-47
-  - handle: mirror-type
-    label: Mirror type
-    values:
-      - Bathroom vanity
-      - Cheval
-      - Decorative accent
-      - Floor
-      - Full-length
-      - Over-the-door
-      - Standing
-      - Tabletop
-      - Wall
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-3-47
-  - handle: orientation
-    label: Orientation
-    values:
-      - Horizontal
-      - Vertical
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: hg-3-47
+          ref: hg-3-4
   - handle: decoration-material
     label: Decoration material
     values:
@@ -8328,7 +8407,93 @@ attributes:
     provenance:
       sources:
         - system: shopify
-          ref: hg-3-67
+          ref: hg-3-4
+  - handle: frame-style
+    label: Frame style
+    values:
+      - Acrylic
+      - Braided
+      - Canvas
+      - Clip
+      - Floater
+      - Framed
+      - Gallery wrapped
+      - Matted
+      - Modern
+      - Ornate
+      - Poster
+      - Rustic
+      - Shadow box
+      - Unframed
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: hg-3-4
+  - handle: orientation
+    label: Orientation
+    values:
+      - Horizontal
+      - Vertical
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: hg-3-4
+  - handle: edge-style
+    label: Edge style
+    values:
+      - Beveled
+      - Bullnose
+      - Eased
+      - Ogee
+      - Square
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: hg-3-47
+  - handle: frame-design
+    label: Frame design
+    values:
+      - Aluminum
+      - Frameless
+      - Metal
+      - Plastic
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: hg-3-47
+  - handle: lighting-options
+    label: Lighting options
+    values:
+      - Illuminated
+      - Non-illuminated
+      - Photoluminescent
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: hg-3-47
+  - handle: mirror-type
+    label: Mirror type
+    values:
+      - Bathroom vanity
+      - Cheval
+      - Decorative accent
+      - Floor
+      - Full-length
+      - Over-the-door
+      - Standing
+      - Tabletop
+      - Wall
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: hg-3-47
   - handle: item-style
     label: Item style
     values:
@@ -8854,6 +9019,21 @@ attributes:
       sources:
         - system: shopify
           ref: fb-2-3-2
+  - handle: soda-variety
+    label: Soda variety
+    values:
+      - Cola
+      - Ginger ale
+      - Ginger beer
+      - Lemon-lime
+      - Orange
+      - Soda cream
+      - Tonic water
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: fb-1-12
   - handle: cultivar-type
     label: Cultivar type
     values:
@@ -9334,6 +9514,21 @@ attributes:
       sources:
         - system: shopify
           ref: tg-5-8-1-1
+  - handle: building-toy-type
+    label: Building toy type
+    values:
+      - Architectural construction
+      - Building blocks
+      - Interlocking bricks
+      - Magnetic tiles
+      - Model kits
+      - Robotics building kits
+      - STEM building sets
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+          ref: tg-5-7
   - handle: board-game-features
     label: Board game features
     values:
@@ -10632,57 +10827,6 @@ attributes:
       sources:
         - system: shopify
           ref: hb-3-2-6-3-2-4
-  - handle: animal-type
-    label: Animal type
-    values:
-      - Beavers
-      - Birds
-      - Boars
-      - Bobcats
-      - Cats
-      - Cattle
-      - Chameleons
-      - Chickens
-      - Chinchillas
-      - Chipmunks
-      - Coyotes
-      - Deer
-      - Dogs
-      - Ducks
-      - Ferrets
-      - Foxes
-      - Frogs
-      - Geckos
-      - Geese
-      - Gerbils
-      - Goats
-      - Gophers
-      - Groundhogs
-      - Guinea pigs
-      - Hamsters
-      - Hermit crabs
-      - Lizards
-      - Mice
-      - Mixed herd
-      - Moles
-      - Pigs
-      - Possums
-      - Rabbits
-      - Raccoons
-      - Rats
-      - Reptiles
-      - Rodents
-      - Sheep
-      - Skunks
-      - Snakes
-      - Squirrels
-      - Turkeys
-      - Turtles
-      - Other
-    provenance:
-      sources:
-        - system: shopify
-          ref: ap-2-26-7-3
   - handle: application-type
     label: Application type
     values:

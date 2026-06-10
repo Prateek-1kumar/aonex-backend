@@ -51,8 +51,21 @@ categories:
             tier: optional
       - node_id: toys-and-games/toys/building-sets
         name: Building Sets
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: tg-5-7
+        shopify_path: Toys & Games > Toys > Building Toys
+        google_id: '1254'
+        google_path: Toys & Games > Toys > Building Toys
+        attributes:
+          - key: building-toy-type
+            tier: optional
+          - key: color
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: recommended-age-group
+            tier: optional
+          - key: toy-game-material
+            tier: optional
       - node_id: toys-and-games/toys/stuffed-animals
         name: Stuffed Animals
         shopify_ref: tg-5-8-11

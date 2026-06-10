@@ -2,6 +2,6 @@
 department: Collectibles & Antiques
 tree:
   - category: Collectibles
-    leaves: { Coins: auto, Stamps: auto, Trading Cards: auto, Sports Memorabilia: auto }
+    leaves: { Coins: auto, Stamps: auto, Trading Cards: auto, Sports Memorabilia: manual }
   - category: Antiques
-    leaves: { Antiques: auto }
+    leaves: { Antiques: manual }
