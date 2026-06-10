@@ -1,0 +1,52 @@
+# Fashion department — DEEPENED (worked example / pattern for review).
+# Pattern established here is applied to the other 23 departments.
+#
+# Curation rules demonstrated:
+#  - We map each leaf to the GENERIC (shallowest) Shopify node, NOT its
+#    context-fragmented duplicates (Activewear/Maternity/Baby T-Shirts collapse
+#    to one "T-Shirts"). Activewear/maternity/age become FACETS, not nodes.
+#  - shopify_ref = schema_source mapping (where attributes come from).
+#  - google_id  = export mapping (pending mechanical crosswalk pass).
+#  - `attrs` = the attribute handles pulled from Shopify, already pruned of
+#    context-specific junk (e.g. activity, activewear-clothing-features).
+#    Tiering (required/recommended/optional) happens in Task 5 (schema curation).
+department: Fashion
+categories:
+  - name: Clothing
+    subcategories:
+      - name: Tops
+        leaves:
+          - { name: T-Shirts, shopify_ref: aa-1-13-8,  attrs: [color, size, fabric, target_gender, age_group, pattern, neckline, sleeve_length_type, sleeve_style, top_length_type, stretch_level, clothing_features, care_instructions] }
+          - { name: Shirts,   shopify_ref: aa-1-13-7,  attrs: [color, size, fabric, target_gender, age_group, pattern, neckline, sleeve_length_type, sleeve_style, top_length_type, chest_pocket_style, shirt_cuff_style, stretch_level, clothing_features, care_instructions] }
+          - { name: Polos,    shopify_ref: aa-1-13-6,  attrs: [color, size, fabric, target_gender, age_group, pattern, neckline, sleeve_length_type, placket_type, top_length_type, stretch_level, clothing_features] }
+          - { name: Sweaters & Hoodies, shopify_ref: aa-1-13-12, attrs: [color, size, fabric, target_gender, age_group, pattern, neckline, sleeve_length_type, stretch_level, clothing_features, care_instructions] }
+      - name: Bottoms
+        leaves:
+          - { name: Jeans,    shopify_ref: aa-1-12-4,  attrs: [color, size, fabric, target_gender, age_group, fit, waist_rise, pants_length_type, distressing_style, pocket_style, waistband_style, pattern, clothing_features, care_instructions] }
+          - { name: Trousers, shopify_ref: aa-1-12-11, attrs: [color, size, fabric, target_gender, age_group, fit, waist_rise, pants_length_type, pocket_style, waistband_style, pattern, clothing_features, care_instructions] }
+          - { name: Chinos,   shopify_ref: aa-1-12-3,  attrs: [color, size, fabric, target_gender, age_group, fit, waist_rise, pants_length_type, front_style, pocket_style, waistband_style, pattern, clothing_features] }
+          - { name: Shorts,   shopify_ref: aa-1-14,    attrs: [color, size, fabric, target_gender, age_group, fit, waist_rise, pattern, clothing_features, care_instructions] }
+          - { name: Skirts,   shopify_ref: aa-1-15,    attrs: [color, size, fabric, target_gender, age_group, skirt_style, skirt_dress_length_type, waist_rise, pattern, clothing_features, care_instructions] }
+          - { name: Leggings, shopify_ref: aa-1-12-8,  attrs: [color, size, fabric, target_gender, age_group, fit, waist_rise, pants_length_type, pocket_style, waistband_style, pattern, clothing_features] }
+      - name: Dresses
+        leaves:
+          - { name: Dresses,  shopify_ref: aa-1-4,     attrs: [color, size, fabric, target_gender, age_group, dress_style, dress_occasion, neckline, hemline_style, back_design, skirt_dress_length_type, sleeve_length_type, top_length_type, pattern, clothing_features, care_instructions] }
+      - name: Outerwear
+        leaves:
+          - { name: Jackets,  shopify_ref: aa-1-8-2,   attrs: [color, size, fabric, target_gender, age_group, neckline, sleeve_length_type, insulation_fill_material, zipper_opening_length, pattern, care_instructions] }   # google/shopify ref to re-pin to generic Outerwear node
+          - { name: Coats,    shopify_ref: TBD,        attrs: [color, size, fabric, target_gender, age_group, pattern, care_instructions] }   # ⚑ resolve generic Coats node
+          - { name: Blazers,  shopify_ref: TBD,        attrs: [color, size, fabric, target_gender, age_group, pattern, care_instructions] }
+  - name: Footwear
+    leaves:
+      - { name: Sneakers, shopify_ref: aa-8-8,  attrs: [color, shoe_size, footwear_material, upper_material, outsole_material, lining_material, target_gender, age_group, closure_type, sneaker_style, shoe_fit, toe_style, occasion_style, shoe_features, pattern, care_instructions] }   # pruned: activity, pronation-support
+      - { name: Boots,    shopify_ref: aa-8-3,  attrs: [color, shoe_size, footwear_material, outsole_material, lining_material, target_gender, age_group, closure_type, boot_style, heel_height_type, shoe_fit, toe_style, occasion_style, shoe_features, pattern, care_instructions] }
+      - { name: Sandals,  shopify_ref: aa-8-6,  attrs: [color, shoe_size, footwear_material, outsole_material, lining_material, target_gender, age_group, closure_type, sandal_style, heel_height_type, shoe_fit, toe_style, occasion_style, shoe_features, pattern] }
+      - { name: Heels,    shopify_ref: aa-8-10, attrs: [color, shoe_size, footwear_material, outsole_material, lining_material, target_gender, age_group, closure_type, heel_height_type, heel_shape, shoe_fit, toe_style, occasion_style, shoe_features, pattern] }
+  - name: Bags & Luggage
+    leaves:
+      - { name: Backpacks, shopify_ref: lb-1,  attrs: [color, target_gender, age_group, bag_case_material, bag_case_closure, bag_case_features, bag_case_storage_features, carry_options, pattern, care_instructions] }
+      - { name: Suitcases, shopify_ref: lb-12, attrs: [color, target_gender, bag_case_material, bag_case_closure, bag_case_features, bag_case_storage_features, carry_options, spinner_type, suitcase_handle_type, pattern] }
+      - { name: Handbags,  shopify_ref: aa-5,  attrs: [color, target_gender, bag_case_material, bag_case_closure, bag_case_features, carry_options, pattern] }
+  - name: Sunglasses & Eyewear
+    leaves:
+      - { name: Sunglasses, shopify_ref: aa-2-27, attrs: [color, target_gender, age_group, eyewear_frame_material, eyewear_frame_design, eyewear_frame_color, eyewear_lens_material, lens_color, lens_polarization, lens_tint_category, pattern] }
