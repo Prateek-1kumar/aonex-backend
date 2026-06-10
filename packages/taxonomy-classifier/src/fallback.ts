@@ -19,6 +19,7 @@ function buildResolverInput(signals: ProductSignals, candidates: { nodeId: strin
     signals,
     candidates: candidates.map((c) => ({ nodeId: c.nodeId, displayName: nameById.get(c.nodeId) ?? c.nodeId, score: c.score })),
     departments: index.departments,
+    allLeaves: index.leaves.map((l) => ({ nodeId: l.nodeId, displayName: l.displayName, departmentId: l.departmentId })),
   };
 }
 

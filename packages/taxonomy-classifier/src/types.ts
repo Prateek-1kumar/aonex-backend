@@ -39,6 +39,9 @@ export interface ResolverInput {
   /** Top deterministic candidates with display names + scores. */
   candidates: { nodeId: string; displayName: string; score: number }[];
   departments: { id: string; name: string }[];
+  /** The full leaf set — so an LLM resolver can pick a leaf the lexical layer
+   *  missed (e.g. "vivo X300" -> Mobile Phones with no token overlap). */
+  allLeaves: { nodeId: string; displayName: string; departmentId: string }[];
 }
 
 export type ResolverDecision =

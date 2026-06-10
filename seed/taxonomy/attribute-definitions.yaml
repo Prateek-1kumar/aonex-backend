@@ -5393,6 +5393,112 @@ attributes:
     provenance:
       sources:
         - system: shopify
+  - handle: audio-technology
+    label: Audio Technology
+    values:
+      - AAC
+      - Dolby atmos
+      - Dolby digital (AC-3)
+      - Dolby Digital Plus (E-AC-3)
+      - Dolby Pro Logic IIz
+      - Dolby trueHD
+      - DTS
+      - DTS Neo
+      - DTS Virtual
+      - DTS-HD High Resolution Audio
+      - DTS-HD master audio
+      - DTS-X
+      - LPCM (Linear Pulse Code Modulation)
+      - PCM (Pulse Code Modulation)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hdr-format
+    label: Hdr Format
+    values:
+      - Advanced HDR
+      - Dolby vision
+      - HDR10
+      - HDR10+
+      - HLG
+      - No HDR
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: native-aspect-ratio
+    label: Native Aspect Ratio
+    values:
+      - '15:9'
+      - '16:10'
+      - '16:18'
+      - '16:9'
+      - '17:10'
+      - '17:9'
+      - '1:1'
+      - '21:9'
+      - '24:10:00'
+      - '32:10:00'
+      - '32:9'
+      - '3:2'
+      - '3:4'
+      - '4:3'
+      - '4:5'
+      - '5:4'
+      - '8:5'
+      - '9:16'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: smart-tv-platform
+    label: Smart Tv Platform
+    values:
+      - Android TV
+      - Apple tvOS
+      - Fire TV
+      - Panasonic My Home Screen
+      - Roku TV
+      - Tizen
+      - Vizio SmartCast
+      - webOS
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keystone-correction-type
+    label: Keystone Correction Type
+    values:
+      - Automatic
+      - Automatic 4-corner
+      - Automatic horizontal
+      - Automatic horizontal & vertical
+      - Automatic vertical
+      - Four-point
+      - Manual
+      - Manual 4-corner
+      - Manual horizontal
+      - Manual vertical
+      - None
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: projector-light-source
+    label: Projector Light Source
+    values:
+      - Laser
+      - LED
+      - Metal halide
+      - NSH
+      - P-VIP
+      - SHP
+      - UHP
+      - Other
+    provenance:
+      sources:
+        - system: shopify
   - handle: clasp-type
     label: Clasp Type
     values:
