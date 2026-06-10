@@ -8,8 +8,8 @@ tree:
   - category: Furniture
     leaves: { Sofas: auto, Beds: auto, Chairs: auto, Tables: auto, Desks: auto, Dressers: auto }
   - category: Home Decor
-    leaves: { Rugs: auto, Curtains: auto, Wall Art: auto, Mirrors: auto, Vases: auto }
+    leaves: { Rugs: auto, Curtains: auto, Wall Art: hg-3-4, Mirrors: auto, Vases: auto }
   - category: Lighting
-    leaves: { Lamps: auto, Ceiling Lights: auto, Light Bulbs: auto, String Lights: auto }
+    leaves: { Lamps: auto, Ceiling Lights: hg-13, Light Bulbs: auto, String Lights: auto }
   - category: Bedding & Linen
     leaves: { Bed Sheets: auto, Pillows: auto, Comforters: auto, Blankets: auto, Towels: auto }

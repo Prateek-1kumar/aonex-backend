@@ -414,8 +414,31 @@ categories:
             tier: recommended
       - node_id: home-and-kitchen/home-decor/wall-art
         name: Wall Art
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: hg-3-4
+        shopify_path: Home & Garden > Decor > Artwork
+        google_id: '9'
+        google_path: Home & Garden > Decor > Artwork
+        attributes:
+          - key: art-movement
+            tier: optional
+          - key: artwork-authenticity
+            tier: optional
+          - key: artwork-frame-material
+            tier: optional
+          - key: color
+            tier: required
+          - key: condition
+            tier: optional
+          - key: decoration-material
+            tier: optional
+          - key: frame-style
+            tier: optional
+          - key: orientation
+            tier: optional
+          - key: pattern
+            tier: recommended
+          - key: theme
+            tier: optional
       - node_id: home-and-kitchen/home-decor/mirrors
         name: Mirrors
         shopify_ref: hg-3-47
@@ -504,8 +527,27 @@ categories:
             tier: optional
       - node_id: home-and-kitchen/lighting/ceiling-lights
         name: Ceiling Lights
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: hg-13
+        shopify_path: Home & Garden > Lighting
+        google_id: '594'
+        google_path: Home & Garden > Lighting
+        attributes:
+          - key: bulb-size
+            tier: optional
+          - key: color
+            tier: required
+          - key: energy-efficiency-class
+            tier: optional
+          - key: light-color
+            tier: optional
+          - key: light-pattern
+            tier: optional
+          - key: light-temperature
+            tier: optional
+          - key: mounting-type
+            tier: optional
+          - key: pattern
+            tier: recommended
       - node_id: home-and-kitchen/lighting/light-bulbs
         name: Light Bulbs
         shopify_ref: hg-13-7

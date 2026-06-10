@@ -2,13 +2,13 @@
 department: Electronics
 tree:
   - category: Mobile Phones & Accessories
-    leaves: { Mobile Phones: auto, Phone Cases: auto, Screen Protectors: auto, Power Banks: auto }
+    leaves: { Mobile Phones: manual, Phone Cases: auto, Screen Protectors: auto, Power Banks: auto }
   - category: Computers & Laptops
     leaves: { Laptops: auto, Desktop Computers: auto, Computer Monitors: auto, Computer Keyboards: auto, Mice: auto }
   - category: Tablets & Accessories
-    leaves: { Tablet Computers: auto, Tablet Cases: auto }
+    leaves: { Tablet Computers: auto, Tablet Cases: manual }
   - category: Smartwatches & Wearables
-    leaves: { Smartwatches: auto, Activity Trackers: auto }
+    leaves: { Smartwatches: aa-6-12, Activity Trackers: manual }
   - category: Cameras & Photography
     leaves: { Digital Cameras: auto, Camera Lenses: auto, Tripods: auto }
   - category: Audio & Headphones

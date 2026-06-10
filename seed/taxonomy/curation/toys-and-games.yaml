@@ -2,6 +2,6 @@
 department: Toys & Games
 tree:
   - category: Toys
-    leaves: { Dolls: auto, Action Figures: auto, Building Sets: auto, Stuffed Animals: auto, Educational Toys: auto }
+    leaves: { Dolls: auto, Action Figures: auto, Building Sets: tg-5-7, Stuffed Animals: auto, Educational Toys: auto }
   - category: Games & Puzzles
     leaves: { Board Games: auto, Puzzles: auto, Card Games: auto }

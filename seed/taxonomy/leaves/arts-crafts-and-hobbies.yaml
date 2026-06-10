@@ -7,8 +7,17 @@ categories:
     leaves:
       - node_id: arts-crafts-and-hobbies/arts-and-crafts/craft-supplies
         name: Craft Supplies
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: ae-2-1
+        shopify_path: Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts
+        google_id: '16'
+        google_path: Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts
+        attributes:
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
       - node_id: arts-crafts-and-hobbies/arts-and-crafts/painting-supplies
         name: Painting Supplies
         shopify_ref: ha-1-6-1
@@ -30,8 +39,19 @@ categories:
             tier: optional
       - node_id: arts-crafts-and-hobbies/arts-and-crafts/sewing-supplies
         name: Sewing Supplies
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: ae-2-1-7
+        shopify_path: Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts > Clothing Sewing Materials
+        google_id: '505372'
+        google_path: Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts > Art & Crafting Materials
+        attributes:
+          - key: color
+            tier: required
+          - key: fabric
+            tier: required
+          - key: fastener-material
+            tier: optional
+          - key: pattern
+            tier: recommended
       - node_id: arts-crafts-and-hobbies/arts-and-crafts/yarn
         name: Yarn
         shopify_ref: ae-2-1-2-6-4

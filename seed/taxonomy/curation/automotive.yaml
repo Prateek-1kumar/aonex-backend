@@ -2,7 +2,7 @@
 department: Automotive
 tree:
   - category: Car Parts & Accessories
-    leaves: { Car Batteries: auto, Brake Pads: auto, Floor Mats: auto, Seat Covers: auto, Windshield Wipers: auto, Motor Oil: auto }
+    leaves: { Car Batteries: auto, Brake Pads: auto, Floor Mats: auto, Seat Covers: auto, Windshield Wipers: vp-1-4-21-4, Motor Oil: auto }
   - category: Motorcycle Parts & Accessories
     leaves: { Motorcycle Helmets: auto, Motorcycle Tires: auto }
   - category: Tires & Wheels

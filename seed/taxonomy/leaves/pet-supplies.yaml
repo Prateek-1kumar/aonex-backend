@@ -26,8 +26,27 @@ categories:
             tier: optional
       - node_id: pet-supplies/dog-supplies/dog-beds
         name: Dog Beds
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: ap-2-9
+        shopify_path: Animals & Pet Supplies > Pet Supplies > Pet Beds
+        google_id: '2'
+        google_path: Animals & Pet Supplies > Pet Supplies
+        attributes:
+          - key: accessory-size
+            tier: optional
+          - key: animal-type
+            tier: optional
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: pet-bedding-features
+            tier: optional
+          - key: shape
+            tier: optional
+          - key: suitable-space
+            tier: optional
       - node_id: pet-supplies/dog-supplies/dog-toys
         name: Dog Toys
         shopify_ref: ap-2-3-7
@@ -103,8 +122,27 @@ categories:
             tier: optional
       - node_id: pet-supplies/cat-supplies/cat-beds
         name: Cat Beds
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: ap-2-9
+        shopify_path: Animals & Pet Supplies > Pet Supplies > Pet Beds
+        google_id: '2'
+        google_path: Animals & Pet Supplies > Pet Supplies
+        attributes:
+          - key: accessory-size
+            tier: optional
+          - key: animal-type
+            tier: optional
+          - key: color
+            tier: required
+          - key: material
+            tier: required
+          - key: pattern
+            tier: recommended
+          - key: pet-bedding-features
+            tier: optional
+          - key: shape
+            tier: optional
+          - key: suitable-space
+            tier: optional
       - node_id: pet-supplies/cat-supplies/cat-toys
         name: Cat Toys
         shopify_ref: ap-2-2-5

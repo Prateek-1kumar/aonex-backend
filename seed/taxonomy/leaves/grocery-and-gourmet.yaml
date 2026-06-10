@@ -81,5 +81,20 @@ categories:
             tier: optional
       - node_id: grocery-and-gourmet/food-and-beverages/soft-drinks
         name: Soft Drinks
-        shopify_ref: null
-        error: 'auto: no generic Shopify match — pin an explicit gid'
+        shopify_ref: fb-1-12
+        shopify_path: Food, Beverages & Tobacco > Beverages > Soda
+        google_id: '2628'
+        google_path: Food, Beverages & Tobacco > Beverages > Soda
+        attributes:
+          - key: allergen-information
+            tier: optional
+          - key: dietary-preferences
+            tier: optional
+          - key: dietary-supplements
+            tier: optional
+          - key: flavor
+            tier: optional
+          - key: package-type
+            tier: optional
+          - key: soda-variety
+            tier: optional

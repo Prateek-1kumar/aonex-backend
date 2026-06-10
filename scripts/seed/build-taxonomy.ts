@@ -129,6 +129,8 @@ function tierOf(handle: string): "required" | "recommended" | "optional" {
 /** Resolve one leaf gid -> emitted leaf object + records its attribute defs. */
 function buildLeaf(name: string, gidOrAuto: string, refs: Refs, attrAcc: Map<string, unknown>) {
   let gid = gidOrAuto;
+  // Intentional no-external-match leaf (e.g. Online Courses, Adult Products).
+  if (gid === "manual") return { name, shopify_ref: null, google_id: null, manual: true, attributes: [] };
   if (gid === "auto") {
     const resolved = resolveGeneric(refs, name);
     if (!resolved) return { name, shopify_ref: null, error: "auto: no generic Shopify match — pin an explicit gid" };
