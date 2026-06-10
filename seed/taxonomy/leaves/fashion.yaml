@@ -11,6 +11,7 @@ categories:
           - node_id: fashion/clothing/tops/t-shirts
             name: T-Shirts
             shopify_ref: aa-1-13-8
+            shopify_path: Apparel & Accessories > Clothing > Clothing Tops > T-Shirts
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
@@ -39,6 +40,7 @@ categories:
           - node_id: fashion/clothing/tops/shirts
             name: Shirts
             shopify_ref: aa-1-13-7
+            shopify_path: Apparel & Accessories > Clothing > Clothing Tops > Shirts
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
@@ -67,6 +69,7 @@ categories:
           - node_id: fashion/clothing/tops/polos
             name: Polos
             shopify_ref: aa-1-13-6
+            shopify_path: Apparel & Accessories > Clothing > Clothing Tops > Polos
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
@@ -93,6 +96,7 @@ categories:
           - node_id: fashion/clothing/tops/sweaters-and-hoodies
             name: Sweaters & Hoodies
             shopify_ref: aa-1-13-12
+            shopify_path: Apparel & Accessories > Clothing > Clothing Tops > Sweaters
             google_id: '212'
             google_path: Apparel & Accessories > Clothing > Shirts & Tops
             attributes:
@@ -124,6 +128,7 @@ categories:
           - node_id: fashion/clothing/bottoms/jeans
             name: Jeans
             shopify_ref: aa-1-12-4
+            shopify_path: Apparel & Accessories > Clothing > Pants > Jeans
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
@@ -152,6 +157,7 @@ categories:
           - node_id: fashion/clothing/bottoms/trousers
             name: Trousers
             shopify_ref: aa-1-12-11
+            shopify_path: Apparel & Accessories > Clothing > Pants > Trousers
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
@@ -180,6 +186,7 @@ categories:
           - node_id: fashion/clothing/bottoms/chinos
             name: Chinos
             shopify_ref: aa-1-12-3
+            shopify_path: Apparel & Accessories > Clothing > Pants > Chinos
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
@@ -206,6 +213,7 @@ categories:
           - node_id: fashion/clothing/bottoms/shorts
             name: Shorts
             shopify_ref: aa-1-14
+            shopify_path: Apparel & Accessories > Clothing > Shorts
             google_id: '207'
             google_path: Apparel & Accessories > Clothing > Shorts
             attributes:
@@ -232,6 +240,7 @@ categories:
           - node_id: fashion/clothing/bottoms/skirts
             name: Skirts
             shopify_ref: aa-1-15
+            shopify_path: Apparel & Accessories > Clothing > Skirts
             google_id: '1581'
             google_path: Apparel & Accessories > Clothing > Skirts
             attributes:
@@ -260,6 +269,7 @@ categories:
           - node_id: fashion/clothing/bottoms/leggings
             name: Leggings
             shopify_ref: aa-1-12-8
+            shopify_path: Apparel & Accessories > Clothing > Pants > Leggings
             google_id: '204'
             google_path: Apparel & Accessories > Clothing > Pants
             attributes:
@@ -289,6 +299,7 @@ categories:
           - node_id: fashion/clothing/dresses/dresses
             name: Dresses
             shopify_ref: aa-1-4
+            shopify_path: Apparel & Accessories > Clothing > Dresses
             google_id: '2271'
             google_path: Apparel & Accessories > Clothing > Dresses
             attributes:
@@ -326,6 +337,7 @@ categories:
       - node_id: fashion/footwear/sneakers
         name: Sneakers
         shopify_ref: aa-8-8
+        shopify_path: Apparel & Accessories > Shoes > Sneakers
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
@@ -360,6 +372,7 @@ categories:
       - node_id: fashion/footwear/boots
         name: Boots
         shopify_ref: aa-8-3
+        shopify_path: Apparel & Accessories > Shoes > Boots
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
@@ -394,6 +407,7 @@ categories:
       - node_id: fashion/footwear/sandals
         name: Sandals
         shopify_ref: aa-8-6
+        shopify_path: Apparel & Accessories > Shoes > Sandals
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
@@ -428,6 +442,7 @@ categories:
       - node_id: fashion/footwear/heels
         name: Heels
         shopify_ref: aa-8-10
+        shopify_path: Apparel & Accessories > Shoes > Heels
         google_id: '187'
         google_path: Apparel & Accessories > Shoes
         attributes:
@@ -465,6 +480,7 @@ categories:
       - node_id: fashion/bags-and-luggage/backpacks
         name: Backpacks
         shopify_ref: lb-1
+        shopify_path: Luggage & Bags > Backpacks
         google_id: '100'
         google_path: Luggage & Bags > Backpacks
         attributes:
@@ -491,6 +507,7 @@ categories:
       - node_id: fashion/bags-and-luggage/suitcases
         name: Suitcases
         shopify_ref: lb-12
+        shopify_path: Luggage & Bags > Suitcases
         google_id: '107'
         google_path: Luggage & Bags > Suitcases
         attributes:
@@ -517,6 +534,7 @@ categories:
       - node_id: fashion/bags-and-luggage/handbags
         name: Handbags
         shopify_ref: aa-5
+        shopify_path: Apparel & Accessories > Handbags, Wallets & Cases
         google_id: '6551'
         google_path: Apparel & Accessories > Handbags, Wallets & Cases
         attributes:
@@ -538,6 +556,7 @@ categories:
       - node_id: fashion/sunglasses-and-eyewear/sunglasses
         name: Sunglasses
         shopify_ref: aa-2-27
+        shopify_path: Apparel & Accessories > Clothing Accessories > Sunglasses
         google_id: '178'
         google_path: Apparel & Accessories > Clothing Accessories > Sunglasses
         attributes:

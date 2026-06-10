@@ -44,8 +44,35 @@ const RECOMMENDED = new Set([
 interface ShopifyCat { id: string; name: string; full_name: string; level: number; attributes: { handle: string }[]; children: { id: string; name: string }[]; }
 interface Refs {
   byId: Map<string, ShopifyCat>;
+  byName: Map<string, ShopifyCat[]>; // lowercased leaf name -> candidates
   attrValues: Map<string, { label: string; values: string[] }>;
   googleId: Map<string, { id: string; path: string }>; // shopify shortId -> google
+}
+
+// Context buckets we skip when auto-resolving a leaf to its GENERIC node.
+const CONTEXT = ["Activewear", "Maternity", "Baby & Children's", "Uniforms & Workwear", "Traditional & Ceremonial", "Plus Size", "Petite", "Tall"];
+
+/** Resolve a leaf NAME to the shallowest non-context Shopify node's gid.
+ *  Tiers: exact name -> singular/plural -> substring (either direction). All
+ *  matches surface `shopify_path` in the output for human verification. */
+function resolveGeneric(refs: Refs, name: string): string | null {
+  const q = name.toLowerCase();
+  let pool = refs.byName.get(q) ?? [];
+  if (!pool.length) {
+    for (const v of [q.replace(/s$/, ""), `${q}s`, q.replace(/ies$/, "y"), q.replace(/y$/, "ies")]) {
+      const m = refs.byName.get(v);
+      if (m?.length) { pool = m; break; }
+    }
+  }
+  if (!pool.length && q.length >= 4) {
+    pool = [...refs.byId.values()].filter((c) => {
+      const n = c.name.toLowerCase();
+      return n.length >= 4 && (n.includes(q) || q.includes(n));
+    });
+  }
+  const generic = pool.filter((c) => !CONTEXT.some((x) => c.full_name.includes(x)));
+  const final = (generic.length ? generic : pool).slice().sort((a, b) => a.full_name.split(" > ").length - b.full_name.split(" > ").length);
+  return final[0] ? shortId(final[0].id) : null;
 }
 
 const shortId = (gid: string) => gid.replace("gid://shopify/TaxonomyCategory/", "");
@@ -69,7 +96,13 @@ async function loadRefs(): Promise<Refs> {
   const maps = JSON.parse(readFileSync(await ensure("all_mappings.json", `${BASE}/integrations/all_mappings.json`), "utf8"));
 
   const byId = new Map<string, ShopifyCat>();
-  for (const v of cats.verticals) for (const c of v.categories) byId.set(shortId(c.id), c);
+  const byName = new Map<string, ShopifyCat[]>();
+  for (const v of cats.verticals)
+    for (const c of v.categories) {
+      byId.set(shortId(c.id), c);
+      const k = c.name.toLowerCase();
+      (byName.get(k) ?? byName.set(k, []).get(k)!).push(c);
+    }
 
   const attrValues = new Map<string, { label: string; values: string[] }>();
   const adata = Array.isArray(attrs) ? attrs : attrs.attributes;
@@ -84,7 +117,7 @@ async function loadRefs(): Promise<Refs> {
     const out = r.output?.category?.[0];
     if (r.input?.category?.id && out) googleId.set(shortId(r.input.category.id), { id: out.id, path: out.full_name });
   }
-  return { byId, attrValues, googleId };
+  return { byId, byName, attrValues, googleId };
 }
 
 function tierOf(handle: string): "required" | "recommended" | "optional" {
@@ -94,7 +127,13 @@ function tierOf(handle: string): "required" | "recommended" | "optional" {
 }
 
 /** Resolve one leaf gid -> emitted leaf object + records its attribute defs. */
-function buildLeaf(name: string, gid: string, refs: Refs, attrAcc: Map<string, unknown>) {
+function buildLeaf(name: string, gidOrAuto: string, refs: Refs, attrAcc: Map<string, unknown>) {
+  let gid = gidOrAuto;
+  if (gid === "auto") {
+    const resolved = resolveGeneric(refs, name);
+    if (!resolved) return { name, shopify_ref: null, error: "auto: no generic Shopify match — pin an explicit gid" };
+    gid = resolved;
+  }
   const cat = refs.byId.get(gid);
   if (!cat) return { name, shopify_ref: gid, error: "shopify gid not found" };
   const handles = cat.attributes.map((a) => a.handle).filter((h) => !PRUNE_ATTRS.has(h));
@@ -112,6 +151,7 @@ function buildLeaf(name: string, gid: string, refs: Refs, attrAcc: Map<string, u
   return {
     name,
     shopify_ref: gid,
+    shopify_path: cat.full_name,
     ...(g ? { google_id: g.id, google_path: g.path } : { google_id: null }),
     attributes: handles.map((h) => ({ key: h, tier: tierOf(h) })),
   };

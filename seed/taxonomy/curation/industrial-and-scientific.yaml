@@ -1,0 +1,7 @@
+# Industrial & Scientific — CURATION MAP.
+department: Industrial & Scientific
+tree:
+  - category: Lab Equipment
+    leaves: { Microscopes: auto, Lab Glassware: auto }
+  - category: Safety Equipment
+    leaves: { Safety Gloves: auto, Safety Glasses: auto, Hard Hats: auto, Respirators: auto }

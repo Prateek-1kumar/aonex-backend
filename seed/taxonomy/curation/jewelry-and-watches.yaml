@@ -1,0 +1,7 @@
+# Jewelry & Watches — CURATION MAP.
+department: Jewelry & Watches
+tree:
+  - category: Watches
+    leaves: { Watches: auto, Watch Bands: auto }
+  - category: Jewelry
+    leaves: { Rings: auto, Necklaces: auto, Earrings: auto, Bracelets: auto }

@@ -1,0 +1,17 @@
+# Electronics — CURATION MAP. `auto` = resolve generic Shopify node by leaf name.
+department: Electronics
+tree:
+  - category: Mobile Phones & Accessories
+    leaves: { Mobile Phones: auto, Phone Cases: auto, Screen Protectors: auto, Power Banks: auto }
+  - category: Computers & Laptops
+    leaves: { Laptops: auto, Desktop Computers: auto, Computer Monitors: auto, Computer Keyboards: auto, Mice: auto }
+  - category: Tablets & Accessories
+    leaves: { Tablet Computers: auto, Tablet Cases: auto }
+  - category: Smartwatches & Wearables
+    leaves: { Smartwatches: auto, Activity Trackers: auto }
+  - category: Cameras & Photography
+    leaves: { Digital Cameras: auto, Camera Lenses: auto, Tripods: auto }
+  - category: Audio & Headphones
+    leaves: { Headphones: auto, Speakers: auto, Microphones: auto }
+  - category: Video Games & Consoles
+    leaves: { Video Game Consoles: auto, Video Game Controllers: auto, Video Games: auto }

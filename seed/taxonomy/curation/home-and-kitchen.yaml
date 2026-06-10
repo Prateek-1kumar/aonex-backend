@@ -1,0 +1,15 @@
+# Home & Kitchen — CURATION MAP.
+department: Home & Kitchen
+tree:
+  - category: Home Appliances
+    leaves: { Washing Machines: auto, Refrigerators: auto, Vacuums: auto, Air Conditioners: auto, Microwave Ovens: auto }
+  - category: Kitchen Appliances
+    leaves: { Blenders: auto, Coffee Makers: auto, Toasters: auto, Mixers: auto, Electric Kettles: auto }
+  - category: Furniture
+    leaves: { Sofas: auto, Beds: auto, Chairs: auto, Tables: auto, Desks: auto, Dressers: auto }
+  - category: Home Decor
+    leaves: { Rugs: auto, Curtains: auto, Wall Art: auto, Mirrors: auto, Vases: auto }
+  - category: Lighting
+    leaves: { Lamps: auto, Ceiling Lights: auto, Light Bulbs: auto, String Lights: auto }
+  - category: Bedding & Linen
+    leaves: { Bed Sheets: auto, Pillows: auto, Comforters: auto, Blankets: auto, Towels: auto }

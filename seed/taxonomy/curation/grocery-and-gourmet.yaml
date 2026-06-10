@@ -1,0 +1,5 @@
+# Grocery & Gourmet — CURATION MAP.
+department: Grocery & Gourmet
+tree:
+  - category: Food & Beverages
+    leaves: { Snack Foods: auto, Coffee: auto, Tea: auto, Chocolate: auto, Soft Drinks: auto }
