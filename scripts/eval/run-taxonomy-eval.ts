@@ -15,7 +15,7 @@ import yaml from "js-yaml";
 import { schema, createDb } from "@aonex/db";
 import { validateAttributes, type AttributeSpec } from "@aonex/taxonomy-validator";
 import { scoreClassification, aggregateClassification, type ClassRow } from "@aonex/ingestion-eval";
-import { classify as classifyV2, buildIndex } from "@aonex/taxonomy-classifier";
+import { classify as classifyV2, buildIndex, classifyWithFallback, deterministicResolver } from "@aonex/taxonomy-classifier";
 
 const GOLDEN = "packages/ingestion-eval/fixtures/golden-taxonomy/products.yaml";
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
@@ -78,12 +78,15 @@ try {
   }
 
   const golden = (yaml.load(readFileSync(GOLDEN, "utf8")) as { products: GoldenProduct[] }).products;
-  const badGold = golden.filter((p) => !exists.has(p.gold.node_id)).map((p) => p.id);
+  const ABSTAIN = "ABSTAIN";
+  const known = golden.filter((p) => p.gold.node_id !== ABSTAIN);
+  const unknown = golden.filter((p) => p.gold.node_id === ABSTAIN);
+  const badGold = known.filter((p) => !exists.has(p.gold.node_id)).map((p) => p.id);
 
   const classRows: ClassRow[] = [];
   const v2Rows: ClassRow[] = [];
   let attrProducts = 0, attrComplete = 0, attrViolations = 0, attrFields = 0;
-  for (const p of golden) {
+  for (const p of known) {
     const predicted = classify(p.input, aliasMap);
     classRows.push({ ...scoreClassification(predicted, p.gold.node_id, ancestorsOf), predicted });
     const v2 = classifyV2(p.input, cidx);
@@ -95,21 +98,28 @@ try {
       attrProducts++; attrComplete += r.completeness.score; attrViolations += r.violations; attrFields += Object.keys(attrs).length;
     }
   }
+  // Out-of-taxonomy: the fallback must NOT force-fit a wrong leaf.
+  const unkOut: Record<string, number> = { assign: 0, propose_node: 0, abstain: 0 };
+  for (const p of unknown) {
+    const fb = await classifyWithFallback(p.input, cidx, deterministicResolver);
+    unkOut[fb.outcome] = (unkOut[fb.outcome] ?? 0) + 1;
+  }
+  const unkHandled = (unkOut.propose_node ?? 0) + (unkOut.abstain ?? 0);
 
   const agg = aggregateClassification(classRows);
   const agg2 = aggregateClassification(v2Rows);
   const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
   /* eslint-disable no-console */
   console.log("\n===== TAXONOMY EVAL =====");
-  console.log(`golden products:        ${golden.length}${badGold.length ? `  (⚠ unknown gold nodes: ${badGold.join(", ")})` : ""}`);
-  console.log(`-- baseline (alias-only) --`);
-  console.log(`  top-1:    ${pct(agg.top1)}   weighted: ${pct(agg.weighted)}   abstain: ${pct(agg.abstained)}`);
-  console.log(`-- classifier core (alias + lexical) --`);
-  console.log(`  top-1:    ${pct(agg2.top1)}   weighted: ${pct(agg2.weighted)}   abstain: ${pct(agg2.abstained)}`);
-  console.log(`attribute products:     ${attrProducts}  (${attrFields} provided fields)`);
-  console.log(`attr completeness avg:  ${attrProducts ? (attrComplete / attrProducts).toFixed(1) : "n/a"} / 100`);
-  console.log(`attr violations:        ${attrViolations}`);
-  console.log("=====================================================\n");
+  console.log(`in-taxonomy products:   ${known.length}${badGold.length ? `  (⚠ unknown gold nodes: ${badGold.join(", ")})` : ""}`);
+  console.log(`-- classification (in-taxonomy top-1 / weighted) --`);
+  console.log(`  baseline (alias):       ${pct(agg.top1)} / ${pct(agg.weighted)}`);
+  console.log(`  classifier (alias+lex): ${pct(agg2.top1)} / ${pct(agg2.weighted)}`);
+  console.log(`-- out-of-taxonomy handling (${unknown.length} products, dry-run resolver) --`);
+  console.log(`  correctly NOT force-fit: ${unkHandled}/${unknown.length}  (propose_node ${unkOut.propose_node ?? 0}, abstain ${unkOut.abstain ?? 0}, mis-assigned ${unkOut.assign ?? 0})`);
+  console.log(`-- attributes (in-taxonomy) --`);
+  console.log(`  products ${attrProducts} (${attrFields} fields)  completeness ${attrProducts ? (attrComplete / attrProducts).toFixed(1) : "n/a"}/100  violations ${attrViolations}`);
+  console.log("=========================\n");
   /* eslint-enable no-console */
 } finally {
   await close();
