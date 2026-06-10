@@ -2,7 +2,7 @@
   "name": "aonex-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Aonex backend monorepo — multi-marketplace product-catalog ingestion & distribution platform. See README.md and docs/ARCHITECTURE.md.",
+  "description": "Aonex backend monorepo \u2014 multi-marketplace product-catalog ingestion & distribution platform. See README.md and docs/ARCHITECTURE.md.",
   "workspaces": [
     "apps/*",
     "packages/*",
@@ -15,7 +15,7 @@
     "dev": "turbo run dev --parallel",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "turbo run typecheck && tsc -p scripts",
     "depcheck": "depcruise --config .dependency-cruiser.cjs apps packages",
     "db:migrate": "bun --cwd packages/db node-pg-migrate --envPath ../../.env",
     "db:migrate:up": "bun --cwd packages/db node-pg-migrate --envPath ../../.env up",
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",

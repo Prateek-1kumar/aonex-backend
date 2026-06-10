@@ -19,17 +19,14 @@
  */
 import { readFileSync } from "node:fs";
 import yaml from "js-yaml";
-import { schema, createDb } from "@aonex/db";
+import { createDb } from "@aonex/db";
 import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
 import {
   enrichProduct,
   retrieveExamples,
-  departmentOf,
   acceptedAttributes,
-  type CatalogEntry,
-  type EnrichField,
-  type AttrDataType,
 } from "@aonex/taxonomy-enrichment";
+import { loadLeafSchemas, loadRagCorpus } from "@aonex/taxonomy-schema";
 
 const GOLDEN = "packages/ingestion-eval/fixtures/golden-taxonomy/products.yaml";
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
@@ -60,17 +57,6 @@ interface GoldenProduct {
   gold: { node_id: string; attrs?: Record<string, unknown> };
 }
 
-const NON_ATTR = new Set(["title", "category_path", "_meta", "images", "description", "description_long", "description_short"]);
-const firstScoped = (v: unknown): unknown => {
-  if (v == null || typeof v !== "object") return v ?? null;
-  const ch = Object.values(v as Record<string, unknown>)[0];
-  if (ch == null || typeof ch !== "object") return ch ?? null;
-  return Object.values(ch as Record<string, unknown>)[0] ?? null;
-};
-const asText = (v: unknown): string => (Array.isArray(v) ? v.join(" > ") : v == null ? "" : String(v));
-const mapType = (t: string | undefined): AttrDataType | undefined =>
-  t === "number" || t === "boolean" || t === "array" ? t : t === "string" ? "string" : undefined;
-
 /** Promise pool — bounded concurrency over an ordered list. */
 async function mapPool<T, R>(items: T[], n: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
@@ -87,41 +73,10 @@ async function mapPool<T, R>(items: T[], n: number, fn: (item: T, i: number) => 
 
 const { client: db, close } = createDb(databaseUrl);
 try {
-  // ── Load the per-leaf enrichment schema (node_attributes ⨝ attribute_definitions). ──
-  const adByKey = new Map((await db.select().from(schema.attributeDefinitions)).map((a) => [a.canonicalKey, a]));
-  const schemaByNode = new Map<string, EnrichField[]>();
-  const nodes = await db.select().from(schema.taxonomyNodes);
-  const pathByNode = new Map(nodes.map((n) => [n.nodeId, n.displayPath]));
-  for (const na of await db.select().from(schema.nodeAttributes)) {
-    const ad = adByKey.get(na.canonicalKey);
-    const f: EnrichField = { key: na.canonicalKey, tier: na.tier as EnrichField["tier"] };
-    if (ad?.label) f.label = ad.label;
-    if (ad?.description) f.description = ad.description;
-    const dt = mapType(ad?.dataType);
-    if (dt) f.dataType = dt;
-    if (ad?.enumValues?.length) f.enumValues = ad.enumValues;
-    if (ad?.canonicalUnit) { f.unit = ad.canonicalUnit; if (ad.allowedUnits?.length) f.allowedUnits = ad.allowedUnits; }
-    if (na.isVariantAxis) f.isVariantAxis = true;
-    (schemaByNode.get(na.nodeId) ?? schemaByNode.set(na.nodeId, []).get(na.nodeId)!).push(f);
-  }
-
-  // ── Build the catalog-RAG corpus from real catalog_products. ──
-  const corpus: CatalogEntry[] = [];
-  for (const p of await db.select().from(schema.catalogProducts)) {
-    const wv = (p.winningValues ?? {}) as Record<string, unknown>;
-    const identity = (p.identity ?? {}) as Record<string, unknown>;
-    const attrs: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(wv)) if (!NON_ATTR.has(k)) { const s = firstScoped(v); if (s != null && s !== "") attrs[k] = s; }
-    const title = asText(firstScoped(wv.title));
-    if (!title) continue;
-    corpus.push({
-      title,
-      ...(identity.brand ? { brand: String(identity.brand) } : {}),
-      ...(p.categoryNodeId ? { nodeId: p.categoryNodeId } : {}),
-      ...(p.categoryNodeId ? { departmentId: departmentOf(p.categoryNodeId) } : {}),
-      attrs,
-    });
-  }
+  // Per-leaf enrichment schema + catalog-RAG corpus via the canonical loaders
+  // (@aonex/taxonomy-schema) — the same wiring the worker enrichment job uses.
+  const { schemaByNode, pathByNode } = await loadLeafSchemas(db);
+  const corpus = await loadRagCorpus(db);
 
   // ── Golden set (in-taxonomy only — enrichment runs on a known leaf). ──
   const golden = (yaml.load(readFileSync(GOLDEN, "utf8")) as { products: GoldenProduct[] }).products;
@@ -137,7 +92,11 @@ try {
   const rows = await mapPool(known, CONCURRENCY, async (p) => {
     const nodeId = p.gold.node_id;
     const fields = schemaByNode.get(nodeId)!;
-    const examples = retrieveExamples({ title: p.input.title, brand: p.input.brand, nodeId }, corpus, { k: 3 });
+    const examples = retrieveExamples(
+      { title: p.input.title, ...(p.input.brand ? { brand: p.input.brand } : {}), nodeId },
+      corpus,
+      { k: 3 }
+    );
     const result = await enrichProduct(
       {
         nodeId,

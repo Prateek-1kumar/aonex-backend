@@ -13,15 +13,14 @@
 import { readFileSync } from "node:fs";
 import yaml from "js-yaml";
 import { schema, createDb } from "@aonex/db";
-import { validateAttributes, type AttributeSpec } from "@aonex/taxonomy-validator";
+import { normalizeText as norm } from "@aonex/lib-utils";
+import { validateAttributes } from "@aonex/taxonomy-validator";
+import { loadLeafSchemas, leafSchemaFor } from "@aonex/taxonomy-schema";
 import { scoreClassification, aggregateClassification, type ClassRow } from "@aonex/ingestion-eval";
 import { classify as classifyV2, buildIndex, classifyWithFallback, deterministicResolver } from "@aonex/taxonomy-classifier";
 
 const GOLDEN = "packages/ingestion-eval/fixtures/golden-taxonomy/products.yaml";
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
-
-const norm = (s: string) =>
-  s.toLowerCase().replace(/&/g, " and ").replace(/'/g, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 
 function catVariants(sc: string): string[] {
   if (!sc) return [];
@@ -67,15 +66,7 @@ try {
     return out;
   };
 
-  const adByKey = new Map((await db.select().from(schema.attributeDefinitions)).map((a) => [a.canonicalKey, a]));
-  const schemaByNode = new Map<string, AttributeSpec[]>();
-  for (const na of await db.select().from(schema.nodeAttributes)) {
-    const ad = adByKey.get(na.canonicalKey);
-    const spec: AttributeSpec = { key: na.canonicalKey, tier: na.tier as AttributeSpec["tier"] };
-    if (ad?.enumValues?.length) spec.enumValues = ad.enumValues;
-    if (ad?.canonicalUnit) { spec.unit = ad.canonicalUnit; spec.dataType = "number"; if (ad.allowedUnits?.length) spec.allowedUnits = ad.allowedUnits; }
-    (schemaByNode.get(na.nodeId) ?? schemaByNode.set(na.nodeId, []).get(na.nodeId)!).push(spec);
-  }
+  const schemaIndex = await loadLeafSchemas(db);
 
   const golden = (yaml.load(readFileSync(GOLDEN, "utf8")) as { products: GoldenProduct[] }).products;
   const ABSTAIN = "ABSTAIN";
@@ -91,10 +82,10 @@ try {
     classRows.push({ ...scoreClassification(predicted, p.gold.node_id, ancestorsOf), predicted });
     const v2 = classifyV2(p.input, cidx);
     v2Rows.push({ ...scoreClassification(v2.nodeId, p.gold.node_id, ancestorsOf), predicted: v2.nodeId });
-    const sch = schemaByNode.get(p.gold.node_id);
+    const leaf = leafSchemaFor(schemaIndex, p.gold.node_id);
     const attrs = p.input.attrs ?? {};
-    if (sch && Object.keys(attrs).length > 0) {
-      const r = validateAttributes({ nodeId: p.gold.node_id, attributes: sch }, attrs);
+    if (leaf && Object.keys(attrs).length > 0) {
+      const r = validateAttributes(leaf, attrs);
       attrProducts++; attrComplete += r.completeness.score; attrViolations += r.violations; attrFields += Object.keys(attrs).length;
     }
   }

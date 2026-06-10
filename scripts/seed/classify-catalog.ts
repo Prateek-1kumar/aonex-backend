@@ -14,11 +14,9 @@
 import { eq } from "drizzle-orm";
 import { schema, createDb } from "@aonex/db";
 import { buildIndex, classifyWithFallback, deterministicResolver, llmResolver, type ProductSignals } from "@aonex/taxonomy-classifier";
-import { validateAttributes, type AttributeSpec } from "@aonex/taxonomy-validator";
+import { validateAttributes } from "@aonex/taxonomy-validator";
+import { loadLeafSchemas, leafSchemaFor, flattenWinningAttrs, firstScoped, asText } from "@aonex/taxonomy-schema";
 import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
-
-/** winning_values keys that aren't product attributes. */
-const NON_ATTR = new Set(["title", "category_path", "_meta", "images", "description", "description_long", "description_short"]);
 
 const apply = process.argv.includes("--apply");
 const useLlm = process.argv.includes("--llm");
@@ -32,15 +30,6 @@ const resolver = useLlm && llmKey
     )
   : deterministicResolver;
 
-/** winning_values are channel/locale-scoped: {channel: {locale: value}}. Take the first. */
-function firstScoped(v: unknown): unknown {
-  if (v == null || typeof v !== "object") return v ?? null;
-  const ch = Object.values(v as Record<string, unknown>)[0];
-  if (ch == null || typeof ch !== "object") return ch ?? null;
-  return Object.values(ch as Record<string, unknown>)[0] ?? null;
-}
-const asText = (v: unknown): string => (Array.isArray(v) ? v.join(" > ") : v == null ? "" : String(v));
-
 const { client: db, close } = createDb(databaseUrl);
 try {
   // Build the classifier index from the seeded taxonomy.
@@ -50,16 +39,8 @@ try {
   const departments = nodes.filter((n) => n.level === 0).map((n) => ({ id: n.nodeId, name: n.displayName }));
   const index = buildIndex(leaves, aliasMap, departments);
 
-  // Per-leaf attribute schema (node_attributes joined to attribute_definitions).
-  const adByKey = new Map((await db.select().from(schema.attributeDefinitions)).map((a) => [a.canonicalKey, a]));
-  const schemaByNode = new Map<string, AttributeSpec[]>();
-  for (const na of await db.select().from(schema.nodeAttributes)) {
-    const ad = adByKey.get(na.canonicalKey);
-    const spec: AttributeSpec = { key: na.canonicalKey, tier: na.tier as AttributeSpec["tier"] };
-    if (ad?.enumValues?.length) spec.enumValues = ad.enumValues;
-    if (ad?.canonicalUnit) { spec.unit = ad.canonicalUnit; spec.dataType = "number"; if (ad.allowedUnits?.length) spec.allowedUnits = ad.allowedUnits; }
-    (schemaByNode.get(na.nodeId) ?? schemaByNode.set(na.nodeId, []).get(na.nodeId)!).push(spec);
-  }
+  // Per-leaf attribute schema via the canonical loader (@aonex/taxonomy-schema).
+  const schemaIndex = await loadLeafSchemas(db);
 
   const products = await db.select().from(schema.catalogProducts);
   const out: Record<string, number> = { assign: 0, propose_node: 0, abstain: 0 };
@@ -73,17 +54,16 @@ try {
     const title = asText(firstScoped(wv.title));
     const signals: ProductSignals = {
       title,
-      brand: identity.brand ? String(identity.brand) : undefined,
+      ...(identity.brand ? { brand: String(identity.brand) } : {}),
       sourceCategory: asText(firstScoped(wv.category_path)),
     };
     const r = await classifyWithFallback(signals, index, resolver);
     out[r.outcome] = (out[r.outcome] ?? 0) + 1;
     // Once on a node, validate/normalize the product's attributes against THAT node's schema.
     let attrNote = "";
-    if (r.outcome === "assign" && r.nodeId && schemaByNode.has(r.nodeId)) {
-      const pattrs: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(wv)) if (!NON_ATTR.has(k)) pattrs[k] = firstScoped(v);
-      const vr = validateAttributes({ nodeId: r.nodeId, attributes: schemaByNode.get(r.nodeId)! }, pattrs);
+    const leaf = r.outcome === "assign" && r.nodeId ? leafSchemaFor(schemaIndex, r.nodeId) : null;
+    if (leaf) {
+      const vr = validateAttributes(leaf, flattenWinningAttrs(wv));
       attrNote = `  ·attrs ${vr.completeness.score}/100${vr.violations ? ` ${vr.violations}✗` : ""}`;
       cSum += vr.completeness.score; cN++;
     }
