@@ -1,13 +1,17 @@
-# Canonical taxonomy — SKELETON (levels 0-1). First pass for owner review.
+# Canonical taxonomy — SKELETON (levels 0-1). Owner-approved 2026-06-10.
 # Leaves (levels 2-3) are added in Task 4 (deepen). The loader derives each
 # node_id as a slug of the display path, e.g. "Electronics > Mobile Phones &
 # Accessories" -> "electronics/mobile-phones-accessories".
-#
-# Gender & age are ATTRIBUTES (target_gender, age_group), NOT tree nodes — so
-# "Men's/Women's/Kids Clothing" are browse facets over the gender-neutral
-# Clothing subtree, not departments. Items flagged ⚑ below are open placement
-# decisions called out in the review notes.
-version: 0.1-skeleton
+version: 0.2-skeleton
+
+# Cross-cutting FACETS — modeled as attributes on products, NOT tree nodes.
+# (Decided during skeleton review: these fragment the tree if made categories.)
+facets:
+  - target_gender   # Male | Female | Unisex (Men's/Women's browse views)
+  - age_group       # Adult | Teen | Kids | Baby (Kids/Baby clothing browse views)
+  - organic         # boolean, on grocery/beauty
+  - luxury          # positioning tier, cross-department
+  - subscription    # purchase model (order attribute), not a product category
 
 departments:
   - name: Electronics
@@ -19,7 +23,6 @@ departments:
       - Cameras & Photography
       - Audio & Headphones
       - Video Games & Consoles
-      - Software            # ⚑ Electronics vs Digital Products
 
   - name: Home & Kitchen
     children:
@@ -35,7 +38,7 @@ departments:
       - Home Improvement
       - Tools & Hardware
 
-  - name: Garden & Outdoor      # ⚑ own department vs child of Home & Kitchen
+  - name: Garden & Outdoor
     children: []
 
   - name: Automotive
@@ -52,12 +55,12 @@ departments:
 
   - name: Fashion
     children:
-      - Clothing             # gender-neutral; Men's/Women's/Kids = target_gender facet
+      - Clothing             # gender-neutral; target_gender + age_group facets
       - Footwear
-      - Bags & Luggage       # ⚑ Fashion vs Travel
+      - Bags & Luggage
       - Sunglasses & Eyewear
 
-  - name: Jewelry & Watches     # ⚑ own department vs child of Fashion
+  - name: Jewelry & Watches
     children:
       - Watches
       - Jewelry
@@ -78,12 +81,10 @@ departments:
   - name: Grocery & Gourmet
     children:
       - Food & Beverages
-      - Organic Foods        # ⚑ "organic" is arguably a facet, not a category
 
   - name: Baby & Kids
     children:
-      - Baby Products
-      - Kids & Baby Clothing # ⚑ overlaps Fashion (age_group facet) — pick one home
+      - Baby Products        # non-clothing; baby/kids clothing lives in Fashion (age_group)
 
   - name: Pet Supplies
     children: []
@@ -115,14 +116,12 @@ departments:
     children:
       - Collectibles
       - Antiques
-      - Luxury Goods         # ⚑ "luxury" is arguably a tier/facet, not a category
 
   - name: Gifts & Occasions
     children:
       - Gift Items
       - Party Supplies
       - Event & Wedding Supplies
-      - Gift Cards           # ⚑ Gifts vs Digital Products
 
   - name: Travel
     children:
@@ -130,9 +129,10 @@ departments:
 
   - name: Digital Products
     children:
+      - Software
       - Online Courses
-      - Subscription Boxes   # ⚑ can be physical too
       - Digital Downloads
+      - Gift Cards
 
   - name: Religious & Spiritual
     children:
