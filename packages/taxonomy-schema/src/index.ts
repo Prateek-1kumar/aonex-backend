@@ -21,5 +21,7 @@ export {
   toCatalogEntry,
   buildRagCorpus,
   loadRagCorpus,
+  loadRagCorpusEntries,
   type CatalogProductLike,
+  type CorpusEntryWithId,
 } from "./rag-corpus.js";

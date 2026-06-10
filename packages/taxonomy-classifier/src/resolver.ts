@@ -37,8 +37,8 @@ export const deterministicResolver: ClassifierResolver = {
 
 // ── LLM resolver (real path; provider-pluggable) ──────────────────────────────
 
-export type { ChatProvider } from "@aonex/lib-utils";
 import type { ChatProvider } from "@aonex/lib-utils";
+export type { ChatProvider };
 
 const SYSTEM = `You are a product taxonomy classifier. Choose the single best category for the product.
 - If one of the CANDIDATES fits, return {"decision":"assign","nodeId":"<id>"}.

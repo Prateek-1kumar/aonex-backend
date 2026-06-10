@@ -41,7 +41,7 @@ export interface LeafSchemaIndex {
 }
 
 const mapType = (t: string | null | undefined): AttrDataType | undefined =>
-  t === "number" || t === "boolean" || t === "array" ? t : t === "string" ? "string" : undefined;
+  t === "string" || t === "number" || t === "boolean" || t === "array" ? t : undefined;
 
 /** Join node_attributes to attribute_definitions into per-node EnrichField lists. */
 export function buildLeafSchemaIndex(
@@ -64,7 +64,9 @@ export function buildLeafSchemaIndex(
       if (ad.allowedUnits?.length) f.allowedUnits = ad.allowedUnits;
     }
     if (na.isVariantAxis) f.isVariantAxis = true;
-    (schemaByNode.get(na.nodeId) ?? schemaByNode.set(na.nodeId, []).get(na.nodeId)!).push(f);
+    let fields = schemaByNode.get(na.nodeId);
+    if (!fields) schemaByNode.set(na.nodeId, (fields = []));
+    fields.push(f);
   }
   const pathByNode = new Map(nodes.filter((n) => n.displayPath != null).map((n) => [n.nodeId, n.displayPath!]));
   const groupByKey = new Map(

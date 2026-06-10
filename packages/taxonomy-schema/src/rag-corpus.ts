@@ -34,15 +34,42 @@ export function buildRagCorpus(products: CatalogProductLike[]): CatalogEntry[] {
   return products.map(toCatalogEntry).filter((e): e is CatalogEntry => e !== null);
 }
 
-/** Load the corpus from the whole catalog. `excludeProductId` keeps the
- *  product being enriched out of its own few-shot examples. Fine at current
- *  catalog sizes; cap or sample at the call-site if the catalog grows large. */
+/** A corpus entry paired with its product id, so callers that cache the
+ *  corpus across jobs can exclude the product being enriched per job. */
+export interface CorpusEntryWithId {
+  productId: string;
+  entry: CatalogEntry;
+}
+
+/** Load the corpus from the whole catalog, fetching only the three columns the
+ *  corpus build reads (the products table's `values` observation log is by far
+ *  its heaviest column — never pull it here). Fine at current catalog sizes;
+ *  cap or sample at the call-site if the catalog grows large. */
+export async function loadRagCorpusEntries(db: DrizzleClient): Promise<CorpusEntryWithId[]> {
+  const rows = await db
+    .select({
+      productId: schema.catalogProducts.productId,
+      winningValues: schema.catalogProducts.winningValues,
+      identity: schema.catalogProducts.identity,
+      categoryNodeId: schema.catalogProducts.categoryNodeId,
+    })
+    .from(schema.catalogProducts);
+  const out: CorpusEntryWithId[] = [];
+  for (const row of rows) {
+    const entry = toCatalogEntry(row);
+    if (entry) out.push({ productId: row.productId, entry });
+  }
+  return out;
+}
+
+/** Convenience wrapper: the plain CatalogEntry list, optionally excluding the
+ *  product being enriched (so it can't be its own few-shot example). */
 export async function loadRagCorpus(
   db: DrizzleClient,
   opts: { excludeProductId?: string } = {}
 ): Promise<CatalogEntry[]> {
-  const rows = await db.select().from(schema.catalogProducts);
-  return buildRagCorpus(
-    opts.excludeProductId ? rows.filter((r) => r.productId !== opts.excludeProductId) : rows
-  );
+  const entries = await loadRagCorpusEntries(db);
+  return entries
+    .filter((e) => e.productId !== opts.excludeProductId)
+    .map((e) => e.entry);
 }
