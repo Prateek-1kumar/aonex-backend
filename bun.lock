@@ -132,6 +132,8 @@
         "@aonex/gtin-backfill": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
         "@aonex/multi-source-reconciler": "workspace:*",
+        "@aonex/taxonomy-schema": "workspace:*",
+        "@aonex/taxonomy-validator": "workspace:*",
         "@aonex/types": "workspace:*",
         "bullmq": "^5.34.5",
         "drizzle-orm": "^0.36.4",

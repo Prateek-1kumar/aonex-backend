@@ -30,6 +30,7 @@ export {
   contentEnrichFields,
   contentAttributeDefs,
   contentGroupFor,
+  contentQualityOf,
   isContentKey,
   type ContentAttribute,
   type ContentAttributeDefRow,

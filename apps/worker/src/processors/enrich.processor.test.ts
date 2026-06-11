@@ -29,7 +29,10 @@ function mkResult(fields: FieldResult[]): EnrichmentResult {
     completenessBefore: completeness,
     completenessAfter: completeness,
     completenessProposed: completeness,
+    contentQualityBefore: completeness,
+    contentQualityProposed: completeness,
     groundingRate: 1,
+    contentGroundingRate: 0,
     proposedInferred: 0,
   };
 }

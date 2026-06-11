@@ -48,7 +48,7 @@ describe("two-stage content enrichment", () => {
       },
     });
 
-    const r = await enrichProduct(input, { provider: twoStage(specBody, contentBody) });
+    const r = await enrichProduct(input, { provider: twoStage(specBody, contentBody), model: "stub" });
 
     const byKey = Object.fromEntries(r.fields.map((f) => [f.key, f]));
 

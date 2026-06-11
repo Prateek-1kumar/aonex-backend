@@ -33,6 +33,7 @@ import {
 } from "./pick-winner.js";
 import { deepEqual, loadActiveRules } from "./_internal.js";
 import { computeCompletenessScore } from "../completeness-score.js";
+import { computeTaxonomyQuality } from "../quality-score.js";
 
 // ---- Public types ----------------------------------------------------------
 
@@ -143,6 +144,7 @@ export async function projectSync(
         productId: schema.catalogProducts.productId,
         tenantId: schema.catalogProducts.tenantId,
         family: schema.catalogProducts.family,
+        categoryNodeId: schema.catalogProducts.categoryNodeId,
         identifiers: schema.catalogProducts.identifiers,
         values: schema.catalogProducts.values,
         winningValues: schema.catalogProducts.winningValues,
@@ -254,13 +256,16 @@ export async function projectSync(
     };
     nextWinningValues._meta = meta;
 
-    // Recompute the server-authoritative completeness score from the fresh winners
-    // plus commerce facts. Additive: folded into the same UPDATE, never throws
-    // (computeCompletenessScore falls back to the generic archetype).
+    // Recompute the server-authoritative quality scores from the fresh winners.
+    // Headline completeness is graded against the product's TAXONOMY leaf schema
+    // (the same schema enrichment fills) when it is categorized; otherwise it
+    // falls back to the legacy archetype rubric so uncategorized products still
+    // score. Content quality is always recomputed from the universal rubric, so
+    // content enrichment is reflected live. Additive + never throws.
     const identifiers = row.identifiers;
     const hasIdentifier =
       row.genGtin != null || (Array.isArray(identifiers) && identifiers.length > 0);
-    const score = computeCompletenessScore({
+    const archetype = computeCompletenessScore({
       family: row.family ?? null,
       winningValues: nextWinningValues,
       hasPrice: row.genPrice != null,
@@ -268,13 +273,29 @@ export async function projectSync(
       hasIdentifier,
       hasTitle: row.genTitle != null || "title" in nextWinningValues
     });
+    // Read against the outer client, not `tx`: the taxonomy schema tables are
+    // near-static reference data, independent of this product's mutation, so
+    // they need no transactional isolation (and the cache means ~0 loads).
+    const quality = await computeTaxonomyQuality(db, {
+      categoryNodeId: row.categoryNodeId ?? null,
+      winningValues: nextWinningValues
+    });
+
+    const completenessPercent = quality.specCompleteness ?? archetype.percent;
+    const scoreBreakdown = {
+      completeness: completenessPercent,
+      source: quality.specCompleteness != null ? "taxonomy" : "archetype",
+      contentQuality: quality.contentQuality,
+      ...(quality.specBreakdown ? { specBreakdown: quality.specBreakdown } : { archetype })
+    };
 
     await tx
       .update(schema.catalogProducts)
       .set({
         winningValues: nextWinningValues,
-        completenessScore: score.percent.toFixed(2),
-        scoreBreakdown: score,
+        completenessScore: completenessPercent.toFixed(2),
+        contentQualityScore: quality.contentQuality.toFixed(2),
+        scoreBreakdown,
         updatedAt: computedAt
       })
       .where(eq(schema.catalogProducts.productId, productId));

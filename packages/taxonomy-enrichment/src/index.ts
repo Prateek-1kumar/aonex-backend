@@ -13,7 +13,7 @@ export { enrichProduct, toLeafSchema, acceptedAttributes, ENRICH_PROMPT_VERSION,
 export { buildEnrichmentPrompt, SYSTEM } from "./prompt.js";
 export { buildContentPrompt, CONTENT_SYSTEM, type ContentPromptInput } from "./content-prompt.js";
 export { validateContentField, meetsContentBar, type ContentOutcome } from "./content-validate.js";
-export { scoreContent } from "./content-score.js";
+export { scoreContent, scoreKnownContent } from "./content-score.js";
 export { parseEnrichmentResponse, EnrichmentParseError, type ParsedEnrichment } from "./parse.js";
 export { retrieveExamples, departmentOf, type RetrieveQuery, type RetrieveOptions } from "./rag.js";
 export { verifyField, verifyContentField, buildVerifyContext, type VerifyContext } from "./verify.js";

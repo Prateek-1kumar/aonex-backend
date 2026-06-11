@@ -16,7 +16,7 @@
 // facts, never invented. The constraints + tiers here drive both the synthesis
 // prompt and the content-quality score.
 
-import type { ContentConstraints, ContentType, EnrichField, Tier } from "@aonex/taxonomy-enrichment";
+import { scoreKnownContent, type ContentConstraints, type ContentType, type EnrichField, type Tier } from "@aonex/taxonomy-enrichment";
 
 /** A universal content/SEO/marketing/AEO attribute. */
 export interface ContentAttribute {
@@ -219,6 +219,14 @@ const byKey = new Map(CONTENT_ATTRIBUTES.map((c) => [c.key, c]));
 export const isContentKey = (key: string): boolean => byKey.has(key);
 
 export const contentGroupFor = (key: string): string | undefined => byKey.get(key)?.group;
+
+/** Authoritative content-quality score (0..100) of a product's CURRENT content,
+ *  given its flattened attribute values (e.g. flattenWinningAttrs(winning_values)).
+ *  This is what catalog_products.content_quality_score should reflect after a
+ *  drafting-room commit — graded against the same content rubric the engine uses. */
+export function contentQualityOf(known: Record<string, unknown>): number {
+  return scoreKnownContent(contentEnrichFields(), known).score;
+}
 
 /** The content layer projected as EnrichField[] (merged into every leaf schema). */
 export function contentEnrichFields(): EnrichField[] {
