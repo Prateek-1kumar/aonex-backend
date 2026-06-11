@@ -37,21 +37,31 @@ describe("buildLeafSchemaIndex", () => {
     { nodeId: "fashion/jeans", canonicalKey: "undefined_attr", tier: "optional" },
   ];
 
-  test("joins definitions onto node attributes", () => {
+  test("joins definitions onto node attributes (+ merges the universal content layer)", () => {
     const { schemaByNode } = buildLeafSchemaIndex(nas, ads);
     const fields = schemaByNode.get("fashion/jeans")!;
-    expect(fields).toHaveLength(3);
-    expect(fields[0]).toEqual({
+    const specs = fields.filter((f) => f.kind === "spec");
+    const content = fields.filter((f) => f.kind === "content");
+
+    // The 3 node spec attributes, tagged kind:"spec".
+    expect(specs).toHaveLength(3);
+    expect(specs[0]).toEqual({
       key: "fit",
       tier: "required",
+      kind: "spec",
       label: "Fit",
       dataType: "string",
       enumValues: ["slim", "regular"],
       isVariantAxis: true,
     });
-    expect(fields[1]).toEqual({ key: "weight", tier: "optional", dataType: "number", unit: "g", allowedUnits: ["g", "kg"] });
-    // An attribute with no definition row still appears (key + tier only).
-    expect(fields[2]).toEqual({ key: "undefined_attr", tier: "optional" });
+    expect(specs[1]).toEqual({ key: "weight", tier: "optional", kind: "spec", dataType: "number", unit: "g", allowedUnits: ["g", "kg"] });
+    // An attribute with no definition row still appears (key + tier + kind).
+    expect(specs[2]).toEqual({ key: "undefined_attr", tier: "optional", kind: "spec" });
+
+    // The universal content layer is merged into every leaf with a spec schema.
+    expect(content.length).toBeGreaterThan(0);
+    expect(content.find((f) => f.key === "meta_title")).toMatchObject({ kind: "content", contentType: "text", group: "seo" });
+    expect(content.find((f) => f.key === "seo_keywords")).toMatchObject({ kind: "content", contentType: "string_list" });
   });
 
   test("indexes display paths", () => {

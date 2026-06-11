@@ -22,8 +22,10 @@ import { scoreKnownContent, type ContentConstraints, type ContentType, type Enri
 export interface ContentAttribute {
   key: string;
   label: string;
-  /** UI/scoring group — also the attribute_definitions.enrichment_group value. */
-  group: "content" | "marketing" | "seo" | "aeo";
+  /** UI/scoring group — also the attribute_definitions.enrichment_group value.
+   *  Must be one of the catalog's known enrichment groups so the drafting room
+   *  renders it ("core" = enhanced copy, like the legacy descriptions group). */
+  group: "core" | "marketing" | "seo" | "aeo";
   contentType: ContentType;
   /** Tier within the content-quality rubric (required dominates). */
   tier: Tier;
@@ -47,7 +49,7 @@ export const CONTENT_ATTRIBUTES: readonly ContentAttribute[] = [
   {
     key: "description_long",
     label: "Description",
-    group: "content",
+    group: "core",
     contentType: "text",
     tier: "required",
     weight: 0.9,
@@ -58,7 +60,7 @@ export const CONTENT_ATTRIBUTES: readonly ContentAttribute[] = [
   {
     key: "description_short",
     label: "Short Description",
-    group: "content",
+    group: "core",
     contentType: "text",
     tier: "recommended",
     weight: 0.5,
