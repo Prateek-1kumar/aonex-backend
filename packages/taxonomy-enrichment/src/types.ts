@@ -10,9 +10,33 @@ import type { AttrDataType, Completeness, FieldStatus, Tier } from "@aonex/taxon
 
 export type { AttrDataType, FieldStatus, Tier } from "@aonex/taxonomy-validator";
 
+/** A field's role in enrichment:
+ *  - "spec":    a structured, typed attribute (fit/fabric/storage). EXTRACTED from
+ *               the source and verified against it (substring/token grounding).
+ *  - "content": synthesized listing copy (description/SEO/marketing/AEO). COMPOSED
+ *               from already-confirmed facts; grounded compositionally (no new facts). */
+export type FieldKind = "spec" | "content";
+
+/** Shape of a synthesized content field (drives the content prompt + validator). */
+export type ContentType =
+  | "text" // a single string body (meta_title, description_long, aeo_summary)
+  | "string_list" // an array of short strings (key_features, seo_keywords, tags)
+  | "qa_list" // an array of { q, a } (faq)
+  | "pros_cons"; // a { pros: string[], cons: string[] } object
+
+/** Length / count limits for a content field (chars for text, items for lists). */
+export interface ContentConstraints {
+  /** Max characters for a `text` field or per item of a list. */
+  maxLen?: number;
+  /** Min / max number of items for a list field. */
+  minItems?: number;
+  maxItems?: number;
+}
+
 /** One attribute the engine should try to fill. Superset of the validator's
  *  AttributeSpec with the prompt-facing label/description/group. Built by the
- *  caller from node_attributes ⨝ attribute_definitions. */
+ *  caller from node_attributes ⨝ attribute_definitions (specs) and the universal
+ *  CONTENT_ATTRIBUTES (content). */
 export interface EnrichField {
   key: string;
   tier: Tier;
@@ -26,7 +50,21 @@ export interface EnrichField {
   max?: number;
   /** Variant-defining axis (size/color) — surfaced to the prompt as important. */
   isVariantAxis?: boolean;
+  /** Enrichment group (attribute_definitions.enrichment_group): "descriptive" for
+   *  specs; "content"/"marketing"/"seo"/"aeo" for the universal content layer. */
+  group?: string;
+  /** "spec" (default) vs "content". Routes the field to the right stage/verifier. */
+  kind?: FieldKind;
+  /** Content-only: the synthesized value's shape. */
+  contentType?: ContentType;
+  /** Content-only: length / count limits. */
+  constraints?: ContentConstraints;
+  /** Content-only: weight within the content-quality rubric. */
+  weight?: number;
 }
+
+/** A content field is one synthesized from confirmed facts, not extracted. */
+export const isContentField = (f: { kind?: FieldKind }): boolean => f.kind === "content";
 
 /** The product's own data — the grounding corpus + the diff baseline. */
 export interface SourceProduct {
@@ -115,6 +153,12 @@ export type FieldAction = "fill" | "improve";
 export interface FieldResult {
   key: string;
   tier: Tier;
+  /** "spec" (extracted) vs "content" (synthesized) — routes display + apply. */
+  kind?: FieldKind;
+  /** Enrichment group (seo/marketing/aeo/content for content; descriptive for specs). */
+  group?: string;
+  /** Content shape — set for content fields so the drafting room can render it. */
+  contentType?: ContentType;
   /** Raw model value. */
   raw: unknown;
   /** Validator-normalized value (when ok/coerced). */
@@ -147,8 +191,14 @@ export interface EnrichmentResult {
   completenessAfter: Completeness;
   /** Completeness if the inferred PROPOSALS are also confirmed (the review-upside ceiling). */
   completenessProposed: Completeness;
+  /** Content quality of the content already on the product (the "before"). */
+  contentQualityBefore: Completeness;
+  /** Content quality if the proposed content is committed (the review-upside). */
+  contentQualityProposed: Completeness;
   /** Fraction of accepted (auto-applied) fields that are source-grounded. */
   groundingRate: number;
+  /** Fraction of proposable content fields that are grounded/weak (not generic-inferred). */
+  contentGroundingRate: number;
   /** Count of proposable-but-inferred fields awaiting human confirmation. */
   proposedInferred: number;
   model?: string;

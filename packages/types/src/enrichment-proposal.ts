@@ -8,6 +8,12 @@
 export interface PersistedProposalField {
   /** Canonical attribute key. */
   attributeCode: string;
+  /** "spec" = extracted structured attribute; "content" = synthesized
+   *  description/SEO/marketing/AEO copy (review-gated, never auto-applied). */
+  kind?: "spec" | "content";
+  /** Content shape ("text"/"string_list"/"qa_list"/"pros_cons") — drives how the
+   *  drafting room renders the value. Only set for content fields. */
+  contentType?: string;
   /** attribute_definitions.enrichment_group (UI badge), when known. */
   group?: string;
   /** The product's current value at generation time (null when absent). */

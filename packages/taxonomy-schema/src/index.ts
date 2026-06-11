@@ -25,3 +25,12 @@ export {
   type CatalogProductLike,
   type CorpusEntryWithId,
 } from "./rag-corpus.js";
+export {
+  CONTENT_ATTRIBUTES,
+  contentEnrichFields,
+  contentAttributeDefs,
+  contentGroupFor,
+  isContentKey,
+  type ContentAttribute,
+  type ContentAttributeDefRow,
+} from "./content-attributes.js";

@@ -27,6 +27,9 @@ export interface VerifyContext {
   tokenSet: Set<string>;
   numeralSet: Set<string>;
   knownAttrs: Record<string, unknown>;
+  /** Significant FACT tokens (brand/title/category + known attr values) — the
+   *  anchors content must reference to count as "about this product". */
+  anchorSet: Set<string>;
 }
 
 /** Build the grounding corpus from everything the product itself asserts. */
@@ -41,11 +44,15 @@ export function buildVerifyContext(product: SourceProduct): VerifyContext {
     ...Object.values(known).map(valueToText),
   ];
   const text = normalizeText(parts.filter(Boolean).join(" "));
+  // Anchors exclude free description prose (too noisy) — they are the hard facts:
+  // brand, title, category breadcrumb, and confirmed attribute values.
+  const anchorParts = [product.title, product.brand, product.sourceCategory, ...Object.values(known).map(valueToText)];
   return {
     text,
     tokenSet: new Set(text ? text.split(" ") : []),
     numeralSet: new Set(numerals(parts.join(" "))),
     knownAttrs: known,
+    anchorSet: new Set(significantTokens(anchorParts.filter(Boolean).join(" "))),
   };
 }
 
@@ -125,4 +132,37 @@ export function verifyField(gen: FieldGeneration, ctx: VerifyContext): Grounding
   //    CONFIDENT inference (e.g. iPhone -> iOS) can clear the accept bar while a
   //    hesitant one cannot. Calibration caps these so they never present as certain.
   return { grounding: "inferred", support: 0.35, detail: "no source support (inferred)" };
+}
+
+/** Grounding for SYNTHESIZED content (description/SEO/marketing/AEO).
+ *
+ *  Spec grounding asks "is this exact value in the source?". Content is composed,
+ *  not extracted, so a substring test would reject all of it. Instead we enforce
+ *  two things that together mean "written from the facts, not invented":
+ *    (1) NO foreign hard facts — every NUMBER in the copy must appear in the
+ *        source (a figure that doesn't is a fabricated spec — the cardinal sin).
+ *    (2) ANCHORING — the copy must reference the product's actual facts
+ *        (brand/type/attributes), not read as generic boilerplate.
+ *  Adjectives and category framing are allowed; invented measurements are not. */
+export function verifyContentField(value: unknown, ctx: VerifyContext): GroundingVerdict {
+  if (isEmpty(value)) return { grounding: "inferred", support: 0, detail: "empty value" };
+  const flat = valueToText(value);
+  const text = normalizeText(flat);
+  if (!text) return { grounding: "inferred", support: 0, detail: "empty value" };
+
+  // (1) Fabricated-figure guard.
+  const foreign = [...new Set(numerals(flat).filter((n) => !ctx.numeralSet.has(n)))];
+  if (foreign.length > 0) {
+    return { grounding: "weak", support: 0.4, detail: `figures not in source: ${foreign.join(", ")}` };
+  }
+
+  // (2) Anchoring against the product's fact tokens.
+  const contentTokens = new Set(significantTokens(value));
+  let hits = 0;
+  for (const a of ctx.anchorSet) if (contentTokens.has(a)) hits++;
+  const anchorScore = ctx.anchorSet.size === 0 ? 0 : hits / Math.min(ctx.anchorSet.size, 6);
+
+  if (anchorScore >= 0.5) return { grounding: "grounded", support: 0.9, detail: "anchored in product facts" };
+  if (anchorScore > 0) return { grounding: "weak", support: 0.6, detail: "loosely anchored in product facts" };
+  return { grounding: "inferred", support: 0.3, detail: "generic copy — references no product fact" };
 }
