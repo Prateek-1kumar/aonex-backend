@@ -62,6 +62,28 @@ export interface CalibrationOutput {
 
 const REJECT = (calibratedConfidence: number): CalibrationOutput => ({ calibratedConfidence, accepted: false, proposable: false });
 
+/** Lower bar to SURFACE a content field for review (vs the spec accept bar). Content
+ *  never auto-applies, so the only question is "is it worth showing the reviewer?". */
+export const CONTENT_PROPOSE_THRESHOLD = 0.3;
+
+/** Calibrate a SYNTHESIZED content field. Unlike specs, content is NEVER
+ *  auto-applied (accepted is always false) — it flows through the drafting room
+ *  for human review. We still reject contradictions and invalid shapes, and we
+ *  surface everything else above a low bar so the reviewer can edit/keep/drop it. */
+export function calibrateContent(input: CalibrationInput, cfg: CalibrationConfig = DEFAULT_CALIBRATION): CalibrationOutput {
+  const { modelConfidence, support, grounding, status } = input;
+  if (status === "missing") return REJECT(0);
+
+  let c = cfg.wModel * clamp01(modelConfidence) + cfg.wGround * clamp01(support);
+  if (status === "coerced") c *= cfg.coercedPenalty;
+  if (status === "invalid") return REJECT(round2(Math.min(c, 0.2)));
+  // Contradicts a confirmed attribute — wrong, drop it (don't even show).
+  if (grounding === "contradicted") return REJECT(round2(Math.min(c, 0.1)));
+
+  const calibrated = round2(clamp01(c));
+  return { calibratedConfidence: calibrated, accepted: false, proposable: calibrated >= CONTENT_PROPOSE_THRESHOLD };
+}
+
 export function calibrate(input: CalibrationInput, cfg: CalibrationConfig = DEFAULT_CALIBRATION): CalibrationOutput {
   const { modelConfidence, support, grounding, status } = input;
 

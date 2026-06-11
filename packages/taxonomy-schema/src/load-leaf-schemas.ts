@@ -9,6 +9,7 @@
 import { schema, type DrizzleClient } from "@aonex/db";
 import { toLeafSchema, type AttrDataType, type EnrichField } from "@aonex/taxonomy-enrichment";
 import type { LeafSchema } from "@aonex/taxonomy-validator";
+import { contentEnrichFields, contentGroupFor } from "./content-attributes.js";
 
 /** The attribute_definitions columns the schema join reads (structural, so
  *  tests can pass plain objects instead of Drizzle rows). */
@@ -53,9 +54,10 @@ export function buildLeafSchemaIndex(
   const schemaByNode = new Map<string, EnrichField[]>();
   for (const na of nodeAttributes) {
     const ad = adByKey.get(na.canonicalKey);
-    const f: EnrichField = { key: na.canonicalKey, tier: na.tier as EnrichField["tier"] };
+    const f: EnrichField = { key: na.canonicalKey, tier: na.tier as EnrichField["tier"], kind: "spec" };
     if (ad?.label) f.label = ad.label;
     if (ad?.description) f.description = ad.description;
+    if (ad?.enrichmentGroup) f.group = ad.enrichmentGroup;
     const dt = mapType(ad?.dataType);
     if (dt) f.dataType = dt;
     if (ad?.enumValues?.length) f.enumValues = ad.enumValues;
@@ -68,12 +70,22 @@ export function buildLeafSchemaIndex(
     if (!fields) schemaByNode.set(na.nodeId, (fields = []));
     fields.push(f);
   }
+
+  // Merge the UNIVERSAL CONTENT LAYER into every leaf that has a spec schema.
+  // These are not per-node rows (applies_universally) — they come from the code
+  // source of truth so the engine works without a DB seed; the seed only mirrors
+  // them into attribute_definitions for the Lab/promotion infra.
+  const content = contentEnrichFields();
+  for (const fields of schemaByNode.values()) fields.push(...content.map((c) => ({ ...c })));
+
   const pathByNode = new Map(nodes.filter((n) => n.displayPath != null).map((n) => [n.nodeId, n.displayPath!]));
-  const groupByKey = new Map(
+  const groupByKey = new Map<string, string>(
     attributeDefinitions
       .filter((a) => a.enrichmentGroup != null)
       .map((a) => [a.canonicalKey, a.enrichmentGroup!])
   );
+  for (const c of content) if (c.group) groupByKey.set(c.key, c.group);
+
   return { schemaByNode, pathByNode, groupByKey };
 }
 
