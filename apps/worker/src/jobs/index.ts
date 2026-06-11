@@ -6,6 +6,7 @@
 
 import type { DrizzleClient } from "@aonex/db";
 import type { Logger } from "pino";
+import type { ClassifierResolver } from "@aonex/taxonomy-classifier";
 import { priceClusterRebuild } from "./price-cluster-rebuild.js";
 import { overridePromotionScan } from "./override-promotion-scan.js";
 import { failurePatternRollup } from "./failure-pattern-rollup.js";
@@ -21,6 +22,11 @@ export interface JobContext {
   db: DrizzleClient;
   /** Structured logger; cron jobs log run summaries through this. */
   logger: Logger;
+  /** Taxonomy resolver for the classify sweep. When an LLM provider is
+   *  configured this is the LLM resolver (auto-assigns a best category so
+   *  products aren't stuck uncategorized); otherwise the sweep falls back to the
+   *  deterministic resolver. */
+  classifierResolver?: ClassifierResolver;
 }
 
 export interface CronJob {

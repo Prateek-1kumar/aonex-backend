@@ -9,7 +9,7 @@
 
 import { schema, type DrizzleClient } from "@aonex/db";
 import { eq, isNull } from "drizzle-orm";
-import { buildIndex, classifyWithFallback, deterministicResolver, type ProductSignals } from "@aonex/taxonomy-classifier";
+import { buildIndex, classifyWithFallback, deterministicResolver, type ClassifierResolver, type ProductSignals } from "@aonex/taxonomy-classifier";
 import type { Logger } from "pino";
 import type { CronJob } from "./index.js";
 
@@ -30,8 +30,14 @@ export interface ClassifySweepResult {
 }
 
 /** Classify every catalog product with a null category_node_id; assign on a
- *  confident result. Pure DB work — no LLM. */
-export async function runClassifyUncategorized(db: DrizzleClient, logger?: Logger): Promise<ClassifySweepResult> {
+ *  confident result. The resolver decides low-confidence cases: the LLM resolver
+ *  auto-assigns a best category (so products become usable), the deterministic
+ *  one (default) only proposes/abstains. */
+export async function runClassifyUncategorized(
+  db: DrizzleClient,
+  logger?: Logger,
+  resolver: ClassifierResolver = deterministicResolver
+): Promise<ClassifySweepResult> {
   const nodes = await db.select().from(schema.taxonomyNodes);
   if (nodes.length === 0) return { examined: 0, assigned: 0, proposed: 0, abstained: 0 };
   const aliasMap = new Map((await db.select().from(schema.taxonomyAliases)).map((a) => [a.normalizedLabel, a.nodeId]));
@@ -55,7 +61,7 @@ export async function runClassifyUncategorized(db: DrizzleClient, logger?: Logge
       sourceCategory: asText(firstScoped(wv.category_path)),
       ...(identity.brand ? { brand: String(identity.brand) } : {}),
     };
-    const r = await classifyWithFallback(signals, index, deterministicResolver);
+    const r = await classifyWithFallback(signals, index, resolver);
     if (r.outcome === "assign" && r.nodeId) {
       await db.update(schema.catalogProducts).set({ categoryNodeId: r.nodeId, categorySource: "auto" }).where(eq(schema.catalogProducts.productId, p.productId));
       res.assigned++;
@@ -73,6 +79,6 @@ export const classifyUncategorized: CronJob = {
   name: "classify-uncategorized",
   cronSchedule: "*/15 * * * *",
   process: async (ctx) => {
-    await runClassifyUncategorized(ctx.db, ctx.logger);
+    await runClassifyUncategorized(ctx.db, ctx.logger, ctx.classifierResolver ?? deterministicResolver);
   },
 };
