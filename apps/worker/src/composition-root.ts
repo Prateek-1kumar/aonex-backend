@@ -19,7 +19,8 @@ import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js
 import { makeCsvParseProcessor } from "./processors/csv-parse.processor.js";
 import { makeEnrichProcessor } from "./processors/enrich.processor.js";
 import { ReconcilerQueueProvider } from "./services/reconciler-queue-provider.js";
-import { createModelProvider, LLMProductExtractor, NvidiaProvider } from "@aonex/ingestion-llm-extractor";
+import { createModelProvider, LLMProductExtractor, NvidiaProvider, type IModelProvider } from "@aonex/ingestion-llm-extractor";
+import { llmResolver, deterministicResolver, type ClassifierResolver } from "@aonex/taxonomy-classifier";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
 import {
@@ -123,6 +124,33 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     logger.warn("OPENAI_API_KEY not set — link extraction worker disabled");
   }
 
+  // LLM provider shared by enrichment AND the taxonomy classify sweep (Groq
+  // preferred, then NVIDIA). When a provider is present the sweep uses the LLM
+  // resolver, so newly-ingested products get auto-categorized instead of piling
+  // up uncategorized in the Lab; with no provider it falls back to deterministic.
+  const groqApiKey = process.env.GROQ_API_KEY;
+  const nvidiaApiKey = process.env.NVIDIA_API_KEY;
+  let llmProvider: IModelProvider | undefined;
+  let llmModel = "";
+  if (groqApiKey) {
+    llmProvider = createModelProvider({
+      provider: "openai",
+      config: { apiKey: groqApiKey, baseUrl: env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1" },
+    });
+    llmModel = process.env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile";
+  } else if (nvidiaApiKey) {
+    llmProvider = new NvidiaProvider({
+      apiKey: nvidiaApiKey,
+      baseUrl: env.NVIDIA_BASE_URL,
+      thinking: true,
+      reasoningEffort: "medium",
+    });
+    llmModel = env.NVIDIA_MODEL_ENRICH;
+  }
+  const classifierResolver: ClassifierResolver = llmProvider
+    ? llmResolver(llmProvider, llmModel)
+    : deterministicResolver;
+
   // Cron queue: schedules and dispatches periodic maintenance jobs.
   const cronQueue = new Queue("aonex.cron", { connection: redis });
 
@@ -146,7 +174,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     async (job) => {
       const cron = CRON_JOBS.find((c) => c.name === job.name);
       if (!cron) return;
-      await cron.process({ db: db.client, logger });
+      await cron.process({ db: db.client, logger, classifierResolver });
     },
     { connection: redis, concurrency: 1 }
   );
@@ -157,40 +185,25 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     { connection: redis, concurrency: 3 },
   );
 
-  // Catalog enrichment worker. Prefer Groq (fast, OpenAI-compatible) when
-  // GROQ_API_KEY is set; fall back to NVIDIA DeepSeek; else disabled.
-  const groqApiKey = process.env.GROQ_API_KEY;
-  const nvidiaApiKey = process.env.NVIDIA_API_KEY;
+  // Catalog enrichment worker — reuses the shared llmProvider/llmModel above.
   let enrichWorker: Worker | undefined;
-  if (groqApiKey) {
-    const enrichProvider = createModelProvider({
-      provider: "openai",
-      config: { apiKey: groqApiKey, baseUrl: env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1" },
-    });
-    const model =
-      process.env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile";
+  if (groqApiKey && llmProvider) {
     // Serial: Groq's on-demand TPM budget (12k) reserves prompt+max_tokens per
     // request (~9.7k each), so parallel jobs trip 429s. The provider retries
     // transient 429s with Retry-After backoff; serializing keeps us in budget.
     enrichWorker = new Worker(
       QUEUE.PRODUCT_ENRICH,
-      makeEnrichProcessor({ db: db.client, provider: enrichProvider, model }),
+      makeEnrichProcessor({ db: db.client, provider: llmProvider, model: llmModel }),
       { connection: redis, concurrency: 1 },
     );
-    logger.info({ model }, "enrichment worker: Groq");
-  } else if (nvidiaApiKey) {
-    const enrichProvider = new NvidiaProvider({
-      apiKey: nvidiaApiKey,
-      baseUrl: env.NVIDIA_BASE_URL,
-      thinking: true,
-      reasoningEffort: "medium",
-    });
+    logger.info({ model: llmModel }, "enrichment worker: Groq");
+  } else if (nvidiaApiKey && llmProvider) {
     enrichWorker = new Worker(
       QUEUE.PRODUCT_ENRICH,
-      makeEnrichProcessor({ db: db.client, provider: enrichProvider, model: env.NVIDIA_MODEL_ENRICH }),
+      makeEnrichProcessor({ db: db.client, provider: llmProvider, model: llmModel }),
       { connection: redis, concurrency: 2 },
     );
-    logger.info({ model: env.NVIDIA_MODEL_ENRICH }, "enrichment worker: NVIDIA DeepSeek");
+    logger.info({ model: llmModel }, "enrichment worker: NVIDIA DeepSeek");
   } else {
     logger.warn("No GROQ_API_KEY or NVIDIA_API_KEY — enrichment worker disabled");
   }
