@@ -127,9 +127,12 @@ try {
     const after = result.completenessAfter.score.toFixed(0).padStart(3);
     const proposed = result.completenessProposed.score.toFixed(0).padStart(3);
     const flag = result.error ? " ⚠ERR" : "";
+    const content = result.contentQualityProposed.score.toFixed(0).padStart(3);
+    const contentFields = result.fields.filter((f) => f.kind === "content" && f.proposable).length;
     process.stdout.write(
-      `  ${p.id} ${p.input.title.slice(0, 32).padEnd(33)} ${before} -> ${after} (→${proposed})  ` +
-      `+${Object.keys(accepted).length}f (rag ${examples.length}, grnd ${(result.groundingRate * 100).toFixed(0)}%, +inf ${result.proposedInferred})${flag}\n`
+      `  ${p.id} ${p.input.title.slice(0, 32).padEnd(33)} spec ${before}->${after}(→${proposed})  ` +
+      `content →${content} (${contentFields} copy fields, grnd ${(result.contentGroundingRate * 100).toFixed(0)}%)  ` +
+      `+${Object.keys(accepted).length}spec${flag}\n`
     );
     return { p, result, examples: examples.length, accepted: Object.keys(accepted).length, goldHits, goldTotal };
   });
@@ -137,6 +140,7 @@ try {
   // ── Aggregate ──
   let beforeSum = 0, afterSum = 0, proposedSum = 0, groundSum = 0, proposedInfer = 0, acceptedTotal = 0, violations = 0, errors = 0;
   let goldHitsAll = 0, goldTotalAll = 0;
+  let contentBeforeSum = 0, contentProposedSum = 0, contentGroundSum = 0, contentFieldsTotal = 0;
   for (const r of rows) {
     beforeSum += r.result.completenessBefore.score;
     afterSum += r.result.completenessAfter.score;
@@ -147,6 +151,10 @@ try {
     violations += r.result.fields.filter((f) => f.status === "invalid").length;
     if (r.result.error) errors++;
     goldHitsAll += r.goldHits; goldTotalAll += r.goldTotal;
+    contentBeforeSum += r.result.contentQualityBefore.score;
+    contentProposedSum += r.result.contentQualityProposed.score;
+    contentGroundSum += r.result.contentGroundingRate;
+    contentFieldsTotal += r.result.fields.filter((f) => f.kind === "content" && f.proposable).length;
   }
 
   const n = rows.length || 1;
@@ -155,6 +163,10 @@ try {
   console.log(`     before  (input attrs):        ${(beforeSum / n).toFixed(1)}`);
   console.log(`     after   (grounded, auto-apply): ${(afterSum / n).toFixed(1)}   (lift +${((afterSum - beforeSum) / n).toFixed(1)})`);
   console.log(`     proposed(+inferred, pending review): ${(proposedSum / n).toFixed(1)}   (ceiling if confirmed, +${((proposedSum - afterSum) / n).toFixed(1)})`);
+  console.log(`  -- content quality (description / SEO / marketing / AEO, 0..100) --`);
+  console.log(`     before  (existing content):   ${(contentBeforeSum / n).toFixed(1)}`);
+  console.log(`     proposed(synthesized, review): ${(contentProposedSum / n).toFixed(1)}   (lift +${((contentProposedSum - contentBeforeSum) / n).toFixed(1)})`);
+  console.log(`     content fields/product:       ${(contentFieldsTotal / n).toFixed(1)}  ·  compositional grounding ${pct(contentGroundSum / n)}%`);
   console.log(`  -- enrichment quality --`);
   console.log(`     auto-applied fields/product:  ${(acceptedTotal / n).toFixed(1)}  (all source-grounded)`);
   console.log(`     grounding rate (auto-applied):${pct(groundSum / n)}%`);
