@@ -7,7 +7,7 @@
 // the two sub-scores are directly comparable on one 0..100 scale.
 
 import type { Completeness, Tier } from "@aonex/taxonomy-validator";
-import { meetsContentBar } from "./content-validate.js";
+import { meetsContentBar, validateContentField } from "./content-validate.js";
 import type { EnrichField, FieldResult } from "./types.js";
 
 const TIER_SHARE: Record<Tier, number> = { required: 0.7, recommended: 0.25, optional: 0.05 };
@@ -52,4 +52,24 @@ export function scoreContent(
     optional: cov.optional,
     score: totalShare === 0 ? 0 : Math.round((weighted / totalShare) * 10000) / 100,
   };
+}
+
+/** Content quality of the content fields ALREADY present on a product (raw
+ *  attribute values, e.g. flattened winning_values). Used for the "before" score
+ *  and for the authoritative post-commit content_quality_score. */
+export function scoreKnownContent(fields: EnrichField[], known: Record<string, unknown>): Completeness {
+  const byKey = new Map<string, FieldResult>();
+  for (const f of fields) {
+    const kv = known[f.key];
+    if (kv === undefined || kv === null || kv === "" || (Array.isArray(kv) && kv.length === 0)) continue;
+    const oc = validateContentField(f, kv);
+    if (oc.status !== "ok" && oc.status !== "coerced") continue;
+    byKey.set(f.key, {
+      key: f.key, tier: f.tier, kind: "content", raw: kv,
+      ...(oc.normalized !== undefined ? { normalized: oc.normalized } : {}),
+      status: oc.status, grounding: "grounded", support: 1, modelConfidence: 1,
+      calibratedConfidence: 1, accepted: true, proposable: true, action: "improve",
+    });
+  }
+  return scoreContent(fields, byKey);
 }

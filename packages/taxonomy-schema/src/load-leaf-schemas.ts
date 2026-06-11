@@ -9,7 +9,7 @@
 import { schema, type DrizzleClient } from "@aonex/db";
 import { toLeafSchema, type AttrDataType, type EnrichField } from "@aonex/taxonomy-enrichment";
 import type { LeafSchema } from "@aonex/taxonomy-validator";
-import { contentEnrichFields, contentGroupFor } from "./content-attributes.js";
+import { contentEnrichFields } from "./content-attributes.js";
 
 /** The attribute_definitions columns the schema join reads (structural, so
  *  tests can pass plain objects instead of Drizzle rows). */

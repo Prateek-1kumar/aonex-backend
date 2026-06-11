@@ -84,9 +84,11 @@ export function toProposalFields(
   for (const f of result.fields) {
     if (f.status === "missing") continue; // nothing proposed for this field
     if (PROTECTED_KEYS.has(f.key)) continue; // defense in depth
-    const group = groupByKey.get(f.key);
+    const group = f.group ?? groupByKey.get(f.key);
     out.push({
       attributeCode: f.key,
+      ...(f.kind ? { kind: f.kind } : {}),
+      ...(f.contentType ? { contentType: f.contentType } : {}),
       ...(group !== undefined ? { group } : {}),
       before: knownAttrs[f.key] ?? null,
       after: f.normalized ?? f.raw,
@@ -225,11 +227,18 @@ export async function runEnrich(
         promptVersion: ENRICH_PROMPT_VERSION,
         fields: toProposalFields(result, knownAttrs, index.groupByKey),
         candidates: result.candidates,
-        scoreBefore: { completeness: result.completenessBefore.score },
+        scoreBefore: {
+          completeness: result.completenessBefore.score,
+          contentQuality: result.contentQualityBefore.score,
+        },
         scoreAfter: {
           completeness: result.completenessProposed.score,
           autoApplied: result.completenessAfter.score,
           groundingRate: result.groundingRate,
+          // Upside of the synthesized content once committed in the drafting room.
+          // enrichment-apply persists this to catalog_products.content_quality_score.
+          contentQuality: result.contentQualityProposed.score,
+          contentGroundingRate: result.contentGroundingRate,
         },
         reasoning: null,
         ...(result.costUsd !== undefined ? { costUsd: result.costUsd.toFixed(5) } : {}),

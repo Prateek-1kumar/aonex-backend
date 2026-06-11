@@ -20,7 +20,7 @@ import { parseEnrichmentResponse } from "./parse.js";
 import { buildEnrichmentPrompt, ENRICH_PROMPT_VERSION } from "./prompt.js";
 import { buildContentPrompt, CONTENT_PROMPT_VERSION } from "./content-prompt.js";
 import { validateContentField } from "./content-validate.js";
-import { scoreContent } from "./content-score.js";
+import { scoreContent, scoreKnownContent } from "./content-score.js";
 import { buildVerifyContext, verifyContentField, verifyField, type VerifyContext } from "./verify.js";
 import type {
   ChatProvider,
@@ -179,24 +179,6 @@ function buildContentField(
   };
 }
 
-/** Content quality of content fields already present on the product (the "before"). */
-function knownContentResults(contentFields: EnrichField[], known: Record<string, unknown>): Map<string, FieldResult> {
-  const out = new Map<string, FieldResult>();
-  for (const f of contentFields) {
-    const kv = known[f.key];
-    if (isEmpty(kv)) continue;
-    const oc = validateContentField(f, kv);
-    if (oc.status !== "ok" && oc.status !== "coerced") continue;
-    out.set(f.key, {
-      key: f.key, tier: f.tier, kind: "content", raw: kv,
-      ...(oc.normalized !== undefined ? { normalized: oc.normalized } : {}),
-      status: oc.status, grounding: "grounded", support: 1, modelConfidence: 1,
-      calibratedConfidence: 1, accepted: true, proposable: true, action: "improve",
-    });
-  }
-  return out;
-}
-
 interface Usage {
   promptTokens: number;
   completionTokens: number;
@@ -215,7 +197,7 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
   const leaf = toLeafSchema(input.nodeId, specFields);
   const known = input.product.knownAttrs ?? {};
   const completenessBefore = validateAttributes(leaf, known).completeness;
-  const contentQualityBefore = scoreContent(contentFields, knownContentResults(contentFields, known));
+  const contentQualityBefore = scoreKnownContent(contentFields, known);
 
   let model = deps.model;
   let usage: Usage | undefined;

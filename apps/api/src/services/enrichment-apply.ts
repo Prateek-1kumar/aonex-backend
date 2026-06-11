@@ -22,6 +22,7 @@ import {
   removeEnrichmentObservations,
   projectSync,
 } from "@aonex/catalog-service";
+import { contentQualityOf, flattenWinningAttrs } from "@aonex/taxonomy-schema";
 
 export class EnrichmentApplyError extends Error {
   constructor(
@@ -203,28 +204,31 @@ export async function applyEnrichmentProposal(
     await projectSync({ db, productId: input.productId, affectedAttributes: affected, rulesVersion: 1 });
   }
 
-  // Persist the LLM content-quality score (folded into the proposal's scoreAfter).
-  const scoreAfter = (prop.scoreAfter ?? {}) as { contentQuality?: number };
-  const contentScore = typeof scoreAfter.contentQuality === "number" ? scoreAfter.contentQuality : null;
-  if (contentScore != null) {
-    await db
-      .update(schema.catalogProducts)
-      .set({ contentQualityScore: contentScore.toFixed(2) })
-      .where(eq(schema.catalogProducts.productId, input.productId));
-  }
-
+  // Recompute the AUTHORITATIVE content-quality score from what the product
+  // actually carries now (its reconciled winning_values), not the proposal's
+  // projected upside — the human may have kept only some content fields.
   const after = await db
-    .select({ score: schema.catalogProducts.completenessScore })
+    .select({
+      score: schema.catalogProducts.completenessScore,
+      winningValues: schema.catalogProducts.winningValues,
+    })
     .from(schema.catalogProducts)
     .where(eq(schema.catalogProducts.productId, input.productId))
     .limit(1);
+
+  const wv = (after[0]?.winningValues ?? {}) as Record<string, unknown>;
+  const contentScore = contentQualityOf(flattenWinningAttrs(wv));
+  await db
+    .update(schema.catalogProducts)
+    .set({ contentQualityScore: contentScore.toFixed(2) })
+    .where(eq(schema.catalogProducts.productId, input.productId));
 
   return {
     productId: input.productId,
     applied: accepted.map((a) => a.code),
     registered,
     score: Number(after[0]?.score ?? 0),
-    ...(contentScore != null ? { contentScore } : {}),
+    contentScore,
   };
 }
 
