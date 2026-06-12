@@ -2,7 +2,7 @@
   "name": "aonex-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Aonex backend monorepo \u2014 multi-marketplace product-catalog ingestion & distribution platform. See README.md and docs/ARCHITECTURE.md.",
+  "description": "Aonex backend monorepo — multi-marketplace product-catalog ingestion & distribution platform. See README.md and docs/ARCHITECTURE.md.",
   "workspaces": [
     "apps/*",
     "packages/*",
@@ -34,7 +34,7 @@
     "eslint": "^9.16.0",
     "playwright": "^1.60.0",
     "prettier": "^3.4.2",
-    "turbo": "^2.9.16",
+    "turbo": "^2.9.18",
     "typescript": "^5.7.2",
     "typescript-eslint": "8.59.2"
   },
