@@ -124,6 +124,49 @@ async function ensureManualChannel(
 }
 
 /**
+ * Ensure a per-host `direct` channel exists for a channel-less link product
+ * (kind="direct", region=<channelCode>). Mirrors resolveOrCreateDirectChannel
+ * in the ingest path so a product that admitted to a 'direct' channel can be
+ * promoted from the Lab without the pricing observation FK-tripping. Idempotent.
+ */
+async function ensureDirectChannel(
+  tx: DrizzleClient,
+  tenantId: TenantId,
+  code: string
+): Promise<ChannelId> {
+  const find = async () => {
+    const rows = await tx
+      .select({ channelId: schema.channels.channelId })
+      .from(schema.channels)
+      .where(
+        and(
+          eq(schema.channels.tenantId, tenantId as unknown as string),
+          eq(schema.channels.channelKind, "direct"),
+          eq(schema.channels.region, code)
+        )
+      )
+      .limit(1);
+    return rows[0]?.channelId as ChannelId | undefined;
+  };
+  const existing = await find();
+  if (existing) return existing;
+  await tx
+    .insert(schema.channels)
+    .values({
+      tenantId: tenantId as unknown as string,
+      channelKind: "direct",
+      region: code,
+      displayName: code
+    })
+    .onConflictDoNothing();
+  const winner = await find();
+  if (!winner) {
+    throw new Error(`ensureDirectChannel: failed to find or create direct channel ${code} for tenant ${tenantId}`);
+  }
+  return winner;
+}
+
+/**
  * Resolve channelCode → channelId for any pricing/inventory observations.
  * Queries all channels for the tenant, then matches each code using the
  * same derivation as resolveChannelByCode: `${channelKind}-${region}` or
@@ -177,7 +220,14 @@ async function resolveChannelCodeToId(
     const matched = regionMatch ?? kindMatches[0];
     if (matched) {
       result[code] = matched.channelId as ChannelId;
+      continue;
     }
+    // No marketplace channel for this code — it's a channel-less link product
+    // that admitted (or would admit) under a per-host 'direct' channel. Resolve
+    // (or create) that same direct channel so promote doesn't 500 on the
+    // pricing observation. This is the fix for the Lab "Push to Catalog"
+    // INTERNAL error on decathlon.in-style products.
+    result[code] = await ensureDirectChannel(tx, tenantId, code);
   }
 
   return result;
@@ -425,6 +475,11 @@ export async function promoteStagedProduct(
       merchantId: staged.merchantId as unknown as MerchantId,
       adapterOutput: filledOutput,
       actor: "manual:lab",
+      // Carry the category the spine auto-assigned at ingestion through to the
+      // admitted product (only applied on create, never overrides an existing
+      // product's category — see writeAdapterOutput). Preserves categorization
+      // across the staged → approve path.
+      ...(staged.categoryNodeId ? { categoryNodeId: staged.categoryNodeId } : {}),
       ...(channelCodeToId !== undefined ? { channelCodeToId } : {}),
       ...(confirmedMatchProductId !== undefined
         ? { forceProductId: confirmedMatchProductId }

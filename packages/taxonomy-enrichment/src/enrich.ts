@@ -236,7 +236,11 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
       const res = await deps.provider.chatCompletion({
         model: deps.model,
         messages: buildEnrichmentPrompt({ ...input, schema: specFields }),
-        maxTokens: deps.maxTokens ?? 4000,
+        // Groq counts (input + max_tokens) against the per-minute TPM limit
+        // (6000 on the free-tier fallback model), so an over-large reservation
+        // 413s a perfectly small request. 3000 covers any enrichment completion
+        // (specs are tiny; content is a few hundred tokens) and halves daily burn.
+        maxTokens: deps.maxTokens ?? 3000,
         temperature: deps.temperature ?? 0.2,
         jsonMode: deps.jsonMode ?? true,
       });
@@ -293,7 +297,11 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
           ...(input.product.description ? { description: input.product.description } : {}),
           fields: contentFields,
         }),
-        maxTokens: deps.maxTokens ?? 4000,
+        // Groq counts (input + max_tokens) against the per-minute TPM limit
+        // (6000 on the free-tier fallback model), so an over-large reservation
+        // 413s a perfectly small request. 3000 covers any enrichment completion
+        // (specs are tiny; content is a few hundred tokens) and halves daily burn.
+        maxTokens: deps.maxTokens ?? 3000,
         temperature: deps.temperature ?? 0.4,
         jsonMode: deps.jsonMode ?? true,
       });

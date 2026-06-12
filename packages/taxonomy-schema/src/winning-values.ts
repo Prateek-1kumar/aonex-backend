@@ -4,15 +4,17 @@
 // Previously copy-pasted into scripts/seed/classify-catalog.ts and
 // scripts/eval/run-enrichment-eval.ts; this is the single implementation.
 
-/** winning_values keys that aren't product attributes. */
+// Structural/meta keys that aren't gradable product attributes OR content.
+// NOTE: `description*` are intentionally NOT here — they are product CONTENT the
+// content-quality score reads (scoreKnownContent grades `description_long`), and
+// dropping them made content_quality_score collapse to 0 for every product that
+// already had a description. The spec validator ignores keys that aren't in the
+// leaf schema, so retaining them here is safe for spec completeness too.
 export const NON_ATTR_KEYS = new Set([
   "title",
   "category_path",
   "_meta",
   "images",
-  "description",
-  "description_long",
-  "description_short",
 ]);
 
 /** winning_values are channel/locale-scoped: {channel: {locale: value}}. Take the first. */
