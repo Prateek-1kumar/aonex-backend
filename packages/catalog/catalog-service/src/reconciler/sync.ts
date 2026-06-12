@@ -281,10 +281,23 @@ export async function projectSync(
       winningValues: nextWinningValues
     });
 
-    const completenessPercent = quality.specCompleteness ?? archetype.percent;
+    // Headline completeness = structural readiness as the FLOOR, with taxonomy
+    // spec coverage filling the remaining gap toward 100. Previously a
+    // categorized product was graded on spec coverage ALONE, so a fully-formed
+    // listing (title/brand/price/images/identity) collapsed to 0 the moment it
+    // got a category but before enrichment filled the category attributes — the
+    // "score is 0 / scoring is broken" symptom. Structure is what the product
+    // already has; enrichment then visibly lifts the score toward 100.
+    const structural = archetype.percent;
+    const completenessPercent =
+      quality.specCompleteness != null
+        ? Math.round(structural + ((100 - structural) * quality.specCompleteness) / 100)
+        : structural;
     const scoreBreakdown = {
       completeness: completenessPercent,
-      source: quality.specCompleteness != null ? "taxonomy" : "archetype",
+      source: quality.specCompleteness != null ? "blended" : "archetype",
+      structural,
+      specCompleteness: quality.specCompleteness,
       contentQuality: quality.contentQuality,
       ...(quality.specBreakdown ? { specBreakdown: quality.specBreakdown } : { archetype })
     };

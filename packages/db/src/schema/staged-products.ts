@@ -16,6 +16,9 @@ export const stagedProducts = pgTable("staged_products", {
   denormBrand:      text("denorm_brand"),
   denormPrice:      numeric("denorm_price"),
   denormCurrency:   text("denorm_currency"),
+  // Canonical taxonomy node resolved by the ingestion-spine classify stage, so
+  // the Review Queue modal can confirm it and post-approve enrichment can run.
+  categoryNodeId:   text("category_node_id"),
   sourceKind:       text("source_kind").notNull(),
   sourceArtifactId: uuid("source_artifact_id"),
   channelCode:      text("channel_code"),

@@ -19,7 +19,8 @@ import { makeLinkExtractProcessor } from "./processors/link-extract.processor.js
 import { makeCsvParseProcessor } from "./processors/csv-parse.processor.js";
 import { makeEnrichProcessor } from "./processors/enrich.processor.js";
 import { ReconcilerQueueProvider } from "./services/reconciler-queue-provider.js";
-import { createModelProvider, LLMProductExtractor, NvidiaProvider, type IModelProvider } from "@aonex/ingestion-llm-extractor";
+import { makeCategoryClassifier } from "./services/category-classifier.js";
+import { createModelProvider, LLMProductExtractor, type IModelProvider } from "@aonex/ingestion-llm-extractor";
 import { llmResolver, deterministicResolver, type ClassifierResolver } from "@aonex/taxonomy-classifier";
 import { WORKER_DEFAULTS } from "./lib/job-options.js";
 import { CRON_JOBS } from "./jobs/index.js";
@@ -96,13 +97,52 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     { connection: redis, concurrency: WORKER_DEFAULTS.concurrency }
   );
 
+  // LLM provider shared by link extraction, enrichment AND the taxonomy classify
+  // sweep (Groq). When present the spine auto-categorizes at ingestion and the
+  // sweep uses the LLM resolver, so products don't pile up uncategorized in the
+  // Lab; with no key both fall back to deterministic.
+  const groqApiKey = process.env.GROQ_API_KEY;
+  // Groq enforces token-per-day limits PER MODEL, so when the primary enrich
+  // model's daily budget is exhausted (a real cause of "enrichment stuck"), the
+  // provider transparently falls back to this model (independent TPD budget)
+  // instead of failing. 8b-instant has a much larger daily allowance.
+  const groqFallbackModels = [process.env.GROQ_MODEL_FALLBACK ?? "llama-3.1-8b-instant"];
+  let llmProvider: IModelProvider | undefined;
+  let llmModel = "";
+  if (groqApiKey) {
+    llmProvider = createModelProvider({
+      provider: "openai",
+      config: {
+        apiKey: groqApiKey,
+        baseUrl: env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1",
+        fallbackModels: groqFallbackModels,
+      },
+    });
+    llmModel = process.env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile";
+  }
+  const classifierResolver: ClassifierResolver = llmProvider
+    ? llmResolver(llmProvider, llmModel)
+    : deterministicResolver;
+
+  // Spine taxonomy classifier — resolves a canonical category node at ingestion
+  // so clean products admit pre-categorized (and enrich-ready) instead of
+  // stalling in the Lab. Shares the resolver above; the index is cached.
+  const categoryClassifier = makeCategoryClassifier(db.client, classifierResolver);
+
   // LLM-based link extraction worker.
   // Requires OPENAI_API_KEY env var. Falls back to a no-op if missing.
   const openaiApiKey = process.env.OPENAI_API_KEY;
   let linkExtractWorker: Worker | undefined;
   if (openaiApiKey) {
+    // When OPENAI_BASE_URL points at Groq, the same per-model TPD fallback
+    // applies to gap-fill extraction too.
+    const usingGroq = (process.env.OPENAI_BASE_URL ?? "").includes("groq");
     const providerConfig = openaiApiKey
-      ? { apiKey: openaiApiKey, ...(process.env.OPENAI_BASE_URL ? { baseUrl: process.env.OPENAI_BASE_URL } : {}) }
+      ? {
+          apiKey: openaiApiKey,
+          ...(process.env.OPENAI_BASE_URL ? { baseUrl: process.env.OPENAI_BASE_URL } : {}),
+          ...(usingGroq ? { fallbackModels: groqFallbackModels } : {}),
+        }
       : { apiKey: "" };
     const modelProvider = createModelProvider({
       provider: "openai",
@@ -117,39 +157,13 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
         audit,
         extractor,
         reconcilerQueues,
+        classifyCategory: categoryClassifier,
       }),
       { connection: redis, concurrency: 5 }
     );
   } else {
     logger.warn("OPENAI_API_KEY not set — link extraction worker disabled");
   }
-
-  // LLM provider shared by enrichment AND the taxonomy classify sweep (Groq
-  // preferred, then NVIDIA). When a provider is present the sweep uses the LLM
-  // resolver, so newly-ingested products get auto-categorized instead of piling
-  // up uncategorized in the Lab; with no provider it falls back to deterministic.
-  const groqApiKey = process.env.GROQ_API_KEY;
-  const nvidiaApiKey = process.env.NVIDIA_API_KEY;
-  let llmProvider: IModelProvider | undefined;
-  let llmModel = "";
-  if (groqApiKey) {
-    llmProvider = createModelProvider({
-      provider: "openai",
-      config: { apiKey: groqApiKey, baseUrl: env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1" },
-    });
-    llmModel = process.env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile";
-  } else if (nvidiaApiKey) {
-    llmProvider = new NvidiaProvider({
-      apiKey: nvidiaApiKey,
-      baseUrl: env.NVIDIA_BASE_URL,
-      thinking: true,
-      reasoningEffort: "medium",
-    });
-    llmModel = env.NVIDIA_MODEL_ENRICH;
-  }
-  const classifierResolver: ClassifierResolver = llmProvider
-    ? llmResolver(llmProvider, llmModel)
-    : deterministicResolver;
 
   // Cron queue: schedules and dispatches periodic maintenance jobs.
   const cronQueue = new Queue("aonex.cron", { connection: redis });
@@ -197,15 +211,8 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
       { connection: redis, concurrency: 1 },
     );
     logger.info({ model: llmModel }, "enrichment worker: Groq");
-  } else if (nvidiaApiKey && llmProvider) {
-    enrichWorker = new Worker(
-      QUEUE.PRODUCT_ENRICH,
-      makeEnrichProcessor({ db: db.client, provider: llmProvider, model: llmModel }),
-      { connection: redis, concurrency: 2 },
-    );
-    logger.info({ model: llmModel }, "enrichment worker: NVIDIA DeepSeek");
   } else {
-    logger.warn("No GROQ_API_KEY or NVIDIA_API_KEY — enrichment worker disabled");
+    logger.warn("No GROQ_API_KEY — enrichment worker disabled");
   }
 
   const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), csvParseWorker, ...(enrichWorker ? [enrichWorker] : []), cronWorker];

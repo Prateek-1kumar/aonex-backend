@@ -28,6 +28,7 @@ import {
   type RunNewLinkCatalogPathInput,
 } from "../services/new-catalog-link-path.js";
 import type { AdmitOrStageResult } from "@aonex/catalog-service";
+import type { SpineCategoryClassifier } from "@aonex/ingestion-spine";
 import { runSpineLink } from "./ingestion-spine.processor.js";
 import type { ReconcilerQueueProvider } from "../services/reconciler-queue-provider.js";
 
@@ -69,6 +70,12 @@ export interface LinkExtractProcessorDeps {
   _channelCodeFromUrl?: (url: string) => string;
   /** Per-tenant reconcile queue provider; forwarded to runNewLinkCatalogPath. */
   reconcilerQueues: ReconcilerQueueProvider;
+  /**
+   * Taxonomy classifier closure for the spine path — resolves a canonical
+   * category node at ingestion. Forwarded to runSpineLink. Optional: when
+   * absent (e.g. no LLM provider) the spine skips category resolution.
+   */
+  classifyCategory?: SpineCategoryClassifier;
 }
 
 export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
@@ -83,7 +90,13 @@ export function makeLinkExtractProcessor(deps: LinkExtractProcessorDeps) {
     // validation (no shadow-compare exists yet).
     if (process.env.INGESTION_SPINE_ENABLED === "true") {
       return runSpineLink(
-        { db: deps.db, audit: deps.audit, llmExtractor: deps.extractor, reconcilerQueues: deps.reconcilerQueues },
+        {
+          db: deps.db,
+          audit: deps.audit,
+          llmExtractor: deps.extractor,
+          reconcilerQueues: deps.reconcilerQueues,
+          ...(deps.classifyCategory ? { classifyCategory: deps.classifyCategory } : {})
+        },
         {
           tenantId: job.data.tenantId,
           merchantId: job.data.merchantId,

@@ -26,6 +26,49 @@ import { clusterKey } from "@aonex/ingestion-policy-engine";
 import { domainOf } from "@aonex/lib-utils";
 import type { ExtractedFact, ExtractedFactSet } from "@aonex/ingestion-field-extractor";
 
+/** Minimal view of the canonical skuJson the spine reads core fields from.
+ *  (Full type is SkuJson in @aonex/ingestion-enrichment; inlined to avoid a
+ *  package dependency for a read-only projection.) */
+interface SkuJsonCore {
+  title?: string | null;
+  brand?: string | null;
+  gtin?: string | null;
+  mpn?: string | null;
+  model_number?: string | null;
+  description_long?: string | null;
+  description_short?: string | null;
+  category_path?: string | null;
+  images?: unknown;
+  pricing?: { list_price?: number | null; sale_price?: number | null; currency?: string | null } | null;
+}
+
+/** Signals handed to the injected taxonomy classifier. */
+export interface SpineCategorySignals {
+  title?: string;
+  brand?: string;
+  /** Raw/free-text category from extraction (mapped.categoryPath). */
+  sourceCategory?: string;
+}
+
+/** What the classifier returns — mirrors @aonex/taxonomy-classifier's
+ *  FallbackResult, narrowed to what the spine needs. */
+export interface SpineCategoryResult {
+  nodeId: string | null;
+  confidence: number;
+  outcome: "assign" | "propose_node" | "abstain";
+}
+
+/**
+ * Injected taxonomy classifier. The worker owns the (cached) taxonomy index +
+ * LLM resolver and supplies this closure so the spine package stays free of the
+ * classifier/DB-index-loading concern and stays trivially testable. When
+ * omitted (unit tests / lanes without taxonomy) category resolution is skipped
+ * and category confidence stays 0 — preserving prior behavior.
+ */
+export type SpineCategoryClassifier = (
+  signals: SpineCategorySignals
+) => Promise<SpineCategoryResult>;
+
 export interface RunIngestionInput {
   db: DrizzleClient;
   audit: AuditEmitter;
@@ -35,6 +78,8 @@ export interface RunIngestionInput {
   merchantId: MerchantId;
   requestId: string;
   traceId: string;
+  /** Optional: resolve a canonical taxonomy node at ingestion (see type doc). */
+  classifyCategory?: SpineCategoryClassifier;
 }
 
 // Post-extraction results carry `artifactId` + `skuJson` so the worker can run
@@ -53,6 +98,8 @@ export type RunIngestionResult =
       confidenceScore: number;
       artifactId?: string;
       skuJson?: unknown;
+      /** Canonical taxonomy node resolved at ingestion (null = unresolved). */
+      categoryNodeId?: string | null;
     }
   | {
       status: "review";
@@ -61,6 +108,7 @@ export type RunIngestionResult =
       confidenceScore: number;
       artifactId?: string;
       skuJson?: unknown;
+      categoryNodeId?: string | null;
     }
   | { status: "duplicate"; checksum: string }
   | {
@@ -69,6 +117,7 @@ export type RunIngestionResult =
       reasons: string[];
       artifactId?: string;
       skuJson?: unknown;
+      categoryNodeId?: string | null;
     };
 
 /**
@@ -157,6 +206,54 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     };
   }
 
+  // Canonical core fields from the extracted skuJson. The semantic mapper only
+  // assigns canonicalPath to category ATTRIBUTES, so title/brand/price/category
+  // never reach validateResult.attributes (every fact's canonicalPath is null).
+  // Reading core fields from there yields null and makes missing_required +
+  // the title gate fire on EVERY product. The skuJson is the canonical source.
+  const sku = (factSet.skuJson ?? null) as SkuJsonCore | null;
+  const coreFields = {
+    title: sku?.title ?? null,
+    brand: sku?.brand ?? null,
+    gtin: sku?.gtin ?? null,
+    modelNumber: sku?.model_number ?? sku?.mpn ?? null,
+    basePrice: sku?.pricing?.list_price ?? sku?.pricing?.sale_price ?? null,
+    currency: sku?.pricing?.currency ?? null,
+    canonicalCategory: sku?.category_path ?? mapped.categoryPath ?? null
+  };
+
+  // 4b. classify — resolve a canonical taxonomy node at ingestion so the
+  // product is enrich-ready and so category confidence (below) reflects a real
+  // classification instead of a hardcoded 0. Only a confident `assign` yields a
+  // node + non-zero confidence; `propose_node`/`abstain` leave the product
+  // unresolved (confidence 0 → category_ambiguous trips → the "hard" cases the
+  // Review Queue surfaces). No classifier injected → behavior unchanged.
+  let categoryNodeId: string | null = null;
+  let categoryConfidence = 0;
+  if (input.classifyCategory) {
+    const c = await input.classifyCategory({
+      ...(coreFields.title ? { title: coreFields.title } : {}),
+      ...(coreFields.brand ? { brand: coreFields.brand } : {}),
+      ...(coreFields.canonicalCategory ? { sourceCategory: coreFields.canonicalCategory } : {})
+    });
+    if (c.outcome === "assign" && c.nodeId) {
+      categoryNodeId = c.nodeId;
+      categoryConfidence = c.confidence;
+      // When extraction yielded no free-text category, use the resolved node as
+      // the canonical category so the policy's category detector sees a category
+      // (path + confidence) and doesn't flag `category_ambiguous` on a product
+      // we DID confidently classify. Mirrors the catalog-write category bridge.
+      if (!coreFields.canonicalCategory) {
+        coreFields.canonicalCategory = categoryNodeId;
+      }
+    }
+    await emitStageAudit(input.audit, "classify", meta, {
+      categoryNodeId,
+      categoryConfidence,
+      outcome: c.outcome
+    });
+  }
+
   // 5. score — also need active policy for downstream detectors.
   const policyRow = await ensureActivePolicy(input.db);
   // TODO(phase-3): load domain_profiles row and pass sourceReliability to runScore.
@@ -167,8 +264,10 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     tenantId: input.tenantId,
     mappedFactSet: mapped,
     attributes: validateResult.attributes,
-    // TODO(phase-3): wire categoryConfidence from category-detector — currently 0.0 hardcoded
-    categoryConfidence: 0.0,
+    coreFields,
+    // Real classification confidence from the classify stage (0 when no
+    // classifier is injected or the classifier abstained).
+    categoryConfidence,
     domain: domainOf(input.envelope.sourceExternalId),
     categoryRequiredAttributes: validateResult.requiredAttributes
   });
@@ -185,8 +284,10 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
   await persistFacts(input, meta.factSetId, mapped.facts);
 
   // Auto-approve requires a title — applyApprovedDiff throws on missing title,
-  // so auto-approving without one would crash the worker (legacy parity).
-  const titlePresent = Boolean(validateResult.attributes.title);
+  // so auto-approving without one would crash the worker (legacy parity). Read
+  // from coreFields (skuJson), not validateResult.attributes (which never holds
+  // core fields — see the coreFields note above).
+  const titlePresent = Boolean(coreFields.title);
   const shouldAutoApprove = decision.route === "auto_approve" && titlePresent;
 
   // 6. diff
@@ -200,11 +301,22 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     status: shouldAutoApprove ? "auto_approved" : "open",
     payload: {
       ...validateResult.attributes,
+      // Core fields come from the canonical skuJson (not validateResult.attributes,
+      // which only holds category attributes) so applyApprovedDiff can build the
+      // product on the auto-approve path instead of throwing on a null title.
+      title: coreFields.title,
+      brand: coreFields.brand,
+      gtin: coreFields.gtin,
+      modelNumber: coreFields.modelNumber,
+      basePrice: coreFields.basePrice,
+      currency: coreFields.currency,
+      description: sku?.description_long ?? sku?.description_short ?? null,
+      images: Array.isArray(sku?.images) ? sku.images : [],
       attributes: validateResult.attributes,
-      canonicalCategory: mapped.categoryPath,
+      canonicalCategory: coreFields.canonicalCategory,
+      categoryNodeId,
       categorySchemaVersion: validateResult.categorySchemaVersion,
-      // TODO(phase-3): wire categoryConfidence from category-detector — currently 0.0 hardcoded
-      categoryConfidence: 0.0,
+      categoryConfidence,
       evidence: decision.evidence
     }
   });
@@ -228,7 +340,8 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
         productVersionId: approved.productVersionId,
         confidenceScore: decision.score,
         artifactId: persisted.artifactId,
-        skuJson: factSet.skuJson
+        skuJson: factSet.skuJson,
+        categoryNodeId
       };
     }
     return {
@@ -237,7 +350,8 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
       reasons: decision.reviewTasks.map((t) => t.signalKind),
       confidenceScore: decision.score,
       artifactId: persisted.artifactId,
-      skuJson: factSet.skuJson
+      skuJson: factSet.skuJson,
+      categoryNodeId
     };
   }
 
@@ -249,7 +363,11 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     diffId: diff.diffId,
     payload: {
       ...validateResult.attributes,
-      canonicalCategory: mapped.categoryPath,
+      title: coreFields.title,
+      brand: coreFields.brand,
+      basePrice: coreFields.basePrice,
+      currency: coreFields.currency,
+      canonicalCategory: coreFields.canonicalCategory,
       attributes: validateResult.attributes
     },
     facts: mapped.facts
@@ -268,7 +386,8 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
       productVersionId: approved.productVersionId,
       confidenceScore: decision.score,
       artifactId: persisted.artifactId,
-      skuJson: factSet.skuJson
+      skuJson: factSet.skuJson,
+      categoryNodeId
     };
   }
 
@@ -298,7 +417,8 @@ export async function runIngestion(input: RunIngestionInput): Promise<RunIngesti
     reasons: decision.reviewTasks.map((t) => t.signalKind),
     confidenceScore: decision.score,
     artifactId: persisted.artifactId,
-    skuJson: factSet.skuJson
+    skuJson: factSet.skuJson,
+    categoryNodeId
   };
 }
 
