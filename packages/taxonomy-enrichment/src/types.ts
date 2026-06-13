@@ -136,10 +136,15 @@ export interface CandidateAttribute {
 
 /** How well a generated value is supported by the product's OWN data.
  *  - grounded:     value (or its evidence span) is present in the source text.
- *  - inferred:     plausible world-knowledge derivation, no source support.
  *  - weak:         partial / fuzzy support only.
+ *  - inferred:     plausible world-knowledge derivation the model DECLARED (set
+ *                  inferred + reasoning), e.g. "iPhone 15" -> os: iOS. No source
+ *                  support, kept but capped.
+ *  - unverified:   a value emitted as if read, into an attribute the source never
+ *                  mentions, with no declared basis — an unanchored fabrication.
+ *                  Capped so low it is neither auto-applied nor surfaced for review.
  *  - contradicted: conflicts with an explicit known source value. */
-export type Grounding = "grounded" | "weak" | "inferred" | "contradicted";
+export type Grounding = "grounded" | "weak" | "inferred" | "unverified" | "contradicted";
 
 export interface GroundingVerdict {
   grounding: Grounding;
@@ -201,6 +206,9 @@ export interface EnrichmentResult {
   contentGroundingRate: number;
   /** Count of proposable-but-inferred fields awaiting human confirmation. */
   proposedInferred: number;
+  /** Count of unverified (unanchored, no-declared-basis) spec fields. Suppressed
+   *  from auto-apply AND review; surfaced only as "speculative" for transparency. */
+  unverifiedCount: number;
   model?: string;
   usage?: { promptTokens: number; completionTokens: number };
   costUsd?: number;

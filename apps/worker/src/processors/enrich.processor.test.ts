@@ -34,6 +34,7 @@ function mkResult(fields: FieldResult[]): EnrichmentResult {
     groundingRate: 1,
     contentGroundingRate: 0,
     proposedInferred: 0,
+    unverifiedCount: 0,
   };
 }
 

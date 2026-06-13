@@ -223,6 +223,7 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
     groundingRate: 0,
     contentGroundingRate: 0,
     proposedInferred: 0,
+    unverifiedCount: 0,
     model,
   });
 
@@ -335,6 +336,7 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
   const contentGroundingRate = propContentArr.length === 0 ? 0 : contentGrounded / propContentArr.length;
 
   const proposedInferred = specResults.filter((f) => f.proposable && !f.accepted && f.grounding === "inferred").length;
+  const unverifiedCount = specResults.filter((f) => f.grounding === "unverified").length;
 
   return {
     nodeId: input.nodeId,
@@ -348,6 +350,7 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
     groundingRate,
     contentGroundingRate,
     proposedInferred,
+    unverifiedCount,
     model,
     ...(usage ? { usage } : {}),
     ...(costUsd !== undefined ? { costUsd } : {}),

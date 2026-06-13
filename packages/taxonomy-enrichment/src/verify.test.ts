@@ -28,9 +28,20 @@ describe("verifyField grounding", () => {
     expect(v.support).toBe(0);
   });
 
-  test("world-knowledge value not in source -> inferred", () => {
-    const v = verifyField({ key: "connectivity", value: "Bluetooth", confidence: 0.9 }, ctx);
+  test("DECLARED world-knowledge value not in source -> inferred", () => {
+    const v = verifyField(
+      { key: "connectivity", value: "Bluetooth", confidence: 0.9, inferred: true, reasoning: "wireless headphones use Bluetooth" },
+      ctx
+    );
     expect(v.grounding).toBe("inferred");
+    expect(v.support).toBe(0.35);
+  });
+
+  test("UNDECLARED value not in source -> unverified (Gap A: clean fabrication)", () => {
+    // No inferred flag, no reasoning, not in source — could be a hallucination.
+    const v = verifyField({ key: "connectivity", value: "Bluetooth", confidence: 0.9 }, ctx);
+    expect(v.grounding).toBe("unverified");
+    expect(v.support).toBe(0.15);
   });
 
   test("gender derivable from source category -> grounded", () => {

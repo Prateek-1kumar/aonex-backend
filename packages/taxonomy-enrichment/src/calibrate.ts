@@ -23,8 +23,12 @@ export interface CalibrationConfig {
   acceptThreshold: number;
   /** Multiplier applied when the value needed normalization (coerced). */
   coercedPenalty: number;
-  /** Hard ceiling for values the model flagged as inferred AND we found no support. */
+  /** Hard ceiling for DECLARED world-knowledge inferences (no source support). */
   inferredCeiling: number;
+  /** Hard ceiling for UNVERIFIED values (no support, no declared basis). Set below
+   *  acceptThreshold so an unanchored fabrication is never proposable, let alone
+   *  applied — it is persisted only so the UI can show it as "speculative". */
+  unverifiedCeiling: number;
   /** Auto-APPLY (not just propose) inferred world-knowledge values. Default false:
    *  ungrounded values are surfaced for human confirmation, never silently written
    *  to the catalog. The Lab confirmation then teaches the system (alias/learn loop). */
@@ -37,6 +41,7 @@ export const DEFAULT_CALIBRATION: CalibrationConfig = {
   acceptThreshold: 0.5,
   coercedPenalty: 0.92,
   inferredCeiling: 0.6,
+  unverifiedCeiling: 0.3,
   acceptInferred: false,
 };
 
@@ -79,6 +84,8 @@ export function calibrateContent(input: CalibrationInput, cfg: CalibrationConfig
   if (status === "invalid") return REJECT(round2(Math.min(c, 0.2)));
   // Contradicts a confirmed attribute — wrong, drop it (don't even show).
   if (grounding === "contradicted") return REJECT(round2(Math.min(c, 0.1)));
+  // Unanchored content (should it ever be labelled unverified) is capped low.
+  if (grounding === "unverified") c = Math.min(c, cfg.unverifiedCeiling);
 
   const calibrated = round2(clamp01(c));
   return { calibratedConfidence: calibrated, accepted: false, proposable: calibrated >= CONTENT_PROPOSE_THRESHOLD };
@@ -100,9 +107,13 @@ export function calibrate(input: CalibrationInput, cfg: CalibrationConfig = DEFA
   // Contradictions are hallucinated overrides — hard reject.
   if (grounding === "contradicted") return REJECT(round2(Math.min(c, 0.1)));
 
-  // Inferred (world-knowledge) values are kept but capped — they are not anchored
-  // in the merchant's data, so they should not present as near-certain.
+  // Inferred (declared world-knowledge) values are kept but capped — they are not
+  // anchored in the merchant's data, so they should not present as near-certain.
   if (grounding === "inferred") c = Math.min(c, cfg.inferredCeiling);
+
+  // Unverified (unanchored, no declared basis) values are capped below the accept
+  // bar, so they fall out of both `proposable` and `accepted` automatically.
+  if (grounding === "unverified") c = Math.min(c, cfg.unverifiedCeiling);
 
   const calibrated = round2(clamp01(c));
   const proposable = calibrated >= cfg.acceptThreshold;

@@ -78,7 +78,7 @@ describe("enrichProduct", () => {
     const r = await enrichProduct(input, {
       provider: stub(body),
       model: "x",
-      calibration: { wModel: 0.4, wGround: 0.6, acceptThreshold: 0.5, coercedPenalty: 0.92, inferredCeiling: 0.6, acceptInferred: true },
+      calibration: { wModel: 0.4, wGround: 0.6, acceptThreshold: 0.5, coercedPenalty: 0.92, inferredCeiling: 0.6, unverifiedCeiling: 0.3, acceptInferred: true },
     });
     const os = r.fields.find((f) => f.key === "operating-system")!;
     expect(os.accepted).toBe(true);

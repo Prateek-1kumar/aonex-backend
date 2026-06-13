@@ -141,7 +141,7 @@ try {
   });
 
   // ── Aggregate ──
-  let beforeSum = 0, afterSum = 0, proposedSum = 0, groundSum = 0, proposedInfer = 0, acceptedTotal = 0, violations = 0, errors = 0;
+  let beforeSum = 0, afterSum = 0, proposedSum = 0, groundSum = 0, proposedInfer = 0, unverified = 0, acceptedTotal = 0, violations = 0, errors = 0;
   let goldHitsAll = 0, goldTotalAll = 0;
   let contentBeforeSum = 0, contentProposedSum = 0, contentGroundSum = 0, contentFieldsTotal = 0;
   for (const r of rows) {
@@ -150,6 +150,7 @@ try {
     proposedSum += r.result.completenessProposed.score;
     groundSum += r.result.groundingRate;
     proposedInfer += r.result.proposedInferred;
+    unverified += r.result.unverifiedCount;
     acceptedTotal += r.accepted;
     violations += r.result.fields.filter((f) => f.status === "invalid").length;
     if (r.result.error) errors++;
@@ -174,6 +175,7 @@ try {
   console.log(`     auto-applied fields/product:  ${(acceptedTotal / n).toFixed(1)}  (all source-grounded)`);
   console.log(`     grounding rate (auto-applied):${pct(groundSum / n)}%`);
   console.log(`     inferred proposals (review):  ${proposedInfer} total  ·  schema violations flagged: ${violations}  ·  model errors: ${errors}`);
+  console.log(`     unverified (suppressed):      ${unverified} total  (unanchored values, neither applied nor surfaced)`);
   if (goldTotalAll) console.log(`     gold-attr correctness:        ${goldHitsAll}/${goldTotalAll} expected values matched`);
   console.log("=========================================================\n");
   /* eslint-enable no-console */

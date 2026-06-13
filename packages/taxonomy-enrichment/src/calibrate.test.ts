@@ -36,6 +36,14 @@ describe("calibrate", () => {
     expect(r.calibratedConfidence).toBeLessThanOrEqual(0.6);
   });
 
+  test("unverified -> capped below the review bar, never proposable (Gap A)", () => {
+    // Even a maximally confident model can't push an unanchored fabrication into review.
+    const r = calibrate({ modelConfidence: 1, support: 0.15, grounding: "unverified", status: "ok" });
+    expect(r.calibratedConfidence).toBeLessThanOrEqual(0.3);
+    expect(r.proposable).toBe(false);
+    expect(r.accepted).toBe(false);
+  });
+
   test("grounding outweighs a low self-report", () => {
     const low = calibrate({ modelConfidence: 0.2, support: 1, grounding: "grounded", status: "ok" });
     const high = calibrate({ modelConfidence: 1, support: 0.15, grounding: "inferred", status: "ok" });

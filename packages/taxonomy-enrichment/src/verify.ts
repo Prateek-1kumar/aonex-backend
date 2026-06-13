@@ -6,13 +6,19 @@
 //
 //   grounded     — the value (or the span the model cited) is present in source.
 //   weak         — only partial/fuzzy support.
-//   inferred     — no source support; a plausible world-knowledge derivation
-//                  (e.g. "iPhone 15" -> os: iOS). Kept, but down-weighted.
+//   inferred     — no source support, but a world-knowledge derivation the model
+//                  DECLARED (inferred flag + reasoning), e.g. "iPhone 15" -> iOS.
+//                  Kept, but down-weighted.
+//   unverified   — no source support AND no declared basis: a value emitted as if
+//                  read, into an attribute the source never mentions. An unanchored
+//                  fabrication — capped so low it neither applies nor surfaces.
 //   contradicted — conflicts with an explicit known source value -> rejected.
 //
 // This is a grounding check, not a truth oracle: "inferred" values are often
 // correct, but they are not anchored in the merchant's data, so calibration
-// trusts them less and the eval reports them separately.
+// trusts them less and the eval reports them separately. The inferred/unverified
+// split is what stops a clean hallucination into an empty attribute from
+// masquerading as a confident, reviewable proposal.
 
 import { normalizeText, numerals, tokens, valueToText } from "./text.js";
 import type { FieldGeneration, GroundingVerdict, SourceProduct } from "./types.js";
@@ -127,11 +133,17 @@ export function verifyField(gen: FieldGeneration, ctx: VerifyContext): Grounding
     return { grounding: "weak", support: 0.5, detail: "partial source support" };
   }
 
-  // 5) No source support — a world-knowledge inference. Plausible, not anchored:
-  //    support is low enough to stay well below "grounded", but high enough that a
-  //    CONFIDENT inference (e.g. iPhone -> iOS) can clear the accept bar while a
-  //    hesitant one cannot. Calibration caps these so they never present as certain.
-  return { grounding: "inferred", support: 0.35, detail: "no source support (inferred)" };
+  // 5) No source support. The split turns on what the model CLAIMED:
+  //    - inferred:true  → the model declared "I derived this from world knowledge,
+  //      I did not read it" (e.g. "iPhone 15" -> os: iOS). Honest about being
+  //      unanchored → "inferred", support 0.35, so a confident one can clear review.
+  //    - inferred:false → the model emitted the value AS IF read from the source,
+  //      but it isn't there. A misread or a clean fabrication into an empty
+  //      attribute → "unverified", support 0.15, capped below the review bar.
+  if (gen.inferred === true) {
+    return { grounding: "inferred", support: 0.35, detail: "world-knowledge inference (declared)" };
+  }
+  return { grounding: "unverified", support: 0.15, detail: "value not in source, not declared as inferred (unverified)" };
 }
 
 /** Grounding for SYNTHESIZED content (description/SEO/marketing/AEO).
