@@ -1,3 +1,7 @@
+// Integration tests for the source_priority schema against a live Postgres.
+// Global-default (tenant_id NULL) rows are tagged with TEST_GLOBAL_ACTOR so
+// cleanup targets only our rows and never the seeded production global rules.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { schema } from "../index.js";
@@ -5,9 +9,6 @@ import { connectTestDb, closeTestDb } from "../testing/connect.js";
 import { ensureTestTenant, TEST_TENANT_ID } from "../testing/seed-tenant.js";
 import type { DrizzleClient } from "../client.js";
 
-// Marker used on any global-default (tenant_id IS NULL) rows this test inserts,
-// so cleanup can target only our own rows without disturbing Task 1.11's later
-// seed of 19 production global-default rules.
 const TEST_GLOBAL_ACTOR = "test-global:source-priority";
 
 describe("source_priority schema", () => {
@@ -16,7 +17,6 @@ describe("source_priority schema", () => {
   beforeAll(async () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
-    // Scoped cleanup — tenant-scoped rows AND any global rows tagged with our marker.
     await db
       .delete(schema.sourcePriority)
       .where(eq(schema.sourcePriority.tenantId, TEST_TENANT_ID));
@@ -77,7 +77,6 @@ describe("source_priority schema", () => {
       .insert(schema.sourcePriority)
       .values({
         tenantId: null,
-        // attribute_code NULL = applies to all attributes
         attributeCode: null,
         sourceGlob: "akeneo:*",
         channelScope: null,
@@ -111,7 +110,6 @@ describe("source_priority schema", () => {
       .returning();
     const ruleId = insert[0]!.ruleId;
 
-    // Before tombstoning — present in current rules.
     const beforeTombstone = await db
       .select()
       .from(schema.sourcePriority)
@@ -124,13 +122,11 @@ describe("source_priority schema", () => {
       );
     expect(beforeTombstone.length).toBe(1);
 
-    // Tombstone: set effective_to = now().
     await db
       .update(schema.sourcePriority)
       .set({ effectiveTo: new Date() })
       .where(eq(schema.sourcePriority.ruleId, ruleId));
 
-    // After tombstoning — absent from current rules.
     const afterTombstone = await db
       .select()
       .from(schema.sourcePriority)
@@ -143,7 +139,6 @@ describe("source_priority schema", () => {
       );
     expect(afterTombstone.length).toBe(0);
 
-    // Still visible if we ignore the effective_to predicate (sanity).
     const ignoringEffectiveTo = await db
       .select()
       .from(schema.sourcePriority)
@@ -153,8 +148,6 @@ describe("source_priority schema", () => {
   });
 
   test("idx_source_priority_lookup partial index is used for current-rule lookups", async () => {
-    // Seed ~50 rules: 30 active + 20 tombstoned, spread across attribute codes
-    // so the planner sees real cardinality.
     const tombstoneTs = new Date("2026-04-01T00:00:00Z");
     const bulk: Array<typeof schema.sourcePriority.$inferInsert> = [];
     for (let i = 0; i < 30; i += 1) {
@@ -198,7 +191,6 @@ describe("source_priority schema", () => {
     await db.execute(sql`SET enable_seqscan = ON`);
 
     const planJson = JSON.stringify(plan.rows);
-    // The migration names the partial index explicitly; assert it by name.
     expect(planJson).toMatch(/idx_source_priority_lookup/);
   });
 

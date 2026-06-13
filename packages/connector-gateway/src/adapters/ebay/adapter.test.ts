@@ -1,3 +1,6 @@
+// Tests for EbayAdapter and its Nango-proxy transport: OAuth URL, health,
+// offset pagination, error mapping, inventory, and proxy header shape.
+
 import { describe, it, expect, spyOn } from 'bun:test';
 import { EbayAdapter, NangoProxyEbayTransport, type EbayTransport } from './adapter.js';
 import type { ConnectionContext } from '../../contract/provider-adapter.js';
@@ -99,7 +102,7 @@ describe('EbayAdapter.listProducts', () => {
     const local = new EbayAdapter({ nangoConnectBaseUrl: 'https://connect.nango.dev', transport });
     const result = await local.listProducts({ connection: conn, limit: 1 });
     expect(result).toHaveLength(2);
-    expect(requestPaths).toHaveLength(2);  // exactly 2 requests, no extra
+    expect(requestPaths).toHaveLength(2);
     expect(requestPaths[0]).toContain('offset=0');
     expect(requestPaths[1]).toContain('offset=1');
   });

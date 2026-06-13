@@ -1,15 +1,13 @@
-// Retry math — mirrors Nango's `getExponentialBackoff(attempt, max)
-// = min(3000 * 2^attempt, max)` so consumption-side retries align
-// with Nango's webhook delivery cadence. (LLD §4 / Q9.)
+// Retry backoff math, mirroring Nango's min(3000 * 2^attempt, max) so
+// consumption-side retries align with Nango's webhook delivery cadence.
 
-/** Base delay in ms — Nango's constant. */
+/** Base delay in ms, matching Nango's constant. */
 export const RETRY_BASE_MS = 3000;
 export const RETRY_MAX_MS = 600_000;
 
 /**
- * Exponential backoff with optional max ceiling.
- * Deterministic — used at the BullMQ level. HTTP-level retries
- * add jitter (lib-utils/exponential-backoff.ts).
+ * Deterministic exponential backoff (used at the BullMQ level) with an optional
+ * max ceiling. HTTP-level retries add jitter separately.
  */
 export function getExponentialBackoff(attempt: number, maxMs = RETRY_MAX_MS): number {
   if (attempt < 0) return RETRY_BASE_MS;
@@ -17,10 +15,8 @@ export function getExponentialBackoff(attempt: number, maxMs = RETRY_MAX_MS): nu
 }
 
 /**
- * Canonical job options applied to every BullMQ producer call.
- * Sequence: 3s → 6s → 12s → 24s → 48s. <90s before DLQ.
- *
- * `removeOnFail: false` — failed jobs ARE the DLQ. (LLD §13.)
+ * Canonical job options for every BullMQ producer call. `removeOnFail: false`
+ * is deliberate: failed jobs are retained and serve as the dead-letter queue.
  */
 export const STANDARD_RETRY = {
   attempts: 5,

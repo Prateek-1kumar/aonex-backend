@@ -1,6 +1,5 @@
-// Provides a stable test inventory location for schema tests.
-// Uses a fixed UUID so tests are idempotent — inserts on first run, reuses on subsequent runs.
-// The test location is always attached to the test channel (TEST_CHANNEL_ID).
+// Stable test inventory location for schema tests, keyed on a fixed UUID for idempotency.
+// Always attached to the test channel (TEST_CHANNEL_ID).
 
 import { inventoryLocations } from "../schema/channels.js";
 import type { DrizzleClient } from "../client.js";

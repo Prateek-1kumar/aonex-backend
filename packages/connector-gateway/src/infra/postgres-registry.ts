@@ -1,7 +1,6 @@
-// PostgresConnectionRegistry — Postgres implementation of ConnectionLookupPort.
-// Lives in connector-gateway because it implements the gateway's port.
-// Both apps/api and apps/worker depend on this — the shared location
-// eliminates the cross-app import that previously coupled them.
+// Postgres implementation of ConnectionLookupPort over marketplace_connections.
+// Lives here (the port's package) so both apps/api and apps/worker share it
+// instead of importing across apps. Revoked/deleted rows resolve as not-found.
 
 import { and, eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";

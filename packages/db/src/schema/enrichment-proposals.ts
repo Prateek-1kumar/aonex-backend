@@ -1,5 +1,5 @@
-// Catalog enrichment Phase 1 — review-then-apply proposals.
-// One row per "Push to Enrich" run; the catalog is untouched until apply.
+// enrichment_proposals: review-then-apply enrichment runs. One row per "Push to
+// Enrich" run; the catalog is untouched until the proposal is applied.
 
 import { pgTable, uuid, text, jsonb, numeric, timestamp, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";

@@ -1,13 +1,14 @@
-// Anomaly Lab — staging gate. The global core minimum the catalog requires
-// to be "built perfectly". Category-specific attributes are nice-to-have,
-// not gating (spec §3 decision 3, §5.1).
+// Staging-gate core minimum: the global fields the catalog requires before a
+// product is "built perfectly". Category-specific attributes are not gating.
+// "identifier" means a hard ID (gtin OR mpn OR merchant primary_identifier);
+// brand is NOT an identifier.
 
 export const CANONICAL_MINIMUM = [
-  "title",          // non-empty string
-  "brand",          // non-empty string
-  "pricing.primary",// currency + >= 1 tier amount
-  "category_path",  // non-empty
-  "identifier"      // a hard ID present at gate time: gtin OR mpn OR a merchant-supplied primary_identifier (brand is NOT an identifier)
+  "title",
+  "brand",
+  "pricing.primary",
+  "category_path",
+  "identifier"
 ] as const;
 
 export type CanonicalMinimumField = (typeof CANONICAL_MINIMUM)[number];

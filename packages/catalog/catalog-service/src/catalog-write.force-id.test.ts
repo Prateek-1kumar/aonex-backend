@@ -1,9 +1,7 @@
-// Tests for the forceProductId short-circuit in writeAdapterOutput.
-//
-// Covers the anomaly-lab "promote / link to existing" path: a reviewer has
-// confirmed the match, so the write service must attach observations to a
-// specific existing product even when the AdapterOutput's identityHint would
-// NOT resolve to it via normal identity resolution.
+// Tests for the forceProductId short-circuit in writeAdapterOutput: the
+// "link to existing" path where a reviewer-confirmed match attaches
+// observations to a specific product even when the identityHint would not
+// resolve to it normally.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
@@ -22,15 +20,11 @@ import type {
 } from "@aonex/catalog-source-adapters";
 import { writeAdapterOutput } from "./catalog-write.js";
 
-// Use a unique tenant UUID distinct from any other test file to avoid
-// cross-test contamination.
 const FORCE_ID_TEST_TENANT_ID =
   "ffffffff-f0f0-4000-b000-000000000099" as unknown as TenantId;
 const MERCHANT = TEST_MERCHANT_ID as unknown as MerchantId;
 
 const TEST_ACTOR = "test:catalog-write-force-id";
-
-// ---- Helpers ---------------------------------------------------------------
 
 function obs(overrides: Partial<CanonicalObservation> = {}): CanonicalObservation {
   return {
@@ -68,8 +62,6 @@ async function cleanup(db: DrizzleClient): Promise<void> {
   await db.execute(
     sql`DELETE FROM catalog_events WHERE tenant_id = ${FORCE_ID_TEST_TENANT_ID}`
   );
-  // catalog_product_revisions has an immutability trigger; disable around
-  // the test-tenant scrub then re-enable.
   await db.execute(
     sql`ALTER TABLE catalog_product_revisions DISABLE TRIGGER trg_revisions_immutable`
   );
@@ -94,9 +86,6 @@ async function cleanup(db: DrizzleClient): Promise<void> {
 }
 
 async function seedTenant(db: DrizzleClient): Promise<void> {
-  // Seed a dedicated tenant for this test file (distinct UUID from the shared
-  // TEST_TENANT_ID used by sibling tests). onConflictDoNothing makes re-runs
-  // idempotent.
   await db
     .insert(schema.tenants)
     .values({
@@ -136,10 +125,6 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
   });
 
   test("forceProductId skips identity resolution and attaches to specified product", async () => {
-    // Seed a product P with an identity that the incoming AdapterOutput will
-    // NOT match (different GTIN, no overlapping identity signals). The
-    // AdapterOutput intentionally has a completely different titleForFuzzy
-    // and no gtin/mpn/brand — normal resolution would create a NEW product.
     const seededProduct = await db
       .insert(schema.catalogProducts)
       .values({
@@ -153,7 +138,6 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
       .returning({ productId: schema.catalogProducts.productId });
     const forcedProductId = seededProduct[0]!.productId;
 
-    // Count products before to confirm no new row is inserted.
     const beforeCount = Number(
       (
         await db
@@ -163,10 +147,6 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
       )[0]!.count
     );
 
-    // AdapterOutput with an identity hint that has NOTHING in common with
-    // the seeded product: different title, no gtin/mpn/brand. Normal
-    // resolution would return productId:null → create=true. With
-    // forceProductId, it must instead attach to forcedProductId.
     const result = await writeAdapterOutput({
       db,
       tenantId: FORCE_ID_TEST_TENANT_ID,
@@ -179,8 +159,6 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
           })
         ],
         identityHint: {
-          // Deliberately unrelated title — would NOT fuzzy-match the seeded
-          // product (which has a different gtin and no matching title).
           titleForFuzzy: "ZZZ Completely Unrelated Product XYZ 99999",
           targetIsVariant: false
         }
@@ -189,20 +167,12 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
       forceProductId: forcedProductId
     });
 
-    // --- Core assertions ---
-
-    // Must attach to the specified product, not create a new one.
     expect(result.productId).toBe(forcedProductId);
     expect(result.created).toBe(false);
 
-    // Contract: forceProductId always yields created=false and matchPath="gtin"
-    // (the "gtin" is a placeholder for operator-forced; see forceProductId JSDoc).
-    // These assertions lock the contract so a future change (e.g. adding a
-    // "forced" IdentityMatchPath member) surfaces here explicitly.
     expect(result.created).toBe(false);
     expect(result.matchPath).toBe("gtin");
 
-    // No new catalog_products row should have been inserted.
     const afterCount = Number(
       (
         await db
@@ -213,7 +183,6 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
     );
     expect(afterCount).toBe(beforeCount);
 
-    // The title observation must have landed on the forced product's values.
     const productRow = await db
       .select({ values: schema.catalogProducts.values })
       .from(schema.catalogProducts)
@@ -223,12 +192,10 @@ describe("writeAdapterOutput — forceProductId (anomaly-lab link-to-existing)",
     expect(values.title["shopify-au"].en_AU.length).toBe(1);
     expect(values.title["shopify-au"].en_AU[0].value).toBe("Forced Attach Title");
 
-    // observationsWritten should reflect the single title observation.
     expect(result.observationsWritten).toBe(1);
     expect(result.pricingObservationsWritten).toBe(0);
     expect(result.inventoryObservationsWritten).toBe(0);
 
-    // Outbox event must be product.updated (not created).
     const events = await db
       .select()
       .from(schema.catalogEvents)

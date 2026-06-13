@@ -1,8 +1,6 @@
-// Tests for the catalog write service (plan §3.5, spec §13).
-//
-// Runs against the real dev DB. Each test builds a small synthetic
-// AdapterOutput inline (no Phase-2 fixtures) so failures point straight at
-// the write-service algorithm, not at adapter input quirks.
+// Tests for the catalog write service. Runs against the real dev DB; each test
+// builds a small synthetic AdapterOutput inline so failures point at the
+// write-service algorithm, not adapter input quirks.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { and, eq, sql } from "drizzle-orm";
@@ -38,8 +36,6 @@ const MERCHANT = TEST_MERCHANT_ID as unknown as MerchantId;
 const CHANNEL = TEST_CHANNEL_ID as unknown as ChannelId;
 
 const TEST_ACTOR = "test:catalog-write";
-
-// ---- Helpers ---------------------------------------------------------------
 
 function obs(overrides: Partial<CanonicalObservation> = {}): CanonicalObservation {
   return {
@@ -82,7 +78,6 @@ function adapterOutput(parts: Partial<AdapterOutput> = {}): AdapterOutput {
 }
 
 async function seedRules(db: DrizzleClient): Promise<void> {
-  // Minimal default catch-all so projectSync has something to pick.
   await db.insert(schema.sourcePriority).values({
     tenantId: null,
     attributeCode: null,
@@ -95,9 +90,6 @@ async function seedRules(db: DrizzleClient): Promise<void> {
 }
 
 async function cleanup(db: DrizzleClient): Promise<void> {
-  // Side tables and revisions must be cleared before catalog_products due
-  // to logical referential ordering (no DB-level FK on revisions/events,
-  // but pricing/inventory observations carry product_id we want to scrub).
   await db
     .delete(schema.catalogPricingObservations)
     .where(eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID));
@@ -107,8 +99,6 @@ async function cleanup(db: DrizzleClient): Promise<void> {
   await db.execute(
     sql`DELETE FROM catalog_events WHERE tenant_id = ${TEST_TENANT_ID}`
   );
-  // catalog_product_revisions has an immutability trigger; disable around
-  // the test-tenant scrub then re-enable.
   await db.execute(
     sql`ALTER TABLE catalog_product_revisions DISABLE TRIGGER trg_revisions_immutable`
   );
@@ -118,8 +108,6 @@ async function cleanup(db: DrizzleClient): Promise<void> {
   await db.execute(
     sql`ALTER TABLE catalog_product_revisions ENABLE TRIGGER trg_revisions_immutable`
   );
-  // Identity-policy side-effects must be cleared before catalog_products
-  // (identity_log has FK to catalog_products.product_id).
   await db
     .delete(schema.identityLog)
     .where(eq(schema.identityLog.tenantId, TEST_TENANT_ID));
@@ -324,7 +312,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
   });
 
   test("4. dedup hint: same (source, sourceRecordId, value) is skipped", async () => {
-    // Seed a product with an existing title observation.
     const existing = {
       source: "shopify:connector",
       source_record_id: "gid://shopify/Product/T4",
@@ -377,8 +364,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
   });
 
   test("5. N=20 observation cap overflows oldest to revision diff", async () => {
-    // Pre-seed values with 20 title observations across distinct sourceRecordId
-    // / observed_at pairs so the dedup hint does not trigger.
     const twentyObservations = Array.from({ length: 20 }, (_, i) => ({
       source: `src-${i}`,
       source_record_id: `rec-${i}`,
@@ -429,8 +414,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
       .where(eq(schema.catalogProducts.productId, seededId));
     const values = row[0]!.values as Record<string, any>;
     expect(values.title["shopify-au"].en_AU.length).toBe(20);
-    // The oldest observation (i=0, observed_at ~2026-05-01T00:00Z) should
-    // have been popped.
     const remainingIds: string[] = values.title["shopify-au"].en_AU.map(
       (o: any) => o.source_record_id as string
     );
@@ -519,9 +502,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
   });
 
   test("8. attach branch consults identity-policy gate (smoke)", async () => {
-    // Seed a priority-1 rule for shopify:* so the policy gate accepts a
-    // single-source gtin update. This rule is scoped to TEST_ACTOR (cleaned
-    // up in afterAll) and lives alongside the default catch-all.
     await db.insert(schema.sourcePriority).values({
       tenantId: null,
       attributeCode: null,
@@ -532,8 +512,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
       actor: TEST_ACTOR
     });
 
-    // Seed an existing product without a gtin so the attach path applies a
-    // new identity value via the policy gate.
     const seedGtin = "08000000000008";
     const seed = await db
       .insert(schema.catalogProducts)
@@ -559,8 +537,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
             value: "Wiring Smoke"
           })
         ],
-        // mpn+brand match the seeded product → attach path. gtin is new →
-        // policy gate applies the update.
         identityHint: {
           gtin: seedGtin,
           mpn: "MPN-08",
@@ -574,9 +550,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
     expect(result.created).toBe(false);
     expect(result.productId).toBe(seededId);
 
-    // The policy gate must have left a footprint: an identity_log row for
-    // the gtin update (deep behaviour is covered in identity-policy.test.ts;
-    // this just verifies the wiring is reached).
     const logs = await db
       .select()
       .from(schema.identityLog)
@@ -690,9 +663,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
   });
 
   test("I3. no reconcile jobs enqueued when reconcilerQueue provided but no pricing/inventory observations", async () => {
-    // Guard: the length-guards inside writeAdapterOutput must prevent any
-    // enqueue call even when a reconcilerQueue is supplied. This pins the
-    // regression so a future refactor cannot accidentally drop the guards.
     const added: Array<{ name: string; data: ReconcilerJobData; opts: any }> = [];
     const stubQueue = {
       name: reconcilerQueueName(TEST_TENANT_ID),
@@ -708,7 +678,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
       merchantId: MERCHANT,
       actor: "test",
       reconcilerQueue: stubQueue,
-      // No channelCodeToId needed — no side-table observations.
       adapterOutput: adapterOutput({
         observations: [
           obs({
@@ -727,9 +696,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
   });
 
   test("observation cap is 20 and newest wins on overflow", async () => {
-    // Pins both (a) the public cap constant and (b) newest-wins eviction
-    // behaviour: 21 distinct observations on the same leaf must collapse to
-    // 20, with the oldest (iter-0) evicted and iter-1..iter-20 surviving.
     expect(DEFAULT_OBSERVATION_CAP).toBe(20);
 
     const baseAt = Date.parse("2026-01-01T00:00:00Z");
@@ -748,8 +714,6 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
             obs({
               attributeCode: "title",
               value: `iter-${i}`,
-              // Each one strictly newer than the previous so the oldest-by-
-              // observed_at eviction targets iter-0 unambiguously.
               observedAt: new Date(baseAt + i * 1000),
               sourceRecordId: `t12-r-${i}`
             })
@@ -768,11 +732,10 @@ describe("writeAdapterOutput (plan §3.5, spec §13)", () => {
       .where(eq(schema.catalogProducts.productId, lastProductId!));
     expect(rows.length).toBe(1);
 
-    // values shape: { title: { "shopify-au": { en_AU: StoredObservation[] } } }
     const leaf = (rows[0]!.values as Record<string, any>).title["shopify-au"]
       .en_AU as Array<{ value: string }>;
 
-    expect(leaf.length).toBe(20); // cap holds
+    expect(leaf.length).toBe(20);
     const surviving = leaf.map((o) => o.value);
     expect(surviving).not.toContain("iter-0");
     expect(surviving).toContain("iter-1");

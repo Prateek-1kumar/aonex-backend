@@ -1,10 +1,7 @@
-// Public API of @aonex/connector-gateway — the only sanctioned path to
-// marketplace providers (ACL invariant I1: product code never imports
-// @nangohq/node directly; HLD §17).
-//
-// Re-exports the provider contract, the factory, the concrete adapters
-// (mock / Nango / Shopify / eBay), the ConnectorGateway facade, and the
-// Postgres connection registry.
+// Public API of @aonex/connector-gateway: the only sanctioned path to
+// marketplace providers (invariant I1 — product code must never import
+// @nangohq/node directly). Re-exports the contract, factory, adapters, the
+// gateway facade, and the Postgres connection registry.
 
 export * from "./contract/index.js";
 export * from "./factory.js";

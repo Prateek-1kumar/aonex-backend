@@ -1,5 +1,6 @@
-// Integration test — resolveIdentity primary_identifier (merchant SKU) path.
-// Unique tenant to avoid colliding with other resolver test files.
+// Integration test for the resolveIdentity primary_identifier (merchant SKU) path.
+// Unique tenant id to avoid colliding with other resolver test files.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { schema } from "@aonex/db";
@@ -23,7 +24,6 @@ describe("resolveIdentity — primary_identifier (merchant SKU)", () => {
     await ensureTestMerchant(db);
     await db.delete(schema.catalogProducts).where(eq(schema.catalogProducts.tenantId, TENANT_ID));
 
-    // Two distinct pieces, SAME brand, near-identical titles — the fuzzy-merge trap.
     const rg19 = await db.insert(schema.catalogProducts).values({
       tenantId: TENANT_ID, merchantId: TEST_MERCHANT_ID,
       primaryIdentifier: "m1:RG19",

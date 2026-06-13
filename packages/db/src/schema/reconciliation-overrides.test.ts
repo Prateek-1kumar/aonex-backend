@@ -1,3 +1,5 @@
+// Integration tests for the reconciliation_overrides schema against a live Postgres.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
 import { schema } from "../index.js";
@@ -28,7 +30,6 @@ describe("reconciliation_overrides schema", () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
-    // Scoped cleanup — join through catalog_products by tenant.
     await db.execute(sql`
       DELETE FROM reconciliation_overrides
       WHERE product_id IN (
@@ -91,7 +92,6 @@ describe("reconciliation_overrides schema", () => {
         productId,
         attributeCode: "description",
         channelCode: "amazon",
-        // Use default locale_code ('_unscoped').
         frozenValue: { value: "Holiday season description" },
         frozenUntil,
         actor: "marketing",
@@ -130,7 +130,6 @@ describe("reconciliation_overrides schema", () => {
       .where(eq(schema.reconciliationOverrides.productId, productId));
     expect(before.length).toBe(1);
 
-    // Delete parent — cascade should remove the override row.
     await db
       .delete(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, productId));

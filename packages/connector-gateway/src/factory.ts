@@ -1,5 +1,5 @@
-// Gateway factory — composition-root callers select implementation
-// via env. The self-host vs cloud switch is a single env var.
+// Gateway factory: selects the connector implementation from env, returning the
+// in-memory Mock under NODE_ENV=test and the Nango-backed adapter otherwise.
 
 import type { Env } from "@aonex/types";
 import type { ConnectorAdapterPhase1 } from "./contract/index.js";

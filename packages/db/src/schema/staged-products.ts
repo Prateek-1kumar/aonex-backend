@@ -1,8 +1,6 @@
-// Anomaly Lab — staging gate, Task 1. staged_products table.
-// Hard-block holding area for ingests that fail the catalog readiness gate.
-// Migration is ground truth — see migrations/0022_staged_products.sql.
-// tenant_id / merchant_id are intentionally FK-free (transient operational
-// data with no catalog_products parent — see the migration header).
+// staged_products: hard-block holding area for ingests that fail the catalog
+// readiness gate. tenant_id/merchant_id are FK-free by design (transient
+// operational data with no catalog_products parent).
 
 import { pgTable, uuid, text, jsonb, numeric, timestamp } from "drizzle-orm/pg-core";
 
@@ -16,8 +14,6 @@ export const stagedProducts = pgTable("staged_products", {
   denormBrand:      text("denorm_brand"),
   denormPrice:      numeric("denorm_price"),
   denormCurrency:   text("denorm_currency"),
-  // Canonical taxonomy node resolved by the ingestion-spine classify stage, so
-  // the Review Queue modal can confirm it and post-approve enrichment can run.
   categoryNodeId:   text("category_node_id"),
   sourceKind:       text("source_kind").notNull(),
   sourceArtifactId: uuid("source_artifact_id"),

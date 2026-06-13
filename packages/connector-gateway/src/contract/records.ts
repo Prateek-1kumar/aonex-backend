@@ -1,6 +1,5 @@
-// HLD §17 — types the gateway hands to Aonex business code.
-// Vendor terms (Nango's `connectionId`, `providerConfigKey`,
-// `_nango_metadata`) NEVER appear in these shapes.
+// Canonical record/sync types the gateway hands to business code. Vendor terms
+// (Nango's connectionId, providerConfigKey, _nango_metadata) never appear here.
 
 import type { Marketplace, MerchantId } from "@aonex/types";
 
@@ -9,7 +8,7 @@ export interface ConnectorCapabilities {
   marketplace: Marketplace;
   /** Sync model names this connection supports (e.g. 'ShopifyProduct'). */
   syncs: readonly string[];
-  /** True if Phase 5 write-back is supported. */
+  /** True if write-back publishing is supported. */
   canPublish: boolean;
 }
 
@@ -61,7 +60,7 @@ export interface FetchRecordInput {
   externalId: string;
 }
 
-/** Sync state per HLD §16.5 — connection-level rollup. */
+/** Connection-level rollup of the latest sync state. */
 export interface SyncStatus {
   marketplace: Marketplace;
   lastSyncAt?: Date;

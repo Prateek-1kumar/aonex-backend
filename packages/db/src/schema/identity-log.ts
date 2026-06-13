@@ -1,12 +1,6 @@
-// Catalog redesign Phase 1, Task 1.8 — identity_log audit table.
-//
-// Append-only log of changes to product identity fields (gtin, mpn, brand,
-// model_number, ...). Low-velocity, simple single-column PK — no partitioning.
-// Every row records a single field-level transition with the source that
-// triggered it and an optional rationale.
-//
-// Drizzle schema is used for INSERT/SELECT typing only; the migration is the
-// ground truth — see migrations/0014_identity_log.sql.
+// identity_log: append-only audit of product identity-field transitions (gtin,
+// mpn, brand, model_number, ...). One row per field-level change, with the source
+// that triggered it and an optional rationale.
 
 import { pgTable, uuid, bigint, text, timestamp } from "drizzle-orm/pg-core";
 import { catalogProducts } from "./catalog-products.js";

@@ -1,3 +1,6 @@
+// Integration tests for the catalog_events outbox + DLQ schema against a live
+// Postgres: defaults, FOR UPDATE SKIP LOCKED claim isolation, indexes, partitions.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { inArray, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -12,8 +15,6 @@ const DATABASE_URL =
 
 describe("catalog_events schema", () => {
   let db: DrizzleClient;
-  // Track all event_ids inserted under the test tenant so cleanup can scope
-  // both catalog_events (by tenant_id) AND catalog_events_dlq (by event_id).
   const insertedEventIds: number[] = [];
 
   async function cleanup(): Promise<void> {
@@ -48,9 +49,6 @@ describe("catalog_events schema", () => {
         tenantId: TEST_TENANT_ID,
         payload: { winning: { title: "Test" } },
         triggeredBy: "ingestion:shopify"
-        // occurredAt: defaults to now()
-        // publishedAt: NULL by default
-        // publishAttempts: 0 by default
       })
       .returning();
     const row = rows[0]!;
@@ -68,8 +66,6 @@ describe("catalog_events schema", () => {
   });
 
   test("FOR UPDATE SKIP LOCKED isolates claims between concurrent workers", async () => {
-    // Insert 3 unpublished events under a unique productId so this test's
-    // claim set is isolated from rows seeded by other tests in this file.
     const productId = randomUUID();
     const inserted = await db
       .insert(schema.catalogEvents)
@@ -96,16 +92,10 @@ describe("catalog_events schema", () => {
       .returning({ eventId: schema.catalogEvents.eventId });
     insertedEventIds.push(...inserted.map((r) => r.eventId));
 
-    // Open TWO independent connections from a dedicated Pool so each can hold
-    // a row lock concurrently. The shared test Drizzle client is a single Pool
-    // whose `transaction()` checks out one client per tx, but to be defensive
-    // about the test exercising real concurrency we use a fresh Pool here.
     const pool = new Pool({ connectionString: DATABASE_URL, max: 4 });
     const clientA = await pool.connect();
     const clientB = await pool.connect();
     try {
-      // tx1: BEGIN + claim with FOR UPDATE SKIP LOCKED. The lock is held until
-      // we COMMIT/ROLLBACK.
       await clientA.query("BEGIN");
       const claimA = await clientA.query<{ event_id: string }>(
         `SELECT event_id FROM catalog_events
@@ -117,8 +107,6 @@ describe("catalog_events schema", () => {
       );
       expect(claimA.rows.length).toBe(3);
 
-      // tx2: independent connection, same claim — should get 0 rows because
-      // tx1 still holds the locks.
       await clientB.query("BEGIN");
       const claimB = await clientB.query<{ event_id: string }>(
         `SELECT event_id FROM catalog_events
@@ -131,10 +119,8 @@ describe("catalog_events schema", () => {
       expect(claimB.rows.length).toBe(0);
       await clientB.query("ROLLBACK");
 
-      // Commit tx1, releasing the locks.
       await clientA.query("COMMIT");
 
-      // Now a fresh claim on clientB picks up all 3 rows.
       await clientB.query("BEGIN");
       const claimB2 = await clientB.query<{ event_id: string }>(
         `SELECT event_id FROM catalog_events
@@ -154,8 +140,6 @@ describe("catalog_events schema", () => {
   });
 
   test("idx_catalog_events_unpublished partial index is used for unpublished-events claim", async () => {
-    // Seed a mix of unpublished and published rows so the planner sees real
-    // selectivity for the partial index over published_at IS NULL.
     const productId = randomUUID();
     const baseTs = Date.parse("2026-05-10T00:00:00Z");
     const unpublished: Array<typeof schema.catalogEvents.$inferInsert> = [];
@@ -199,9 +183,6 @@ describe("catalog_events schema", () => {
     await db.execute(sql`SET enable_seqscan = ON`);
 
     const planJson = JSON.stringify(plan.rows);
-    // The partition-leaf indexes inherit the parent partial index. Their names
-    // (catalog_events_<part>_occurred_at_idx) all reference the same partial
-    // definition. Assert SOME index scan was chosen on the partitioned table.
     expect(planJson).toMatch(/Index Scan|Index Only Scan/);
   });
 
@@ -237,7 +218,6 @@ describe("catalog_events schema", () => {
     expect(dlq.attempts).toBe(5);
     expect(dlq.failedAt).toBeInstanceOf(Date);
 
-    // Source event is still present — DLQ does not delete from catalog_events.
     const sourceExists = await db.execute(
       sql`SELECT event_id FROM catalog_events WHERE event_id = ${event.eventId}`
     );

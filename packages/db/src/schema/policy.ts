@@ -1,7 +1,5 @@
-// HLD §14 / §20 — policy_versions.
-// Phase 1 ships the table + seeds the default v1 row so audit
-// rows can reference a `policy_version` from day one. The Policy
-// Engine itself is Phase 2.
+// policy_versions: scoring thresholds + weights for the Policy Engine.
+// A default v1 row is seeded so audit rows can reference a policy_version.
 
 import {
   pgTable,
@@ -20,19 +18,19 @@ export const policyVersions = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     /** Human-readable version, e.g. 'v1', 'v1.1'. */
     version: varchar("version", { length: 32 }).notNull(),
-    /** ≥0.90 → auto_approved per HLD §14.1 */
+    /** Score ≥ this → auto_approved. */
     autoApproveThreshold: numeric("auto_approve_threshold", { precision: 4, scale: 4 })
       .notNull()
       .default("0.9000"),
-    /** 0.55–0.89 → review_task per HLD §14.1 */
+    /** Score in [anomaly, auto_approve) → review_task. */
     anomalyThreshold: numeric("anomaly_threshold", { precision: 4, scale: 4 })
       .notNull()
       .default("0.5500"),
-    /** <0.55 → rejected per HLD §14.1 */
+    /** Score < this → rejected. */
     rejectThreshold: numeric("reject_threshold", { precision: 4, scale: 4 })
       .notNull()
       .default("0.5500"),
-    /** Weighted scoring formula coefficients — HLD §14.1 */
+    /** Weighted scoring formula coefficients. */
     scoringWeights: jsonb("scoring_weights").$type<Record<string, number>>().notNull(),
     active: boolean("active").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()

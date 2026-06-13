@@ -1,10 +1,6 @@
-// ShopifyAdapter — provider-native implementation via Nango proxy.
-//
-// WHY: All Shopify API calls route through the Nango proxy
-// (${nangoHost}/proxy/...) so token management, refresh, and shop
-// domain resolution stay in Nango — the adapter never touches raw
-// credentials. Changing SHOPIFY_API_VERSION or switching to GraphQL
-// happens here without touching any business code.
+// Shopify implementation of MarketplaceLiveAdapter, routing every API call
+// through the Nango proxy so token refresh and shop-domain resolution stay in
+// Nango and the adapter never touches raw credentials.
 
 import type { OAuthUrlResult, CreateOAuthUrlInput, InventoryRecord } from '../../contract/index.js';
 import type {
@@ -54,8 +50,6 @@ export class NangoProxyShopifyTransport implements ShopifyTransport {
 export class ShopifyAdapter implements MarketplaceLiveAdapter {
   constructor(private readonly config: ShopifyAdapterConfig) {}
 
-  // ── OAuth ─────────────────────────────────────────────────────────────
-
   async createOAuthUrl(input: CreateOAuthUrlInput): Promise<OAuthUrlResult> {
     const url = `${this.config.nangoConnectBaseUrl}?session_token=${input.sessionToken}`;
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -66,8 +60,6 @@ export class ShopifyAdapter implements MarketplaceLiveAdapter {
     return { accessToken: '', scopes: [] };
   }
 
-  // ── Health ────────────────────────────────────────────────────────────
-
   async healthCheck(input: { connection: ConnectionContext }): Promise<boolean> {
     const res = await this.config.transport.request(
       input.connection,
@@ -75,8 +67,6 @@ export class ShopifyAdapter implements MarketplaceLiveAdapter {
     );
     return res.ok;
   }
-
-  // ── Ingestion ─────────────────────────────────────────────────────────
 
   async listProducts(input: ListProductsInput): Promise<ProviderProduct[]> {
     const limit = input.limit ?? 50;
@@ -120,8 +110,6 @@ export class ShopifyAdapter implements MarketplaceLiveAdapter {
       available: v.inventoryQuantity ?? v.inventory_quantity ?? 0
     }));
   }
-
-  // ── Distribution ──────────────────────────────────────────────────────
 
   async publishListing(input: { connection: ConnectionContext; payload: unknown }): Promise<{ success: boolean; externalListingId?: string }> {
     const res = await this.config.transport.request(

@@ -1,7 +1,6 @@
-// Tests for the identity resolver (spec §18). Runs against the real dev DB
-// using the shared @aonex/db testing helpers. Each test seeds a row in
-// catalog_products (scoped to TEST_TENANT_ID), invokes resolveIdentity, and
-// asserts the returned IdentityResolverResult.
+// Tests for resolveIdentity. Runs against the real dev DB via the shared
+// @aonex/db testing helpers; each test seeds a catalog_products row scoped to
+// TEST_TENANT_ID, invokes resolveIdentity, and asserts the result.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
@@ -27,7 +26,6 @@ describe("resolveIdentity (spec §18)", () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
-    // Clear any leftover rows from previous runs (scoped to test tenant only).
     await db
       .delete(schema.catalogProducts)
       .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
@@ -129,9 +127,6 @@ describe("resolveIdentity (spec §18)", () => {
   });
 
   test("4. Fuzzy review band (0.5–0.7) returns null + reviewTaskSuggested", async () => {
-    // Seed a single weak candidate. Brand exact match contributes 1.0 × 0.15;
-    // title-similarity is deliberately low so the composite lands in the
-    // 0.5–0.7 review band (signalCoverage = 0.40 — only brand+title signals).
     const inserted = await db
       .insert(schema.catalogProducts)
       .values({
@@ -154,7 +149,6 @@ describe("resolveIdentity (spec §18)", () => {
       tenantId: TENANT,
       identityHint: {
         brand: "Acme",
-        // Deliberately low J-W similarity to keep composite ~0.65.
         titleForFuzzy: "qqq vvv jjj kkk"
       },
       inferredFamily: "widget"

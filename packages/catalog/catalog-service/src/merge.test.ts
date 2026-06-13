@@ -1,16 +1,7 @@
-// Tests for mergeProducts + unmergeProduct (plan §3.8, spec §18.1).
-//
-// Runs against the real dev DB. Each test seeds two-or-more catalog_products
-// rows scoped to TEST_TENANT_ID with synthetic observations, then exercises
-// `mergeProducts` / `unmergeProduct` and asserts the spec §18.1 invariants:
-//   - observations moved into winner.values (preserving source + sourceRecordId)
-//   - variants re-parented onto winner
-//   - side-table rows moved with merged_from_product_id set
-//   - loser tombstoned (status='merged_into') — never deleted
-//   - revision row on winner carries the full undo recipe in diff
-//   - product_lineage row per loser
-//   - catalog.product.merged / catalog.product.unmerged outbox event
-//   - unmerge restores everything and is idempotent on re-call
+// Tests for mergeProducts + unmergeProduct against the real dev DB. Each test
+// seeds catalog_products rows scoped to TEST_TENANT_ID with synthetic
+// observations, then asserts the merge/unmerge invariants: observations moved,
+// variants re-parented, side-tables moved, loser tombstoned, undo + idempotency.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { and, eq, sql } from "drizzle-orm";
@@ -33,8 +24,6 @@ import { mergeProducts, splitProduct, unmergeProduct } from "./merge.js";
 
 const TENANT = TEST_TENANT_ID as unknown as TenantId;
 const TEST_ACTOR = "test:catalog-merge";
-
-// ---- Helpers ---------------------------------------------------------------
 
 interface StoredObservation {
   source: string;
@@ -112,7 +101,6 @@ async function seedRules(db: DrizzleClient): Promise<void> {
 }
 
 async function cleanup(db: DrizzleClient): Promise<void> {
-  // Order matters: lineage / events / observations / revisions before products.
   await db.execute(sql`
     DELETE FROM product_lineage
     WHERE product_id IN (
@@ -128,7 +116,6 @@ async function cleanup(db: DrizzleClient): Promise<void> {
   await db
     .delete(schema.catalogInventoryObservations)
     .where(eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID));
-  // _current rows have no tenant column — scope by product_id via subselect.
   await db.execute(sql`
     DELETE FROM catalog_pricing_current
     WHERE product_id IN (
@@ -153,7 +140,6 @@ async function cleanup(db: DrizzleClient): Promise<void> {
   await db.execute(
     sql`ALTER TABLE catalog_product_revisions ENABLE TRIGGER trg_revisions_immutable`
   );
-  // Clear self-references (parent_product_id, merged_into_product_id) before deleting products.
   await db
     .update(schema.catalogProducts)
     .set({ parentProductId: null, mergedIntoProductId: null })
@@ -220,7 +206,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(result.observationsMoved).toBe(1);
     expect(result.lineageIds.length).toBe(1);
 
-    // Winner now carries both observations on the title leaf.
     const winnerRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -231,12 +216,10 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(titleLeaf.length).toBe(2);
     expect(titleLeaf.map((o) => o.value)).toContain("Winner Title");
     expect(titleLeaf.map((o) => o.value)).toContain("Loser Title");
-    // source + source_record_id preserved on the moved-in observation.
     const movedIn = titleLeaf.find((o) => o.value === "Loser Title")!;
     expect(movedIn.source).toBe("ebay:connector");
     expect(movedIn.source_record_id).toBe("loser-rec-1");
 
-    // Loser tombstoned, not deleted.
     const loserRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -245,7 +228,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(loser.status).toBe("merged_into");
     expect(loser.mergedIntoProductId).toBe(winnerId);
 
-    // Revision row on winner with reason='manual_merge' + diff containing undo recipe.
     const revs = await db
       .select()
       .from(schema.catalogProductRevisions)
@@ -271,7 +253,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(rev.actor).toBe("test:steward");
     expect(rev.revisionId).toBe(result.revisionId);
 
-    // product_lineage row.
     const lineage = await db
       .select()
       .from(schema.productLineage)
@@ -282,7 +263,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(mergeRow!.rationale).toBe("duplicate gtin");
     expect(mergeRow!.actor).toBe("test:steward");
 
-    // outbox event.
     const events = await db
       .select()
       .from(schema.catalogEvents)
@@ -396,7 +376,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(inv.length).toBe(1);
     expect(inv[0]!.mergedFromProductId).toBe(loserId);
 
-    // None left under the loser.
     const leftOverPricing = await db
       .select()
       .from(schema.catalogPricingObservations)
@@ -516,18 +495,12 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       values: {}
     });
 
-    // Use a synthetic UUID for the cross-tenant guard. We don't actually need
-    // a real second-tenant product — we patch the winner row's tenantId
-    // mismatch on a freshly seeded "loser" via raw SQL since FK constraints
-    // require tenantId to be valid. So instead: seed a loser, then update
-    // its tenantId to a sentinel that exists (we'll create one).
     const OTHER_TENANT = "00000000-0000-0000-0000-0000000000ff";
     await db.execute(sql`
       INSERT INTO tenants (id, name)
       VALUES (${OTHER_TENANT}::uuid, 'Other Tenant Merge Test')
       ON CONFLICT (id) DO NOTHING
     `);
-    // Need a merchant for the FK too.
     const OTHER_MERCHANT = "00000000-0000-0000-0000-0000000000fe";
     await db.execute(sql`
       INSERT INTO merchants (id, tenant_id, email, password_hash, display_name)
@@ -563,7 +536,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     }
     expect(threw).toBe(true);
 
-    // Cleanup: delete the other-tenant product row so afterAll cleanup doesn't fall over.
     await db
       .delete(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, otherLoserId));
@@ -657,7 +629,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(unmergeResult.observationsRemoved).toBe(1);
     expect(unmergeResult.pricingObservationsRestored).toBe(1);
 
-    // Loser back to active, merged_into cleared.
     const loserRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -665,7 +636,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(loserRows[0]!.status).toBe("active");
     expect(loserRows[0]!.mergedIntoProductId).toBeNull();
 
-    // Winner's values no longer contain loser's observation.
     const winnerRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -676,7 +646,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(titleLeaf.length).toBe(1);
     expect(titleLeaf[0]!.value).toBe("Winner");
 
-    // Pricing observation moved back to loser, merged_from cleared.
     const pricing = await db
       .select()
       .from(schema.catalogPricingObservations)
@@ -684,7 +653,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(pricing.length).toBe(1);
     expect(pricing[0]!.mergedFromProductId).toBeNull();
 
-    // Unmerge lineage row.
     const lineage = await db
       .select()
       .from(schema.productLineage)
@@ -692,7 +660,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     const unmergeLineage = lineage.find((l) => l.operation === "unmerge");
     expect(unmergeLineage).toBeDefined();
 
-    // Outbox event.
     const events = await db
       .select()
       .from(schema.catalogEvents)
@@ -744,8 +711,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       actor: "test:undoer"
     });
 
-    // Snapshot post-first-unmerge counts of events + unmerge revisions on the
-    // winner so we can prove the second call writes nothing further.
     const eventsBefore = await db.execute(sql`
       SELECT count(*)::int AS c FROM catalog_events
       WHERE product_id = ${winnerId}::uuid
@@ -773,7 +738,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     expect(second.eventId).toBe(0);
     expect(second.unmergeRevisionId).toBe(0);
 
-    // No additional event/revision row written by the short-circuit path.
     const eventsAfter = await db.execute(sql`
       SELECT count(*)::int AS c FROM catalog_events
       WHERE product_id = ${winnerId}::uuid
@@ -819,7 +783,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       rationale: "wv test"
     });
 
-    // Verify merge produced premium as the winning value.
     const winnerMid = await db
       .select()
       .from(schema.catalogProducts)
@@ -844,11 +807,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
   });
 
   test("11. unmerge over-removal guard: winner and loser share (source, sourceRecordId) but differ in (value, observedAt) — only the moved-in row is peeled off", async () => {
-    // Winner already has an obs `{source:"ebay:c", sourceRecordId:"r1",
-    // value:"A", observed_at:T1}`. Loser has `{source:"ebay:c",
-    // sourceRecordId:"r1", value:"B", observed_at:T2}` on the same leaf
-    // coordinates. Merging puts both on the winner; unmerge must remove ONLY
-    // the loser's row (matched on the full triple including observedAt).
     const T1 = "2026-05-21T10:00:00.000Z";
     const T2 = "2026-05-21T11:00:00.000Z";
     const winnerId = await seedProduct(db, {
@@ -882,7 +840,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     });
     expect(mergeResult.observationsMoved).toBe(1);
 
-    // Sanity: winner leaf now carries both rows post-merge.
     const winnerMid = await db
       .select()
       .from(schema.catalogProducts)
@@ -892,7 +849,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     ].en_AU as StoredObservation[];
     expect(midLeaf.length).toBe(2);
 
-    // Undo recipe must carry observedAt so unmerge can disambiguate.
     const revs = await db
       .select()
       .from(schema.catalogProductRevisions)
@@ -908,7 +864,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     });
     expect(unmergeResult.observationsRemoved).toBe(1);
 
-    // Winner's original obs (A, T1) is intact; the moved-in (B, T2) is gone.
     const winnerAfter = await db
       .select()
       .from(schema.catalogProducts)
@@ -933,7 +888,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       values: {}
     });
 
-    // Seed pricing and inventory _current rows attached to the loser.
     await db.insert(schema.catalogPricingCurrent).values({
       productId: loserId,
       tenantId: TEST_TENANT_ID,
@@ -1002,14 +956,12 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
       rationale: "frozen merge"
     });
 
-    // Loser is now tombstoned.
     const midLoser = await db
       .select()
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, loserId));
     expect(midLoser[0]!.status).toBe("merged_into");
 
-    // Undo recipe captures the prior 'frozen_pending_review' status.
     const revs = await db
       .select()
       .from(schema.catalogProductRevisions)
@@ -1017,7 +969,6 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
     const diff = revs[0]!.diff as Record<string, any>;
     expect(diff.losers[0].priorStatus).toBe("frozen_pending_review");
 
-    // Unmerge restores the freeze.
     await unmergeProduct({
       db,
       tenantId: TENANT,
@@ -1072,19 +1023,7 @@ describe("mergeProducts + unmergeProduct (plan §3.8, spec §18.1)", () => {
   });
 });
 
-// =============================================================================
-// splitProduct tests (plan §3.9, spec §18.2)
-// =============================================================================
-//
-// Splits create a NEW product row and MOVE observations matching a typed
-// filter from source → new. Crucially, the source's revisions are NEVER moved
-// (per spec §18.2 — moving revisions would corrupt the immutability guarantee).
-// "Full history" of the new product is a UNION of (revisions WHERE product_id
-// = new) ∪ (revisions WHERE product_id = source AND matches(filter)) — but
-// since a revision row has no per-observation breakdown, the filter only
-// distinguishes at the source-of-truth level. See test 8 for the union query.
-
-describe("splitProduct (plan §3.9, spec §18.2)", () => {
+describe("splitProduct", () => {
   let db: DrizzleClient;
 
   beforeAll(async () => {
@@ -1117,9 +1056,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       }
     });
 
-    // Seed pricing/inventory side-table rows attached to source. Two rows: one
-    // from amazon:link (should move with the split) + one from flipkart:link
-    // (should stay).
     await db.insert(schema.catalogPricingObservations).values([
       {
         productId: sourceId,
@@ -1155,8 +1091,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       observedAt: new Date("2026-05-21T10:00:00Z")
     });
 
-    // Pre-split revision count on source — must be unchanged after split
-    // (except for the +1 manual_split revision).
     const sourceRevsBefore = await db
       .select()
       .from(schema.catalogProductRevisions)
@@ -1183,7 +1117,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(result.pricingObservationsMoved).toBe(1);
     expect(result.inventoryObservationsMoved).toBe(1);
 
-    // Source.values: only flipkart observation left.
     const sourceRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -1193,7 +1126,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(sourceLeaf.length).toBe(1);
     expect(sourceLeaf[0]!.source).toBe("flipkart:link");
 
-    // New product exists with the amazon observation.
     const newRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -1210,14 +1142,12 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(newLeaf[0]!.source).toBe("amazon:link");
     expect(newLeaf[0]!.source_record_id).toBe("az-rec-1");
 
-    // Side-table rows: amazon moved, flipkart stays.
     const newPricing = await db
       .select()
       .from(schema.catalogPricingObservations)
       .where(eq(schema.catalogPricingObservations.productId, result.newProductId));
     expect(newPricing.length).toBe(1);
     expect(newPricing[0]!.source).toBe("amazon:link");
-    // mergedFromProductId stays null on split (it's merge-specific).
     expect(newPricing[0]!.mergedFromProductId).toBeNull();
 
     const remainingPricing = await db
@@ -1233,7 +1163,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       .where(eq(schema.catalogInventoryObservations.productId, result.newProductId));
     expect(newInv.length).toBe(1);
 
-    // product_lineage row: operation='split', productId=new, origin=source.
     const lineage = await db
       .select()
       .from(schema.productLineage)
@@ -1246,12 +1175,10 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(lineage[0]!.rationale).toBe("amazon variant should be its own product");
     expect(lineage[0]!.actor).toBe("test:steward");
 
-    // Revision rows: one on source (manual_split), one on new (manual_split with lineage_pointer).
     const sourceRevsAfter = await db
       .select()
       .from(schema.catalogProductRevisions)
       .where(eq(schema.catalogProductRevisions.productId, sourceId));
-    // Exactly one new revision added (the manual_split one).
     expect(sourceRevsAfter.length).toBe(sourceRevsBeforeCount + 1);
     const sourceSplitRev = sourceRevsAfter.find(
       (r) => r.revisionReason === "manual_split"
@@ -1275,14 +1202,12 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(newDiff.operation).toBe("split");
     expect(newDiff.origin).toBe(sourceId);
     expect(newDiff.split_filter).toEqual({ sources: ["amazon:link"] });
-    // lineage_pointer: spec §18.2 requires "first revision carries lineage_pointer to source".
     expect(newDiff.lineage_pointer).toBeDefined();
     expect(newDiff.lineage_pointer.source_revision).toBe(result.splitRevisionIds.source);
 
     expect(result.splitRevisionIds.source).toBe(sourceSplitRev!.revisionId);
     expect(result.splitRevisionIds.new).toBe(newRev.revisionId);
 
-    // Outbox event.
     const events = await db
       .select()
       .from(schema.catalogEvents)
@@ -1348,10 +1273,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S3. attributeCodes filter: only that attribute moves; pricing/inventory NOT moved (per design)", async () => {
-    // When attributeCodes is set, the filter is jsonb-content-specific; the
-    // side-tables don't carry attribute_code, so we cannot meaningfully apply
-    // the filter to them. We therefore leave side-table rows in place. This
-    // tests the documented design decision.
     const sourceId = await seedProduct(db, {
       primaryIdentifier: "split-3-source",
       values: {
@@ -1394,8 +1315,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     });
 
     expect(result.observationsMoved).toBe(1);
-    // Pricing NOT moved — attributeCodes filter is jsonb-content-specific
-    // and side-tables have no attribute_code column to filter on.
     expect(result.pricingObservationsMoved).toBe(0);
     expect(result.inventoryObservationsMoved).toBe(0);
 
@@ -1404,7 +1323,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, sourceId));
     const sourceValues = sourceRows[0]!.values as Record<string, any>;
-    // title leaf empty/removed; brand still present.
     const titleLeaf = sourceValues.title?.["shopify-au"]?.en_AU as StoredObservation[] | undefined;
     expect(titleLeaf == null || titleLeaf.length === 0).toBe(true);
     expect(sourceValues.brand["shopify-au"].en_AU.length).toBe(1);
@@ -1417,7 +1335,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(newValues.title["shopify-au"].en_AU.length).toBe(1);
     expect(newValues.brand).toBeUndefined();
 
-    // Pricing stays on source.
     const pricing = await db
       .select()
       .from(schema.catalogPricingObservations)
@@ -1466,9 +1383,7 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, sourceId));
     const sourceValues = sourceRows[0]!.values as Record<string, any>;
-    // Source keeps both AU observations.
     expect(sourceValues.title["shopify-au"].en_AU.length).toBe(2);
-    // amazon-us leaf is now empty/missing on source.
     const usLeaf = sourceValues.title?.["amazon-us"]?.en_US as StoredObservation[] | undefined;
     expect(usLeaf == null || usLeaf.length === 0).toBe(true);
 
@@ -1512,7 +1427,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S6. cross-tenant guard: sourceProductId in tenant A; calling with tenant B throws", async () => {
-    // Re-use the synthetic OTHER_TENANT pattern from test 6 in the merge suite.
     const OTHER_TENANT = "00000000-0000-0000-0000-0000000000ee";
     const OTHER_MERCHANT = "00000000-0000-0000-0000-0000000000ed";
     await db.execute(sql`
@@ -1546,7 +1460,7 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     try {
       await splitProduct({
         db,
-        tenantId: TENANT, // wrong tenant
+        tenantId: TENANT,
         sourceProductId: otherSourceId,
         observationFilter: { sources: ["amazon:link"] },
         newIdentity: {
@@ -1562,7 +1476,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     }
     expect(threw).toBe(true);
 
-    // Cleanup.
     await db
       .delete(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, otherSourceId));
@@ -1575,10 +1488,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S7. revisions stay attached to source — only a new manual_split row is added (no physical moves)", async () => {
-    // Seed a source product with a couple of existing ingest revisions, then
-    // split. Assert that pre-existing revisions are still attached to the
-    // source (NOT moved to the new product). Only delta: +1 manual_split
-    // revision on source, +1 manual_split revision on new.
     const sourceId = await seedProduct(db, {
       primaryIdentifier: "split-7-source",
       values: {
@@ -1593,8 +1502,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       }
     });
 
-    // Manually insert a couple of "ingest" revision rows that pre-date the
-    // split. These should NEVER be moved.
     const ingestRev1 = await db
       .insert(schema.catalogProductRevisions)
       .values({
@@ -1646,8 +1553,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       rationale: "history preservation test"
     });
 
-    // The pre-existing revisions are still on the source — they were NOT
-    // physically moved to the new product.
     const sourceRevsAfter = await db
       .select()
       .from(schema.catalogProductRevisions)
@@ -1656,7 +1561,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     for (const id of preSplitSourceRevIds) {
       expect(sourceRevIds.has(id)).toBe(true);
     }
-    // New product has only its own manual_split revision (not the ingest rows).
     const newRevs = await db
       .select()
       .from(schema.catalogProductRevisions)
@@ -1666,15 +1570,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S8. full-history union query: revisions for new ∪ revisions on source (matching filter at the source-of-truth level)", async () => {
-    // The spec defines "full history" of the new product as the union of:
-    //   - revisions WHERE product_id = new (forward history from split point)
-    //   - revisions WHERE product_id = source AND matches(split_filter)
-    //     (history that logically belongs to new but stays attached to origin)
-    //
-    // v1 limitation: a revision row has no per-observation breakdown, so the
-    // filter cannot truly distinguish at the revision level. The union query
-    // we ship returns ALL revisions of source + all revisions of new and lets
-    // the consumer decide. We exercise the union query here.
     const sourceId = await seedProduct(db, {
       primaryIdentifier: "split-8-source",
       values: {
@@ -1713,7 +1608,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       rationale: "union query test"
     });
 
-    // "Full history" union — see the runbook for the canonical query.
     const fullHistory = await db.execute(sql`
       SELECT revision_id, product_id, revision_reason
       FROM catalog_product_revisions
@@ -1725,7 +1619,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       ORDER BY revision_id
     `);
 
-    // Expected: 1 synthetic ingest on source + 1 manual_split on source + 1 manual_split on new = 3.
     expect(fullHistory.rows.length).toBe(3);
     const reasons = (fullHistory.rows as Array<{ revision_reason: string }>).map(
       (r) => r.revision_reason
@@ -1735,9 +1628,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S9. _current rows cleared on source after split (async reconciler rebuilds)", async () => {
-    // Per design decision 7: rather than filter-aware deletion of _current rows
-    // (which is complex), we delete ALL of source's pricing/inventory _current
-    // rows. The async-debounced reconciler rebuilds from observations.
     const sourceId = await seedProduct(db, {
       primaryIdentifier: "split-9-source",
       values: {
@@ -1807,12 +1697,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S10. winning_values recomputed on both products after split (premium winner moves with observation)", async () => {
-    // Source has two title observations:
-    //   - default:connector "Default Title" (low priority — wins absent better)
-    //   - premium:connector "Premium Title" (high priority — currently winner)
-    // We split out the premium observation. After split:
-    //   - source.winning_values.title should equal "Default Title".
-    //   - new.winning_values.title should equal "Premium Title".
     const sourceId = await seedProduct(db, {
       primaryIdentifier: "split-10-source",
       values: {
@@ -1858,10 +1742,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S11. valueEquals filter: object key-order independent (deepEqual, not JSON.stringify)", async () => {
-    // jsonb does not preserve object key order on round-trip, so a stored
-    // observation value `{size:"L", color:"red"}` must still match a
-    // caller-supplied `{color:"red", size:"L"}`. Regression guard for the
-    // previous JSON.stringify-based comparison.
     const sourceId = await seedProduct(db, {
       primaryIdentifier: "split-11-source",
       values: {
@@ -1881,7 +1761,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       tenantId: TENANT,
       sourceProductId: sourceId,
       observationFilter: {
-        // Different key order than stored — must still match via deepEqual.
         valueEquals: { color: "red", size: "L" }
       },
       newIdentity: {
@@ -1894,7 +1773,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
 
     expect(result.observationsMoved).toBe(1);
 
-    // Source keeps only the {size:"M", color:"blue"} row.
     const sourceRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -1905,7 +1783,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     expect(sourceLeaf.length).toBe(1);
     expect(sourceLeaf[0]!.value).toEqual({ size: "M", color: "blue" });
 
-    // New product carries the red-L row.
     const newRows = await db
       .select()
       .from(schema.catalogProducts)
@@ -1918,9 +1795,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
   });
 
   test("S12. zero-match guard: filter matches nothing → throws and writes no rows", async () => {
-    // Seed source with observations from flipkart:link, then call splitProduct
-    // with a filter that targets amazon:link (matches nothing). Must throw
-    // BEFORE creating a phantom new product / lineage / event / revision.
     const sourceId = await seedProduct(db, {
       primaryIdentifier: "split-12-source",
       values: {
@@ -1932,7 +1806,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
       }
     });
 
-    // Snapshot tenant-scoped table counts before the call.
     const countProducts = async (): Promise<number> => {
       const rows = await db.execute(
         sql`SELECT count(*)::int AS c FROM catalog_products WHERE tenant_id = ${TEST_TENANT_ID}::uuid`
@@ -1971,7 +1844,7 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
         db,
         tenantId: TENANT,
         sourceProductId: sourceId,
-        observationFilter: { sources: ["amazon:link"] }, // matches nothing
+        observationFilter: { sources: ["amazon:link"] },
         newIdentity: {
           primaryIdentifier: "split-12-new",
           identity: {}
@@ -1985,7 +1858,6 @@ describe("splitProduct (plan §3.9, spec §18.2)", () => {
     }
     expect(threw).toBe(true);
 
-    // No phantom rows.
     expect(await countProducts()).toBe(productsBefore);
     expect(await countEvents()).toBe(eventsBefore);
     expect(await countLineage()).toBe(lineageBefore);

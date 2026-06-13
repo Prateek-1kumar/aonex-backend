@@ -1,16 +1,7 @@
-// Tests for the identity update policy gate (plan §3.7, spec §6.1).
-//
-// Runs against the real dev DB via @aonex/db/testing helpers. Each scenario
-// seeds a catalog_products row scoped to TEST_TENANT_ID and inline
-// source_priority rules tagged with TEST_ACTOR for scoped cleanup.
-//
-// The policy gate covers four identity fields:
-//   - gtin / mpn   → single priority-1 source can update; two disagreeing
-//                    priority-1 sources freeze + emit review_task
-//   - brand / model_number → 3 consecutive matching priority-1 observations
-//                            required before update
-// Plus auto-unfreeze after 5 consecutive matching priority-1 observations
-// and strength-low freeze guard.
+// Tests for applyIdentityObservation, the identity update policy gate.
+// Runs against the real dev DB via @aonex/db/testing helpers; each scenario
+// seeds a catalog_products row scoped to TEST_TENANT_ID plus inline
+// source_priority rules tagged TEST_ACTOR for scoped cleanup.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { and, eq } from "drizzle-orm";
@@ -28,15 +19,6 @@ import { applyIdentityObservation } from "./identity-policy.js";
 
 const TEST_ACTOR = "test:identity-policy";
 
-// Seed source_priority rules:
-//   - shopify:* and ebay:* are BOTH priority=1 (so we can force a
-//     disagreement between two priority-1 sources)
-//   - csv:* is priority=2 (non-priority-1; should not satisfy gating)
-//   - catch-all wildcard at priority=100
-//
-// Rules are seeded with attributeCode=null so they apply to every identity
-// field uniformly. The policy module decides priority-1 by looking up the
-// best matching rule for the (attributeCode, source) combo.
 async function seedRules(db: DrizzleClient): Promise<void> {
   await db.insert(schema.sourcePriority).values([
     {
@@ -66,9 +48,6 @@ async function seedRules(db: DrizzleClient): Promise<void> {
       rulesVersion: 1,
       actor: TEST_ACTOR
     },
-    // Task 12: connector:* and link:* needed for authority-guard integration
-    // test. Both at priority-1 so authority — not source-priority — decides
-    // the outcome. shopify:* and ebay:* are different prefixes so no overlap.
     {
       tenantId: null,
       attributeCode: null,
@@ -114,7 +93,6 @@ async function cleanup(db: DrizzleClient): Promise<void> {
     .where(eq(schema.sourcePriority.actor, TEST_ACTOR));
 }
 
-/** Append a brand observation entry into `values.brand._unscoped._unscoped[]`. */
 function brandLeaf(
   observations: Array<{
     source: string;
@@ -156,8 +134,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
   });
 
   beforeEach(async () => {
-    // Per-test scoped cleanup: products + identity_log + review_tasks. We
-    // keep the seeded rules in place across tests so they only seed once.
     await db
       .delete(schema.identityLog)
       .where(eq(schema.identityLog.tenantId, TEST_TENANT_ID));
@@ -227,8 +203,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
         primaryIdentifier: "ip-002",
         identity: { gtin: "GTIN-A", identity_strength: 1.0 },
         status: "active",
-        // Pre-seeded with a priority-1 shopify observation of GTIN-A; the
-        // incoming priority-1 ebay observation will disagree.
         values: {
           gtin: {
             _unscoped: {
@@ -307,9 +281,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
     const productId = inserted[0]!.productId;
 
     async function pushBrandObs(value: string, n: number, isoOffsetMin: number) {
-      // Simulate catalog-write appending an observation BEFORE calling the
-      // policy gate. The gate counts existing prior matching observations
-      // plus the incoming as the consecutive count.
       const row = await db
         .select({ values: schema.catalogProducts.values })
         .from(schema.catalogProducts)
@@ -342,7 +313,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
         .where(eq(schema.catalogProducts.productId, productId));
     }
 
-    // 1st observation
     await pushBrandObs("NewBrand", 1, 0);
     const r1 = await applyIdentityObservation({
       db,
@@ -356,7 +326,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
     expect(r1.applied).toBe(false);
     expect(r1.frozen).toBe(false);
 
-    // 2nd observation
     await pushBrandObs("NewBrand", 2, 1);
     const r2 = await applyIdentityObservation({
       db,
@@ -370,7 +339,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
     expect(r2.applied).toBe(false);
     expect(r2.frozen).toBe(false);
 
-    // 3rd observation triggers the update
     await pushBrandObs("NewBrand", 3, 2);
     const r3 = await applyIdentityObservation({
       db,
@@ -391,8 +359,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
     const identity = row[0]!.identity as Record<string, unknown>;
     expect(identity.brand).toBe("NewBrand");
 
-    // No-op calls #1 and #2 should NOT have created identity_log rows; only
-    // the applied call #3 does.
     const logs = await db
       .select()
       .from(schema.identityLog)
@@ -415,11 +381,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .returning({ productId: schema.catalogProducts.productId });
     const productId = inserted[0]!.productId;
 
-    // Pre-seed an identity_log row representing the prior freeze, so the
-    // auto-unfreeze counter starts from after that point. We pin appliedAt
-    // explicitly to a fixed-past timestamp (NOT defaultNow()) so this test
-    // is wall-clock-independent — otherwise observations and the freeze cut
-    // -off race against UTC at run time.
     await db.insert(schema.identityLog).values({
       productId,
       tenantId: TEST_TENANT_ID,
@@ -435,10 +396,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
 
     const OBS_BASE = "2025-06-01T10:00:00Z";
 
-    // Apply 5 matching priority-1 observations. Between calls we push the
-    // observation into `values.gtin._unscoped._unscoped[]` (mimicking what
-    // catalog-write does) so the policy gate can count them on the next
-    // pass.
     async function pushGtinObs(
       value: string,
       isoOffsetMin: number,
@@ -479,7 +436,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
         sourceRecordId: `match-${i}`,
         observedAt: new Date(Date.parse(OBS_BASE) + i * 60_000)
       });
-      // Frozen state blocks identity application until unfreeze.
       if (i < 4) {
         expect(r.applied).toBe(false);
       }
@@ -494,7 +450,7 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .where(eq(schema.catalogProducts.productId, productId));
     expect(row[0]!.status).toBe("active");
     const identity = row[0]!.identity as Record<string, unknown>;
-    expect(identity.gtin).toBe("X"); // unchanged — matched current value
+    expect(identity.gtin).toBe("X");
 
     const logs = await db
       .select()
@@ -542,7 +498,7 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, productId));
     const identity = row[0]!.identity as Record<string, unknown>;
-    expect(identity.mpn).toBe("MPN-OLD"); // unchanged
+    expect(identity.mpn).toBe("MPN-OLD");
   });
 
   test("6. identity_strength < 0.7 freezes identity update", async () => {
@@ -591,9 +547,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
   });
 
   test("7. non-priority-1 source single observation does not update identity", async () => {
-    // Defensive scenario: a csv:* observation (priority=2) should NOT count
-    // as a strong single-source signal for gtin. The update should be
-    // deferred (no-op) rather than applied.
     const inserted = await db
       .insert(schema.catalogProducts)
       .values({
@@ -628,11 +581,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
   });
 
   test("8. freeze row is still found behind >20 newer non-freeze rows", async () => {
-    // Regression guard: the auto-unfreeze freeze-lookup must push the
-    // `rationale LIKE 'freeze%'` predicate into SQL. If it falls back to
-    // fetch-N-then-filter, this product (with 25 non-freeze rows after the
-    // freeze) would see freezeAt=null and silently regress to all-time
-    // counting.
     const inserted = await db
       .insert(schema.catalogProducts)
       .values({
@@ -646,8 +594,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .returning({ productId: schema.catalogProducts.productId });
     const productId = inserted[0]!.productId;
 
-    // Old freeze row, pinned to 2025-01-01 so observation timestamps below
-    // (which are after this) are clearly post-freeze.
     await db.insert(schema.identityLog).values({
       productId,
       tenantId: TEST_TENANT_ID,
@@ -661,9 +607,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       rationale: "freeze_gtin_disagreement"
     });
 
-    // 25 non-freeze identity_log rows AFTER the freeze. We use
-    // `single_priority_one_source` (a real applied-update rationale that does
-    // NOT start with "freeze") so the SQL LIKE predicate filters them out.
     for (let i = 0; i < 25; i++) {
       await db.insert(schema.identityLog).values({
         productId,
@@ -683,14 +626,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       });
     }
 
-    // Seed 4 matching priority-1 observations observed BEFORE the freeze.
-    // These must NOT count toward auto-unfreeze when the freeze lookup
-    // works correctly. With the broken fetch-20-then-filter (regression
-    // mode), freezeAt would come back as null and these pre-freeze
-    // observations would be counted under the all-time fallback, giving
-    // 4 + 1 incoming = 5 and triggering an unfreeze. With the correct
-    // SQL-side LIKE 'freeze%' the freeze row is found behind the 25
-    // non-freeze rows and the count stays at 1 (incoming only) → frozen.
     const preFreezeObs = Array.from({ length: 4 }, (_, i) => ({
       source: "shopify:connector",
       source_record_id: `pre-freeze-${i}`,
@@ -713,10 +648,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       })
       .where(eq(schema.catalogProducts.productId, productId));
 
-    // Single incoming matching observation. Correct behaviour: 4 pre-freeze
-    // observations are excluded by the freeze cut-off → count = 1 → still
-    // frozen. Broken behaviour: freezeAt=null → all 4 pre-freeze obs count
-    // → count = 5 → unfreezes incorrectly.
     const r = await applyIdentityObservation({
       db,
       productId,
@@ -750,7 +681,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .returning({ productId: schema.catalogProducts.productId });
     const productId = inserted[0]!.productId;
 
-    // Invalid field — caller bug, must throw before any DB work.
     await expect(
       applyIdentityObservation({
         db,
@@ -764,7 +694,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       })
     ).rejects.toThrow(/invalid field/);
 
-    // Empty proposedValue — must throw.
     await expect(
       applyIdentityObservation({
         db,
@@ -779,10 +708,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
   });
 
   test("10. brand: a conflicting priority-1 observation breaks the streak", async () => {
-    // Three matching priority-1 observations of "NewBrand" — but with a
-    // disagreeing priority-1 ebay observation IN THE MIDDLE. The streak
-    // walks newest-first and stops at the first non-matching priority-1
-    // observation, so the third match shouldn't be enough.
     const inserted = await db
       .insert(schema.catalogProducts)
       .values({
@@ -791,9 +716,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
         primaryIdentifier: "ip-010",
         identity: { brand: "OldBrand", identity_strength: 1.0 },
         status: "active",
-        // Observations are written in chronological order; the conflicting
-        // ebay observation lands at offset 1 (between two matching shopify
-        // observations).
         values: brandLeaf([
           {
             source: "shopify:connector",
@@ -818,11 +740,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .returning({ productId: schema.catalogProducts.productId });
     const productId = inserted[0]!.productId;
 
-    // Incoming third matching priority-1 observation (the (existing+1)-th).
-    // existing matching streak walking newest-first: incoming (matches) +
-    // rec-shop-2 (matches) → then rec-ebay-mid (priority-1, NON-matching)
-    // breaks the streak at 2. Still under the BRAND_CONSECUTIVE_REQUIRED=3
-    // threshold → no apply.
     const r = await applyIdentityObservation({
       db,
       productId,
@@ -840,13 +757,10 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .from(schema.catalogProducts)
       .where(eq(schema.catalogProducts.productId, productId));
     const identity = row[0]!.identity as Record<string, unknown>;
-    expect(identity.brand).toBe("OldBrand"); // unchanged
+    expect(identity.brand).toBe("OldBrand");
   });
 
-  test("11. authority guard: lower-authority cannot overwrite higher (Task 12, spec C4)", async () => {
-    // Seed a product whose gtin was previously set by a connector source
-    // (highest authority). The most-recent NON-freeze identity_log row carries
-    // that source, which is what the authority guard reads.
+  test("11. authority guard: lower-authority cannot overwrite higher", async () => {
     const inserted = await db
       .insert(schema.catalogProducts)
       .values({
@@ -860,7 +774,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       .returning({ productId: schema.catalogProducts.productId });
     const productId = inserted[0]!.productId;
 
-    // Pre-existing identity_log row recording the connector having set the gtin.
     await db.insert(schema.identityLog).values({
       productId,
       tenantId: TEST_TENANT_ID,
@@ -873,8 +786,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       rationale: "single_priority_one_source"
     });
 
-    // Lower-authority link source tries to overwrite — must be rejected by
-    // the authority guard BEFORE the policy gate runs.
     const blocked = await applyIdentityObservation({
       db,
       productId,
@@ -887,7 +798,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
     expect(blocked.applied).toBe(false);
     expect(blocked.reason).toBe("lower_authority");
 
-    // The gtin value should be unchanged.
     const rowAfterBlock = await db
       .select({ identity: schema.catalogProducts.identity })
       .from(schema.catalogProducts)
@@ -896,12 +806,6 @@ describe("applyIdentityObservation (plan §3.7, spec §6.1)", () => {
       (rowAfterBlock[0]!.identity as Record<string, unknown>).gtin
     ).toBe("01000000000011");
 
-    // Reverse: an equal-authority connector source CAN overwrite (the policy
-    // gate may still freeze on disagreement, but the authority guard must let
-    // it through). connector:amazon is priority-1 by seeded rules, the prior
-    // connector:shopify observation lives in identity_log (not values), and
-    // values.{field}._unscoped._unscoped is empty — so there is no priority-1
-    // conflict in the values JSONB and the update applies.
     const allowed = await applyIdentityObservation({
       db,
       productId,

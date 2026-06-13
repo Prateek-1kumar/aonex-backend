@@ -1,3 +1,6 @@
+// Integration tests for the product_lineage schema against a live Postgres.
+// Lineage rows are deleted before catalog_products because the FKs use NO ACTION.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
 import { schema } from "../index.js";
@@ -28,8 +31,6 @@ describe("product_lineage schema", () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
-    // Scoped cleanup — lineage rows must go before catalog_products
-    // since FKs have NO ACTION (would block delete).
     await db.execute(sql`
       DELETE FROM product_lineage
       WHERE product_id IN (

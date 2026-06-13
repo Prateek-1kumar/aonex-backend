@@ -2,7 +2,7 @@
 
 import { pgEnum } from "drizzle-orm/pg-core";
 
-/** HLD §11 / LLD §12 — Phase 1 = shopify only, others stub. */
+/** Supported marketplaces (currently shopify is live; others are stubs). */
 export const marketplaceEnum = pgEnum("marketplace", [
   "shopify",
   "amazon",
@@ -12,8 +12,8 @@ export const marketplaceEnum = pgEnum("marketplace", [
 ]);
 
 /**
- * HLD §20 — connection lifecycle.
- * `pending_failed` is from LLD §6.1 (auth attempt failed before token issued).
+ * Connection lifecycle.
+ * `pending_failed` = auth attempt failed before a token was issued.
  */
 export const connectionStatusEnum = pgEnum("connection_status", [
   "pending",
@@ -24,7 +24,7 @@ export const connectionStatusEnum = pgEnum("connection_status", [
   "deleted"
 ]);
 
-/** HLD §20 — source_artifacts.status */
+/** source_artifacts.status. */
 export const artifactStatusEnum = pgEnum("artifact_status", [
   "pending",
   "processing",
@@ -33,7 +33,7 @@ export const artifactStatusEnum = pgEnum("artifact_status", [
   "needs_review"
 ]);
 
-/** HLD §20 — ingestion_jobs.status (BullMQ mirror) */
+/** ingestion_jobs.status (BullMQ mirror). */
 export const ingestionJobStatusEnum = pgEnum("ingestion_job_status", [
   "queued",
   "running",
@@ -42,7 +42,7 @@ export const ingestionJobStatusEnum = pgEnum("ingestion_job_status", [
   "rate_limited"
 ]);
 
-/** HLD §22.4 RBAC roles */
+/** RBAC roles. */
 export const merchantRoleEnum = pgEnum("merchant_role", [
   "admin",
   "operator",
@@ -51,10 +51,10 @@ export const merchantRoleEnum = pgEnum("merchant_role", [
   "auditor"
 ]);
 
-/** Audit actor categories — HLD §6 / §20 */
+/** Audit actor categories. */
 export const actorTypeEnum = pgEnum("actor_type", ["user", "system", "policy", "worker", "nango"]);
 
-/** GDPR deletion request flow — LLD §15 */
+/** GDPR deletion request flow. */
 export const deletionRequestStatusEnum = pgEnum("deletion_request_status", [
   "pending",
   "in_progress",
@@ -62,12 +62,10 @@ export const deletionRequestStatusEnum = pgEnum("deletion_request_status", [
   "rejected"
 ]);
 
-/** Tenant-level lifecycle — HLD §20 */
+/** Tenant-level lifecycle. */
 export const tenantStatusEnum = pgEnum("tenant_status", ["active", "suspended", "archived"]);
 
-// ---------- Phase 2 enums ------------------------------------------------
-
-/** HLD §14 / §20 — proposed_diffs.status routing outcomes */
+/** proposed_diffs.status routing outcomes. */
 export const proposedDiffStatusEnum = pgEnum("proposed_diff_status", [
   "pending",
   "open",
@@ -76,7 +74,7 @@ export const proposedDiffStatusEnum = pgEnum("proposed_diff_status", [
   "rejected"
 ]);
 
-/** HLD §9 — how a fact value was obtained */
+/** How a fact value was obtained. */
 export const extractionMethodEnum = pgEnum("extraction_method", [
   "direct",
   "computed",
@@ -84,7 +82,7 @@ export const extractionMethodEnum = pgEnum("extraction_method", [
   "override"
 ]);
 
-/** HLD §15 / §20 — review_tasks.severity */
+/** review_tasks.severity. */
 export const reviewTaskSeverityEnum = pgEnum("review_task_severity", [
   "low",
   "medium",
@@ -92,7 +90,7 @@ export const reviewTaskSeverityEnum = pgEnum("review_task_severity", [
   "critical"
 ]);
 
-/** HLD §15 / §20 — review_tasks.status */
+/** review_tasks.status. */
 export const reviewTaskStatusEnum = pgEnum("review_task_status", [
   "open",
   "in_progress",
@@ -100,7 +98,7 @@ export const reviewTaskStatusEnum = pgEnum("review_task_status", [
   "dismissed"
 ]);
 
-/** HLD §13 / §20 — deduplication decision kind */
+/** Deduplication decision kind. */
 export const dedupKindEnum = pgEnum("dedup_kind", [
   "new",
   "merge",
@@ -108,7 +106,7 @@ export const dedupKindEnum = pgEnum("dedup_kind", [
   "conflict"
 ]);
 
-/** HLD §8 / §20 — product lifecycle */
+/** Product lifecycle. */
 export const productStatusEnum = pgEnum("product_status", [
   "active",
   "draft",
@@ -116,7 +114,7 @@ export const productStatusEnum = pgEnum("product_status", [
   "deleted"
 ]);
 
-/** HLD §20 — extraction_runs.status */
+/** extraction_runs.status. */
 export const extractionRunStatusEnum = pgEnum("extraction_run_status", [
   "pending",
   "running",

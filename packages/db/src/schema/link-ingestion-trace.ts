@@ -1,14 +1,6 @@
-// Phase 9 reframing (catalog redesign Task 9.2) — link_ingestion_trace_runs,
-// link_ingestion_trace_sets, link_ingestion_trace_facts.
-//
-// These tables are transient evidence of LLM extraction during link ingestion,
-// NOT canonical catalog state. The catalog_products side tables (winning_values,
-// catalog_pricing_current, etc.) are the source of truth.
-//
-// 14-day retention is enforced by the daily link-trace-cleanup job
-// (apps/worker/src/jobs/link-trace-cleanup.ts).
-//
-// Idempotency key: UNIQUE on (artifact_id, extractor_version, mapper_version, policy_version_id).
+// link_ingestion_trace_runs/_sets/_facts: transient evidence of LLM extraction
+// during link ingestion, NOT canonical catalog state (catalog_products side tables
+// are the source of truth). 14-day retention enforced by the daily cleanup job.
 
 import {
   pgTable,
@@ -28,13 +20,10 @@ import { policyVersions } from "./policy.js";
 import { extractionMethodEnum, extractionRunStatusEnum } from "./enums.js";
 
 /**
- * HLD §9 / §20 — one row per extraction attempt per artifact.
- * UNIQUE on (artifact_id, extractor_version, mapper_version, policy_version_id)
- * makes re-runs idempotent — the duplicate insert is skipped.
- *
- * DB table: link_ingestion_trace_runs (renamed from extraction_runs in migration 0021).
- * Index names (idx_extraction_runs_*, uq_extraction_runs_*) preserved from before
- * the rename — cosmetic rename deferred (would require ACCESS EXCLUSIVE lock).
+ * One row per extraction attempt per artifact. UNIQUE on
+ * (artifact_id, extractor_version, mapper_version, policy_version_id) makes
+ * re-runs idempotent — the duplicate insert is skipped. Index names keep the
+ * pre-rename idx_extraction_runs_* prefix (rename would need ACCESS EXCLUSIVE).
  */
 export const linkIngestionTraceRuns = pgTable(
   "link_ingestion_trace_runs",
@@ -61,7 +50,6 @@ export const linkIngestionTraceRuns = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
-    // Idempotency key per HLD §4 / spec §4 rule 10
     idempotency: uniqueIndex("uq_extraction_runs_idempotency").on(
       t.artifactId,
       t.extractorVersion,
@@ -72,11 +60,7 @@ export const linkIngestionTraceRuns = pgTable(
   })
 );
 
-/**
- * HLD §9 / §20 — the set of extracted facts produced by one extraction run.
- *
- * DB table: link_ingestion_trace_sets (renamed from extracted_fact_sets in migration 0021).
- */
+/** The set of extracted facts produced by one extraction run. */
 export const linkIngestionTraceSets = pgTable(
   "link_ingestion_trace_sets",
   {
@@ -95,12 +79,10 @@ export const linkIngestionTraceSets = pgTable(
 );
 
 /**
- * HLD §9 / §20 — one row per extracted attribute fact.
+ * One row per extracted attribute fact.
  * raw_key: the source field name (e.g. "vendor").
  * canonical_path: null until the Semantic Mapper assigns it.
  * source_pointer: JSONPath into rawData (e.g. "$.variants[0].barcode").
- *
- * DB table: link_ingestion_trace_facts (renamed from extracted_facts in migration 0021).
  */
 export const linkIngestionTraceFacts = pgTable(
   "link_ingestion_trace_facts",
@@ -111,23 +93,23 @@ export const linkIngestionTraceFacts = pgTable(
       .references(() => linkIngestionTraceSets.id, { onDelete: "cascade" }),
     tenantId: uuid("tenant_id").notNull(),
     rawKey: varchar("raw_key", { length: 200 }).notNull(),
-    /** Assigned by the Semantic Mapper — null = unmapped */
+    /** Assigned by the Semantic Mapper; null = unmapped. */
     canonicalPath: varchar("canonical_path", { length: 200 }),
     extractedValue: jsonb("extracted_value").notNull(),
     normalizedValue: jsonb("normalized_value"),
     unit: varchar("unit", { length: 50 }),
-    /** JSONPath into source_artifacts.raw_data — provenance pointer */
+    /** JSONPath into source_artifacts.raw_data; provenance pointer. */
     sourcePointer: varchar("source_pointer", { length: 500 }).notNull(),
     extractionMethod: extractionMethodEnum("extraction_method").notNull(),
     confidence: numeric("confidence", { precision: 5, scale: 4 }).notNull(),
     mappingMethod: varchar("mapping_method", { length: 50 }),
-    /** Top-3 canonical-path candidates from semantic-mapper — HLD §10 */
+    /** Top-3 canonical-path candidates from the semantic mapper. */
     mappingCandidates: jsonb("mapping_candidates")
       .$type<Array<{ key: string; score: number }>>(),
     /**
      * Per-fact alternative sources (losers from structured-merge) preserved
      * through the pipeline so cross-source-conflict can compare real values,
-     * not pointer strings. See Bug #1 fix.
+     * not pointer strings.
      */
     sourceAlternatives: jsonb("source_alternatives")
       .$type<Array<{ value: unknown; sourcePointer: string; confidence: number }>>(),
@@ -146,9 +128,6 @@ export type NewLinkIngestionTraceSet = typeof linkIngestionTraceSets.$inferInser
 export type LinkIngestionTraceFactRow = typeof linkIngestionTraceFacts.$inferSelect;
 export type NewLinkIngestionTraceFact = typeof linkIngestionTraceFacts.$inferInsert;
 
-// ---------------------------------------------------------------------------
-// Back-compat aliases — deprecated, remove in a future cleanup pass.
-// ---------------------------------------------------------------------------
 /** @deprecated Use linkIngestionTraceRuns */
 export const extractionRuns = linkIngestionTraceRuns;
 /** @deprecated Use linkIngestionTraceSets */

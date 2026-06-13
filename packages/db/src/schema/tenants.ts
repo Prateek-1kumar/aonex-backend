@@ -1,5 +1,5 @@
-// HLD §20 — tenants is the top of the entity hierarchy.
-// "Every business table has tenant_id; merchant_id where applicable."
+// tenants: top of the entity hierarchy. Every business table carries tenant_id
+// (and merchant_id where applicable).
 
 import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
 import { tenantStatusEnum } from "./enums.js";

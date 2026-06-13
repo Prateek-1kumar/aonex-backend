@@ -1,13 +1,7 @@
-// Catalog redesign Phase 1, Task 1.7 — source_priority rules table.
-//
-// Effective-dated rules that decide which source wins for each attribute.
-// Tenant-scoped (tenant_id set) or global (tenant_id NULL). Tombstoning is
-// done by setting effective_to = now(); active rules have effective_to IS NULL.
-//
-// The lookup index is a PARTIAL index keyed by
-// (tenant_id, attribute_code, source_glob, channel_scope) WHERE effective_to IS NULL.
-// Drizzle does not model WHERE predicates on indexes, so the partial-index
-// definition lives in migrations/0013_source_priority.sql (ground truth).
+// source_priority: effective-dated rules deciding which source wins per attribute.
+// Tenant-scoped (tenant_id set) or global (tenant_id NULL); active rules have
+// effective_to IS NULL, tombstoned ones set it to now(). The partial lookup index
+// (WHERE effective_to IS NULL) lives in the SQL migration, which is truth.
 
 import {
   pgTable,
@@ -23,12 +17,12 @@ export const sourcePriority = pgTable(
   "source_priority",
   {
     ruleId:        bigint("rule_id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
-    tenantId:      uuid("tenant_id"),               // nullable: NULL = global default
-    attributeCode: text("attribute_code"),          // nullable: NULL = all attributes
+    tenantId:      uuid("tenant_id"),
+    attributeCode: text("attribute_code"),
     sourceGlob:    text("source_glob").notNull(),
     channelScope:  text("channel_scope"),
     priority:      integer("priority").notNull(),
-    predicate:     jsonb("predicate"),              // JSONLogic, nullable (v2)
+    predicate:     jsonb("predicate"),
     rulesVersion:  integer("rules_version").notNull(),
     effectiveFrom: timestamp("effective_from", { withTimezone: true }).notNull().defaultNow(),
     effectiveTo:   timestamp("effective_to", { withTimezone: true }),

@@ -1,5 +1,5 @@
-// Spec §11.2 — additive JSON Schema overlay composed via allOf at validator time.
-// Tenants may strengthen required and narrow enums; cannot weaken core requirements.
+// Per-tenant additive JSON Schema overlays, composed via allOf at validator time.
+// Tenants may strengthen required and narrow enums; they cannot weaken core requirements.
 
 import {
   pgTable,

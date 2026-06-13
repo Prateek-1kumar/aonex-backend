@@ -1,5 +1,4 @@
-// HLD §4.5 / spec §4.5 — localized display names per category_path.
-// Codes are immutable; labels translate.
+// Localized display names per category_path. Codes are immutable; labels translate.
 
 import {
   pgTable,

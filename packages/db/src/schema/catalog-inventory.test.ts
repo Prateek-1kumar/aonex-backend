@@ -1,3 +1,6 @@
+// Integration tests for the catalog_inventory schema (observations + current,
+// partitioning, CHECK and coalesced-PK behavior) against a live Postgres.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -21,11 +24,9 @@ describe("catalog_inventory schema", () => {
     await ensureTestMerchant(db);
     await ensureTestChannel(db);
     await ensureTestInventoryLocation(db);
-    // Scoped cleanup — tenant only.
     await db
       .delete(schema.catalogInventoryObservations)
       .where(eq(schema.catalogInventoryObservations.tenantId, TEST_TENANT_ID));
-    // catalog_inventory_current is tenant-scoped as of migration 0029.
     await db
       .delete(schema.catalogInventoryCurrent)
       .where(eq(schema.catalogInventoryCurrent.tenantId, TEST_TENANT_ID));
@@ -75,8 +76,6 @@ describe("catalog_inventory schema", () => {
   });
 
   test("app code inserts into catalog_inventory_current (no DB trigger)", async () => {
-    // Spec §9.1: current table is maintained by the debounced async reconciler in
-    // TS, not by a DB trigger. This test verifies a direct INSERT succeeds.
     const productId = randomUUID();
     const observedAt = new Date("2026-05-16T10:00:00Z");
     const rows = await db
@@ -101,8 +100,6 @@ describe("catalog_inventory schema", () => {
   });
 
   test("(product_id, channel_id, location_id, observed_at DESC) index is used for latest-per-location lookup", async () => {
-    // Insert ~50 observations across many products on this channel+location so
-    // the planner sees real cardinality and prefers the composite index.
     const observedBase = new Date("2026-05-20T00:00:00Z").getTime();
     const productIds = Array.from({ length: 10 }, () => randomUUID());
     const bulkValues = Array.from({ length: 50 }, (_, i) => ({
@@ -178,9 +175,6 @@ describe("catalog_inventory schema", () => {
   });
 
   test("NULL location_id rows are treated as duplicates via sentinel coalesce in PK", async () => {
-    // Spec §9.1: PRIMARY KEY (product_id, channel_id, COALESCE(location_id, sentinel)).
-    // Two rows with the same (product_id, channel_id) and NULL location_id must
-    // collide on the PK.
     const productId = randomUUID();
     const observedAt = new Date("2026-05-19T10:00:00Z");
     await db.insert(schema.catalogInventoryCurrent).values({
@@ -207,8 +201,6 @@ describe("catalog_inventory schema", () => {
       })()
     ).rejects.toThrow(/duplicate key/i);
 
-    // Cleanup the NULL-location row so afterAll's tenant-scoped delete doesn't
-    // need any special handling (it deletes by tenant which covers this).
     await db
       .delete(schema.catalogInventoryCurrent)
       .where(

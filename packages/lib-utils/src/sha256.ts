@@ -1,5 +1,5 @@
-// SHA-256 helpers — wrap node:crypto so callers don't import it
-// directly (composition root rule).
+// SHA-256 helpers wrapping node:crypto: hex digest of a string/Buffer and a
+// canonical-JSON digest that is stable across key order and undefined values.
 
 import { createHash } from "node:crypto";
 import { canonicalStringify } from "./canonical-stringify.js";

@@ -1,12 +1,10 @@
+// Tests for parseEnv: valid parse, ZodError on bad NODE_ENV, and LOG_LEVEL
+// default. baseEnv supplies minimal-valid required fields per test override.
+
 import { describe, expect, test } from "bun:test";
 import { ZodError } from "zod";
 import { parseEnv } from "./env.js";
 
-/**
- * Build a minimal-valid env object for tests. The EnvSchema has many
- * required fields; this helper supplies plausible defaults so each test
- * can override just the keys it cares about.
- */
 function baseEnv(overrides: Record<string, string> = {}): NodeJS.ProcessEnv {
   return {
     NODE_ENV: "test",

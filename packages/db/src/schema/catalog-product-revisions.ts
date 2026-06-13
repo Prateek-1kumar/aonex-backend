@@ -1,7 +1,6 @@
-// Catalog redesign Phase 1 — append-only revision log for catalog_products.
-// Partitioned monthly on ingested_at; INSERTs only (UPDATE/DELETE blocked by
-// trg_revisions_immutable). Drizzle schema is used for SELECT typing only;
-// see migrations/0010_catalog_product_revisions.sql for ground truth.
+// catalog_product_revisions: append-only revision log for catalog_products.
+// INSERTs only — UPDATE/DELETE are blocked by trg_revisions_immutable; partitioning
+// lives in raw SQL, so this Drizzle def is for typing only.
 
 import { pgTable, uuid, bigint, jsonb, text, timestamp, boolean, index, primaryKey } from "drizzle-orm/pg-core";
 

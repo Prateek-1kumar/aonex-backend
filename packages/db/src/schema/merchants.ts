@@ -1,6 +1,5 @@
-// HLD §20 — merchants belongs to a tenant.
-// Auth columns (email/password_hash/display_name) are LLD-specific
-// since the HLD assumes auth is "designed but not specified here".
+// merchants: belongs to a tenant. tenant FK is ON DELETE RESTRICT so deletion
+// goes through the controlled GDPR purge runbook rather than cascading.
 
 import { pgTable, uuid, varchar, timestamp, index } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants.js";
@@ -11,7 +10,6 @@ export const merchants = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      // restrict — forces controlled purge per LLD §15 GDPR runbook.
       .references(() => tenants.id, { onDelete: "restrict" }),
     email: varchar("email", { length: 320 }).notNull().unique(),
     passwordHash: varchar("password_hash", { length: 200 }).notNull(),

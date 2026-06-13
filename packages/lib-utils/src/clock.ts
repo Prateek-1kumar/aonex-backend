@@ -1,6 +1,5 @@
-// Clock dependency injection — the clock is a dependency.
-// `new Date()` / `Date.now()` is forbidden in business logic
-// (engineering principles). Use the injected Clock.
+// Injectable Clock abstraction. Business logic uses an injected Clock rather
+// than `new Date()` / `Date.now()` so time is deterministic and testable.
 
 export interface Clock {
   now(): Date;

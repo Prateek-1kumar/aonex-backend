@@ -1,5 +1,5 @@
-// Read port — Phase 1 surface. Maps to HLD §17:
-// `capabilities`, `listRecords`, `fetchRecord`, `getSyncStatus`.
+// Read port: capabilities, record listing/fetching, paged draining, and
+// sync-status for a connector.
 
 import type {
   CanonicalProductRecord,
@@ -16,10 +16,7 @@ export interface IConnectorRead {
   capabilities(input: { merchantId: MerchantId; marketplace: Marketplace }): Promise<ConnectorCapabilities>;
   listRecords(input: ListRecordsInput): Promise<ListRecordsResult>;
   fetchRecord(input: FetchRecordInput): Promise<CanonicalProductRecord>;
-  /**
-   * Drain helper — async-iterates pages of records. Worker uses
-   * this directly to avoid manual cursor management.
-   */
+  /** Async-iterates pages of records, hiding cursor management from callers. */
   drainProducts(
     input: { merchantId: MerchantId; marketplace: Marketplace },
     opts?: DrainOptions

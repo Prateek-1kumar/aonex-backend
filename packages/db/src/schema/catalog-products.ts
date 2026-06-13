@@ -1,6 +1,5 @@
-// Catalog redesign Phase 1 — core product table.
-// catalog_products: the heart of the new catalog; every subsequent table FKs into it.
-// Generated columns (search vectors, etc.) are added separately in Task 1.3 via raw SQL.
+// catalog_products: the core catalog table; most other tables FK into it.
+// Generated columns (search vectors, etc.) are added separately via raw SQL.
 
 import {
   pgTable,
@@ -30,12 +29,9 @@ export const catalogProducts = pgTable(
     primaryIdentifier:   text("primary_identifier").notNull(),
     identity:            jsonb("identity").notNull(),
     family:              text("family"),
-    // Taxonomy spine (P0) — FK into taxonomy_nodes (the canonical tree). Nullable
-    // until the P1 classifier populates it; the real FK lives in the SQL migration
-    // (0031) to keep this file import-clean. family/category_path stay as fallback.
+    /** FK into taxonomy_nodes (declared in SQL migration); nullable until the classifier sets it. */
     categoryNodeId:      text("category_node_id"),
-    // P1.5 — how category_node_id was set: 'auto' (classifier) | 'human' (Lab).
-    // 'human' is sticky: the classifier never overwrites it.
+    /** How category_node_id was set: 'auto' (classifier) or 'human' (Lab); 'human' is sticky and never overwritten. */
     categorySource:      text("category_source"),
     status:              text("status").notNull().default("draft"),
     mergedIntoProductId: uuid("merged_into_product_id").references((): AnyPgColumn => catalogProducts.productId),
@@ -47,8 +43,7 @@ export const catalogProducts = pgTable(
     identifiers:         jsonb("identifiers").notNull().default(sql`'[]'::jsonb`),
     identifierExists:    boolean("identifier_exists").notNull().default(true),
     pipelineVersion:     integer("pipeline_version").notNull().default(1),
-    // Catalog enrichment — persisted, server-authoritative quality scores (0..100).
-    // Recomputed by the reconciler on winning_values change; content score set by enrichment.
+    /** Server-authoritative quality score (0..100); recomputed by the reconciler on winning_values change. */
     completenessScore:   numeric("completeness_score", { precision: 5, scale: 2 }),
     contentQualityScore: numeric("content_quality_score", { precision: 5, scale: 2 }),
     scoreBreakdown:      jsonb("score_breakdown"),
@@ -61,12 +56,9 @@ export const catalogProducts = pgTable(
     tenantStatusIdx:    index("idx_catalog_products_tenant_status").on(t.tenantId, t.status),
     familyIdx:          index("idx_catalog_products_family").on(t.family),
     categoryNodeIdx:    index("idx_catalog_products_category_node").on(t.categoryNodeId),
-    // Phase 4 perf — see migrations/0023_perf_indexes.sql.
-    // Serves the keyset-paginated list (filter tenant+merchant, order by updated_at, product_id).
     tenantMerchantUpdatedIdx: index("idx_catalog_products_tenant_merchant_updated").on(
       t.tenantId, t.merchantId, t.updatedAt.desc(), t.productId.desc()
     ),
-    // Serves the tenant-agnostic watchdog sweep (WHERE updated_at > now() - interval).
     updatedAtIdx:       index("idx_catalog_products_updated_at").on(t.updatedAt)
   })
 );

@@ -1,3 +1,6 @@
+// Tests that NangoConnectorAdapter.listRecords forwards an explicit model and
+// otherwise falls back to SYNC_NAMES[0] for the marketplace.
+
 import { describe, it, expect } from 'bun:test';
 import { NangoConnectorAdapter } from './adapter.js';
 import type { ConnectionLookupPort } from './adapter.js';
@@ -35,7 +38,7 @@ describe('NangoConnectorAdapter.listRecords — model override', () => {
         model: 'custom-model'
       });
     } catch {
-      // Expected to fail due to missing normalizer, but capturedModel should be set
+      /* normalizer is absent; capturedModel is still set before the throw */
     }
 
     expect(capturedModel).toBe('custom-model');
@@ -62,7 +65,7 @@ describe('NangoConnectorAdapter.listRecords — model override', () => {
         marketplace: 'shopify'
       });
     } catch {
-      // Expected to fail due to missing normalizer, but capturedModel should be set
+      /* normalizer is absent; capturedModel is still set before the throw */
     }
 
     expect(capturedModel).toBe('shopify-products');

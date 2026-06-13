@@ -1,8 +1,6 @@
-// GatewayError — the discriminated union every adapter throws.
-// HLD §17.3 lists the kinds; we normalize to these regardless of
-// upstream provider (Nango, direct, Apideck).
-//
-// LLD §7.1 ties each kind to a retry policy + operator action.
+// GatewayError: the discriminated error union every adapter throws, normalized
+// to a fixed set of kinds regardless of upstream provider. GATEWAY_ERROR_POLICY
+// maps each kind to its retry decision and HTTP status.
 
 export const GATEWAY_ERROR_KINDS = [
   "invalid_signature",

@@ -1,9 +1,7 @@
-// HMAC-SHA256 webhook verification.
-// LLD §4 — uses `X-Nango-Hmac-Sha256` only; the legacy
-// `X-Nango-Signature` is length-extension-vulnerable and deprecated.
-// Implemented locally (not via @nangohq/node.verifyIncomingWebhookRequest)
-// so the package remains the ONLY caller of @nangohq/node — and we get
-// `crypto.timingSafeEqual` semantics under our own control.
+// HMAC-SHA256 webhook verification using only `X-Nango-Hmac-Sha256` (the legacy
+// `X-Nango-Signature` is length-extension-vulnerable). Done locally rather than
+// via @nangohq/node so this package stays the sole @nangohq/node caller (I1) and
+// we control the timingSafeEqual comparison.
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { sha256Hex } from "@aonex/lib-utils";
@@ -15,9 +13,8 @@ export interface VerifyOptions {
   /** Optional second secret accepted during quarterly rotation. */
   secretNext?: string;
   /**
-   * Max age (ms) for events that include `startedAt`. Defaults to
-   * 5min per LLD §4 freshness check. Auth events lack a timestamp
-   * so we rely on processed_webhooks PK alone.
+   * Max age (ms) for events that include `startedAt`; defaults to 5min.
+   * Auth events lack a timestamp and rely on the processed_webhooks PK alone.
    */
   freshnessWindowMs?: number;
   /** Injected for testability. */
@@ -29,7 +26,6 @@ const HEADER_HMAC = "x-nango-hmac-sha256";
 export function verifyHmac(rawBody: string, header: string | undefined, secret: string): boolean {
   if (!header) return false;
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  // Length-equality pre-check — timingSafeEqual throws on mismatched length.
   if (expected.length !== header.length) return false;
   try {
     return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(header, "hex"));
@@ -84,7 +80,6 @@ export async function verifyAndParseWebhook(
     throw new GatewayError("invalid_payload", `Webhook payload failed schema: ${result.error.message}`);
   }
 
-  // Optional freshness check for sync events that carry startedAt.
   if (result.data.type === "sync" && result.data.startedAt) {
     const window = opts.freshnessWindowMs ?? 5 * 60 * 1000;
     const startedMs = Date.parse(result.data.startedAt);

@@ -1,7 +1,6 @@
-// HLD §6 / §20 — audit_events, append-only.
-// Enforced by DB role separation (app role has no UPDATE/DELETE).
-// `merchant_id` is intentionally NOT a foreign key so audit
-// survives merchant deletion (LLD §15 GDPR).
+// audit_events: append-only (the app DB role has no UPDATE/DELETE).
+// merchant_id is intentionally NOT a foreign key so audit rows survive
+// merchant deletion (GDPR purge).
 
 import { pgTable, uuid, varchar, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { actorTypeEnum } from "./enums.js";
@@ -10,7 +9,7 @@ export const auditEvents = pgTable(
   "audit_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    /** Plain UUID — NO FK by design. (LLD §15.) */
+    /** Plain UUID — NO FK by design. */
     tenantId: uuid("tenant_id").notNull(),
     merchantId: uuid("merchant_id"),
     actorId: uuid("actor_id"),

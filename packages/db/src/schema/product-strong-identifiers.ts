@@ -1,8 +1,6 @@
-// Phase 2: identity spine concurrency guard.
-// product_strong_identifiers: a projection of every STRONG identifier currently
-// claimed by a catalog row, so the DB's UNIQUE constraint enforces "at most one
-// product per strong (tenant, type, value)" — preventing simultaneous creates
-// from producing duplicates. Spec C1/D2; plan Phase 2 Task 1.
+// product_strong_identifiers: projection of every strong identifier currently
+// claimed by a catalog row. The PK enforces "at most one product per strong
+// (tenant, type, value)", preventing concurrent creates from producing duplicates.
 
 import { pgTable, uuid, text, primaryKey } from "drizzle-orm/pg-core";
 import { catalogProducts } from "./catalog-products.js";

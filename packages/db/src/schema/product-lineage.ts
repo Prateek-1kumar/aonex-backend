@@ -1,15 +1,6 @@
-// Catalog redesign Phase 1, Task 1.9 — product_lineage table.
-//
-// Append-only history of merge/split/unmerge operations between products.
-// Both FKs (product_id, origin_product_id) point at catalog_products with
-// no ON DELETE clause — NO ACTION default — because lineage outlives merges
-// by design.
-//
-// Two named indexes on (product_id) and (origin_product_id) for fast lookups
-// in both directions.
-//
-// Drizzle schema is used for INSERT/SELECT typing only; the migration is the
-// ground truth — see migrations/0015_reconciliation_overrides_and_lineage.sql.
+// product_lineage: append-only history of merge/split/unmerge operations between
+// products. Both FKs use the NO ACTION default (no ON DELETE) so lineage outlives
+// merges by design.
 
 import { pgTable, uuid, bigint, text, jsonb, timestamp, index, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { catalogProducts } from "./catalog-products.js";
@@ -20,8 +11,8 @@ export const productLineage = pgTable(
     lineageId:       bigint("lineage_id", { mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
     productId:       uuid("product_id").notNull().references((): AnyPgColumn => catalogProducts.productId),
     originProductId: uuid("origin_product_id").notNull().references((): AnyPgColumn => catalogProducts.productId),
-    operation:       text("operation").notNull(),  // 'merge' | 'split' | 'unmerge'
-    splitFilter:     jsonb("split_filter"),        // present for 'split'
+    operation:       text("operation").notNull(),
+    splitFilter:     jsonb("split_filter"),
     rationale:       text("rationale"),
     actor:           text("actor").notNull(),
     occurredAt:      timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow()

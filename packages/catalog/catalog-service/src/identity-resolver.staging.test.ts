@@ -1,8 +1,6 @@
-// Integration test — resolveIdentity staging-awareness (Task 3, anomaly-lab plan).
-//
-// Tests the `includeStaged` flag and the new `candidates` field on
-// IdentityResolverResult. Uses a unique TENANT uuid to avoid colliding with
-// other concurrent test runs or the shared TEST_TENANT_ID tests.
+// Integration test for resolveIdentity staging-awareness: the `includeStaged`
+// flag and the `candidates` field on IdentityResolverResult. Uses a unique
+// tenant uuid to avoid colliding with other test runs or the shared TEST_TENANT_ID.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
@@ -17,8 +15,6 @@ import {
 import type { TenantId } from "@aonex/types";
 import { resolveIdentity } from "./identity-resolver.js";
 
-// Unique tenant for this test file — never collides with TEST_TENANT_ID or
-// other test files.
 const STAGING_TENANT_ID = "a0000000-0000-0000-0000-000000000099";
 const TENANT = STAGING_TENANT_ID as unknown as TenantId;
 
@@ -33,8 +29,6 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
   beforeAll(async () => {
     db = await connectTestDb();
 
-    // Ensure the tenant row exists (reuse the test tenant infrastructure but
-    // insert our unique tenant id directly so we don't affect shared state).
     await db
       .insert(schema.tenants)
       .values({
@@ -44,11 +38,8 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
       })
       .onConflictDoNothing();
 
-    // Ensure the shared test merchant exists (staged_products has no FK, but
-    // catalog_products requires a valid merchant_id).
     await ensureTestMerchant(db);
 
-    // Clean up any leftover rows from a previous aborted run.
     await db
       .delete(schema.stagedProducts)
       .where(eq(schema.stagedProducts.tenantId, STAGING_TENANT_ID));
@@ -56,7 +47,6 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
       .delete(schema.catalogProducts)
       .where(eq(schema.catalogProducts.tenantId, STAGING_TENANT_ID));
 
-    // Seed a live catalog_products row (gtin 11111111111, brand "Live").
     const inserted = await db
       .insert(schema.catalogProducts)
       .values({
@@ -70,8 +60,6 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
       .returning({ productId: schema.catalogProducts.productId });
     liveCatalogProductId = inserted[0]!.productId;
 
-    // Seed a staged_products pending row (proposed_identity gtin 22222222222,
-    // brand "Staged"). staged_products has no FK to tenants/merchants.
     const staged = await db
       .insert(schema.stagedProducts)
       .values({
@@ -105,17 +93,14 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
       includeStaged: true
     });
 
-    // No live match — the staged GTIN is not in catalog_products.
     expect(result.productId).toBeNull();
     expect(result.matchPath).toBe("none");
 
-    // candidates must contain the staged entry.
     expect(result.candidates.length).toBeGreaterThanOrEqual(1);
     const stagedEntry = result.candidates.find(
       (c) => c.kind === "staged" && c.productId === stagedProductId
     );
     expect(stagedEntry).toBeDefined();
-    // GTIN-exact staged match is always score 1.0 (scores are 0–1.0).
     expect(stagedEntry!.score).toBe(1.0);
   });
 
@@ -130,7 +115,6 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
     expect(result.matchPath).toBe("gtin");
     expect(result.productId).toBe(liveCatalogProductId);
 
-    // candidates must contain the live entry.
     expect(result.candidates.length).toBeGreaterThanOrEqual(1);
     const liveEntry = result.candidates.find(
       (c) => c.kind === "live" && c.productId === liveCatalogProductId
@@ -143,7 +127,6 @@ describe("resolveIdentity — staging-aware (includeStaged)", () => {
       db,
       tenantId: TENANT,
       identityHint: { gtin: STAGED_GTIN }
-      // includeStaged not set — defaults to false
     });
 
     expect(result.productId).toBeNull();

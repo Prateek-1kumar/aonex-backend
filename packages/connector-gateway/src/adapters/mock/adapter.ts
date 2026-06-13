@@ -1,13 +1,6 @@
-// MockConnectorAdapter — a Fake (working in-memory implementation),
-// not a Mock per the test-doubles taxonomy. The contract test runs
-// against this AND NangoConnectorAdapter; if Mock passes and Nango
-// fails, Nango violates LSP. (Engineering principles, "LSP via
-// contract tests".)
-//
-// Used in:
-//  - Phase 1 dev (run api+worker without Nango Cloud)
-//  - All unit tests
-//  - The contract test suite
+// In-memory Fake (not a stub) implementation of ConnectorAdapterPhase1.
+// The shared contract test runs against this AND NangoConnectorAdapter, so a
+// pass here that fails on Nango pinpoints an LSP violation.
 
 import { createHmac } from "node:crypto";
 import { sha256Hex } from "@aonex/lib-utils";
@@ -49,16 +42,11 @@ export interface MockConnectorAdapterDeps {
 }
 
 export class MockConnectorAdapter implements ConnectorAdapterPhase1 {
-  /** key = merchantId|marketplace */
   private readonly connections = new Map<string, ConnectionDescriptor>();
-  /** key = merchantId|marketplace, value = ordered records */
   private readonly records = new Map<string, SeededRecord[]>();
-  /** key = sync session token */
   private readonly sessions = new Map<string, { merchantId: MerchantId; expiresAt: Date }>();
 
   constructor(private readonly deps: MockConnectorAdapterDeps) {}
-
-  // -------- test helpers (not on the interface) ------------------
 
   static key(merchantId: MerchantId, marketplace: Marketplace): string {
     return `${merchantId}|${marketplace}`;
@@ -86,8 +74,6 @@ export class MockConnectorAdapter implements ConnectorAdapterPhase1 {
   signWebhookBody(rawBody: string): string {
     return createHmac("sha256", this.deps.webhookSecret).update(rawBody).digest("hex");
   }
-
-  // -------- Read -------------------------------------------------
 
   async capabilities(input: {
     merchantId: MerchantId;
@@ -175,8 +161,6 @@ export class MockConnectorAdapter implements ConnectorAdapterPhase1 {
     };
   }
 
-  // -------- Admin -------------------------------------------------
-
   async createConnectSession(input: CreateConnectSessionInput): Promise<ConnectSessionToken> {
     const token = `mock-session-${Math.random().toString(36).slice(2)}`;
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -203,7 +187,6 @@ export class MockConnectorAdapter implements ConnectorAdapterPhase1 {
     if (existing) {
       this.connections.set(k, { ...existing, status: "revoked" });
     }
-    // Idempotent — calling twice is not an error.
   }
 
   async refreshTokenHealth(): Promise<TokenHealthResult> {
@@ -221,8 +204,6 @@ export class MockConnectorAdapter implements ConnectorAdapterPhase1 {
   async getInventory(_input: GetInventoryInput): Promise<readonly InventoryRecord[]> {
     return [];
   }
-
-  // -------- Webhook ----------------------------------------------
 
   async verifyAndParseWebhook(input: VerifyAndParseInput): Promise<VerifyAndParseResult> {
     const sig = lookupHeader(input.headers, "x-nango-hmac-sha256");
@@ -242,8 +223,6 @@ export class MockConnectorAdapter implements ConnectorAdapterPhase1 {
     }
     return { event: result.data, webhookId: sha256Hex(input.rawBody) };
   }
-
-  // -------- internal ---------------------------------------------
 
   private assertConnection(merchantId: MerchantId, marketplace: Marketplace): void {
     const c = this.connections.get(MockConnectorAdapter.key(merchantId, marketplace));

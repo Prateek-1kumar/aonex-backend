@@ -1,6 +1,5 @@
-// LLD §4 — JWT session revocation + webhook idempotency.
-// Both tables are auxiliary to the HLD; the HLD doesn't specify
-// auth token storage, but multi-tenant + revocation requires both.
+// merchant_sessions (JWT session revocation via jti) and processed_webhooks
+// (webhook idempotency).
 
 import { pgTable, uuid, varchar, timestamp, index } from "drizzle-orm/pg-core";
 import { merchants } from "./merchants.js";
@@ -23,7 +22,7 @@ export const merchantSessions = pgTable(
 
 /**
  * Webhook idempotency. webhook_id = sha256(rawBody).
- * BRIN index on received_at — append-only, ~monotonic, cheap cleanup cron. (LLD P1-9.)
+ * BRIN index on received_at — append-only, ~monotonic, cheap cleanup cron.
  */
 export const processedWebhooks = pgTable(
   "processed_webhooks",

@@ -1,3 +1,6 @@
+// Tests for FallbackChatProvider: primary success, failover on error, and
+// surfacing the last error when every provider in the chain fails.
+
 import { describe, expect, test } from "bun:test";
 import { FallbackChatProvider } from "./fallback-chat-provider.js";
 import type { ChatProvider } from "./chat-provider.js";
@@ -34,7 +37,7 @@ describe("FallbackChatProvider", () => {
       { provider: fallback, model: "llama-3.3-70b", label: "groq" },
     ]).chatCompletion(params);
     expect(r.content).toBe("from-gemini");
-    expect(primary.calls).toEqual(["gemini-2.0-flash"]); // each link uses its OWN model
+    expect(primary.calls).toEqual(["gemini-2.0-flash"]);
     expect(fallback.calls).toEqual([]);
   });
 

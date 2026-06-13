@@ -1,3 +1,6 @@
+// Tests for enrichment provider selection: Gemini>Groq>OpenAI precedence,
+// env overrides, default models, and the configured-only chain ordering.
+
 import { describe, expect, test } from "bun:test";
 import { selectEnrichProvider, selectEnrichChain } from "./llm-provider-select.js";
 
@@ -15,7 +18,7 @@ describe("selectEnrichProvider", () => {
     expect(r?.provider).toBe("gemini");
     expect(r?.baseUrl).toBe("https://generativelanguage.googleapis.com/v1beta/openai");
     expect(r?.model).toBe("gemini-2.0-flash");
-    expect(r?.fallbackModels).toEqual([]); // no per-model TPD wall
+    expect(r?.fallbackModels).toEqual([]);
   });
 
   test("honors Gemini base-url + model overrides", () => {

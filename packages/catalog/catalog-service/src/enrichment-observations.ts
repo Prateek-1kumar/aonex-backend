@@ -1,10 +1,7 @@
-// Append LLM-enrichment observations to catalog_products.values — the single
-// write-path shared by the worker (auto-applied grounded fields) and the API
-// apply flow (human-confirmed proposals). Observations land under source
-// "enrichment:llm" at the `_unscoped`/`_unscoped` leaf (the channel/locale the
-// list + detail projections prefer); a global priority-0 source_priority rule
-// ("enrichment:*") makes them curator-grade. The caller is responsible for
-// running projectSync over the affected attributes afterwards.
+// Append/remove LLM-enrichment observations on catalog_products.values — the
+// single write-path shared by the worker and the API apply flow. Observations
+// land under source "enrichment:llm" at the `_unscoped`/`_unscoped` leaf; a
+// priority-0 "enrichment:*" rule makes them curator-grade. Caller runs projectSync.
 
 import { eq } from "drizzle-orm";
 import { schema, type DrizzleExecutor } from "@aonex/db";

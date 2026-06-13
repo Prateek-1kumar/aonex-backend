@@ -1,9 +1,6 @@
-// Unit parsing/conversion helper in @aonex/lib-utils.
-//
-// convertToCanonical maps a (value, unit, dimension) onto the canonical unit for
-// that dimension (cm/g/ml/Wh/W/Hz via canonicalUnitFor), returning null for
-// unknown or non-convertible units (e.g. mAh, which needs voltage). Used to
-// normalize attribute values during extraction.
+// Unit conversion: maps a (value, unit, dimension) onto the canonical unit for
+// that dimension (cm/g/ml/Wh/W/Hz), returning null for unknown or non-convertible
+// units (e.g. mAh, which needs voltage). Used to normalize attribute values.
 
 export type Dimension = "length" | "mass" | "volume" | "energy" | "power" | "frequency";
 
@@ -33,7 +30,7 @@ const FACTORS: Record<string, { dim: Dimension; toCanonical: number }> = {
   L: { dim: "volume", toCanonical: 1000 },
 
   Wh: { dim: "energy", toCanonical: 1 },
-  mAh: { dim: "energy", toCanonical: NaN }, // requires voltage; treat as non-convertible
+  mAh: { dim: "energy", toCanonical: NaN },
 
   W: { dim: "power", toCanonical: 1 },
   kW: { dim: "power", toCanonical: 1000 },

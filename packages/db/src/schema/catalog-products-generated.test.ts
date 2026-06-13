@@ -1,3 +1,6 @@
+// Integration tests for catalog_products generated columns (gen_brand, gen_gtin,
+// gen_title, gen_primary_price/currency, gen_inventory_total) against a live Postgres.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
 import { schema } from "../index.js";
@@ -13,7 +16,6 @@ describe("catalog_products generated columns", () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
-    // Clean up any leftover rows from previous test runs (scoped to test tenant only)
     await db
       .delete(schema.catalogProducts)
       .where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
@@ -40,7 +42,6 @@ describe("catalog_products generated columns", () => {
       .returning();
     const row = rows[0]!;
 
-    // Read back via raw SQL to get generated columns (not in Drizzle schema type)
     const result = await db.execute(
       sql`SELECT gen_brand, gen_gtin FROM catalog_products WHERE product_id = ${row.productId}`
     );
@@ -125,7 +126,6 @@ describe("catalog_products generated columns", () => {
   });
 
   test("brand filter uses idx_catalog_products_gen_brand index", async () => {
-    // Insert ~50 rows with varying brand values so the planner sees real cardinality
     const brandNames = [
       "Alpha", "Beta", "Gamma", "Delta", "Epsilon",
       "Zeta", "Eta", "Theta", "Iota", "Kappa"
@@ -141,11 +141,8 @@ describe("catalog_products generated columns", () => {
 
     await db.insert(schema.catalogProducts).values(bulkValues).execute();
 
-    // Update table statistics so the planner is aware of row count
     await db.execute(sql`ANALYZE catalog_products`);
 
-    // Disable sequential scans so the planner MUST use the index if it exists
-    // This makes the test deterministic regardless of table size.
     await db.execute(sql`SET enable_seqscan = OFF`);
 
     const plan = await db.execute(

@@ -1,7 +1,6 @@
-// HLD §20 — source_artifacts + ingestion_jobs.
-// `source_artifacts` is the immutable raw evidence ("Persist
-// source_artifacts and extracted_facts before touching catalog tables")
-// — Phase 1 implements this; Phase 2 adds extraction_runs/extracted_facts.
+// source_artifacts (immutable raw ingest evidence), ingestion_jobs (BullMQ mirror),
+// and sync_job_runs (per-sync rollup). Artifacts are persisted before any catalog
+// table is touched.
 
 import {
   pgTable,
@@ -27,7 +26,7 @@ export const sourceArtifacts = pgTable(
     merchantId: uuid("merchant_id")
       .notNull()
       .references(() => merchants.id, { onDelete: "restrict" }),
-    /** "marketplace_connector" | "templated_csv" — HLD §11 */
+    /** "marketplace_connector" | "templated_csv". */
     sourceType: varchar("source_type", { length: 32 }).notNull(),
     sourceMarketplace: marketplaceEnum("source_marketplace"),
     /** Marketplace's external id (e.g. Shopify product gid). */
@@ -49,7 +48,6 @@ export const sourceArtifacts = pgTable(
     modifiedAt: timestamp("modified_at", { withTimezone: true })
   },
   (t) => ({
-    // HLD-mandated idempotency at the persistence boundary.
     dedup: uniqueIndex("uq_source_artifacts_dedup").on(
       t.merchantId,
       t.sourceMarketplace,
@@ -58,18 +56,13 @@ export const sourceArtifacts = pgTable(
     ),
     merchantStatus: index("idx_source_artifacts_merchant_status").on(t.merchantId, t.status),
     modifiedIdx: index("idx_source_artifacts_modified").on(t.sourceMarketplace, t.modifiedAt),
-    // Phase 4 perf — see migrations/0023_perf_indexes.sql. Serves the recent-ingestions
-    // list: filter (merchant_id, source_type), order by received_at DESC.
     merchantTypeReceivedIdx: index("idx_source_artifacts_merchant_type_received").on(
       t.merchantId, t.sourceType, t.receivedAt.desc()
     )
   })
 );
 
-/**
- * Per-job record mirroring BullMQ — used by the audit + cost ledger.
- * HLD §20.
- */
+/** Per-job record mirroring BullMQ — used by the audit + cost ledger. */
 export const ingestionJobs = pgTable(
   "ingestion_jobs",
   {
@@ -77,7 +70,7 @@ export const ingestionJobs = pgTable(
     artifactId: uuid("artifact_id"),
     tenantId: uuid("tenant_id").notNull(),
     merchantId: uuid("merchant_id").notNull(),
-    /** "auth" | "sync" | "drain" | "extract" | ... */
+    /** e.g. "auth" | "sync" | "drain" | "extract". */
     jobType: varchar("job_type", { length: 32 }).notNull(),
     status: ingestionJobStatusEnum("status").notNull().default("queued"),
     attempts: integer("attempts").notNull().default(0),
@@ -94,10 +87,7 @@ export const ingestionJobs = pgTable(
   })
 );
 
-/**
- * Per-sync rollup — webhook-driven sync run summary.
- * Auxiliary table from LLD §6 (records_added/updated/failed).
- */
+/** Per-sync rollup — webhook-driven sync run summary. */
 export const syncJobRuns = pgTable(
   "sync_job_runs",
   {
@@ -108,7 +98,7 @@ export const syncJobRuns = pgTable(
       .references(() => merchants.id, { onDelete: "restrict" }),
     marketplace: marketplaceEnum("marketplace").notNull(),
     webhookId: varchar("webhook_id", { length: 200 }).notNull(),
-    syncMode: varchar("sync_mode", { length: 20 }).notNull(), // 'INITIAL' | 'INCREMENTAL' | 'FULL'
+    syncMode: varchar("sync_mode", { length: 20 }).notNull(),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     recordsAdded: integer("records_added").notNull().default(0),

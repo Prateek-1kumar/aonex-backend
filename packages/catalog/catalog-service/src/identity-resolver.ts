@@ -1,24 +1,7 @@
-// Catalog redesign — identity resolver.
-//
-// Implements spec §18: given an incoming observation and an identity hint
-// (gtin / mpn / brand / fuzzy title), find an existing catalog_products row
-// to attach to, or return null so the caller knows to create a new one.
-//
-// Four resolution paths, in order:
-//   1. Strong identity:  identity.gtin exact-match              → strength 1.0
-//   2. Medium identity:  identity.mpn + identity.brand match    → strength 0.9
-//   3. Fuzzy identity:   brand (+ family) candidates scored via
-//                        @aonex/multi-source-reconciler          → strength = score
-//        score >= 0.7  → match
-//        0.5 <= score < 0.7 → null, but reviewTaskSuggested:true
-//   4. None             → null
-//
-// Note: this module does NOT emit review tasks or catalog_events when a
-// fuzzy match falls in the review band. It only flags the situation via
-// `reviewTaskSuggested`. The caller (Task 3.5 catalog write service) is
-// responsible for materialising the review_task / catalog_event row. This
-// keeps the resolver a pure query against catalog_products and leaves all
-// side-effects to the write path.
+// Identity resolver: given an observation + identity hint, find an existing
+// catalog_products row to attach to (gtin → mpn+brand → primary_id → fuzzy),
+// or return null so the caller creates a new product.
+// Pure query — emits NO side effects; the write path materialises review tasks/events.
 
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";
@@ -101,7 +84,7 @@ export interface IdentityResolverResult {
 
 /**
  * Resolve an incoming observation against the catalog_products table.
- * See module header for the algorithm; see spec §18 for the source of truth.
+ * See the module header for the resolution-path algorithm.
  */
 export async function resolveIdentity(
   input: IdentityResolverInput
@@ -109,7 +92,6 @@ export async function resolveIdentity(
   const { db, tenantId, identityHint } = input;
   const candidateIds: string[] = [];
 
-  // ---- 1. Strong identity: GTIN exact match -----------------------------
   if (identityHint.gtin) {
     const rows = await db
       .select({ productId: schema.catalogProducts.productId })
@@ -134,7 +116,6 @@ export async function resolveIdentity(
     }
   }
 
-  // ---- 2. Medium identity: MPN + brand exact match ----------------------
   if (identityHint.mpn && identityHint.brand) {
     const rows = await db
       .select({ productId: schema.catalogProducts.productId })
@@ -160,12 +141,9 @@ export async function resolveIdentity(
     }
   }
 
-  // ---- 2.5 Merchant SKU: primary_identifier exact match -----------------
-  // A merchant-supplied SKU is a hard identifier within the tenant. When the
-  // hint carries one, resolve EXACT-OR-NONE: an exact hit enriches; no hit
-  // means a genuinely new product. We deliberately skip the fuzzy path here —
-  // CSV SKUs share one brand (the merchant) and carry near-identical synthetic
-  // titles, so fuzzy scoring would merge distinct pieces.
+  // A merchant SKU resolves EXACT-OR-NONE and deliberately skips fuzzy: CSV
+  // SKUs share one brand with near-identical synthetic titles, so fuzzy scoring
+  // would merge distinct pieces.
   if (identityHint.primary_identifier) {
     const rows = await db
       .select({ productId: schema.catalogProducts.productId })
@@ -188,7 +166,6 @@ export async function resolveIdentity(
         candidates: [{ productId: hit.productId, score: 1.0, kind: "live" }]
       };
     }
-    // No exact match: new product. Skip fuzzy (see comment above).
     return {
       productId: null,
       strength: 0,
@@ -199,29 +176,17 @@ export async function resolveIdentity(
     };
   }
 
-  // ---- 3. Fuzzy identity: brand (+ family) candidates scored ------------
-  // Fuzzy needs a brand AND a title to score against — without either, skip
-  // straight to "no match" rather than scanning the whole tenant.
   const fuzzyTitle = input.observationTitle ?? identityHint.titleForFuzzy;
   if (identityHint.brand && fuzzyTitle) {
     const filters = [
       eq(schema.catalogProducts.tenantId, tenantId),
       sql`${schema.catalogProducts.identity}->>'brand' = ${identityHint.brand}`,
-      // Avoid scoring against tombstones/merged rows.
       isNotNull(schema.catalogProducts.productId)
     ];
     if (input.inferredFamily) {
       filters.push(eq(schema.catalogProducts.family, input.inferredFamily));
     }
 
-    // gen_title is the generated column projecting winning_values.title._primary.value;
-    // it's the cheapest title source and is what the trigram index covers.
-    // Phase 4 perf: bound the candidate set. Previously this scored EVERY
-    // brand-matched row in JS — a latency cliff for high-volume brands (10k+
-    // SKUs). We order by trigram title-similarity (served by the existing
-    // gin_trgm index on gen_title) and cap to FUZZY_CANDIDATE_LIMIT, so the
-    // JS scorer still sees the most title-relevant candidates. NULLS LAST keeps
-    // title-less rows (least relevant to a fuzzy-title match) at the bottom.
     const candidates = (await db.execute(
       sql`SELECT
             product_id,
@@ -288,10 +253,6 @@ export async function resolveIdentity(
     }
   }
 
-  // ---- 4. No match: optionally search staged_products (v1: GTIN-exact) --
-  // This runs only when includeStaged is true and the hint has a GTIN.
-  // Fuzzy staged matching is deferred to a later plan — GTIN-exact is enough
-  // for the "Amazon-first, incomplete" dedup case.
   const stagedCandidates: Array<{ productId: string; score: number; kind: "live" | "staged" }> = [];
   if (input.includeStaged && identityHint.gtin) {
     const stagedRows = await db
@@ -306,8 +267,6 @@ export async function resolveIdentity(
       )
       .limit(5);
     for (const row of stagedRows) {
-      // productId holds the staged_product_id here (not a catalog product);
-      // kind:"staged" disambiguates it for callers (admitOrStage).
       stagedCandidates.push({ productId: row.stagedProductId, score: 1.0, kind: "staged" });
     }
   }

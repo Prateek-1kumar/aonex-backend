@@ -1,12 +1,10 @@
-// Branded identifier types — kill primitive obsession at compile time.
-// Engineering principles doc §"No primitive obsession". Construction
-// goes through `.parse()`; `unsafeFrom()` is audit-logged when needed.
+// Branded identifier types that prevent primitive obsession at compile time.
+// Construct via `.parse()` (validates) or `unsafeFrom()` (trusted, unchecked).
 
 import { z } from "zod";
 
 const uuidSchema = z.string().uuid();
 
-// ---------- TenantId ----------------------------------------------------
 declare const tenantIdBrand: unique symbol;
 export type TenantId = string & { readonly [tenantIdBrand]: true };
 
@@ -19,7 +17,6 @@ export const TenantId = {
   }
 };
 
-// ---------- MerchantId --------------------------------------------------
 declare const merchantIdBrand: unique symbol;
 export type MerchantId = string & { readonly [merchantIdBrand]: true };
 
@@ -32,9 +29,6 @@ export const MerchantId = {
   }
 };
 
-// ---------- ConnectionId -----------------------------------------------
-// Nango's connection_id is a string the gateway hands back. Branded so
-// we cannot accidentally pass a MerchantId where a ConnectionId is needed.
 declare const connectionIdBrand: unique symbol;
 export type ConnectionId = string & { readonly [connectionIdBrand]: true };
 
@@ -47,7 +41,6 @@ export const ConnectionId = {
   }
 };
 
-// ---------- ChannelId --------------------------------------------------
 declare const channelIdBrand: unique symbol;
 export type ChannelId = string & { readonly [channelIdBrand]: true };
 
@@ -60,7 +53,6 @@ export const ChannelId = {
   }
 };
 
-// ---------- ArtifactId -------------------------------------------------
 declare const artifactIdBrand: unique symbol;
 export type ArtifactId = string & { readonly [artifactIdBrand]: true };
 
@@ -73,8 +65,6 @@ export const ArtifactId = {
   }
 };
 
-// ---------- WebhookId --------------------------------------------------
-// SHA-256 hex of raw body. 64 chars.
 declare const webhookIdBrand: unique symbol;
 export type WebhookId = string & { readonly [webhookIdBrand]: true };
 
@@ -89,8 +79,6 @@ export const WebhookId = {
     return value as WebhookId;
   }
 };
-
-// ---------- Phase 2 IDs ------------------------------------------------
 
 declare const productIdBrand: unique symbol;
 export type ProductId = string & { readonly [productIdBrand]: true };
@@ -134,8 +122,8 @@ export const FactSetId = {
   unsafeFrom(value: string): FactSetId { return value as FactSetId; }
 };
 
-// CategoryPath is a slash-delimited string, e.g. "Apparel/Tops/T-Shirts"
 declare const categoryPathBrand: unique symbol;
+/** Slash-delimited category path, e.g. "Apparel/Tops/T-Shirts". */
 export type CategoryPath = string & { readonly [categoryPathBrand]: true };
 export const CategoryPath = {
   parse(input: unknown): CategoryPath {
@@ -144,8 +132,8 @@ export const CategoryPath = {
   unsafeFrom(value: string): CategoryPath { return value as CategoryPath; }
 };
 
-// CanonicalKey is the dotted attribute key, e.g. "product.brand"
 declare const canonicalKeyBrand: unique symbol;
+/** Dotted attribute key, e.g. "product.brand". */
 export type CanonicalKey = string & { readonly [canonicalKeyBrand]: true };
 export const CanonicalKey = {
   parse(input: unknown): CanonicalKey {

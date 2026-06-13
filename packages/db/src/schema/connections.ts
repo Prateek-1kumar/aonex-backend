@@ -1,6 +1,5 @@
-// HLD §20 — marketplace_connections.
-// Provider is fixed to 'nango' for Phase 1 (HLD §17 / ADR-001) but
-// stored explicitly so a future direct adapter can coexist.
+// marketplace_connections: per-merchant marketplace auth. Provider defaults to
+// 'nango' but is stored explicitly so a future direct adapter can coexist.
 
 import {
   pgTable,
@@ -27,7 +26,7 @@ export const marketplaceConnections = pgTable(
       .notNull()
       .references(() => merchants.id, { onDelete: "restrict" }),
     marketplace: marketplaceEnum("marketplace").notNull(),
-    /** Constant 'nango' in Phase 1 — see HLD §17. */
+    /** Currently always 'nango'. */
     provider: varchar("provider", { length: 32 }).notNull().default("nango"),
     /** Nango's connectionId — branded ConnectionId in TS. */
     providerConnectionId: varchar("provider_connection_id", { length: 200 }).notNull(),

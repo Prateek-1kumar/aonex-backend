@@ -1,5 +1,5 @@
-// Inventory port — Phase 1 reads from Nango-cached product variants.
-// Phase 2+ can swap to a live proxy call without changing this interface.
+// Inventory port: per-marketplace product availability lookup. Implementations
+// may read from a cache or a live proxy without changing this interface.
 
 import type { Marketplace, MerchantId } from "@aonex/types";
 

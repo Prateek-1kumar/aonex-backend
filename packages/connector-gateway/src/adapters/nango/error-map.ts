@@ -1,7 +1,6 @@
-// Map raw Nango / HTTP errors → GatewayError discriminated union.
-// HLD §17.3: structured errors per kind. Rule: every adapter
-// throws GatewayError, never the raw vendor error. Stack traces
-// preserved via `cause`.
+// Maps raw Nango/HTTP errors to the GatewayError discriminated union by kind.
+// Adapters always throw GatewayError, never the vendor error; the original is
+// retained on `cause`.
 
 import { GatewayError, type GatewayErrorKind } from "@aonex/types";
 

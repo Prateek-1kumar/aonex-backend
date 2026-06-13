@@ -1,9 +1,5 @@
-// Public surface of @aonex/db.
-//
-// Re-exports the `schema` namespace (all Drizzle tables), the DrizzleClient
-// factory + types (client.js), and the inferred row types for attributes,
-// category schemas, catalog events, tenant webhooks, and backfill cursors.
-// Imported by every package that touches Postgres.
+// Public surface of @aonex/db: the schema namespace, the client factory/types,
+// and inferred row types. Imported by every package that touches Postgres.
 
 export * as schema from "./schema/index.js";
 export * from "./client.js";

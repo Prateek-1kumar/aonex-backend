@@ -1,12 +1,7 @@
-// canonicalStringify — deterministic JSON serialization for hashing.
-// Mirrors Nango's `stringifyStable` so checksums computed on either
-// side of the boundary collide on the same logical record.
-//
-// Rules:
-//  - Object keys sorted lexicographically at every level.
-//  - Arrays preserve order.
-//  - undefined values dropped.
-//  - No trailing whitespace, no \n.
+// Deterministic JSON serialization for hashing: keys sorted at every level,
+// array order kept, undefined dropped, no whitespace. Mirrors Nango's
+// `stringifyStable` so checksums collide for the same logical record across the
+// boundary.
 
 export function canonicalStringify(value: unknown): string {
   if (value === undefined) return "null";

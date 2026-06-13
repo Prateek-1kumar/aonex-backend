@@ -1,29 +1,27 @@
-// BullMQ queue + job names — single source of truth.
-// Importing this constant is the only sanctioned way to reference
-// a queue name. (LLD §3, engineering principles "no string drift".)
+// BullMQ queue + job names: the single source of truth. Importing these
+// constants is the only sanctioned way to reference a queue/job name, so names
+// can't drift between producers and consumers.
 
 export const QUEUE = {
-  /** Connection lifecycle on Nango auth webhooks */
+  /** Connection lifecycle on Nango auth webhooks. */
   NANGO_AUTH: "nango.auth",
-  /** Sync orchestration on Nango sync webhooks */
+  /** Sync orchestration on Nango sync webhooks. */
   NANGO_SYNC: "nango.sync",
-  /** Drain pages from Nango cache → source_artifacts */
+  /** Drain pages from Nango cache into source_artifacts. */
   NANGO_DRAIN: "nango.drain",
-  /** Manual or scheduled sync triggers */
+  /** Manual or scheduled sync triggers. */
   NANGO_TRIGGER: "nango.trigger",
-  /** Hourly sweeper: refresh_failing ≥24h → revoked */
+  /** Hourly sweeper: refresh_failing for >=24h becomes revoked. */
   CONNECTION_SWEEPER: "connection.sweeper",
-  /** Phase 2 — extraction hook off staged artifacts */
+  /** Extraction hook off staged artifacts. */
   INGESTION_EXTRACT: "ingestion.extract",
-  /** Phase 3 — parse uploaded CSV file into row-level source_artifacts */
+  /** Parse an uploaded CSV file into row-level source_artifacts. */
   CSV_PARSE: "csv.parse",
-  /** Link/URL ingestion — fetch HTML, LLM extraction, produce extracted facts.
-   *  The ingestion spine runs in-process off this queue behind
-   *  INGESTION_SPINE_ENABLED (see link-extract.processor); it has no queue of its own. */
+  /** Link/URL ingestion: fetch HTML, run LLM extraction, produce extracted facts. */
   LINK_EXTRACT: "ingestion.link_extract",
-  /** Audit emitter fallback queue (HLD §23: must not drop) */
+  /** Audit emitter fallback queue (must not drop). */
   AUDIT_FALLBACK: "audit.fallback",
-  /** Catalog enrichment — "Push to Enrich" LLM job (slow; low concurrency) */
+  /** Catalog enrichment "Push to Enrich" LLM job (slow; low concurrency). */
   PRODUCT_ENRICH: "catalog.product_enrich"
 } as const;
 

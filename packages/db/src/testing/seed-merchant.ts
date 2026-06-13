@@ -1,6 +1,5 @@
-// Provides a stable test merchant for schema tests.
-// Uses a fixed UUID so tests are idempotent — inserts on first run, reuses on subsequent runs.
-// The test merchant is always associated with the test tenant (TEST_TENANT_ID).
+// Stable test merchant for schema tests, keyed on a fixed UUID for idempotency.
+// Always associated with the test tenant (TEST_TENANT_ID).
 
 import { merchants } from "../schema/merchants.js";
 import type { DrizzleClient } from "../client.js";

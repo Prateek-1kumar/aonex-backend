@@ -1,6 +1,5 @@
-// HLD §17 — the union ConnectorAdapter type. Adapters implement
-// the three sub-interfaces; the composition root passes the union
-// to consumers that need everything (the API gateway).
+// Barrel for the connector contract: re-exports the sub-interfaces and composes
+// them into the full ConnectorAdapter union (and its Phase-1 narrowing).
 
 import type { IConnectorAdmin } from "./admin.js";
 import type { IConnectorRead } from "./read.js";
@@ -17,10 +16,7 @@ export * from "./webhook.js";
 export * from "./inventory.js";
 export * from "./provider-adapter.js";
 
-/**
- * Full HLD §17 ConnectorAdapter shape — read + admin + webhook
- * are Phase 1 contracts; write is Phase 5+.
- */
+/** Full ConnectorAdapter shape: read + admin + webhook + inventory + write. */
 export interface ConnectorAdapter
   extends IConnectorRead,
     IConnectorAdmin,
@@ -28,7 +24,7 @@ export interface ConnectorAdapter
     IConnectorWrite,
     IConnectorInventory {}
 
-/** Phase 1 narrowed surface. */
+/** ConnectorAdapter without the write surface. */
 export interface ConnectorAdapterPhase1
   extends IConnectorRead,
     IConnectorAdmin,

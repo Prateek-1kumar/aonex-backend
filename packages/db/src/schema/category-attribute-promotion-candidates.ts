@@ -1,5 +1,5 @@
-// Spec §10 — populated by the schema-promotion-scan cron in Phase 3.
-// Ship the table now so we don't need another migration in Phase 3.
+// category_attribute_promotion_candidates: per-(category, attribute) consistency
+// stats, populated by the schema-promotion-scan cron.
 
 import {
   pgTable,

@@ -1,6 +1,5 @@
-// Provides a stable test channel for schema tests.
-// Uses a fixed UUID so tests are idempotent — inserts on first run, reuses on subsequent runs.
-// The test channel is always associated with the test tenant (TEST_TENANT_ID).
+// Stable test channel for schema tests, keyed on a fixed UUID for idempotency.
+// Always associated with the test tenant (TEST_TENANT_ID).
 
 import { channels } from "../schema/channels.js";
 import type { DrizzleClient } from "../client.js";

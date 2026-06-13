@@ -1,6 +1,5 @@
-// HLD §15 / §20 — review_tasks.
-// Written by the Policy Engine when score ∈ [0.55, 0.90).
-// Anomaly Lab UI (Phase 4) reads these rows; we only write them here.
+// review_tasks: human-review queue written by the Policy Engine and read by the
+// Anomaly Lab UI.
 
 import {
   pgTable,
@@ -27,8 +26,7 @@ export const reviewTasks = pgTable(
     merchantId: uuid("merchant_id")
       .notNull()
       .references(() => merchants.id, { onDelete: "restrict" }),
-    // Nullable: failure review_tasks (fetch_failed, captcha_wall, etc.) exist
-    // before any proposed_diff is created. Only present for content-route tasks.
+    /** Nullable: failure tasks (fetch_failed, captcha_wall, ...) exist before any proposed_diff; set only for content-route tasks. */
     proposedDiffId: uuid("proposed_diff_id").references(() => proposedDiffs.id, {
       onDelete: "cascade"
     }),

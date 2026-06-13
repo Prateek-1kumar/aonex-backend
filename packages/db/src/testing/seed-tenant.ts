@@ -1,5 +1,4 @@
-// Provides a stable test tenant for schema tests.
-// Uses a fixed UUID so tests are idempotent — inserts on first run, reuses on subsequent runs.
+// Stable test tenant for schema tests, keyed on a fixed UUID for idempotency.
 
 import { tenants } from "../schema/tenants.js";
 import type { DrizzleClient } from "../client.js";

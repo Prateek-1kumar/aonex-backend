@@ -1,8 +1,5 @@
-// NangoConnectorAdapter — implements the HLD §17 ConnectorAdapter
-// surface against Nango Cloud.
-//
-// Phase 1: read + admin + webhook (Read + Admin + Verifier ports).
-// Phase 5+: write (publishListing).
+// ConnectorAdapterPhase1 implementation over Nango Cloud: read, admin,
+// inventory, and webhook verification. Errors are mapped via mapNangoError.
 
 import type {
   ConnectorAdapterPhase1,
@@ -53,8 +50,7 @@ export interface NangoConnectorAdapterDeps {
   nowMs?: () => number;
 }
 
-// Captures only the Nango SDK methods we actually invoke.
-// The single cast happens here so every call-site stays clean.
+/** Subset of the Nango SDK this adapter invokes; the lone cast lives at construction. */
 interface NangoClientCompat {
   createConnectSession(args: {
     end_user: { id: string };
@@ -99,8 +95,6 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
   constructor(private readonly deps: NangoConnectorAdapterDeps) {
     this.client = deps.client as unknown as NangoClientCompat;
   }
-
-  // -------- Read --------------------------------------------------
 
   async capabilities(input: {
     merchantId: MerchantId;
@@ -197,8 +191,6 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
     }
   }
 
-  // -------- Admin -------------------------------------------------
-
   async createConnectSession(input: CreateConnectSessionInput): Promise<ConnectSessionToken> {
     try {
       const res = await this.client.createConnectSession({
@@ -262,8 +254,6 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
     }
   }
 
-  // -------- Inventory --------------------------------------------
-
   async getInventory(input: GetInventoryInput): Promise<readonly InventoryRecord[]> {
     const conn = await this.requireConnection(input.merchantId, input.marketplace);
     const provider = toProviderKey(input.marketplace);
@@ -298,8 +288,6 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
     }
   }
 
-  // -------- Webhook ----------------------------------------------
-
   async verifyAndParseWebhook(input: VerifyAndParseInput): Promise<VerifyAndParseResult> {
     const opts = {
       secret: this.deps.webhookSecret,
@@ -308,8 +296,6 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
     };
     return verifyAndParseWebhook(input.rawBody, input.headers, opts);
   }
-
-  // -------- Internal ---------------------------------------------
 
   private async requireConnection(
     merchantId: MerchantId,
@@ -326,5 +312,4 @@ export class NangoConnectorAdapter implements ConnectorAdapterPhase1 {
   }
 }
 
-// Helper for routing webhook events back to a Marketplace value.
 export { fromProviderKey };

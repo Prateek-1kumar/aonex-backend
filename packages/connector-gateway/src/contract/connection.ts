@@ -1,6 +1,5 @@
-// Connection-level domain types. Branded ConnectionId from
-// @aonex/types means we cannot accidentally pass MerchantId
-// where ConnectionId is expected.
+// Connection-level domain types (status, descriptor, connect-session token).
+// IDs are branded in @aonex/types so a MerchantId cannot stand in for a ConnectionId.
 
 import type { ConnectionId, Marketplace, MerchantId, TenantId } from "@aonex/types";
 

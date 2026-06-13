@@ -1,5 +1,5 @@
-// Admin port — connection lifecycle management.
-// Maps to HLD §17 `refreshTokenHealth`, `revoke`.
+// Admin port: connection lifecycle (connect session, inspect, list, revoke,
+// token-health) for the connector gateway.
 
 import type { ConnectionDescriptor, ConnectSessionToken } from "./connection.js";
 import type {
@@ -32,10 +32,9 @@ export interface CreateOAuthUrlInput {
 
 export interface IConnectorAdmin {
   /**
-   * Mint an opaque session token for the Nango Connect UI.
-   * Frontend opens the UI with this token; provider OAuth happens
-   * in a popup; provider tokens are stored in Nango (HLD §22 — we
-   * never see the raw provider tokens).
+   * Mint an opaque session token for the Nango Connect UI. Provider OAuth
+   * happens in the UI and tokens are stored in Nango; we never see the raw
+   * provider tokens.
    */
   createConnectSession(input: CreateConnectSessionInput): Promise<ConnectSessionToken>;
 

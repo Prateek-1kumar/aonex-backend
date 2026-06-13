@@ -1,10 +1,7 @@
-// Catalog enrichment Phase 0 — DB-backed archetype attribute schemas.
-//
 // archetype_attribute_specs: maps an archetype (catalog_products.family) to the
-// attributes that matter for that product type, with tier + weight. Previously this
-// lived in code (smartphone-only); moving it to the DB lets the schema GROW at runtime
-// when a human accepts an LLM-discovered attribute during enrichment review. The
-// in-memory @aonex/archetypes registry becomes a cache hydrated from this table.
+// attributes that matter for it, with tier + weight. DB-backed so the schema can
+// grow at runtime when a human accepts an LLM-discovered attribute; the in-memory
+// @aonex/archetypes registry is a cache hydrated from this table.
 
 import { pgTable, text, numeric, timestamp, primaryKey, index } from "drizzle-orm/pg-core";
 

@@ -1,6 +1,5 @@
-// Catalog redesign Phase 1 — registry tables.
-// channels: represents a sales channel (Shopify, Amazon, etc.) for a tenant.
-// inventory_locations: physical or virtual locations attached to a channel.
+// Registry tables: channels (a tenant's sales channel, e.g. Shopify/Amazon)
+// and inventory_locations (physical or virtual locations attached to a channel).
 
 import {
   pgTable,
@@ -38,7 +37,7 @@ export const inventoryLocations = pgTable(
     locationId:  uuid("location_id").primaryKey().defaultRandom(),
     channelId:   uuid("channel_id").notNull().references(() => channels.channelId, { onDelete: "cascade" }),
     tenantId:    uuid("tenant_id").notNull(),
-    kind:        text("kind").notNull(), // 'warehouse' | 'store' | 'fba' | 'dropship'
+    kind:        text("kind").notNull(),
     externalRef: text("external_ref"),
     geo:         jsonb("geo"),
     displayName: text("display_name").notNull(),

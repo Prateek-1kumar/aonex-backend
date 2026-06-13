@@ -1,5 +1,5 @@
-// Minimal test DB helper — returns a Drizzle client connected to DATABASE_URL.
-// Used by schema tests running via `bun test`.
+// Test DB helper: a shared Drizzle client connected to DATABASE_URL, reused
+// across tests in one run to avoid connection churn.
 
 import { createDb } from "../client.js";
 import type { DrizzleClient } from "../client.js";

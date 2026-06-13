@@ -1,9 +1,6 @@
-// Shared text normalization for matching, grounding and retrieval.
-//
-// The single source of truth previously copied across taxonomy-classifier
-// (normLabel), taxonomy-enrichment (text.ts) and the eval scripts. Every
-// layer that compares product text must agree on what "the same token"
-// means, or alias matching, grounding checks and example retrieval drift.
+// Shared text normalization (tokens, sets, numerals, Jaccard) for matching,
+// grounding and retrieval. The single source of truth so every layer agrees on
+// what "the same token" means; otherwise alias matching and grounding drift.
 
 /** Lowercase, fold separators to spaces, keep alphanumerics (digits matter for
  *  specs like "128gb"/"225/45r17"), collapse whitespace. */
@@ -47,7 +44,6 @@ export function valueToText(v: unknown): string {
   if (Array.isArray(v)) return v.map(valueToText).join(" ");
   if (typeof v === "object") {
     const o = v as Record<string, unknown>;
-    // A normalized unit value {value, unit} or a generic record.
     return Object.values(o).map(valueToText).join(" ");
   }
   return String(v);

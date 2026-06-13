@@ -1,7 +1,5 @@
-// Public barrel for the @aonex/db/testing subpath export.
-// Other workspace packages that run integration tests against the real
-// dev DB import these helpers — see `packages/catalog/catalog-service`
-// tests for an example consumer.
+// Public barrel for the @aonex/db/testing subpath: seed/connect helpers used by
+// workspace packages that run integration tests against the real dev DB.
 
 export { connectTestDb, closeTestDb } from "./connect.js";
 export { ensureTestTenant, TEST_TENANT_ID } from "./seed-tenant.js";

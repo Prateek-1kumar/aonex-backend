@@ -1,9 +1,6 @@
-// URL/domain helpers in @aonex/lib-utils.
-//
-// canonicalizeUrl lowercases the host, strips tracking params (utm_*, gclid,
-// Amazon ref/dib/…) and normalizes trailing slashes for stable dedupe keys;
-// domainOf extracts the registrable host (www-stripped). Used wherever source
-// URLs are keyed or grouped.
+// URL/domain helpers: canonicalizeUrl lowercases the host, strips tracking
+// params (utm_*, gclid, Amazon ref/dib/…) and normalizes trailing slashes for
+// stable dedupe keys; domainOf returns the registrable host (www-stripped).
 
 const TRACKING_PARAM_PATTERNS = [
   /^utm_/,
@@ -14,7 +11,6 @@ const TRACKING_PARAM_PATTERNS = [
   /^mc_eid$/,
   /^mc_cid$/,
   /^msclkid$/,
-  // Amazon-specific
   /^ref$/,
   /^ref_$/,
   /^crid$/,
@@ -38,23 +34,19 @@ export function canonicalizeUrl(input: string): string {
 
   u.hostname = u.hostname.toLowerCase();
 
-  // Strip tracking params
   const keep: [string, string][] = [];
   for (const [k, v] of u.searchParams.entries()) {
     if (!TRACKING_PARAM_PATTERNS.some((p) => p.test(k))) {
       keep.push([k, v]);
     }
   }
-  // Rebuild searchParams
   u.search = "";
   for (const [k, v] of keep) u.searchParams.append(k, v);
 
-  // Normalize trailing slash (but keep "/" for root)
   if (u.pathname.length > 1 && u.pathname.endsWith("/")) {
     u.pathname = u.pathname.replace(/\/+$/, "");
   }
 
-  // For Amazon, strip /ref=… segments from the path
   if (/(^|\.)amazon\.[a-z.]+$/.test(u.hostname)) {
     u.pathname = u.pathname.replace(/\/ref=[^/]+/g, "");
   }

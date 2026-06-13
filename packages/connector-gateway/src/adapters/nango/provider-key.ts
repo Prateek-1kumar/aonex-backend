@@ -1,6 +1,6 @@
-// Marketplace ↔ Nango providerConfigKey mapping. The ONLY place
-// providerConfigKey is materialized — vendor concept lives in the
-// gateway, never in business code.
+// Marketplace <-> Nango providerConfigKey mapping; the only place the
+// vendor-specific providerConfigKey is materialized, keeping it out of
+// business code.
 
 import type { Marketplace } from "@aonex/types";
 
@@ -24,7 +24,7 @@ export function fromProviderKey(providerKey: string): Marketplace | null {
   return FROM_NANGO[providerKey] ?? null;
 }
 
-/** Sync names per LLD §11 — must match `nango deploy` script names. */
+/** Sync model names per marketplace; must match the deployed `nango` script names. */
 export const SYNC_NAMES: Record<Marketplace, readonly string[]> = {
   shopify: ["shopify-products"],
   amazon: ["amazon-catalog-items"],

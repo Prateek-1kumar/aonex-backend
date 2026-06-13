@@ -1,10 +1,5 @@
-// Levenshtein edit distance + normalized similarity.
-//
-// The single shared implementation — previously duplicated in
-// taxonomy-validator (fuzzy enum coercion), the CSV source adapter
-// ("did you mean" header suggestions) and the deduplicator (title
-// similarity). Levenshtein is deliberately conservative (ADR-006:
-// "never auto-merge on title alone") and needs no dependencies.
+// Shared, dependency-free Levenshtein edit distance and its normalized
+// 0..1 similarity, used for fuzzy enum coercion and title matching.
 
 /** Levenshtein distance between two strings. */
 export function editDistance(a: string, b: string): number {

@@ -1,13 +1,7 @@
-// Server-authoritative completeness scoring (Catalog enrichment Phase 0).
-//
-// Computes the 0..100 quality score persisted on catalog_products
-// (completeness_score + score_breakdown). The reconciler calls this whenever
-// winning_values changes, so the "Needs Enrichment" tab and the enrich before/
-// after delta read one consistent, server-owned number (replacing the frontend's
-// naive 5-field health calc).
-//
-// Pure logic here; the DB reads (winning_values + the generated commerce-fact
-// columns) live in reconciler/sync.ts, which passes the facts in.
+// Server-authoritative completeness scoring: the 0..100 quality score
+// (completeness_score + score_breakdown) persisted on catalog_products, so
+// every surface reads one consistent server-owned number. Pure logic; the DB
+// reads live in reconciler/sync.ts, which passes the facts in.
 
 import {
   getArchetype,

@@ -1,3 +1,6 @@
+// Integration tests for the catalog_pricing schema (observations + current,
+// partitioning, indexes) against a live Postgres.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -16,11 +19,9 @@ describe("catalog_pricing schema", () => {
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
     await ensureTestChannel(db);
-    // Scoped cleanup — tenant only.
     await db
       .delete(schema.catalogPricingObservations)
       .where(eq(schema.catalogPricingObservations.tenantId, TEST_TENANT_ID));
-    // catalog_pricing_current is tenant-scoped as of migration 0029.
     await db
       .delete(schema.catalogPricingCurrent)
       .where(eq(schema.catalogPricingCurrent.tenantId, TEST_TENANT_ID));
@@ -67,8 +68,6 @@ describe("catalog_pricing schema", () => {
   });
 
   test("app code inserts into catalog_pricing_current (no DB trigger)", async () => {
-    // Spec §8.1: current table is maintained by the reconciler service in TS,
-    // not by a DB trigger. This test verifies a direct INSERT succeeds.
     const productId = randomUUID();
     const observedAt = new Date("2026-05-16T10:00:00Z");
     const rows = await db
@@ -94,8 +93,6 @@ describe("catalog_pricing schema", () => {
   });
 
   test("(product_id, channel_id, observed_at DESC) index is used for latest-per-channel lookup", async () => {
-    // Insert ~50 observations across many products + this channel so the planner
-    // sees real cardinality and prefers the composite index.
     const observedBase = new Date("2026-05-20T00:00:00Z").getTime();
     const productIds = Array.from({ length: 10 }, () => randomUUID());
     const bulkValues = Array.from({ length: 50 }, (_, i) => ({
@@ -112,7 +109,6 @@ describe("catalog_pricing schema", () => {
 
     await db.execute(sql`ANALYZE catalog_pricing_observations`);
 
-    // Force the planner to choose an index path if one is usable
     await db.execute(sql`SET enable_seqscan = OFF`);
 
     const target = productIds[0]!;
@@ -127,8 +123,6 @@ describe("catalog_pricing schema", () => {
     await db.execute(sql`SET enable_seqscan = ON`);
 
     const planJson = JSON.stringify(plan.rows);
-    // The index name is auto-assigned (we didn't name it in the migration), so we
-    // just assert SOME index scan happened against the partitioned table.
     expect(planJson).toMatch(/Index Scan|Index Only Scan/);
   });
 
@@ -168,7 +162,6 @@ describe("catalog_pricing schema", () => {
       observedAt
     });
 
-    // Duplicate (product_id, channel_id, locale) should violate PK
     await expect(
       (async () => {
         await db.insert(schema.catalogPricingCurrent).values({

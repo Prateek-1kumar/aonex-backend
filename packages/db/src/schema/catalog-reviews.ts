@@ -1,5 +1,4 @@
-// Phase 4 Task 8: normalized review records, deduped per (product_id, dedupe_key).
-// catalog-service/src/reviews/normalize.ts produces rows shaped like this.
+// catalog_reviews: normalized review records, deduped per (product_id, dedupe_key).
 
 import {
   pgTable,

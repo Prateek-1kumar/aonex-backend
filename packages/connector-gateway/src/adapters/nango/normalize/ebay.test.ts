@@ -1,3 +1,6 @@
+// Tests for normalizeEbayRecord: externalId precedence (orderId/offerId/sku),
+// Nango metadata stripping, modifiedAt derivation, and the missing-id error.
+
 import { describe, it, expect } from 'bun:test';
 import { normalizeEbayRecord } from './ebay.js';
 

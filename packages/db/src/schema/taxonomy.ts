@@ -1,16 +1,7 @@
-// Taxonomy spine (P0) — canonical product taxonomy tree + aliases + external
-// crosswalk + per-leaf attribute schema. See docs/taxonomy-spine-p0-spec.md.
-//
-//   taxonomy_nodes         — the tree. Slug-path ids; system- and gender-agnostic
-//                            (gender/age are attributes, not nodes).
-//   taxonomy_aliases       — messy label -> node (normalization + learning loop):
-//                            "t_shirt"/"T_Shirt"/"tee" all collapse to one node.
-//   taxonomy_node_mappings — node <-> ANY external system (Google export, Shopify
-//                            schema-source, Amazon/Flipkart/eBay/...). Adding a
-//                            marketplace is inserting rows, not a schema change.
-//   node_attributes        — per-leaf schema: which attribute_definitions apply +
-//                            at what tier. Compiled/validated by the new
-//                            validation+normalization module (NOT Ajv).
+// Taxonomy spine: the canonical product taxonomy tree (taxonomy_nodes) plus
+// aliases (messy label -> node), external-system crosswalk (taxonomy_node_mappings,
+// generic over every marketplace), and per-leaf attribute schema (node_attributes).
+// Slug-path node ids; gender/age are attributes, not nodes.
 
 import {
   pgTable,

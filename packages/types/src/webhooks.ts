@@ -1,8 +1,6 @@
-// Discriminated union of inbound Nango → Aonex webhook events.
-// We do NOT model the full Nango payload — only the fields we route on.
-// The full raw body is preserved on `processed_webhooks` and replayable.
-//
-// LLD §4.2 / §15-Q8 — queue-first ordering applies regardless of type.
+// Discriminated union of inbound Nango webhook events. Only the fields we route
+// on are modeled; the full raw body is preserved on processed_webhooks and is
+// replayable.
 
 import { z } from "zod";
 

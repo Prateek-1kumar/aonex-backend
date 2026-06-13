@@ -1,3 +1,5 @@
+// Integration tests for the channels + inventory_locations schema against a live Postgres.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { schema } from "../index.js";
@@ -11,7 +13,6 @@ describe("channels schema", () => {
   beforeAll(async () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
-    // Clean up any leftover rows from previous test runs (scoped to test tenant only)
     await db.delete(schema.inventoryLocations).where(eq(schema.inventoryLocations.tenantId, TEST_TENANT_ID));
     await db.delete(schema.channels).where(eq(schema.channels.tenantId, TEST_TENANT_ID));
   });

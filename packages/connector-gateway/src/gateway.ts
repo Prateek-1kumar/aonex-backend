@@ -1,11 +1,6 @@
-// ConnectorGateway — marketplace resolver and routing layer.
-//
-// WHY: Product services call gateway.listProducts(merchantId, 'shopify').
-// The gateway handles: DB lookup → ConnectionContext build → route to the
-// right adapter. Callers never see adapters, tokens, or Nango internals.
-//
-// Swapping Nango for custom OAuth = change the nango dep only.
-// Adding Amazon = register AmazonAdapter in marketplaceAdapters.
+// ConnectorGateway: marketplace routing facade. Resolves a connection, builds a
+// ConnectionContext, and dispatches to the right live adapter (or delegates
+// session/drain/webhook work to Nango) so callers never touch adapters or tokens.
 
 import { GatewayError, type MerchantId, type Marketplace, type TenantId, type ConnectionId } from '@aonex/types';
 import type {
@@ -59,8 +54,6 @@ export interface ConnectorGatewayDeps {
 export class ConnectorGateway {
   constructor(private readonly deps: ConnectorGatewayDeps) {}
 
-  // ── Adapter resolution (internal only) ────────────────────────────────
-
   private getAdapter(marketplace: Marketplace): MarketplaceLiveAdapter {
     const adapter = this.deps.marketplaceAdapters[marketplace];
     if (!adapter) {
@@ -68,8 +61,6 @@ export class ConnectorGateway {
     }
     return adapter;
   }
-
-  // ── Connection context ────────────────────────────────────────────────
 
   async loadConnection(merchantId: MerchantId, marketplace: Marketplace): Promise<ConnectionContext> {
     const connection = await this.deps.lookup.byMerchantMarketplace({ merchantId, marketplace });
@@ -85,8 +76,6 @@ export class ConnectorGateway {
     };
   }
 
-  // ── OAuth ─────────────────────────────────────────────────────────────
-
   async createOAuthUrl(merchantId: MerchantId, tenantId: TenantId, marketplace: Marketplace): Promise<OAuthUrlResult> {
     const session = await this.deps.nango.createConnectSession({
       tenantId,
@@ -99,14 +88,10 @@ export class ConnectorGateway {
     });
   }
 
-  // ── Health check ──────────────────────────────────────────────────────
-
   async healthCheck(merchantId: MerchantId, marketplace: Marketplace): Promise<boolean> {
     const conn = await this.loadConnection(merchantId, marketplace);
     return this.getAdapter(marketplace).healthCheck({ connection: conn });
   }
-
-  // ── Provider read methods ─────────────────────────────────────────────
 
   async listProducts(merchantId: MerchantId, marketplace: Marketplace): Promise<ProviderProduct[]> {
     const conn = await this.loadConnection(merchantId, marketplace);
@@ -117,8 +102,6 @@ export class ConnectorGateway {
     const conn = await this.loadConnection(merchantId, marketplace);
     return this.getAdapter(marketplace).getInventory({ connection: conn, externalProductId });
   }
-
-  // ── Nango delegation (proper methods, not pass-through getters) ────────
 
   async createConnectSession(input: CreateConnectSessionInput): Promise<ConnectSessionToken> {
     return this.deps.nango.createConnectSession(input);

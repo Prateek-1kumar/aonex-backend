@@ -1,3 +1,5 @@
+// Integration tests for the identity_log schema against a live Postgres.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -32,7 +34,6 @@ describe("identity_log schema", () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
-    // Scoped cleanup — tenant-only.
     await db
       .delete(schema.identityLog)
       .where(eq(schema.identityLog.tenantId, TEST_TENANT_ID));

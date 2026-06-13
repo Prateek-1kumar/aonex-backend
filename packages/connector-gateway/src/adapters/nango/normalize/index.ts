@@ -1,6 +1,5 @@
-// Per-marketplace normalizer registry. Strategy + Registry pattern —
-// engineering principles forbid `if (marketplace === 'shopify')`
-// chains in adapter code.
+// Per-marketplace normalizer registry, looked up by Marketplace so adapter
+// code stays free of per-marketplace branching.
 
 import type { Marketplace } from "@aonex/types";
 import type { CanonicalProductRecord } from "../../../contract/records.js";

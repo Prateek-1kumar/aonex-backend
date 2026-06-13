@@ -1,9 +1,6 @@
 // The persisted per-field row of an enrichment proposal
-// (enrichment_proposals.fields JSONB). ONE contract shared by the writer
-// (worker enrich processor) and the readers (API apply flow, Lab UI) so the
-// shapes cannot drift apart. Shape-compatible with the frontend's
-// ProposalFieldView; the grounding fields are additive metadata from the
-// node-schema enrichment engine.
+// (enrichment_proposals.fields JSONB). One contract shared by the writer (worker)
+// and the readers (API apply flow, Lab UI) so the shapes cannot drift apart.
 
 export interface PersistedProposalField {
   /** Canonical attribute key. */

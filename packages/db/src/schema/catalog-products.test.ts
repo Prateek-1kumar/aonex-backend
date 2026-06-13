@@ -1,3 +1,5 @@
+// Integration tests for the catalog_products schema against a live Postgres.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { schema } from "../index.js";
@@ -13,7 +15,6 @@ describe("catalog_products schema", () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
     await ensureTestMerchant(db);
-    // Clean up any leftover rows from previous test runs (scoped to test tenant only)
     await db.delete(schema.catalogProducts).where(eq(schema.catalogProducts.tenantId, TEST_TENANT_ID));
   });
 
@@ -45,7 +46,6 @@ describe("catalog_products schema", () => {
   });
 
   test("unique (tenant_id, primary_identifier) prevents duplicates", async () => {
-    // First insert succeeds
     await db
       .insert(schema.catalogProducts)
       .values({
@@ -58,7 +58,6 @@ describe("catalog_products schema", () => {
       })
       .execute();
 
-    // Second insert with same (tenantId, primaryIdentifier) must fail
     await expect(
       db
         .insert(schema.catalogProducts)
@@ -75,7 +74,6 @@ describe("catalog_products schema", () => {
   });
 
   test("parent_product_id self-reference works for variants", async () => {
-    // Insert a parent product
     const parentRows = await db
       .insert(schema.catalogProducts)
       .values({
@@ -89,7 +87,6 @@ describe("catalog_products schema", () => {
       .returning();
     const parent = parentRows[0]!;
 
-    // Insert a variant referencing the parent
     const variantRows = await db
       .insert(schema.catalogProducts)
       .values({
@@ -109,7 +106,6 @@ describe("catalog_products schema", () => {
   });
 
   test("merged_into_product_id can be set for tombstones", async () => {
-    // Insert the target product (what this will be merged into)
     const targetRows = await db
       .insert(schema.catalogProducts)
       .values({
@@ -123,7 +119,6 @@ describe("catalog_products schema", () => {
       .returning();
     const target = targetRows[0]!;
 
-    // Insert a tombstone product merged into the target
     const tombstoneRows = await db
       .insert(schema.catalogProducts)
       .values({

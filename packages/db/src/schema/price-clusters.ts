@@ -1,8 +1,5 @@
-// Drizzle table: price_clusters — median price per brand × category × currency.
-//
-// One row per (tenant, brand, canonical_category, currency) with medianPrice and
-// sampleCount. Rebuilt nightly by the price-cluster-rebuild job and read by the
-// policy engine's price-anomaly detector.
+// price_clusters: median price per (tenant, brand, canonical_category, currency).
+// Rebuilt nightly; read by the policy engine's price-anomaly detector.
 
 import {
   pgTable,

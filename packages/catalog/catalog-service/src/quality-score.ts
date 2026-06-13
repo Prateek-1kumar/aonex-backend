@@ -1,22 +1,7 @@
-// Unified product-quality scoring — the coherent replacement for the split-brain
-// scores the taxonomy migration left behind.
-//
-// Before: catalog_products.completeness_score was graded by the legacy ARCHETYPE
-// rubric while enrichment optimized the TAXONOMY node schema, and
-// content_quality_score was never written at all. Enriching a product barely
-// moved the displayed number — the "scoring feels broken" symptom.
-//
-// Now both headline scores are graded against the SAME schema the enrichment
-// engine fills:
-//   completeness_score   = spec coverage vs the product's taxonomy leaf schema
-//                          (node_attributes), falling back to the archetype rubric
-//                          only when the product is uncategorized.
-//   content_quality_score = the universal content rubric (description/SEO/
-//                          marketing/AEO) — the half enrichment now generates.
-//
-// The leaf-schema index is a near-static full-table load, so it is cached at
-// module scope (TTL) exactly like the worker's enrich context — a bulk reconcile
-// does not run N catalog scans.
+// Unified product-quality scoring: completeness (spec coverage vs the product's
+// taxonomy leaf schema, archetype-rubric fallback when uncategorized) and content
+// quality (universal content rubric), both graded against the schema enrichment
+// fills. The leaf-schema index is module-cached (TTL) so bulk reconciles avoid N scans.
 
 import type { DrizzleClient } from "@aonex/db";
 import {

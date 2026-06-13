@@ -1,5 +1,4 @@
-// Write port — HLD §16 / Phase 5+. Defined now to lock the shape;
-// implementations come later.
+// Write port: publish a compiled channel listing to a marketplace.
 
 import type { Marketplace, MerchantId } from "@aonex/types";
 
@@ -9,9 +8,8 @@ export interface PublishListingInput {
   /** The compiled channel projection payload — pure & validated. */
   payload: Record<string, unknown>;
   /**
-   * Idempotency key — same payload_hash + adapter_version yields
-   * the same key. Locally enforced; reconciled if provider lacks
-   * idempotency. (HLD §18.2.)
+   * Idempotency key: same payload_hash + adapter_version yields the same key.
+   * Enforced locally, and reconciled when the provider lacks idempotency.
    */
   idempotencyKey: string;
 }

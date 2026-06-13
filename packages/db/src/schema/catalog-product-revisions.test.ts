@@ -1,3 +1,6 @@
+// Integration tests for the catalog_product_revisions schema against a live Postgres.
+// Cleanup temporarily disables trg_revisions_immutable since the table is append-only.
+
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
@@ -12,8 +15,6 @@ describe("catalog_product_revisions schema", () => {
   beforeAll(async () => {
     db = await connectTestDb();
     await ensureTestTenant(db);
-    // Append-only table — disable the immutability trigger to clean up residue
-    // from prior runs, then re-enable.
     await db.execute(sql`ALTER TABLE catalog_product_revisions DISABLE TRIGGER trg_revisions_immutable`);
     await db
       .delete(schema.catalogProductRevisions)
@@ -102,8 +103,6 @@ describe("catalog_product_revisions schema", () => {
   });
 
   test("monthly partition for the current month exists", async () => {
-    // We hardcode 3 monthly partitions (2026-05, 2026-06, 2026-07) at migration
-    // time; pg_partman maintains future months in production.
     const result = await db.execute(sql`
       SELECT EXISTS (
         SELECT 1 FROM pg_class

@@ -1,6 +1,6 @@
-// HLD §8 / §20 — proposed_diffs, proposed_diff_fields.
-// "Only approved or auto_approved proposed_diffs create product_versions" (HLD §2.4).
-// Idempotency: UNIQUE on (source_fact_set_id, diff_type) per spec §4 rule 10.
+// proposed_diffs / proposed_diff_fields: proposed changes to the canonical catalog.
+// Only approved or auto_approved diffs create product_versions.
+// Idempotency: UNIQUE on (source_fact_set_id, diff_type).
 
 import {
   pgTable,
@@ -21,7 +21,7 @@ import { policyVersions } from "./policy.js";
 import { proposedDiffStatusEnum, actorTypeEnum } from "./enums.js";
 
 /**
- * HLD §8 / §20 — proposed change to the canonical catalog.
+ * A proposed change to the canonical catalog.
  * Every product_version must trace back to an approved diff (NOT NULL FK).
  * UNIQUE on (source_fact_set_id, diff_type) makes idempotent re-runs safe.
  */
@@ -56,7 +56,6 @@ export const proposedDiffs = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
   (t) => ({
-    // Idempotency key per spec §4 rule 10
     idempotency: uniqueIndex("uq_proposed_diffs_idempotency").on(t.sourceFactSetId, t.diffType),
     statusIdx: index("idx_proposed_diffs_status").on(t.status, t.tenantId),
     productIdx: index("idx_proposed_diffs_product").on(t.productId)
@@ -64,7 +63,7 @@ export const proposedDiffs = pgTable(
 );
 
 /**
- * HLD §8 / §20 — per-field breakdown of a proposed diff.
+ * Per-field breakdown of a proposed diff.
  * Enables reviewers to approve/reject individual fields.
  */
 export const proposedDiffFields = pgTable(

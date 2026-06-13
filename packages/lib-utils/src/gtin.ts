@@ -1,10 +1,6 @@
-// GTIN validation — GS1 standard, not just a length check.
-//
-// The single shared implementation (previously duplicated in the CSV source
-// adapter and @aonex/ingestion-enrichment's sanity validators, with the
-// latter accepting non-GS1 lengths 9-11). A real GTIN is exactly 8/12/13/14
-// digits and carries a mod-10 check digit; validating both catches the
-// overwhelming majority of transposed/typo'd barcodes at ingestion.
+// Shared GTIN validation against the GS1 standard: a valid GTIN is exactly
+// 8/12/13/14 digits and carries a mod-10 check digit. Validating both catches
+// most transposed or typo'd barcodes at ingestion.
 
 export type GtinIssue = "format" | "checksum";
 

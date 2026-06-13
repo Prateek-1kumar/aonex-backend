@@ -1,7 +1,6 @@
-// Shopify → CanonicalProductRecord. Vendor noise stripped here.
-// HLD §16.3: Shopify product fields. Phase 1 only normalizes the
-// raw record envelope; field mapping into the canonical schema is
-// the Phase 2 Field Extractor's job.
+// Normalizes a raw Shopify product into a CanonicalProductRecord: strips Nango
+// metadata, derives externalId from `id`, and lifts updated_at into modifiedAt.
+// Only the record envelope is normalized; canonical field mapping happens later.
 
 import { removeNangoMetadata } from "@aonex/lib-utils";
 import type { CanonicalProductRecord } from "../../../contract/records.js";

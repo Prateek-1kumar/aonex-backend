@@ -1,6 +1,5 @@
-// HLD §10 / §20 — attribute_definitions, attribute_synonyms,
-// attribute_mappings, attribute_embeddings, mapping_overrides.
-// These tables are the semantic mapper's lookup corpus.
+// attribute_definitions, attribute_synonyms, attribute_mappings,
+// attribute_embeddings, mapping_overrides: the semantic mapper's lookup corpus.
 
 import {
   pgTable,
@@ -19,43 +18,42 @@ import { tenants } from "./tenants.js";
 import { merchants } from "./merchants.js";
 
 /**
- * HLD §10 / §20 — canonical attribute catalogue.
+ * Canonical attribute catalogue.
  * One row per recognized attribute key (e.g. "product.brand").
  */
 export const attributeDefinitions = pgTable(
   "attribute_definitions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    /** Dotted canonical key — unique across the system */
+    /** Dotted canonical key — unique across the system. */
     canonicalKey: varchar("canonical_key", { length: 200 }).notNull(),
-    dataType: varchar("data_type", { length: 32 }).notNull(), // string|number|boolean|array|object
-    unitType: varchar("unit_type", { length: 50 }), // mass|length|currency|...
+    /** One of: string|number|boolean|array|object. */
+    dataType: varchar("data_type", { length: 32 }).notNull(),
+    /** e.g. mass|length|currency. */
+    unitType: varchar("unit_type", { length: 50 }),
     canonicalUnit: varchar("canonical_unit", { length: 30 }),
     allowedUnits: text("allowed_units").array().notNull().default([]),
     enumValues: text("enum_values").array().notNull().default([]),
-    /** Categories this attribute is scoped to; empty = global */
+    /** Categories this attribute is scoped to; empty = global. */
     categoryScope: text("category_scope").array().notNull().default([]),
     isVariantOption: boolean("is_variant_option").notNull().default(false),
     validationJson: jsonb("validation_json").$type<Record<string, unknown>>(),
-    /** Weight used in the policy engine identity_score sub-calculation */
+    /** Weight used in the policy engine identity_score sub-calculation. */
     confidenceWeight: numeric("confidence_weight", { precision: 4, scale: 3 })
       .notNull()
       .default("1.000"),
-    // Catalog enrichment — registry metadata so attribute_definitions drives the
-    // dynamic enrichment schema and can grow itself via governed LLM-discovered attrs.
     label: text("label"),
     description: text("description"),
-    /** descriptive | occasion | care | marketing | seo | aeo | category */
+    /** descriptive | occasion | care | marketing | seo | aeo | category. */
     enrichmentGroup: varchar("enrichment_group", { length: 32 }),
-    /** true = applies to all archetypes (marketing/seo/aeo/category groups) */
+    /** true = applies to all archetypes (marketing/seo/aeo/category groups). */
     appliesUniversally: boolean("applies_universally").notNull().default(false),
-    /** seed | llm_proposed */
+    /** seed | llm_proposed. */
     origin: varchar("origin", { length: 20 }).notNull().default("seed"),
-    /** active | candidate | deprecated */
+    /** active | candidate | deprecated. */
     status: varchar("status", { length: 20 }).notNull().default("active"),
     proposedFromProductId: uuid("proposed_from_product_id"),
-    // Taxonomy spine (P0) — which external standard(s) this attribute/value-set was
-    // sourced or merged from, e.g. {"sources":[{"system":"shopify","ref":"gid://…/2777"}]}.
+    /** Which external standard(s) this attribute/value-set was sourced or merged from. */
     provenance: jsonb("provenance").$type<{ sources?: { system: string; ref?: string }[] }>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
@@ -65,7 +63,7 @@ export const attributeDefinitions = pgTable(
 );
 
 /**
- * HLD §10 / §20 — per-marketplace synonyms for canonical keys.
+ * Per-marketplace synonyms for canonical keys.
  * Synonym match step: look up raw_key here → get canonicalKey.
  */
 export const attributeSynonyms = pgTable(
@@ -73,7 +71,7 @@ export const attributeSynonyms = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     canonicalKey: varchar("canonical_key", { length: 200 }).notNull(),
-    /** The raw marketplace field name, e.g. "Marque" for French Shopify stores */
+    /** The raw marketplace field name, e.g. "Marque" for French Shopify stores. */
     synonym: varchar("synonym", { length: 200 }).notNull(),
     sourceMarketplace: varchar("source_marketplace", { length: 50 }),
     source: varchar("source", { length: 20 }),
@@ -88,9 +86,9 @@ export const attributeSynonyms = pgTable(
 );
 
 /**
- * HLD §10 / §20 — deterministic channel mappings.
+ * Deterministic channel mappings.
  * Exact lookup: (marketplace, category_path, source_path) → canonical_key.
- * This is the highest-confidence mapping step (weight 0.40).
+ * The highest-confidence mapping step (weight 0.40).
  */
 export const attributeMappings = pgTable(
   "attribute_mappings",
@@ -98,7 +96,7 @@ export const attributeMappings = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     marketplace: varchar("marketplace", { length: 50 }).notNull(),
     categoryPath: varchar("category_path", { length: 300 }).notNull(),
-    /** JSONPath into the raw artifact, e.g. "$.vendor" */
+    /** JSONPath into the raw artifact, e.g. "$.vendor". */
     sourcePath: varchar("source_path", { length: 300 }).notNull(),
     canonicalKey: varchar("canonical_key", { length: 200 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
@@ -113,17 +111,14 @@ export const attributeMappings = pgTable(
 );
 
 /**
- * HLD §10 / §28 — embedding vectors for semantic mapping.
- * Column is NULLABLE — Phase 3+ only. pgvector extension required.
- * See docs/adr/ADR-006 for the open pgvector decision.
+ * Embedding vectors for semantic mapping. The vector column is not modeled here;
+ * it requires the pgvector extension and is added via raw SQL.
  */
 export const attributeEmbeddings = pgTable(
   "attribute_embeddings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     canonicalKey: varchar("canonical_key", { length: 200 }).notNull(),
-    // TODO: pgvector — Phase 3: change to vector(1536) once pgvector is enabled.
-    // embedding: vector("embedding", { dimensions: 1536 }),
     modelVersion: varchar("model_version", { length: 50 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
@@ -133,7 +128,7 @@ export const attributeEmbeddings = pgTable(
 );
 
 /**
- * HLD §10 / §20 — per-tenant/merchant overrides for canonical mappings.
+ * Per-tenant/merchant overrides for canonical mappings.
  * Higher priority than the global attribute_mappings table.
  */
 export const mappingOverrides = pgTable(

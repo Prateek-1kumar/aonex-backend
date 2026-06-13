@@ -1,12 +1,7 @@
-// HLD §8 / §20 — products, product_identities, product_versions,
-// product_variants, product_variant_versions.
-//
-// product_versions are IMMUTABLE (HLD §8.3): a Postgres trigger in
-// src/sql/triggers.sql blocks UPDATE/DELETE. To change System Truth,
-// create a proposed_diff and approve it.
-//
-// product_versions.proposed_diff_id is NOT NULL — enforced here and
-// double-enforced by a trigger that checks diff status ∈ {approved, auto_approved}.
+// Canonical product aggregate: products, product_identities, product_versions,
+// product_variants, product_variant_versions. product_versions are IMMUTABLE (a
+// trigger blocks UPDATE/DELETE); change System Truth via an approved proposed_diff.
+// proposed_diff_id is NOT NULL and a trigger requires its diff status ∈ {approved, auto_approved}.
 
 import {
   pgTable,
@@ -25,9 +20,8 @@ import { proposedDiffs } from "./proposed-diffs.js";
 import { productStatusEnum } from "./enums.js";
 
 /**
- * HLD §8 / §20 — canonical product aggregate root.
- * current_version_id is updated (the only mutable field on product_versions'
- * companion) when a new approved version is created.
+ * Canonical product aggregate root.
+ * current_version_id is updated when a new approved version is created.
  */
 export const products = pgTable(
   "products",
@@ -39,7 +33,7 @@ export const products = pgTable(
     merchantId: uuid("merchant_id")
       .notNull()
       .references(() => merchants.id, { onDelete: "restrict" }),
-    /** Updated to point at the latest approved version */
+    /** Points at the latest approved version. */
     currentVersionId: uuid("current_version_id"),
     status: productStatusEnum("status").notNull().default("draft"),
     canonicalCategory: varchar("canonical_category", { length: 300 }),
@@ -53,7 +47,7 @@ export const products = pgTable(
 );
 
 /**
- * HLD §13 / §20 — product identity records for deduplication.
+ * Product identity records for deduplication.
  * UNIQUE on (tenant_id, identity_type, identity_value) — one canonical
  * product per GTIN per tenant.
  */
@@ -65,7 +59,7 @@ export const productIdentities = pgTable(
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
     tenantId: uuid("tenant_id").notNull(),
-    /** "gtin" | "mpn" | "sku" | "brand_mpn" */
+    /** One of: "gtin" | "mpn" | "sku" | "brand_mpn". */
     identityType: varchar("identity_type", { length: 30 }).notNull(),
     identityValue: varchar("identity_value", { length: 200 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
@@ -80,9 +74,9 @@ export const productIdentities = pgTable(
 );
 
 /**
- * HLD §8.3 / §20 — immutable product version snapshot.
- * NEVER UPDATE OR DELETE — Postgres trigger enforces this.
- * proposed_diff_id NOT NULL: every version must trace to an approved diff (HLD §2.4).
+ * Immutable product version snapshot.
+ * NEVER UPDATE OR DELETE — a Postgres trigger enforces this.
+ * proposed_diff_id NOT NULL: every version must trace to an approved diff.
  */
 export const productVersions = pgTable(
   "product_versions",
@@ -131,7 +125,7 @@ export const productVersions = pgTable(
 );
 
 /**
- * HLD §8 / §20 — variant aggregate (color/size/etc combinations).
+ * Variant aggregate (color/size/etc combinations).
  * variant_key is a deterministic hash of normalized axis values
  * so the same combination is stable across syncs.
  */
@@ -144,7 +138,7 @@ export const productVariants = pgTable(
       .references(() => products.id, { onDelete: "restrict" }),
     tenantId: uuid("tenant_id").notNull(),
     currentVariantVersionId: uuid("current_variant_version_id"),
-    /** Deterministic hash of sorted normalized variant axis values */
+    /** Deterministic hash of sorted normalized variant axis values. */
     variantKey: varchar("variant_key", { length: 64 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },
@@ -154,8 +148,8 @@ export const productVariants = pgTable(
 );
 
 /**
- * HLD §8 / §20 — immutable variant version snapshot.
- * variant_axes: e.g. {Color: "Red", Size: "M"}
+ * Immutable variant version snapshot.
+ * variant_axes: e.g. {Color: "Red", Size: "M"}.
  */
 export const productVariantVersions = pgTable(
   "product_variant_versions",
@@ -173,7 +167,7 @@ export const productVariantVersions = pgTable(
     price: numeric("price", { precision: 12, scale: 4 }),
     currency: varchar("currency", { length: 3 }),
     inventoryQuantity: numeric("inventory_quantity", { precision: 12, scale: 0 }),
-    /** Canonical variant axes e.g. {Color: "Red", Size: "M"} */
+    /** Canonical variant axes e.g. {Color: "Red", Size: "M"}. */
     variantAxes: jsonb("variant_axes").$type<Record<string, string>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
   },

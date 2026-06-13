@@ -1,9 +1,6 @@
-// Drizzle client — wraps node-postgres Pool.
-// `drizzle-orm/node-postgres` chosen per LLD: pg-native excluded
-// for Bun TLS edge case (resolution at repo root).
-//
-// Constructed only in composition roots. Never imported by routes
-// or services directly — they take repository ports instead.
+// Drizzle client wrapping a node-postgres Pool.
+// Constructed only in composition roots; routes/services take repository ports instead.
+// Uses node-postgres (not pg-native) to avoid a Bun TLS edge case.
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
@@ -24,7 +21,6 @@ export function createDb(databaseUrl: string, opts: { max?: number } = {}): {
   const pool = new Pool({
     connectionString: databaseUrl,
     max: opts.max ?? 20,
-    // Per Appendix B sizing — fail fast under saturation.
     idleTimeoutMillis: 30_000,
     statement_timeout: 30_000,
     application_name: "aonex"

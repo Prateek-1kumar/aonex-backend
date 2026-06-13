@@ -54,14 +54,10 @@ export interface EbayAdapterConfig {
 export class EbayAdapter implements MarketplaceLiveAdapter {
   constructor(private readonly config: EbayAdapterConfig) {}
 
-  // ── OAuth ─────────────────────────────────────────────────────────────
-
   async createOAuthUrl(input: CreateOAuthUrlInput): Promise<OAuthUrlResult> {
     const url = `${this.config.nangoConnectBaseUrl}?session_token=${input.sessionToken}`;
     return { url, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
   }
-
-  // ── Health ────────────────────────────────────────────────────────────
 
   async healthCheck(input: { connection: ConnectionContext }): Promise<boolean> {
     const res = await this.config.transport.request(
@@ -70,8 +66,6 @@ export class EbayAdapter implements MarketplaceLiveAdapter {
     );
     return res.ok;
   }
-
-  // ── Ingestion ─────────────────────────────────────────────────────────
 
   async listProducts(input: ListProductsInput): Promise<ProviderProduct[]> {
     const limit = input.limit ?? 100;

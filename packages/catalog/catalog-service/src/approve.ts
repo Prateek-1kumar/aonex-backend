@@ -1,9 +1,6 @@
-// Catalog write path — applies an approved proposed_diff to catalog_products.
-//
-// applyApprovedDiff materializes the canonical product/variant payload from an
-// approved (or auto_approved) diff and upserts the product plus a new
+// applyApprovedDiff: materializes the canonical product/variant payload from an
+// approved (or auto_approved) proposed_diff and upserts the product plus a new
 // product_version (content-hashed via sha256 so identical payloads don't churn).
-// Called by the spine's approve stage and the reviewer's approve action.
 
 import { eq } from "drizzle-orm";
 import { schema, type DrizzleClient } from "@aonex/db";

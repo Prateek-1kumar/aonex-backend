@@ -1,6 +1,5 @@
-// LLD §15 — GDPR Article 17 (right to erasure) workflow.
-// 30-day SLA per Article 12(3); defaulted `sla_deadline`.
-// HLD §22 implies this in "Security/Multi-tenancy"; LLD makes it concrete.
+// deletion_requests: GDPR Article 17 (right to erasure) workflow, with a
+// defaulted 30-day SLA deadline.
 
 import {
   pgTable,

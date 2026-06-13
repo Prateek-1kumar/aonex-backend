@@ -1,9 +1,5 @@
-// HTTP-layer backoff with full jitter. BullMQ-level retries stay
-// deterministic (see @aonex/types/retry); this helper is for the
-// adapter's own internal retries to avoid thundering herd.
-//
-// Reference: AWS "Exponential Backoff and Jitter" — full jitter
-// is `random_between(0, base * 2^attempt)`.
+// HTTP-layer exponential backoff with full jitter for an adapter's own internal
+// retries (BullMQ-level retries stay deterministic; see @aonex/types/retry).
 
 export function backoffWithJitter(attempt: number, baseMs = 200, capMs = 30_000): number {
   const exp = Math.min(baseMs * Math.pow(2, attempt), capMs);
