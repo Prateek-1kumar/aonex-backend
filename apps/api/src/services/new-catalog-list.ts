@@ -126,6 +126,13 @@ export interface ListCatalogProductRow {
   completenessScore: number | null;
   /** LLM content-quality score (0..100); null until enrichment sets it. */
   contentQualityScore: number | null;
+  /** Grounding rate (0..1) of the latest enrichment proposal; null if never enriched. */
+  groundingRate: number | null;
+  /** Per-grounding field counts from the latest proposal (provenance dots). */
+  provenance: { grounded: number; weak: number; inferred: number; unverified: number; contradicted: number } | null;
+  /** Accepted (auto-applied) spec attributes vs total spec fields the latest proposal touched. */
+  attrsFilled: number | null;
+  attrsTotal: number | null;
   /**
    * Small migration signal so frontend can transition gradually.
    * Clients SHOULD check `_meta.schema` before accessing `current_version`
@@ -443,8 +450,55 @@ export async function listCatalogProducts(
     return { currency: chosen.currency, amount: chosen.primaryAmount };
   }
 
+  // ── Batch-fetch latest enrichment-proposal metrics per product ────────────
+  // Grounding rate + provenance breakdown + attrs-filled make the catalog list a
+  // credibility view. Fetch all proposals for the page's products (bounded by the
+  // page size), newest first, and keep the first (latest) per product — same
+  // fetch-all-and-merge-in-JS approach as pricing above.
+  interface ProposalMetric {
+    groundingRate: number | null;
+    provenance: ListCatalogProductRow["provenance"];
+    attrsFilled: number;
+    attrsTotal: number;
+  }
+  const metricByProduct = new Map<string, ProposalMetric>();
+  const proposalRows = await db
+    .select({
+      productId: schema.enrichmentProposals.productId,
+      scoreAfter: schema.enrichmentProposals.scoreAfter,
+      fields: schema.enrichmentProposals.fields,
+    })
+    .from(schema.enrichmentProposals)
+    .where(inArray(schema.enrichmentProposals.productId, productIds))
+    .orderBy(desc(schema.enrichmentProposals.createdAt));
+  for (const pr of proposalRows) {
+    if (metricByProduct.has(pr.productId)) continue; // first seen = latest (createdAt DESC)
+    const fields = Array.isArray(pr.fields)
+      ? (pr.fields as { kind?: string; grounding?: string; accepted?: boolean }[])
+      : [];
+    const prov = { grounded: 0, weak: 0, inferred: 0, unverified: 0, contradicted: 0 };
+    let attrsFilled = 0;
+    let attrsTotal = 0;
+    for (const f of fields) {
+      const g = (f.grounding ?? "inferred") as keyof typeof prov;
+      if (g in prov) prov[g] += 1;
+      if ((f.kind ?? "spec") === "spec") {
+        attrsTotal += 1;
+        if (f.accepted) attrsFilled += 1;
+      }
+    }
+    const sa = (pr.scoreAfter ?? {}) as { groundingRate?: number };
+    metricByProduct.set(pr.productId, {
+      groundingRate: typeof sa.groundingRate === "number" ? sa.groundingRate : null,
+      provenance: prov,
+      attrsFilled,
+      attrsTotal,
+    });
+  }
+
   const products = rows.map((row): ListCatalogProductRow => {
     const wv = (row.winningValues ?? null) as Record<string, unknown> | null;
+    const pm = metricByProduct.get(row.productId);
 
     return {
       id: row.productId,
@@ -464,6 +518,10 @@ export async function listCatalogProducts(
       imageUrl: extractWinningImageUrl(wv),
       completenessScore: row.completenessScore != null ? Number(row.completenessScore) : null,
       contentQualityScore: row.contentQualityScore != null ? Number(row.contentQualityScore) : null,
+      groundingRate: pm?.groundingRate ?? null,
+      provenance: pm?.provenance ?? null,
+      attrsFilled: pm?.attrsFilled ?? null,
+      attrsTotal: pm?.attrsTotal ?? null,
       _meta: { schema: "new" },
     };
   });
