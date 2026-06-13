@@ -469,7 +469,14 @@ export async function listCatalogProducts(
       fields: schema.enrichmentProposals.fields,
     })
     .from(schema.enrichmentProposals)
-    .where(inArray(schema.enrichmentProposals.productId, productIds))
+    // Only proposals that actually carry data — so a later FAILED (empty) re-enrich
+    // attempt never shadows a product's prior good ready/applied proposal.
+    .where(
+      and(
+        inArray(schema.enrichmentProposals.productId, productIds),
+        inArray(schema.enrichmentProposals.status, ["ready", "applied"])
+      )
+    )
     .orderBy(desc(schema.enrichmentProposals.createdAt));
   for (const pr of proposalRows) {
     if (metricByProduct.has(pr.productId)) continue; // first seen = latest (createdAt DESC)

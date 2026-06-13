@@ -9,7 +9,7 @@
 // live completeness/grounding/content come from the products' latest proposals.
 
 import type { Context } from "hono";
-import { and, eq, desc, like, sql } from "drizzle-orm";
+import { and, eq, desc, inArray, like, sql } from "drizzle-orm";
 import { schema } from "@aonex/db";
 import { MerchantId, TenantId } from "@aonex/types";
 import type { CatalogRouteDeps } from "../routes/catalog.js";
@@ -38,6 +38,9 @@ export async function getCatalogQuality(c: Context, deps: CatalogRouteDeps): Pro
   const conds = [
     eq(schema.enrichmentProposals.tenantId, tenantId),
     eq(schema.enrichmentProposals.merchantId, merchantId),
+    // Only data-bearing proposals — exclude failed/pending/generating (null scoreAfter)
+    // so they don't deflate the averages or inflate the enriched count.
+    inArray(schema.enrichmentProposals.status, ["ready", "applied"]),
   ];
   // Category scope: products whose taxonomy node is at/under the given prefix.
   if (category) conds.push(like(schema.catalogProducts.categoryNodeId, `${category}%`));
@@ -113,7 +116,9 @@ export async function getProductQuality(c: Context, deps: CatalogRouteDeps): Pro
       and(
         eq(schema.enrichmentProposals.productId, productId),
         eq(schema.enrichmentProposals.tenantId, tenantId),
-        eq(schema.enrichmentProposals.merchantId, merchantId)
+        eq(schema.enrichmentProposals.merchantId, merchantId),
+        // Latest proposal that carries data — a later failed re-attempt is empty.
+        inArray(schema.enrichmentProposals.status, ["ready", "applied"])
       )
     )
     .orderBy(desc(schema.enrichmentProposals.createdAt))
