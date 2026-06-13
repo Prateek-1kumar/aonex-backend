@@ -12,8 +12,10 @@ export { scoreProduct, aggregate } from "./score-extraction.js";
 export {
   scoreClassification,
   aggregateClassification,
+  precisionRecall,
   type ClassRow,
   type ClassAgg,
+  type PrecisionRecall,
 } from "./score-taxonomy.js";
 export { promoteMetrics, type PromoteMetrics } from "./promote-metrics.js";
 export { loadGoldenSet, splitBy } from "./golden-set.js";

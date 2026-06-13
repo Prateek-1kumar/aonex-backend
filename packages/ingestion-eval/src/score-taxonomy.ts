@@ -37,3 +37,29 @@ export function aggregateClassification(rows: ClassRow[]): ClassAgg {
     abstained: rows.filter((r) => r.predicted === null).length / n,
   };
 }
+
+export interface PrecisionRecall {
+  /** Exactly-correct / predictions that were not an abstain. */
+  precision: number;
+  /** Exactly-correct / all gold items. */
+  recall: number;
+  predicted: number;
+  correct: number;
+  total: number;
+}
+
+/** Precision/recall for the Catalog Quality Report headline. Precision = "when it
+ *  commits to a leaf, how often is it right?"; recall = "of all products, how often
+ *  did it land the exact right leaf?". Abstains lower recall but not precision. */
+export function precisionRecall(rows: ClassRow[]): PrecisionRecall {
+  const total = rows.length;
+  const predicted = rows.filter((r) => r.predicted !== null).length;
+  const correct = rows.filter((r) => r.exact).length;
+  return {
+    precision: predicted === 0 ? 0 : correct / predicted,
+    recall: total === 0 ? 0 : correct / total,
+    predicted,
+    correct,
+    total,
+  };
+}

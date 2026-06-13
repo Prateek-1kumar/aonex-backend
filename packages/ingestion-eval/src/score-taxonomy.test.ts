@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { scoreClassification, aggregateClassification } from "./score-taxonomy.js";
+import { scoreClassification, aggregateClassification, precisionRecall } from "./score-taxonomy.js";
 
 // fashion/clothing/bottoms/jeans ancestry
 const anc = (id: string): string[] => {
@@ -29,5 +29,24 @@ describe("aggregateClassification", () => {
     expect(agg.top1).toBe(0.25);
     expect(agg.weighted).toBeCloseTo(0.4375, 4);
     expect(agg.abstained).toBe(0.25);
+  });
+});
+
+describe("precisionRecall", () => {
+  test("abstains lower recall but not precision", () => {
+    // 4 items: 2 exact, 1 wrong-but-predicted, 1 abstain.
+    const pr = precisionRecall([
+      { exact: true, credit: 1, predicted: "a" },
+      { exact: true, credit: 1, predicted: "b" },
+      { exact: false, credit: 0, predicted: "c" },
+      { exact: false, credit: 0, predicted: null },
+    ]);
+    expect(pr.precision).toBeCloseTo(2 / 3, 6); // 2 correct of 3 committed
+    expect(pr.recall).toBe(0.5); // 2 correct of 4 total
+    expect(pr).toMatchObject({ predicted: 3, correct: 2, total: 4 });
+  });
+
+  test("empty -> zeros, no divide-by-zero", () => {
+    expect(precisionRecall([])).toMatchObject({ precision: 0, recall: 0 });
   });
 });

@@ -10,14 +10,18 @@
  * calibrate) on each product and re-scores, so we can show before -> after
  * completeness plus a grounding/hallucination read.
  *
- * Classification is held fixed (we use gold.node_id) so this isolates enrichment
- * quality from classifier accuracy.
+ * Enrichment runs on gold.node_id (so enrichment quality is isolated from the
+ * classifier), but we ALSO classify each product for a categorization
+ * precision/recall headline, and with --persist we write one enrichment_eval_runs
+ * row (+ per-SKU rows) so the Catalog Quality Report can show the numbers + a
+ * regression count vs the previous run.
  *
  *   set -a; . ./.env; set +a
- *   bun scripts/eval/run-enrichment-eval.ts            # all in-taxonomy golden products
- *   bun scripts/eval/run-enrichment-eval.ts --limit 6  # quick smoke
+ *   bun scripts/eval/run-enrichment-eval.ts                      # all in-taxonomy golden products
+ *   bun scripts/eval/run-enrichment-eval.ts --limit 6           # quick smoke
+ *   bun scripts/eval/run-enrichment-eval.ts --persist --label X # persist a run for the quality report
  */
-import { createDb } from "@aonex/db";
+import { createDb, schema } from "@aonex/db";
 import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
 import { selectEnrichProvider } from "@aonex/lib-utils";
 import { loadGoldenProducts, type GoldenYamlProduct } from "./load-golden-yaml.js";
@@ -27,6 +31,8 @@ import {
   acceptedAttributes,
 } from "@aonex/taxonomy-enrichment";
 import { loadLeafSchemas, loadRagCorpus } from "@aonex/taxonomy-schema";
+import { classify, buildIndex } from "@aonex/taxonomy-classifier";
+import { scoreClassification, precisionRecall, aggregateClassification, type ClassRow } from "@aonex/ingestion-eval";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
 const argNum = (flag: string, def: number): number => {
@@ -38,6 +44,12 @@ const LIMIT = argNum("--limit", Infinity);
 // override with --conc N if you have headroom.
 const CONCURRENCY = argNum("--conc", 1);
 const MAX_TOKENS = argNum("--max-tokens", 1500); // enrichment JSON is small; 4000 wasted TPM.
+const PERSIST = process.argv.includes("--persist");
+const argStr = (flag: string): string | undefined => {
+  const i = process.argv.indexOf(flag);
+  return i !== -1 ? process.argv[i + 1] : undefined;
+};
+const LABEL = argStr("--label") ?? null;
 
 // Provider precedence: DeepSeek → Groq → OpenAI (shared with the worker).
 const selected = selectEnrichProvider(process.env);
@@ -72,6 +84,20 @@ try {
   // (@aonex/taxonomy-schema) — the same wiring the worker enrichment job uses.
   const { schemaByNode, pathByNode } = await loadLeafSchemas(db);
   const corpus = await loadRagCorpus(db);
+
+  // Classifier index (alias + lexical) for the categorization precision/recall
+  // headline — same wiring as run-taxonomy-eval. Enrichment still runs on the gold
+  // node; this only measures "would the classifier have picked the right leaf?".
+  const aliasMap = new Map((await db.select().from(schema.taxonomyAliases)).map((a) => [a.normalizedLabel, a.nodeId]));
+  const nodes = await db.select().from(schema.taxonomyNodes);
+  const parentOf = new Map(nodes.map((node) => [node.nodeId, node.parentId]));
+  const ancestorsOf = (id: string): string[] => {
+    const out: string[] = [];
+    let p = parentOf.get(id);
+    while (p) { out.push(p); p = parentOf.get(p); }
+    return out;
+  };
+  const cidx = buildIndex(nodes.filter((node) => node.isLeaf).map((node) => ({ nodeId: node.nodeId, displayName: node.displayName })), aliasMap);
 
   // ── Golden set (in-taxonomy only — enrichment runs on a known leaf). ──
   const golden: GoldenYamlProduct[] = loadGoldenProducts();
@@ -113,6 +139,13 @@ try {
       }
     );
 
+    // Categorization: what WOULD the classifier have picked? (scored vs gold node)
+    const predicted = classify(
+      { title: p.input.title, ...(p.input.sourceCategory ? { sourceCategory: p.input.sourceCategory } : {}) },
+      cidx
+    ).nodeId;
+    const cls = scoreClassification(predicted, nodeId, ancestorsOf);
+
     // Correctness vs gold.attrs where provided (case-insensitive normalized values).
     const goldAttrs = p.gold.attrs ?? {};
     const accepted = acceptedAttributes(result);
@@ -134,7 +167,7 @@ try {
       `content →${content} (${contentFields} copy fields, grnd ${(result.contentGroundingRate * 100).toFixed(0)}%)  ` +
       `+${Object.keys(accepted).length}spec${flag}\n`
     );
-    return { p, result, examples: examples.length, accepted: Object.keys(accepted).length, goldHits, goldTotal };
+    return { p, result, examples: examples.length, accepted: Object.keys(accepted).length, goldHits, goldTotal, predicted, classExact: cls.exact, classCredit: cls.credit };
   });
 
   // ── Aggregate ──
@@ -174,8 +207,54 @@ try {
   console.log(`     inferred proposals (review):  ${proposedInfer} total  ·  schema violations flagged: ${violations}  ·  model errors: ${errors}`);
   console.log(`     unverified (suppressed):      ${unverified} total  (unanchored values, neither applied nor surfaced)`);
   if (goldTotalAll) console.log(`     gold-attr correctness:        ${goldHitsAll}/${goldTotalAll} expected values matched`);
+
+  // ── Categorization (classifier vs gold) ──
+  const classRows: ClassRow[] = rows.map((r) => ({ exact: r.classExact, credit: r.classCredit, predicted: r.predicted }));
+  const pr = precisionRecall(classRows);
+  const top1 = aggregateClassification(classRows).top1;
+  console.log(`  -- categorization (classifier vs gold) --`);
+  console.log(`     precision ${pct(pr.precision)}%  ·  recall ${pct(pr.recall)}%  ·  top-1 ${pct(top1)}%  (${pr.correct}/${pr.total})`);
   console.log("=========================================================\n");
   /* eslint-enable no-console */
+
+  // ── Persist this run (for the Catalog Quality Report + regression count) ──
+  if (PERSIST) {
+    const goldAttrAccuracy = goldTotalAll ? goldHitsAll / goldTotalAll : null;
+    const [runRow] = await db
+      .insert(schema.enrichmentEvalRuns)
+      .values({
+        runLabel: LABEL,
+        model,
+        nProducts: rows.length,
+        categorizationPrecision: pr.precision,
+        categorizationRecall: pr.recall,
+        categorizationTop1: top1,
+        groundingRate: groundSum / n,
+        completenessBefore: beforeSum / n,
+        completenessAfter: afterSum / n,
+        completenessLift: (afterSum - beforeSum) / n,
+        goldAttrAccuracy,
+        contentGroundingRate: contentGroundSum / n,
+      })
+      .returning({ runId: schema.enrichmentEvalRuns.runId });
+    const runId = runRow!.runId;
+    await db.insert(schema.enrichmentEvalRunSkus).values(
+      rows.map((r) => ({
+        runId,
+        goldenId: r.p.id,
+        nodeId: r.p.gold.node_id,
+        predictedNodeId: r.predicted,
+        categorizationCorrect: r.classExact,
+        completenessAfter: r.result.completenessAfter.score,
+        groundingRate: r.result.groundingRate,
+        goldAttrHits: r.goldHits,
+        goldAttrTotal: r.goldTotal,
+        fields: r.result.fields.map((f) => ({ key: f.key, grounding: f.grounding, accepted: f.accepted })),
+      }))
+    );
+    /* eslint-disable-next-line no-console */
+    console.log(`  ✓ persisted eval run ${runId}${LABEL ? ` ("${LABEL}")` : ""} — ${rows.length} SKUs\n`);
+  }
 } finally {
   await close();
 }
