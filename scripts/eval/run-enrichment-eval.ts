@@ -17,11 +17,10 @@
  *   bun scripts/eval/run-enrichment-eval.ts            # all in-taxonomy golden products
  *   bun scripts/eval/run-enrichment-eval.ts --limit 6  # quick smoke
  */
-import { readFileSync } from "node:fs";
-import yaml from "js-yaml";
 import { createDb } from "@aonex/db";
 import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
 import { selectEnrichProvider } from "@aonex/lib-utils";
+import { loadGoldenProducts, type GoldenYamlProduct } from "./load-golden-yaml.js";
 import {
   enrichProduct,
   retrieveExamples,
@@ -29,7 +28,6 @@ import {
 } from "@aonex/taxonomy-enrichment";
 import { loadLeafSchemas, loadRagCorpus } from "@aonex/taxonomy-schema";
 
-const GOLDEN = "packages/ingestion-eval/fixtures/golden-taxonomy/products.yaml";
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
 const argNum = (flag: string, def: number): number => {
   const i = process.argv.indexOf(flag);
@@ -54,12 +52,6 @@ const provider = new OpenAIProvider({
 });
 const model = selected.model;
 
-interface GoldenProduct {
-  id: string;
-  input: { title: string; brand?: string; sourceCategory?: string; attrs?: Record<string, unknown> };
-  gold: { node_id: string; attrs?: Record<string, unknown> };
-}
-
 /** Promise pool — bounded concurrency over an ordered list. */
 async function mapPool<T, R>(items: T[], n: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
@@ -82,7 +74,7 @@ try {
   const corpus = await loadRagCorpus(db);
 
   // ── Golden set (in-taxonomy only — enrichment runs on a known leaf). ──
-  const golden = (yaml.load(readFileSync(GOLDEN, "utf8")) as { products: GoldenProduct[] }).products;
+  const golden: GoldenYamlProduct[] = loadGoldenProducts();
   const known = golden
     .filter((p) => p.gold.node_id !== "ABSTAIN" && schemaByNode.has(p.gold.node_id))
     .slice(0, LIMIT);

@@ -1,0 +1,27 @@
+# Golden set — Beauty & Personal Care. See ../README.md.
+products:
+  - id: b01
+    input: { title: "MAC Matte Lipstick Ruby Woo", brand: MAC, sourceCategory: "Makeup > Lips", attrs: { color: red } }
+    gold: { node_id: beauty-and-personal-care/makeup/lipstick, attrs: { color: Red, cosmetic-finish: Matte } }
+  - id: b02
+    input: { title: "CeraVe Moisturizing Cream 16oz", brand: CeraVe, sourceCategory: "Skin Care", attrs: {} }
+    gold: { node_id: beauty-and-personal-care/skincare/moisturizers }
+  - id: b03
+    input: { title: "Chanel No. 5 Eau de Parfum 100ml", brand: Chanel, sourceCategory: "Fragrance", attrs: {} }
+    gold: { node_id: beauty-and-personal-care/fragrances-and-perfumes/perfumes-and-colognes, attrs: { target-gender: Female } }
+  - id: b04
+    input: { title: "Head & Shoulders Anti-Dandruff Shampoo", brand: "Head & Shoulders", sourceCategory: "Hair Care", attrs: {} }
+    gold: { node_id: beauty-and-personal-care/hair-care/shampoo }
+  # --- expansion ---
+  - id: b05
+    input: { title: "Maybelline SuperStay Matte Ink Liquid Lipstick Red", brand: Maybelline, sourceCategory: "Lipstick", attrs: { color: red } }
+    gold: { node_id: beauty-and-personal-care/makeup/lipstick, attrs: { color: Red, cosmetic-finish: Matte } }
+  - id: b06
+    input: { title: "NARS Velvet Matte Lipstick Pink", brand: NARS, sourceCategory: "Makeup > Lips", attrs: {} }
+    gold: { node_id: beauty-and-personal-care/makeup/lipstick, attrs: { color: Pink, cosmetic-finish: Velvet } }
+  - id: b07
+    input: { title: "Dior Sauvage Eau de Toilette 100ml Men", brand: Dior, sourceCategory: "Fragrance > Men", attrs: {} }
+    gold: { node_id: beauty-and-personal-care/fragrances-and-perfumes/perfumes-and-colognes, attrs: { target-gender: Male } }
+  - id: b08
+    input: { title: "Versace Eros Eau de Toilette for Men 100ml", brand: Versace, sourceCategory: "Perfumes", attrs: {} }
+    gold: { node_id: beauty-and-personal-care/fragrances-and-perfumes/perfumes-and-colognes, attrs: { target-gender: Male } }

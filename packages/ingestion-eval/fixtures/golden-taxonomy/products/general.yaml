@@ -1,0 +1,46 @@
+# Golden set — Grocery / Pet / Toys / Automotive / Sports / Office / Jewelry.
+# See ../README.md.
+products:
+  - id: g01
+    input: { title: "Lavazza Qualità Rossa Ground Coffee 1kg", brand: Lavazza, sourceCategory: "Coffee & Tea", attrs: {} }
+    gold: { node_id: grocery-and-gourmet/food-and-beverages/coffee }
+  - id: p01
+    input: { title: "Pedigree Adult Dry Dog Food Chicken 3kg", brand: Pedigree, sourceCategory: "Pet > Dog > Food", attrs: {} }
+    gold: { node_id: pet-supplies/dog-supplies/dog-food, attrs: { pet-food-form: Dry, pet-food-flavor: Chicken } }
+  - id: t01
+    input: { title: "Monopoly Classic Board Game", brand: Hasbro, sourceCategory: "Toys > Games", attrs: {} }
+    gold: { node_id: toys-and-games/games-and-puzzles/board-games }
+  - id: t02
+    input: { title: "LEGO Star Wars Millennium Falcon Set", brand: LEGO, sourceCategory: "Building Toys", attrs: {} }
+    gold: { node_id: toys-and-games/toys/building-sets }
+  - id: a01
+    input: { title: "Michelin Pilot Sport 4 225/45R17 Tyre", brand: Michelin, sourceCategory: "Auto > Tyres", attrs: {} }
+    gold: { node_id: automotive/tires-and-wheels/tires, attrs: { color: Black } }
+  - id: s01
+    input: { title: "NordicTrack Commercial 1750 Treadmill", brand: NordicTrack, sourceCategory: "Fitness Equipment", attrs: {} }
+    gold: { node_id: sports-fitness-and-outdoors/sports-and-fitness/treadmills }
+  - id: s02
+    input: { title: "Trek Marlin 7 Mountain Bike", brand: Trek, sourceCategory: "Cycling > Bikes", attrs: {} }
+    gold: { node_id: sports-fitness-and-outdoors/cycling/bicycles }
+  - id: s03
+    input: { title: "Coleman Sundome 4-Person Dome Tent", brand: Coleman, sourceCategory: "Camping & Hiking", attrs: {} }
+    gold: { node_id: sports-fitness-and-outdoors/outdoor-and-camping/tents }
+  - id: o01
+    input: { title: "HP OfficeJet Pro 9015e All-in-One Printer", brand: HP, sourceCategory: "Office > Printers", attrs: {} }
+    gold: { node_id: office-and-school-supplies/office-supplies/printers, attrs: { print-technology: Inkjet } }
+  - id: j01
+    input: { title: "Casio G-Shock Digital Watch Black", brand: Casio, sourceCategory: "Watches", attrs: { color: black } }
+    gold: { node_id: jewelry-and-watches/watches/watches, attrs: { color: Black, watch-display: Digital } }
+  # --- expansion ---
+  - id: p02
+    input: { title: "Royal Canin Wet Dog Food Lamb Pouch 100g", brand: Royal Canin, sourceCategory: "Dog Food", attrs: {} }
+    gold: { node_id: pet-supplies/dog-supplies/dog-food, attrs: { pet-food-form: Wet, pet-food-flavor: Lamb } }
+  - id: j02
+    input: { title: "Seiko 5 Sports Automatic Analog Watch Silver", brand: Seiko, sourceCategory: "Wristwatches", attrs: {} }
+    gold: { node_id: jewelry-and-watches/watches/watches, attrs: { color: Silver, watch-display: Analog } }
+  - id: o02
+    input: { title: "Canon PIXMA G3020 Inkjet Printer Black", brand: Canon, sourceCategory: "Printers", attrs: { color: black } }
+    gold: { node_id: office-and-school-supplies/office-supplies/printers, attrs: { color: Black, print-technology: Inkjet } }
+  - id: a02
+    input: { title: "Bridgestone Turanza T005 205/55R16 Tyre", brand: Bridgestone, sourceCategory: "Tyres", attrs: {} }
+    gold: { node_id: automotive/tires-and-wheels/tires, attrs: { color: Black } }

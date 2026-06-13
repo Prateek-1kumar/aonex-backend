@@ -1,0 +1,36 @@
+# Golden set — Home & Kitchen. See ../README.md.
+products:
+  - id: h01
+    input: { title: "IKEA KIVIK 3-Seat Sofa Grey", brand: IKEA, sourceCategory: "Living Room > Couches", attrs: { color: grey } }
+    gold: { node_id: home-and-kitchen/furniture/sofas, attrs: { color: Gray } }
+  - id: h02
+    input: { title: "Samsung 28 cu ft French Door Refrigerator", brand: Samsung, sourceCategory: "Major Appliances > Fridges", attrs: {} }
+    gold: { node_id: home-and-kitchen/home-appliances/refrigerators }
+  - id: h03
+    input: { title: "Dyson V15 Cordless Vacuum Cleaner", brand: Dyson, sourceCategory: "vacuums", attrs: {} }
+    gold: { node_id: home-and-kitchen/home-appliances/vacuums }
+  - id: h04
+    input: { title: "Philips Hue LED Table Lamp", brand: Philips, sourceCategory: "Lighting > Lamps", attrs: {} }
+    gold: { node_id: home-and-kitchen/lighting/lamps }
+  - id: h05
+    input: { title: "Egyptian Cotton Bed Sheet Set Queen White", brand: Brooklinen, sourceCategory: "Bedding", attrs: { color: white } }
+    gold: { node_id: home-and-kitchen/bedding-and-linen/bed-sheets, attrs: { color: White, fabric: Cotton, bedding-size: Queen } }
+  # --- expansion ---
+  - id: h06
+    input: { title: "Brooklinen Luxe Sateen Sheet Set King Navy", brand: Brooklinen, sourceCategory: "Bed Sheets", attrs: {} }
+    gold: { node_id: home-and-kitchen/bedding-and-linen/bed-sheets, attrs: { color: Navy, fabric: Cotton, bedding-size: King } }
+  - id: h07
+    input: { title: "West Elm Hamilton Leather Sofa Brown 2-Seater", brand: West Elm, sourceCategory: "Furniture > Sofas", attrs: {} }
+    gold: { node_id: home-and-kitchen/furniture/sofas, attrs: { color: Brown, material: Leather } }
+  - id: h08
+    input: { title: "Anglepoise Type 75 Desk Lamp Black", brand: Anglepoise, sourceCategory: "Lamps", attrs: { color: black } }
+    gold: { node_id: home-and-kitchen/lighting/lamps, attrs: { color: Black } }
+  - id: h09
+    input: { title: "LG 312L Double Door Refrigerator Silver", brand: LG, sourceCategory: "Refrigerators", attrs: {} }
+    gold: { node_id: home-and-kitchen/home-appliances/refrigerators, attrs: { color: Silver } }
+  - id: h10
+    input: { title: "iRobot Roomba j7 Robot Vacuum Black", brand: iRobot, sourceCategory: "Vacuum Cleaners", attrs: {} }
+    gold: { node_id: home-and-kitchen/home-appliances/vacuums, attrs: { color: Black } }
+  - id: h11
+    input: { title: "Linen Duvet Cover Set Double Beige", brand: MagicLinen, sourceCategory: "Bedding & Linen", attrs: {} }
+    gold: { node_id: home-and-kitchen/bedding-and-linen/bed-sheets, attrs: { color: Beige, fabric: Linen, bedding-size: Double } }

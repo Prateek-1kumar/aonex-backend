@@ -1,0 +1,56 @@
+# Golden set — Fashion. See ../README.md.
+# Clothing leaves share required color/fabric/size/target-gender; size uses the
+# canonical enum (e.g. "Large (L)"), target-gender is Male/Female/Unisex/Other.
+products:
+  - id: f01
+    input: { title: "Levi's 511 Slim Fit Jeans Dark Wash 32x32", brand: "Levi's", sourceCategory: "Men's Jeans", attrs: { fit: slim, color: dark blue } }
+    gold: { node_id: fashion/clothing/bottoms/jeans, attrs: { fit: Slim, color: Blue, fabric: Denim, target-gender: Male } }
+  - id: f02
+    input: { title: "Nike Dri-FIT Cotton Tee Black L", brand: Nike, sourceCategory: "t-shirts", attrs: { color: black, size: L } }
+    gold: { node_id: fashion/clothing/tops/t-shirts, attrs: { color: Black, fabric: Cotton, size: "Large (L)" } }
+  - id: f03
+    input: { title: "Adidas Ultraboost Running Shoes White 10", brand: Adidas, sourceCategory: "Footwear > Sneakers", attrs: { color: white } }
+    gold: { node_id: fashion/footwear/sneakers, attrs: { color: White, shoe-size: "10" } }
+  - id: f04
+    input: { title: "Zara Floral Summer Dress Size M", brand: Zara, sourceCategory: "Women's Dresses", attrs: { pattern: floral } }
+    gold: { node_id: fashion/clothing/dresses/dresses, attrs: { pattern: Floral, size: "Medium (M)", target-gender: Female } }
+  - id: f05
+    input: { title: "Ray-Ban Aviator Sunglasses Gold", brand: Ray-Ban, sourceCategory: "eyewear", attrs: {} }
+    gold: { node_id: fashion/sunglasses-and-eyewear/sunglasses, attrs: { color: Gold } }
+  - id: f06
+    input: { title: "Polo Ralph Lauren Cotton Polo Shirt Navy", brand: Ralph Lauren, sourceCategory: "polos", attrs: { color: navy } }
+    gold: { node_id: fashion/clothing/tops/polos, attrs: { color: Navy, fabric: Cotton } }
+  # --- expansion ---
+  - id: f07
+    input: { title: "Wrangler Skinny Jeans Women's Black", brand: Wrangler, sourceCategory: "Women's Jeans", attrs: {} }
+    gold: { node_id: fashion/clothing/bottoms/jeans, attrs: { color: Black, fabric: Denim, target-gender: Female, fit: "Skinny leg" } }
+  - id: f08
+    input: { title: "Levi's 501 Original Straight Jeans Men's Stonewash Blue", brand: "Levi's", sourceCategory: "jeans", attrs: {} }
+    gold: { node_id: fashion/clothing/bottoms/jeans, attrs: { color: Blue, fabric: Denim, target-gender: Male, fit: "Straight leg" } }
+  - id: f09
+    input: { title: "Uniqlo Supima Cotton Crew Neck T-Shirt White M", brand: Uniqlo, sourceCategory: "T-Shirts", attrs: { size: M } }
+    gold: { node_id: fashion/clothing/tops/t-shirts, attrs: { color: White, fabric: Cotton, size: "Medium (M)" } }
+  - id: f10
+    input: { title: "H&M Cotton Pique Polo Shirt Men's Green L", brand: "H&M", sourceCategory: "Polos", attrs: {} }
+    gold: { node_id: fashion/clothing/tops/polos, attrs: { color: Green, fabric: Cotton, target-gender: Male, size: "Large (L)" } }
+  - id: f11
+    input: { title: "Zara Linen Midi Dress Women's Beige S", brand: Zara, sourceCategory: "Dresses", attrs: {} }
+    gold: { node_id: fashion/clothing/dresses/dresses, attrs: { color: Beige, fabric: Linen, target-gender: Female, size: "Small (S)" } }
+  - id: f12
+    input: { title: "Nike Air Force 1 '07 Sneakers White Men's 9", brand: Nike, sourceCategory: "Sneakers", attrs: { color: white } }
+    gold: { node_id: fashion/footwear/sneakers, attrs: { color: White, shoe-size: "9", target-gender: Male } }
+  - id: f13
+    input: { title: "Converse Chuck Taylor All Star Hi Black", brand: Converse, sourceCategory: "Footwear", attrs: {} }
+    gold: { node_id: fashion/footwear/sneakers, attrs: { color: Black } }
+  - id: f14
+    input: { title: "Oakley Holbrook Sunglasses Matte Black", brand: Oakley, sourceCategory: "Eyewear", attrs: {} }
+    gold: { node_id: fashion/sunglasses-and-eyewear/sunglasses, attrs: { color: Black } }
+  - id: f15
+    input: { title: "Men Checked Full Sleeve Flannel Shirt Dark Green", brand: Forclaz, sourceCategory: "Fashion > Tops > Shirts", attrs: {} }
+    gold: { node_id: fashion/clothing/tops/shirts, attrs: { color: Green, fabric: Flannel, target-gender: Male, pattern: Checkered } }
+  - id: f16
+    input: { title: "Men's Fitness Cotton T-Shirt White", brand: Domyos, sourceCategory: "Fashion > Tops > T-Shirts", attrs: { color: white } }
+    gold: { node_id: fashion/clothing/tops/t-shirts, attrs: { color: White, fabric: Cotton, target-gender: Male } }
+  - id: f17
+    input: { title: "Men Breathable Trekking Shirt Khaki", brand: Solognac, sourceCategory: "Fashion > Tops > Shirts", attrs: {} }
+    gold: { node_id: fashion/clothing/tops/shirts, attrs: { color: Beige, target-gender: Male } }

@@ -1,0 +1,60 @@
+# Golden set — Electronics. See ../README.md.
+# gold.node_id = correct canonical leaf; gold.attrs = expected NORMALIZED values
+# that enrichment should be able to extract + ground from the input (enum-conforming).
+# Run `bun run validate-golden` to certify conformance against the live schema.
+products:
+  - id: e01
+    input: { title: "Apple iPhone 15 128GB Black", brand: Apple, sourceCategory: "Cell Phones", attrs: { storage: 128GB, color: black } }
+    gold: { node_id: electronics/mobile-phones-and-accessories/mobile-phones, attrs: { brand: Apple, storage: 128GB, color: Black } }
+  - id: e02
+    input: { title: "Samsung Galaxy S24 Ultra 256 GB", brand: Samsung, sourceCategory: "Smartphones & Basic Mobiles", attrs: { storage: 256GB } }
+    gold: { node_id: electronics/mobile-phones-and-accessories/mobile-phones, attrs: { brand: Samsung, storage: 256GB } }
+  - id: e03
+    input: { title: "Dell XPS 13 Laptop i7 16GB", brand: Dell, sourceCategory: "Computers > Notebooks", attrs: {} }
+    gold: { node_id: electronics/computers-and-laptops/laptops }
+  - id: e04
+    input: { title: "Sony WH-1000XM5 Wireless Headphones Black", brand: Sony, sourceCategory: "Audio > Headphones", attrs: { color: black } }
+    gold: { node_id: electronics/audio-and-headphones/headphones, attrs: { color: Black } }
+  - id: e05
+    input: { title: "Logitech MX Master 3S Mouse Graphite", brand: Logitech, sourceCategory: "computer accessories", attrs: {} }
+    gold: { node_id: electronics/computers-and-laptops/mice, attrs: { color: Gray } }
+  - id: e06
+    input: { title: "iPad Air 11-inch 128GB", brand: Apple, sourceCategory: "Tablets", attrs: {} }
+    gold: { node_id: electronics/tablets-and-accessories/tablet-computers }
+  # --- expansion ---
+  - id: e07
+    input: { title: "Apple iPhone 15 Pro Max 256GB Natural Titanium", brand: Apple, sourceCategory: "Mobiles", attrs: { storage: 256GB } }
+    gold: { node_id: electronics/mobile-phones-and-accessories/mobile-phones, attrs: { brand: Apple, storage: 256GB } }
+  - id: e08
+    input: { title: "Samsung Galaxy A55 5G 128GB 8GB RAM Awesome Blue", brand: Samsung, sourceCategory: "smartphones", attrs: {} }
+    gold: { node_id: electronics/mobile-phones-and-accessories/mobile-phones, attrs: { brand: Samsung, storage: 128GB, ram: 8GB, network: 5G, color: Blue } }
+  - id: e09
+    input: { title: "OnePlus 12R 256GB 16GB RAM Iron Gray 5G", brand: OnePlus, sourceCategory: "Mobile Phones", attrs: {} }
+    gold: { node_id: electronics/mobile-phones-and-accessories/mobile-phones, attrs: { brand: OnePlus, storage: 256GB, ram: 16GB, network: 5G, color: Gray } }
+  - id: e10
+    input: { title: "Google Pixel 8 128GB Obsidian", brand: Google, sourceCategory: "Cell Phones", attrs: { color: black } }
+    gold: { node_id: electronics/mobile-phones-and-accessories/mobile-phones, attrs: { brand: Google, storage: 128GB, color: Black } }
+  - id: e11
+    input: { title: "Xiaomi Redmi Note 13 64GB 6GB RAM Midnight Black 4G", brand: Xiaomi, sourceCategory: "mobiles", attrs: {} }
+    gold: { node_id: electronics/mobile-phones-and-accessories/mobile-phones, attrs: { brand: Xiaomi, storage: 64GB, ram: 6GB, network: 4G, color: Black } }
+  - id: e12
+    input: { title: "Apple MacBook Air 13 M3", brand: Apple, sourceCategory: "Laptops", attrs: {} }
+    gold: { node_id: electronics/computers-and-laptops/laptops }
+  - id: e13
+    input: { title: "Bose QuietComfort Ultra Headphones White Smoke", brand: Bose, sourceCategory: "Headphones", attrs: { color: white } }
+    gold: { node_id: electronics/audio-and-headphones/headphones, attrs: { color: White } }
+  - id: e14
+    input: { title: "Samsung Galaxy Tab S9 128GB Graphite", brand: Samsung, sourceCategory: "Tablets", attrs: {} }
+    gold: { node_id: electronics/tablets-and-accessories/tablet-computers, attrs: { color: Gray } }
+  - id: e15
+    input: { title: "Anker PowerCore 20000mAh Power Bank Black", brand: Anker, sourceCategory: "Mobile Accessories > Power Banks", attrs: {} }
+    gold: { node_id: electronics/mobile-phones-and-accessories/power-banks, attrs: { color: Black } }
+  - id: e16
+    input: { title: "Logitech K380 Wireless Keyboard Rose", brand: Logitech, sourceCategory: "Keyboards", attrs: {} }
+    gold: { node_id: electronics/computers-and-laptops/computer-keyboards, attrs: { color: Pink } }
+  - id: e17
+    input: { title: "LG UltraGear 27 inch Gaming Monitor Black", brand: LG, sourceCategory: "Monitors", attrs: { color: black } }
+    gold: { node_id: electronics/computers-and-laptops/computer-monitors, attrs: { color: Black } }
+  - id: e18
+    input: { title: "Spigen Tough Armor Case for iPhone 15 Black", brand: Spigen, sourceCategory: "Phone Cases", attrs: {} }
+    gold: { node_id: electronics/mobile-phones-and-accessories/phone-cases, attrs: { color: Black } }

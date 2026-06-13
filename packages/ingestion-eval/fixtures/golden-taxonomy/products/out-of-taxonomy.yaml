@@ -1,0 +1,24 @@
+# Golden set — OUT-OF-TAXONOMY (no leaf exists). See ../README.md.
+# Correct outcome = abstain or propose_node, NEVER a wrong leaf. No gold.attrs.
+products:
+  - id: u01
+    input: { title: "DJI Mavic 3 Pro Drone", brand: DJI, sourceCategory: "Electronics > Drones & UAV", attrs: {} }
+    gold: { node_id: ABSTAIN }
+  - id: u02
+    input: { title: "Xiaomi Mi Electric Scooter Pro 2", brand: Xiaomi, sourceCategory: "Personal Mobility", attrs: {} }
+    gold: { node_id: ABSTAIN }
+  - id: u03
+    input: { title: "Ring Video Doorbell 4", brand: Ring, sourceCategory: "Smart Home Security", attrs: {} }
+    gold: { node_id: ABSTAIN }
+  - id: u04
+    input: { title: "Charlotte's Web CBD Oil Tincture 1000mg", brand: Charlotte's Web, sourceCategory: "Wellness", attrs: {} }
+    gold: { node_id: ABSTAIN }
+  - id: u05
+    input: { title: "Meta Quest 3 VR Headset 128GB", brand: Meta, sourceCategory: "Electronics > Virtual Reality", attrs: {} }
+    gold: { node_id: ABSTAIN }
+  - id: u06
+    input: { title: "Starlink Standard Satellite Internet Kit", brand: Starlink, sourceCategory: "Internet Equipment", attrs: {} }
+    gold: { node_id: ABSTAIN }
+  - id: u07
+    input: { title: "Tesla Wall Connector EV Charger Gen 3", brand: Tesla, sourceCategory: "EV Charging", attrs: {} }
+    gold: { node_id: ABSTAIN }

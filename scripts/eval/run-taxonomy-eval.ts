@@ -10,16 +10,14 @@
  *
  *   DATABASE_URL=... bun scripts/eval/run-taxonomy-eval.ts
  */
-import { readFileSync } from "node:fs";
-import yaml from "js-yaml";
 import { schema, createDb } from "@aonex/db";
 import { normalizeText as norm } from "@aonex/lib-utils";
 import { validateAttributes } from "@aonex/taxonomy-validator";
 import { loadLeafSchemas, leafSchemaFor } from "@aonex/taxonomy-schema";
 import { scoreClassification, aggregateClassification, type ClassRow } from "@aonex/ingestion-eval";
 import { classify as classifyV2, buildIndex, classifyWithFallback, deterministicResolver } from "@aonex/taxonomy-classifier";
+import { loadGoldenProducts } from "./load-golden-yaml.js";
 
-const GOLDEN = "packages/ingestion-eval/fixtures/golden-taxonomy/products.yaml";
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://aonex:aonex@localhost:5432/aonex_dev";
 
 function catVariants(sc: string): string[] {
@@ -50,8 +48,6 @@ function classify(input: { title: string; sourceCategory?: string }, aliasMap: M
   return best;
 }
 
-interface GoldenProduct { id: string; input: { title: string; brand?: string; sourceCategory?: string; attrs?: Record<string, unknown> }; gold: { node_id: string; attrs?: Record<string, unknown> } }
-
 const { client: db, close } = createDb(databaseUrl);
 try {
   const aliasMap = new Map((await db.select().from(schema.taxonomyAliases)).map((a) => [a.normalizedLabel, a.nodeId]));
@@ -68,7 +64,7 @@ try {
 
   const schemaIndex = await loadLeafSchemas(db);
 
-  const golden = (yaml.load(readFileSync(GOLDEN, "utf8")) as { products: GoldenProduct[] }).products;
+  const golden = loadGoldenProducts();
   const ABSTAIN = "ABSTAIN";
   const known = golden.filter((p) => p.gold.node_id !== ABSTAIN);
   const unknown = golden.filter((p) => p.gold.node_id === ABSTAIN);
