@@ -31,6 +31,7 @@ import {
   getProductTrace,
 } from "../handlers/admin-trace.js";
 import { getTaxonomyTree } from "../handlers/taxonomy.js";
+import { getCatalogQuality, getProductQuality } from "../handlers/quality.js";
 
 export interface CatalogRouteDeps {
   db: DrizzleClient;
@@ -45,6 +46,9 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
   // per-node direct product counts for this workspace).
   app.get("/taxonomy/tree", (c) => getTaxonomyTree(c, deps));
   app.get("/products", (c) => listProducts(c, deps));
+  // Catalog Quality Report — declared before "/products/:id" so "/catalog/quality"
+  // and "/products/:id/quality" resolve to the quality handlers.
+  app.get("/quality", (c) => getCatalogQuality(c, deps));
   app.delete("/products/:id", (c) => deleteProduct(c, deps));
   // ORDER MATTERS: hono matches in declaration order. The `/products/:id`
   // route MUST come BEFORE the `/products/:id/provenance` and
@@ -54,6 +58,7 @@ export function catalogRoutes(deps: CatalogRouteDeps): Hono {
   app.get("/products/:id", (c) => getProductById(c, deps));
   app.get("/products/:id/provenance", (c) => getProductProvenance(c, deps));
   app.get("/products/:id/sku", (c) => getProductSku(c, deps));
+  app.get("/products/:id/quality", (c) => getProductQuality(c, deps));
 
   // Catalog enrichment — staged workspace (Drafting Room + Review Commit + History).
   app.post("/enrichment/bulk", (c) => bulkEnrich(c, deps));
