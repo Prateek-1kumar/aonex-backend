@@ -15,7 +15,8 @@
 // leaf schema (specs + the universal content layer) + RAG corpus and persists.
 
 import { validateAttributes, type AttributeSpec, type FieldOutcome, type LeafSchema } from "@aonex/taxonomy-validator";
-import { calibrate, calibrateContent, DEFAULT_CALIBRATION, type CalibrationConfig } from "./calibrate.js";
+import { calibrate, calibrateContent, CONTENT_PROPOSE_THRESHOLD, DEFAULT_CALIBRATION, type CalibrationConfig } from "./calibrate.js";
+import { checkConsistency, type ConsistencyConflict, type ConsistencyDeps } from "./consistency.js";
 import { parseEnrichmentResponse } from "./parse.js";
 import { buildEnrichmentPrompt, ENRICH_PROMPT_VERSION } from "./prompt.js";
 import { buildContentPrompt, CONTENT_PROMPT_VERSION } from "./content-prompt.js";
@@ -40,6 +41,10 @@ export interface EnrichDeps {
   temperature?: number;
   jsonMode?: boolean;
   calibration?: CalibrationConfig;
+  /** Optional cross-field consistency pass (Gap B). When provided, one extra LLM
+   *  call audits the final field set for internal contradictions. Omit to skip
+   *  (the default; keeps the engine + unit tests model-free for the second call). */
+  consistency?: ConsistencyDeps;
 }
 
 /** EnrichField[] -> the validator's LeafSchema (drops prompt-only metadata).
@@ -69,6 +74,65 @@ export function acceptedAttributes(result: EnrichmentResult): Record<string, unk
   const out: Record<string, unknown> = {};
   for (const f of result.fields) if (f.accepted && f.normalized !== undefined) out[f.key] = f.normalized;
   return out;
+}
+
+/** The accepted / proposable normalized-value maps for the spec fields. Rebuilt
+ *  after the consistency pass so completeness reflects any downgrades. */
+function buildSpecMaps(specResults: FieldResult[]): {
+  accepted: Record<string, unknown>;
+  proposable: Record<string, unknown>;
+} {
+  const accepted: Record<string, unknown> = {};
+  const proposable: Record<string, unknown> = {};
+  for (const f of specResults) {
+    if (f.normalized === undefined) continue;
+    if (f.accepted) accepted[f.key] = f.normalized;
+    if (f.proposable) proposable[f.key] = f.normalized;
+  }
+  return { accepted, proposable };
+}
+
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+/** Run the consistency auditor over the final fields and apply its verdicts in
+ *  place: a "hard" conflict marks the field contradicted (dropped); a "soft" one
+ *  penalizes confidence and re-thresholds. Returns the flags for the result, or
+ *  undefined when the pass found nothing / failed (best-effort). */
+async function applyConsistency(
+  fields: FieldResult[],
+  deps: ConsistencyDeps,
+  cfg: CalibrationConfig
+): Promise<EnrichmentResult["consistencyFlags"]> {
+  let conflicts: ConsistencyConflict[];
+  try {
+    conflicts = await checkConsistency(fields, deps);
+  } catch {
+    return undefined;
+  }
+  if (conflicts.length === 0) return undefined;
+
+  const byKey = new Map(fields.map((f) => [f.key, f] as const));
+  for (const c of conflicts) {
+    for (const k of c.keys) {
+      const f = byKey.get(k);
+      if (!f) continue;
+      f.consistencyNote = c.reason;
+      if (c.severity === "hard") {
+        f.grounding = "contradicted";
+        f.accepted = false;
+        f.proposable = false;
+        f.calibratedConfidence = Math.min(f.calibratedConfidence, 0.1);
+        f.message = `cross-field conflict: ${c.reason}`;
+      } else {
+        f.calibratedConfidence = round2(f.calibratedConfidence * 0.7);
+        const bar = f.kind === "content" ? CONTENT_PROPOSE_THRESHOLD : cfg.acceptThreshold;
+        f.proposable = f.calibratedConfidence >= bar;
+        if (f.kind !== "content") f.accepted = f.accepted && f.proposable;
+        if (!f.message) f.message = `cross-field tension: ${c.reason}`;
+      }
+    }
+  }
+  return conflicts.map((c) => ({ keys: c.keys, reason: c.reason, severity: c.severity }));
 }
 
 // ── Stage 1: structured specs (extracted + verified) ─────────────────────────
@@ -266,17 +330,11 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
     }
   }
 
-  const acceptedSpecMap: Record<string, unknown> = {};
-  const proposableSpecMap: Record<string, unknown> = {};
-  for (const f of specResults) {
-    if (f.normalized === undefined) continue;
-    if (f.accepted) acceptedSpecMap[f.key] = f.normalized;
-    if (f.proposable) proposableSpecMap[f.key] = f.normalized;
-  }
-
   // ── STAGE 2: content (grounded in the now-confirmed facts) ──────────────────
   // Confirmed facts = the merchant's known attrs ∪ the specs we just grounded.
-  const confirmedFacts = { ...known, ...acceptedSpecMap };
+  // (Pre-consistency: content is composed from what stage 1 accepted; a later
+  // cross-field conflict can then flag content that leaned on a contradicted spec.)
+  const confirmedFacts = { ...known, ...buildSpecMaps(specResults).accepted };
   const contentCtx = buildVerifyContext({
     ...(input.product.title ? { title: input.product.title } : {}),
     ...(input.product.brand ? { brand: input.product.brand } : {}),
@@ -320,7 +378,15 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
 
   const fields = [...specResults, ...contentResults];
 
-  // ── Scores ──────────────────────────────────────────────────────────────────
+  // ── Cross-field consistency (optional, post-both-stages) ─────────────────────
+  // Mutates `fields` in place (hard conflicts -> contradicted; soft -> penalized),
+  // so every score below reflects the audited state.
+  const consistencyFlags = deps.consistency
+    ? await applyConsistency(fields, deps.consistency, cfg)
+    : undefined;
+
+  // ── Scores (rebuilt AFTER any consistency downgrades) ────────────────────────
+  const { accepted: acceptedSpecMap, proposable: proposableSpecMap } = buildSpecMaps(specResults);
   const completenessAfter = validateAttributes(leaf, acceptedSpecMap).completeness;
   const completenessProposed = validateAttributes(leaf, proposableSpecMap).completeness;
 
@@ -351,6 +417,7 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
     contentGroundingRate,
     proposedInferred,
     unverifiedCount,
+    ...(consistencyFlags ? { consistencyFlags } : {}),
     model,
     ...(usage ? { usage } : {}),
     ...(costUsd !== undefined ? { costUsd } : {}),

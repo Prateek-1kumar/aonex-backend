@@ -100,6 +100,7 @@ export function toProposalFields(
       grounding: f.grounding,
       support: f.support,
       ...(f.evidence ? { evidence: f.evidence } : {}),
+      ...(f.consistencyNote ? { consistencyNote: f.consistencyNote } : {}),
       accepted: f.accepted,
       proposable: f.proposable,
     });
@@ -185,7 +186,14 @@ export async function runEnrich(
         },
         examples,
       },
-      { provider: deps.provider, model: deps.model }
+      {
+        provider: deps.provider,
+        model: deps.model,
+        // Opt-in cross-field consistency pass (one extra cheap LLM call per product).
+        ...(process.env.ENRICH_CONSISTENCY_PASS
+          ? { consistency: { provider: deps.provider, model: deps.model } }
+          : {}),
+      }
     );
 
     if (result.error) {

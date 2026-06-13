@@ -184,6 +184,9 @@ export interface FieldResult {
   evidence?: string;
   reasoning?: string;
   message?: string;
+  /** Set by the cross-field consistency pass when this field conflicts with
+   *  another — the human-readable reason (also surfaced in the review UI). */
+  consistencyNote?: string;
 }
 
 export interface EnrichmentResult {
@@ -209,6 +212,9 @@ export interface EnrichmentResult {
   /** Count of unverified (unanchored, no-declared-basis) spec fields. Suppressed
    *  from auto-apply AND review; surfaced only as "speculative" for transparency. */
   unverifiedCount: number;
+  /** Cross-field contradictions found by the (optional) consistency pass. Empty/
+   *  absent when the pass did not run or found nothing. */
+  consistencyFlags?: { keys: string[]; reason: string; severity: "hard" | "soft" }[];
   model?: string;
   usage?: { promptTokens: number; completionTokens: number };
   costUsd?: number;

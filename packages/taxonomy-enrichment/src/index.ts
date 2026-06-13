@@ -18,6 +18,7 @@ export { parseEnrichmentResponse, EnrichmentParseError, type ParsedEnrichment } 
 export { retrieveExamples, departmentOf, type RetrieveQuery, type RetrieveOptions } from "./rag.js";
 export { verifyField, verifyContentField, buildVerifyContext, type VerifyContext } from "./verify.js";
 export { calibrate, calibrateContent, CONTENT_PROPOSE_THRESHOLD, DEFAULT_CALIBRATION, type CalibrationConfig, type CalibrationInput, type CalibrationOutput } from "./calibrate.js";
+export { checkConsistency, type ConsistencyDeps, type ConsistencyConflict, type ConsistencySeverity } from "./consistency.js";
 export {
   normalizeText, tokens, tokenSet, numerals, jaccard, valueToText,
 } from "./text.js";

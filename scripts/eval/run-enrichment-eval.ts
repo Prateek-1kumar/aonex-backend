@@ -113,7 +113,12 @@ try {
         },
         examples,
       },
-      { provider, model, maxTokens: MAX_TOKENS }
+      {
+        provider,
+        model,
+        maxTokens: MAX_TOKENS,
+        ...(process.env.ENRICH_CONSISTENCY_PASS ? { consistency: { provider, model } } : {}),
+      }
     );
 
     // Correctness vs gold.attrs where provided (case-insensitive normalized values).

@@ -85,6 +85,38 @@ describe("enrichProduct", () => {
     expect(acceptedAttributes(r)["operating-system"]).toBe("iOS");
   });
 
+  test("a hard cross-field conflict downgrades the field to contradicted (Gap B)", async () => {
+    const specBody = JSON.stringify({
+      fields: {
+        brand: { value: "Apple", confidence: 0.95, evidence: "Apple" },
+        storage: { value: "128GB", confidence: 0.9, evidence: "128GB" },
+        color: { value: "Black", confidence: 0.9, evidence: "Black" },
+      },
+    });
+    const conflictBody = JSON.stringify({
+      conflicts: [{ keys: ["storage"], reason: "storage disagrees with another field", severity: "hard" }],
+    });
+    // Call 1 = spec stage; call 2 = consistency pass (no content fields in schema).
+    let call = 0;
+    const provider: ChatProvider = {
+      async chatCompletion() {
+        call++;
+        return { content: call === 1 ? specBody : conflictBody, model: "stub" };
+      },
+    };
+
+    const r = await enrichProduct(input, { provider, model: "x", consistency: { provider, model: "x" } });
+    const storage = r.fields.find((f) => f.key === "storage")!;
+    expect(storage.grounding).toBe("contradicted");
+    expect(storage.accepted).toBe(false);
+    expect(storage.proposable).toBe(false);
+    expect(storage.consistencyNote).toContain("storage");
+    expect(r.consistencyFlags).toHaveLength(1);
+    // It was grounded + auto-applied before the conflict; now excluded.
+    expect(acceptedAttributes(r).storage).toBeUndefined();
+    expect(acceptedAttributes(r)).toMatchObject({ brand: "Apple", color: "Black" });
+  });
+
   test("rejects a value that contradicts a known source fact", async () => {
     const body = JSON.stringify({ fields: { color: { value: "White", confidence: 0.99 } } });
     const r = await enrichProduct(

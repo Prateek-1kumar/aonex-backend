@@ -27,12 +27,15 @@ export interface PersistedProposalField {
   /** Passed validation (ok or coerced). */
   valid: boolean;
   validationError?: string;
-  /** grounded | weak | inferred | contradicted. */
+  /** grounded | weak | inferred | unverified | contradicted. */
   grounding: string;
   /** Deterministic grounding support 0..1. */
   support: number;
   /** Source span the model cited (independently verified). */
   evidence?: string;
+  /** Reason this field was flagged by the cross-field consistency pass (when it
+   *  conflicts with another field). Surfaced in the review UI. */
+  consistencyNote?: string;
   /** Auto-applied by the worker (source-grounded) — the API apply flow must
    *  never re-apply it. */
   accepted: boolean;

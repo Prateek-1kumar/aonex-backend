@@ -43,7 +43,9 @@ export interface ParsedEnrichment {
   candidates: CandidateAttribute[];
 }
 
-function isolateJson(content: string): string {
+/** Strip markdown fences / prose and isolate the JSON object body. Shared with
+ *  the consistency auditor, which speaks the same fenced-JSON dialect. */
+export function isolateJson(content: string): string {
   let t = content.trim();
   const fence = t.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   if (fence?.[1]) t = fence[1].trim();
