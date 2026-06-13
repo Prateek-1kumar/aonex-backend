@@ -6,26 +6,26 @@ describe("selectEnrichProvider", () => {
     expect(selectEnrichProvider({})).toBeNull();
   });
 
-  test("prefers DeepSeek over Groq and OpenAI when its key is set", () => {
+  test("prefers Gemini over Groq and OpenAI when its key is set", () => {
     const r = selectEnrichProvider({
-      DEEPSEEK_API_KEY: "ds",
+      GEMINI_API_KEY: "gm",
       GROQ_API_KEY: "gq",
       OPENAI_API_KEY: "oa",
     });
-    expect(r?.provider).toBe("deepseek");
-    expect(r?.baseUrl).toBe("https://api.deepseek.com/v1");
-    expect(r?.model).toBe("deepseek-chat");
+    expect(r?.provider).toBe("gemini");
+    expect(r?.baseUrl).toBe("https://generativelanguage.googleapis.com/v1beta/openai");
+    expect(r?.model).toBe("gemini-2.5-flash");
     expect(r?.fallbackModels).toEqual([]); // no per-model TPD wall
   });
 
-  test("honors DeepSeek base-url + model overrides", () => {
+  test("honors Gemini base-url + model overrides", () => {
     const r = selectEnrichProvider({
-      DEEPSEEK_API_KEY: "ds",
-      DEEPSEEK_BASE_URL: "https://proxy.example/v1",
-      DEEPSEEK_MODEL_ENRICH: "deepseek-reasoner",
+      GEMINI_API_KEY: "gm",
+      GEMINI_BASE_URL: "https://proxy.example/v1",
+      GEMINI_MODEL_ENRICH: "gemini-2.0-flash",
     });
     expect(r?.baseUrl).toBe("https://proxy.example/v1");
-    expect(r?.model).toBe("deepseek-reasoner");
+    expect(r?.model).toBe("gemini-2.0-flash");
   });
 
   test("falls back to Groq with a fallback model when only Groq is set", () => {

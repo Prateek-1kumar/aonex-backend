@@ -216,7 +216,7 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     );
     logger.info({ model: llmModel, provider: selectedEnrich?.provider }, "enrichment worker: enabled");
   } else {
-    logger.warn("No DEEPSEEK_API_KEY / GROQ_API_KEY — enrichment worker disabled");
+    logger.warn("No GEMINI_API_KEY / GROQ_API_KEY — enrichment worker disabled");
   }
 
   const workers = [authWorker, syncWorker, drainWorker, triggerWorker, ...(linkExtractWorker ? [linkExtractWorker] : []), csvParseWorker, ...(enrichWorker ? [enrichWorker] : []), cronWorker];

@@ -54,7 +54,7 @@ const LABEL = argStr("--label") ?? null;
 // Provider precedence: DeepSeek → Groq → OpenAI (shared with the worker).
 const selected = selectEnrichProvider(process.env);
 if (!selected) {
-  console.error("No DEEPSEEK_API_KEY / GROQ_API_KEY / OPENAI_API_KEY set — enrichment needs a model. Aborting.");
+  console.error("No GEMINI_API_KEY / GROQ_API_KEY / OPENAI_API_KEY set — enrichment needs a model. Aborting.");
   process.exit(1);
 }
 const provider = new OpenAIProvider({

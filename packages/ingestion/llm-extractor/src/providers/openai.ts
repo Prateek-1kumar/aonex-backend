@@ -21,9 +21,11 @@ const PRICING: Record<string, { input: number; output: number }> = {
   "llama-3.1-8b-instant": { input: 0.05, output: 0.08 },
   "llama-3.2-90b-vision-preview": { input: 0.90, output: 0.90 },
   "llama-3.2-11b-vision-preview": { input: 0.18, output: 0.18 },
-  // DeepSeek (via baseUrl https://api.deepseek.com/v1) — OpenAI-compatible.
-  "deepseek-chat": { input: 0.27, output: 1.10 },
-  "deepseek-reasoner": { input: 0.55, output: 2.19 }
+  // Gemini (via the OpenAI-compatibility endpoint). Approx per-1M USD; a free
+  // tier also exists. estimateCost falls back to DEFAULT_PRICING for any miss.
+  "gemini-2.5-flash": { input: 0.30, output: 2.50 },
+  "gemini-2.0-flash": { input: 0.10, output: 0.40 },
+  "gemini-2.5-pro": { input: 1.25, output: 10.0 }
 };
 
 const DEFAULT_PRICING = { input: 1.0, output: 3.0 };

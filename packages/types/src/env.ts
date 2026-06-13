@@ -64,12 +64,13 @@ export const EnvSchema = z.object({
   GROQ_MODEL_ENRICH: z.string().min(1).optional(),
   GROQ_MODEL_FALLBACK: z.string().min(1).optional(),
 
-  // DeepSeek — OpenAI-compatible. When DEEPSEEK_API_KEY is set, enrichment +
-  // the enrichment eval prefer DeepSeek over Groq (see selectEnrichProvider in
-  // @aonex/lib-utils). No per-model TPD wall, so no fallback-model dance needed.
-  DEEPSEEK_API_KEY: z.string().min(1).optional(),
-  DEEPSEEK_BASE_URL: z.string().url().optional(), // default https://api.deepseek.com/v1
-  DEEPSEEK_MODEL_ENRICH: z.string().min(1).optional(), // e.g. deepseek-chat
+  // Gemini — via its OpenAI-compatibility endpoint. When GEMINI_API_KEY is set,
+  // enrichment + the enrichment eval prefer Gemini over Groq (see
+  // selectEnrichProvider in @aonex/lib-utils). Gemini has a free tier, so no
+  // prepaid balance is required.
+  GEMINI_API_KEY: z.string().min(1).optional(),
+  GEMINI_BASE_URL: z.string().url().optional(), // default https://generativelanguage.googleapis.com/v1beta/openai
+  GEMINI_MODEL_ENRICH: z.string().min(1).optional(), // e.g. gemini-2.5-flash
 
   // Phase 6 Layer C — Playwright pool size for browser fallback.
   PLAYWRIGHT_POOL_SIZE: z.coerce.number().int().positive().optional(),

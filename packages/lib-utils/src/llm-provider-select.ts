@@ -1,16 +1,17 @@
 // Single source of truth for "which LLM powers enrichment?" — preferring
-// DeepSeek, then Groq, then OpenAI. Both the worker enrichment path and the
+// Gemini, then Groq, then OpenAI. Both the worker enrichment path and the
 // enrichment eval call this so the selection rule can't drift between them.
 //
 // Pure + dependency-free (lib-utils contract): takes a plain bag of env strings
 // (process.env satisfies it structurally) and returns the resolved config, or
 // null when no provider key is set. The returned shape feeds OpenAIProvider /
-// createModelProvider directly — every provider here is OpenAI-compatible.
+// createModelProvider directly — every provider here is OpenAI-compatible
+// (Gemini via its OpenAI-compatibility endpoint).
 
 export interface ProviderEnv {
-  DEEPSEEK_API_KEY?: string | undefined;
-  DEEPSEEK_BASE_URL?: string | undefined;
-  DEEPSEEK_MODEL_ENRICH?: string | undefined;
+  GEMINI_API_KEY?: string | undefined;
+  GEMINI_BASE_URL?: string | undefined;
+  GEMINI_MODEL_ENRICH?: string | undefined;
   GROQ_API_KEY?: string | undefined;
   GROQ_BASE_URL?: string | undefined;
   GROQ_MODEL_ENRICH?: string | undefined;
@@ -31,27 +32,28 @@ export interface SelectedProvider {
   /** Models to try when the primary is exhausted (Groq per-model TPD). */
   fallbackModels: string[];
   /** Which provider was chosen — for logging only. */
-  provider: "deepseek" | "groq" | "openai";
+  provider: "gemini" | "groq" | "openai";
 }
 
-const DEEPSEEK_DEFAULT_BASE = "https://api.deepseek.com/v1";
+// Gemini's OpenAI-compatibility endpoint. The provider appends /chat/completions.
+const GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/openai";
 const GROQ_DEFAULT_BASE = "https://api.groq.com/openai/v1";
 const OPENAI_DEFAULT_BASE = "https://api.openai.com/v1";
 
 /**
- * Resolve the enrichment LLM provider from env. Precedence: DeepSeek → Groq →
+ * Resolve the enrichment LLM provider from env. Precedence: Gemini → Groq →
  * OpenAI. Returns null when none is configured (caller should disable the
  * LLM-dependent path and fall back to deterministic behavior).
  */
 export function selectEnrichProvider(env: ProviderEnv): SelectedProvider | null {
-  if (env.DEEPSEEK_API_KEY) {
+  if (env.GEMINI_API_KEY) {
     return {
-      apiKey: env.DEEPSEEK_API_KEY,
-      baseUrl: env.DEEPSEEK_BASE_URL ?? DEEPSEEK_DEFAULT_BASE,
-      model: env.DEEPSEEK_MODEL_ENRICH ?? "deepseek-chat",
-      // DeepSeek has no per-model daily wall — no fallback dance needed.
+      apiKey: env.GEMINI_API_KEY,
+      baseUrl: env.GEMINI_BASE_URL ?? GEMINI_DEFAULT_BASE,
+      model: env.GEMINI_MODEL_ENRICH ?? "gemini-2.5-flash",
+      // Gemini's OpenAI shim has no per-model daily wall like Groq — no model dance.
       fallbackModels: [],
-      provider: "deepseek",
+      provider: "gemini",
     };
   }
   if (env.GROQ_API_KEY) {
