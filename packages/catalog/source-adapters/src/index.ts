@@ -7,6 +7,15 @@
 
 export * from "./types.js";
 export { getAdapter, registerAdapter } from "./registry.js";
+export {
+  buildVocabulary,
+  isEmptyVocabulary,
+  resolveAttributeCode,
+  slugifyCustomKey,
+  CUSTOM_ATTRIBUTE_PREFIX,
+  type AttributeVocabulary,
+  type ResolvedAttribute,
+} from "./attribute-resolver.js";
 export { channelCodeFromUrl } from "./link/index.js";
 export {
   channelCodeFromShopDomain,

@@ -21,7 +21,8 @@
 // `scripts/bootstrap-channels.ts`; we do NOT auto-create here.
 
 import { admitOrStage, type AdmitOrStageResult } from "@aonex/catalog-service";
-import { getAdapter } from "@aonex/catalog-source-adapters";
+import { getAdapter, channelCodeFromUrl } from "@aonex/catalog-source-adapters";
+import type { AdaptContext } from "@aonex/catalog-source-adapters";
 import type { SkuJson } from "@aonex/ingestion-enrichment";
 import type {
   ArtifactId,
@@ -29,9 +30,57 @@ import type {
   MerchantId,
   TenantId,
 } from "@aonex/types";
-import type { DrizzleClient } from "@aonex/db";
+import { schema, type DrizzleClient } from "@aonex/db";
+import { eq, isNotNull } from "drizzle-orm";
 import type { Queue } from "bullmq";
-import { PLACEHOLDER_CHANNEL_ID } from "./_internal.js";
+
+/**
+ * Load the attribute vocabulary (canonical definitions + approved synonyms)
+ * the link adapter uses to resolve raw extraction keys to canonical codes vs
+ * `custom.<slug>` (Faithful Catalog §3). Only `active` definitions and approved
+ * synonyms participate so candidate/deprecated rows can't silently steer
+ * mapping. Mapped to the source-adapter framework's lean shapes.
+ *
+ * v1 loads per-ingest (the corpus is small — tens of rows). TODO(perf): cache
+ * with a short TTL keyed by a registry version if the corpus grows.
+ */
+async function loadAttributeVocabulary(
+  db: DrizzleClient
+): Promise<Pick<AdaptContext, "attributeDefinitions" | "attributeSynonyms">> {
+  const defs = await db
+    .select({
+      canonicalKey: schema.attributeDefinitions.canonicalKey,
+      canonicalUnit: schema.attributeDefinitions.canonicalUnit,
+      dataType: schema.attributeDefinitions.dataType,
+    })
+    .from(schema.attributeDefinitions)
+    .where(eq(schema.attributeDefinitions.status, "active"));
+
+  const syns = await db
+    .select({
+      canonicalKey: schema.attributeSynonyms.canonicalKey,
+      synonym: schema.attributeSynonyms.synonym,
+      sourceMarketplace: schema.attributeSynonyms.sourceMarketplace,
+    })
+    .from(schema.attributeSynonyms)
+    .where(isNotNull(schema.attributeSynonyms.approvedAt));
+
+  return {
+    attributeDefinitions: defs.map((d) => ({
+      canonicalKey: d.canonicalKey,
+      canonicalUnit: d.canonicalUnit ?? null,
+      dataType: d.dataType,
+      // reconciliationPath is unused by the key resolver; default it. The
+      // catalog write service selects the real tier from attribute metadata.
+      reconciliationPath: "sync" as const,
+    })),
+    attributeSynonyms: syns.map((s) => ({
+      canonicalKey: s.canonicalKey,
+      synonym: s.synonym,
+      sourceMarketplace: s.sourceMarketplace ?? null,
+    })),
+  };
+}
 
 /**
  * Curated allow-list of canonical marketplace channel-kinds. The link
@@ -96,6 +145,46 @@ export async function resolveChannelByCode(
   };
 }
 
+/**
+ * Resolve (or lazily create) a per-host "direct" channel for link products that
+ * don't map to a known marketplace. Link ingests of arbitrary brand sites
+ * (decathlon.in, wakefit.co) have no marketplace channel, so without this their
+ * page price is stripped and they stage on missing pricing. Attributing the
+ * price to a 'direct' channel (one per host, keyed by region=channelCode) lets
+ * the product admit with its web price. Idempotent via uq_channels.
+ */
+export async function resolveOrCreateDirectChannel(
+  db: DrizzleClient,
+  tenantId: TenantId,
+  channelCode: string
+): Promise<{
+  channelId: ChannelId;
+  channelCode: string;
+  defaultCurrency: string | null;
+  defaultLocale: string | null;
+}> {
+  const find = () =>
+    db.query.channels.findFirst({
+      where: (c, { and, eq }) =>
+        and(eq(c.tenantId, tenantId), eq(c.channelKind, "direct"), eq(c.region, channelCode)),
+    });
+  let row = await find();
+  if (!row) {
+    await db
+      .insert(schema.channels)
+      .values({ tenantId, channelKind: "direct", region: channelCode, displayName: channelCode })
+      .onConflictDoNothing();
+    row = await find();
+  }
+  if (!row) throw new Error(`resolveOrCreateDirectChannel: no channel after insert for ${channelCode}`);
+  return {
+    channelId: row.channelId as ChannelId,
+    channelCode,
+    defaultCurrency: row.defaultCurrency ?? null,
+    defaultLocale: row.defaultLocale ?? null,
+  };
+}
+
 export interface RunNewLinkCatalogPathInput {
   db: DrizzleClient;
   tenantId: TenantId;
@@ -114,6 +203,8 @@ export interface RunNewLinkCatalogPathInput {
   channelCode: string | null;
   channelDefaultCurrency: string | null;
   channelDefaultLocale: string | null;
+  /** Canonical taxonomy node resolved at ingestion; persisted on admit/stage. */
+  categoryNodeId?: string | null;
   /** Observed-at for the adapter envelope. Defaults to now() — exposed for tests. */
   observedAt?: Date;
   /** Per-tenant reconcile queue; forwarded to admitOrStage for post-commit pricing/inventory reconcile. Optional. */
@@ -167,57 +258,70 @@ export async function runNewLinkCatalogPath(
     channelCode,
     channelDefaultCurrency,
     channelDefaultLocale,
+    categoryNodeId = null,
     observedAt = new Date(),
     reconcilerQueue,
   } = input;
 
   const adapter = getAdapter("link");
-  const channelResolved = channelId !== null && channelCode !== null;
 
-  // Unknown-channel safety net: feed the adapter a SkuJson with pricing +
-  // variant pricing zeroed BEFORE it runs, so the adapter never emits
-  // channel-scoped observations and never throws on missing currency. The
-  // catalog_products row, revision, and outbox event still land. We log a
-  // warning if the original SkuJson actually had pricing data so the drop
-  // is observable.
-  const adapterSku = channelResolved ? sku : stripChannelScopedSkuData(sku);
-  if (!channelResolved) {
-    const droppedParentPricing =
-      sku.pricing.list_price !== null || sku.pricing.sale_price !== null
-        ? 1
-        : 0;
-    const droppedVariantPricing = sku.variants.filter(
-      (v) => v.pricing.list_price !== null || v.pricing.sale_price !== null
-    ).length;
-    if (droppedParentPricing + droppedVariantPricing > 0) {
-      // TODO(catalog-redesign-cleanup): plumb the drain/processor pino logger
-      // here, mirroring the `PathLogger` pattern in new-catalog-shopify-path.ts.
-      // Lightweight stderr warning for now — the processor's audit emitter
-      // records the success path.
-       
-      console.warn(
-        `[new-catalog-link-path] channel unresolved for sourceUrl=${sourceUrl}; dropping ${droppedParentPricing} parent + ${droppedVariantPricing} variant pricing entries`
-      );
-    }
+  // Channel resolution. Marketplace URLs resolve to a configured channel.
+  // Channel-less link products (arbitrary brand sites) are attributed to a
+  // per-host 'direct' channel so the page price is KEPT and the product admits
+  // with its web price instead of staging on missing pricing (product decision:
+  // "admit with the page price"). The adapter emits observations under
+  // channelCodeFromUrl(sourceUrl), so the channelCodeToId map keys on that.
+  const urlChannelCode = channelCodeFromUrl(sourceUrl);
+  const marketplaceResolved = channelId !== null && channelCode !== null;
+  let effChannelId: ChannelId;
+  let effCurrency = channelDefaultCurrency;
+  let effLocale = channelDefaultLocale;
+  if (marketplaceResolved) {
+    effChannelId = channelId;
+  } else {
+    const direct = await resolveOrCreateDirectChannel(db, tenantId, urlChannelCode);
+    effChannelId = direct.channelId;
+    effCurrency = direct.defaultCurrency;
+    effLocale = direct.defaultLocale;
   }
 
-  // The adapter REQUIRES a non-empty ChannelId in its AdaptContext even
-  // when we don't have one (the link adapter does not actually persist
-  // this id — see source-adapters/src/link/index.ts). With pricing
-  // pre-stripped above, the placeholder only appears on parent-level
-  // CanonicalObservations that aren't bound to a real channel row.
+  // Bridge: the readiness gate requires a non-empty `category_path`, but
+  // extraction doesn't always yield one (e.g. a flannel shirt with no source
+  // breadcrumb). When the spine resolved a taxonomy node, use it as the
+  // category_path so a categorized product ADMITS instead of staging on a
+  // missing free-text category. The canonical category_node_id is still set
+  // separately on the row.
+  const skuWithCategory =
+    categoryNodeId && !sku.category_path ? { ...sku, category_path: categoryNodeId } : sku;
+
+  // A price WITHOUT a currency cannot be emitted as a channel-scoped
+  // observation (the adapter throws). Strip just the pricing in that rare case
+  // so the catalog_products row, revision, and outbox event still land.
+  const priceMissingCurrency =
+    (sku.pricing.list_price !== null || sku.pricing.sale_price !== null) &&
+    (sku.pricing.currency === null || sku.pricing.currency === "");
+  const adapterSku = priceMissingCurrency
+    ? stripChannelScopedSkuData(skuWithCategory)
+    : skuWithCategory;
+  if (priceMissingCurrency) {
+    console.warn(
+      `[new-catalog-link-path] price without currency for sourceUrl=${sourceUrl}; dropping pricing`
+    );
+  }
+
+  // Load the attribute vocabulary so the adapter resolves raw extraction keys
+  // to canonical codes (recognized) or `custom.<slug>` (unrecognized) instead
+  // of dumping raw page keys into the catalog as first-class attributes.
+  const vocabulary = await loadAttributeVocabulary(db);
+
   const adapterOutput = adapter.adapt(
     { sku: adapterSku, sourceUrl, observedAt, artifactId },
     {
       tenantId,
-      channelId: channelId ?? PLACEHOLDER_CHANNEL_ID,
-      channelDefaultCurrency,
-      channelDefaultLocale,
-      // Phase 4 v1: empty arrays — adapters fall back to default rules.
-      // Phase 5+ will load real definitions / synonyms from
-      // `attribute_definitions` + `attribute_synonyms`.
-      attributeDefinitions: [],
-      attributeSynonyms: [],
+      channelId: effChannelId,
+      channelDefaultCurrency: effCurrency,
+      channelDefaultLocale: effLocale,
+      ...vocabulary,
     }
   );
 
@@ -228,10 +332,9 @@ export async function runNewLinkCatalogPath(
     adapterOutput,
     actor: "link:processor",
     sourceKind: "link",
-    channelCode: channelResolved ? channelCode : null,
-    ...(channelResolved && channelCode !== null && channelId !== null
-      ? { channelCodeToId: { [channelCode]: channelId } }
-      : {}),
+    ...(categoryNodeId ? { categoryNodeId } : {}),
+    channelCode: urlChannelCode,
+    channelCodeToId: { [urlChannelCode]: effChannelId },
     sourceArtifactId: artifactId as string,
     ...(reconcilerQueue !== undefined ? { reconcilerQueue } : {}),
   });

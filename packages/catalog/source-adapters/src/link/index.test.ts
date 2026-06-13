@@ -76,6 +76,61 @@ describe("linkAdapter", () => {
     expect(out.inventoryObservations.length).toBe(0);
   });
 
+  test("resolves attribute keys against the vocabulary: known→canonical, junk→custom.<slug>", () => {
+    const input: LinkAdapterInput = {
+      ...flipkartSamsung,
+      sku: {
+        ...flipkartSamsung.sku,
+        attributes: {
+          ram: { value: "12 GB", unit: null, source: "structured" },
+          "search-alias": { value: ["search-alias=aps"], unit: null, source: "structured" },
+          cpu_model: { value: "Snapdragon 8 Elite", unit: null, source: "structured" },
+        },
+      },
+    };
+    const ctx = makeCtx({
+      attributeDefinitions: [
+        { canonicalKey: "ram", canonicalUnit: null, dataType: "string", reconciliationPath: "sync" },
+      ],
+      attributeSynonyms: [],
+    });
+
+    const out = linkAdapter.adapt(input, ctx);
+
+    // Recognized key stays first-class.
+    const ram = out.observations.find((o) => o.attributeCode === "ram");
+    expect(ram).toBeDefined();
+    expect(ram!.value).toBe("12 GB");
+
+    // Unrecognized page junk is quarantined under custom.<slug> — never first-class.
+    expect(out.observations.find((o) => o.attributeCode === "search-alias")).toBeUndefined();
+    const junk = out.observations.find((o) => o.attributeCode === "custom.search_alias");
+    expect(junk).toBeDefined();
+    expect(junk!.extras?.raw_key).toBe("search-alias");
+    expect(junk!.extras?.mapping).toBe("custom");
+
+    // A real-but-unmapped attribute also lands in custom (graduatable later).
+    expect(out.observations.find((o) => o.attributeCode === "custom.cpu_model")).toBeDefined();
+  });
+
+  test("preserves raw attribute keys when no vocabulary is loaded (legacy passthrough)", () => {
+    const input: LinkAdapterInput = {
+      ...flipkartSamsung,
+      sku: {
+        ...flipkartSamsung.sku,
+        attributes: {
+          "search-alias": { value: ["x"], unit: null, source: "structured" },
+        },
+      },
+    };
+    // makeCtx() supplies empty defs + synonyms → passthrough (unchanged behaviour).
+    const out = linkAdapter.adapt(input, makeCtx());
+    expect(out.observations.find((o) => o.attributeCode === "search-alias")).toBeDefined();
+    expect(
+      out.observations.find((o) => o.attributeCode === "custom.search_alias")
+    ).toBeUndefined();
+  });
+
   test("emits variant-level observations + pricing for a shoe with size+color", () => {
     const out = linkAdapter.adapt(
       amazonPegasus,

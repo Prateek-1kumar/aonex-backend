@@ -217,6 +217,7 @@ describe("GET /products/:id — catalog handler (new-schema path)", () => {
     // winning_values leaves on the matching (channel, locale|loc) keys.
     await db.insert(schema.catalogPricingCurrent).values({
       productId: NEW_PRODUCT_ID_STRONG,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       locale: "_unscoped",
       source: "live",
@@ -227,6 +228,7 @@ describe("GET /products/:id — catalog handler (new-schema path)", () => {
     });
     await db.insert(schema.catalogInventoryCurrent).values({
       productId: NEW_PRODUCT_ID_STRONG,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       qty: 7,
       source: "live",
@@ -531,6 +533,7 @@ describe("GET /products — listProducts (new-schema path)", () => {
     // picking strategy in listCatalogProducts.
     await db.insert(schema.catalogPricingCurrent).values({
       productId: LIST_PRODUCT_A,
+      tenantId: TEST_TENANT_ID,
       channelId: TEST_CHANNEL_ID,
       locale: "_unscoped",
       source: "test",

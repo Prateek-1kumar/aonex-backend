@@ -33,6 +33,14 @@ export interface OpenAIProviderConfig {
   organization?: string;
   /** Max retries on transient errors (HTTP 429 / 5xx). Default 4. */
   maxRetries?: number;
+  /**
+   * Models to try, in order, when the requested model is exhausted. Groq's
+   * token-per-day (TPD) limits are PER-MODEL, so on a daily rate-limit we switch
+   * to a fallback model (independent budget) instead of failing — keeping
+   * enrichment/classification alive when the primary model's daily cap is hit.
+   * e.g. ["llama-3.1-8b-instant"]. Empty = no fallback (prior behavior).
+   */
+  fallbackModels?: string[];
 }
 
 /** Transient HTTP statuses worth retrying (rate limit + upstream hiccups). */
@@ -82,71 +90,95 @@ export class OpenAIProvider implements IModelProvider {
     const baseUrl = this.config.baseUrl?.replace(/\/+$/, "") ?? "https://api.openai.com/v1";
     const endpoint = `${baseUrl}/chat/completions`;
 
-    const body = {
-      model: params.model,
-      messages: params.messages,
-      max_tokens: params.maxTokens,
-      temperature: params.temperature,
-      ...(params.jsonMode ? { response_format: { type: "json_object" } } : {}),
-    };
-
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.config.apiKey}`,
     };
-
     if (this.config.organization) {
       headers["OpenAI-Organization"] = this.config.organization;
     }
 
     const maxRetries = this.config.maxRetries ?? 4;
+    // The requested model first, then any fallbacks (deduped, primary excluded).
+    const models = [params.model, ...(this.config.fallbackModels ?? [])].filter(
+      (m, i, a) => m && a.indexOf(m) === i
+    );
     let lastStatus = 0;
     let lastErrorText = "";
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
+    for (let mi = 0; mi < models.length; mi++) {
+      const model = models[mi]!;
+      const hasFallback = mi < models.length - 1;
+      const body = {
+        model,
+        messages: params.messages,
+        max_tokens: params.maxTokens,
+        temperature: params.temperature,
+        ...(params.jsonMode ? { response_format: { type: "json_object" } } : {}),
+      };
 
-      if (response.ok) {
-        const data = (await response.json()) as {
-          choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
-          usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
-          model?: string;
-        };
-        const choice = data.choices?.[0];
+      let switchModel = false;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+        });
 
-        if (!choice?.message?.content) {
-          throw new Error("OpenAI returned empty response");
+        if (response.ok) {
+          const data = (await response.json()) as {
+            choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+            usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+            model?: string;
+          };
+          const choice = data.choices?.[0];
+          if (!choice?.message?.content) {
+            throw new Error("OpenAI returned empty response");
+          }
+          return {
+            content: choice.message.content,
+            usage: {
+              promptTokens: data.usage?.prompt_tokens ?? 0,
+              completionTokens: data.usage?.completion_tokens ?? 0,
+              totalTokens: data.usage?.total_tokens ?? 0,
+            },
+            model: data.model ?? model,
+            finishReason: choice.finish_reason ?? "unknown",
+          };
         }
 
-        return {
-          content: choice.message.content,
-          usage: {
-            promptTokens: data.usage?.prompt_tokens ?? 0,
-            completionTokens: data.usage?.completion_tokens ?? 0,
-            totalTokens: data.usage?.total_tokens ?? 0,
-          },
-          model: data.model ?? params.model,
-          finishReason: choice.finish_reason ?? "unknown",
-        };
+        lastStatus = response.status;
+        lastErrorText = await response.text();
+
+        // Hard error (400/401/404 …) — a fallback model won't help; surface it.
+        if (!RETRYABLE_STATUS.has(response.status)) {
+          throw new Error(`OpenAI API error (${response.status}): ${lastErrorText}`);
+        }
+
+        // A per-DAY token limit (Groq TPD) won't clear inside our retry window,
+        // so don't burn ~2min retrying it — switch to a fallback model whose
+        // daily budget is independent. Per-minute 429s / 5xx still back off.
+        const dailyExhausted =
+          response.status === 429 && /per day|\bTPD\b/i.test(lastErrorText);
+
+        if (dailyExhausted || attempt >= maxRetries) {
+          if (hasFallback) {
+            console.warn(
+              `[openai] ${model} ${dailyExhausted ? "daily-rate-limited" : `failed (${response.status})`}; falling back to ${models[mi + 1]}`
+            );
+            switchModel = true;
+            break;
+          }
+          throw new Error(`OpenAI API error (${response.status}): ${lastErrorText}`);
+        }
+
+        const delay = retryDelayMs(response, lastErrorText, attempt) + Math.floor(Math.random() * 250);
+        console.warn(
+          `[openai] ${response.status} from ${model}; retry ${attempt + 1}/${maxRetries} in ${delay}ms`
+        );
+        await sleep(delay);
       }
-
-      lastStatus = response.status;
-      lastErrorText = await response.text();
-
-      // Non-retryable, or out of attempts → surface the raw error as before.
-      if (attempt >= maxRetries || !RETRYABLE_STATUS.has(response.status)) {
-        throw new Error(`OpenAI API error (${response.status}): ${lastErrorText}`);
-      }
-
-      const delay = retryDelayMs(response, lastErrorText, attempt) + Math.floor(Math.random() * 250);
-      console.warn(
-        `[openai] ${response.status} from ${params.model}; retry ${attempt + 1}/${maxRetries} in ${delay}ms`
-      );
-      await sleep(delay);
+      if (!switchModel) break;
     }
 
     // Unreachable (loop returns or throws), but satisfies the type checker.

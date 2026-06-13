@@ -27,7 +27,16 @@ export const detectCrossSourceConflict: Detector = (input: RouterInput): ReviewT
     // Drop alts whose value equals the winner — different sources reporting
     // the same answer aren't a conflict. (merge.ts already does this; this is
     // a belt-and-braces guard for sources we'll add later that may not.)
-    const realAlts = f.sourceAlternatives.filter((alt) => !sameValue(alt.value, f.extractedValue));
+    // Also drop LOW-CONFIDENCE alts: a noisy scrape (e.g. an og:title of just
+    // "Men" at 0.65) is not an authoritative source disagreeing with a clean
+    // 0.95 JSON-LD value — counting it as a conflict sends clean products to
+    // review for extraction noise. Only alts at/above the floor count.
+    // Missing confidence ⇒ treat as a trusted source (default 1); only an
+    // EXPLICIT low confidence marks an alt as extraction noise to ignore.
+    const ALT_CONF_FLOOR = 0.7;
+    const realAlts = f.sourceAlternatives.filter(
+      (alt) => !sameValue(alt.value, f.extractedValue) && (alt.confidence ?? 1) >= ALT_CONF_FLOOR
+    );
     if (realAlts.length === 0) continue;
 
     // Unit-aware skip: if this fact is a unit-aware measurement with a known

@@ -9,6 +9,7 @@
       },
       "devDependencies": {
         "@playwright/test": "^1.60.0",
+        "@types/js-yaml": "^4.0.9",
         "@types/node": "^22.10.0",
         "@typescript-eslint/eslint-plugin": "^8.18.0",
         "@typescript-eslint/parser": "^8.18.0",
@@ -17,7 +18,7 @@
         "eslint": "^9.16.0",
         "playwright": "^1.60.0",
         "prettier": "^3.4.2",
-        "turbo": "^2.9.16",
+        "turbo": "^2.9.18",
         "typescript": "^5.7.2",
         "typescript-eslint": "8.59.2",
       },
@@ -26,7 +27,6 @@
       "name": "@aonex/api",
       "version": "0.1.0",
       "dependencies": {
-        "@aonex/archetypes": "workspace:*",
         "@aonex/audit": "workspace:*",
         "@aonex/catalog-service": "workspace:*",
         "@aonex/connector-gateway": "workspace:*",
@@ -37,6 +37,7 @@
         "@aonex/ingestion-llm-extractor": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
         "@aonex/multi-source-reconciler": "workspace:*",
+        "@aonex/taxonomy-classifier": "workspace:*",
         "@aonex/types": "workspace:*",
         "@hono/swagger-ui": "^0.6.1",
         "bullmq": "^5.34.5",
@@ -64,7 +65,6 @@
         "@aonex/archetypes": "workspace:*",
         "@aonex/audit": "workspace:*",
         "@aonex/calibration": "workspace:*",
-        "@aonex/catalog-enrichment": "workspace:*",
         "@aonex/catalog-event-outbox": "workspace:*",
         "@aonex/catalog-service": "workspace:*",
         "@aonex/catalog-source-adapters": "workspace:*",
@@ -83,6 +83,10 @@
         "@aonex/lib-utils": "workspace:*",
         "@aonex/link-adapter": "workspace:*",
         "@aonex/per-site-parsers": "workspace:*",
+        "@aonex/taxonomy-classifier": "workspace:*",
+        "@aonex/taxonomy-enrichment": "workspace:*",
+        "@aonex/taxonomy-schema": "workspace:*",
+        "@aonex/taxonomy-validator": "workspace:*",
         "@aonex/types": "workspace:*",
         "bullmq": "^5.34.5",
         "drizzle-orm": "^0.36.4",
@@ -101,6 +105,9 @@
     "packages/archetypes": {
       "name": "@aonex/archetypes",
       "version": "0.1.0",
+      "dependencies": {
+        "@aonex/types": "workspace:*",
+      },
     },
     "packages/audit": {
       "name": "@aonex/audit",
@@ -125,20 +132,12 @@
         "@aonex/gtin-backfill": "workspace:*",
         "@aonex/lib-utils": "workspace:*",
         "@aonex/multi-source-reconciler": "workspace:*",
+        "@aonex/taxonomy-schema": "workspace:*",
+        "@aonex/taxonomy-validator": "workspace:*",
         "@aonex/types": "workspace:*",
         "bullmq": "^5.34.5",
         "drizzle-orm": "^0.36.4",
         "ioredis": "^5.4.2",
-      },
-    },
-    "packages/catalog/enrichment": {
-      "name": "@aonex/catalog-enrichment",
-      "version": "0.1.0",
-      "dependencies": {
-        "@aonex/archetypes": "workspace:*",
-        "@aonex/ingestion-llm-extractor": "workspace:*",
-        "@aonex/types": "workspace:*",
-        "zod": "^3.24.1",
       },
     },
     "packages/catalog/event-outbox": {
@@ -271,6 +270,7 @@
       "name": "@aonex/ingestion-deduplicator",
       "version": "0.1.0",
       "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
         "@aonex/types": "workspace:*",
       },
     },
@@ -279,6 +279,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@aonex/ingestion-field-extractor": "workspace:*",
+        "@aonex/lib-utils": "workspace:*",
         "@aonex/types": "workspace:*",
       },
     },
@@ -392,6 +393,38 @@
         "@aonex/types": "workspace:*",
       },
     },
+    "packages/taxonomy-classifier": {
+      "name": "@aonex/taxonomy-classifier",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
+      },
+    },
+    "packages/taxonomy-enrichment": {
+      "name": "@aonex/taxonomy-enrichment",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
+        "@aonex/taxonomy-validator": "workspace:*",
+        "zod": "^3.24.1",
+      },
+    },
+    "packages/taxonomy-schema": {
+      "name": "@aonex/taxonomy-schema",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aonex/db": "workspace:*",
+        "@aonex/taxonomy-enrichment": "workspace:*",
+        "@aonex/taxonomy-validator": "workspace:*",
+      },
+    },
+    "packages/taxonomy-validator": {
+      "name": "@aonex/taxonomy-validator",
+      "version": "0.0.0",
+      "dependencies": {
+        "@aonex/lib-utils": "workspace:*",
+      },
+    },
     "packages/types": {
       "name": "@aonex/types",
       "version": "0.1.0",
@@ -424,8 +457,6 @@
     "@aonex/audit": ["@aonex/audit@workspace:packages/audit"],
 
     "@aonex/calibration": ["@aonex/calibration@workspace:packages/calibration"],
-
-    "@aonex/catalog-enrichment": ["@aonex/catalog-enrichment@workspace:packages/catalog/enrichment"],
 
     "@aonex/catalog-event-outbox": ["@aonex/catalog-event-outbox@workspace:packages/catalog/event-outbox"],
 
@@ -482,6 +513,14 @@
     "@aonex/schema-validator": ["@aonex/schema-validator@workspace:packages/schema-validator"],
 
     "@aonex/selector-health": ["@aonex/selector-health@workspace:packages/selector-health"],
+
+    "@aonex/taxonomy-classifier": ["@aonex/taxonomy-classifier@workspace:packages/taxonomy-classifier"],
+
+    "@aonex/taxonomy-enrichment": ["@aonex/taxonomy-enrichment@workspace:packages/taxonomy-enrichment"],
+
+    "@aonex/taxonomy-schema": ["@aonex/taxonomy-schema@workspace:packages/taxonomy-schema"],
+
+    "@aonex/taxonomy-validator": ["@aonex/taxonomy-validator@workspace:packages/taxonomy-validator"],
 
     "@aonex/types": ["@aonex/types@workspace:packages/types"],
 
@@ -809,19 +848,21 @@
 
     "@tsconfig/node16": ["@tsconfig/node16@1.0.4", "", {}, "sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA=="],
 
-    "@turbo/darwin-64": ["@turbo/darwin-64@2.9.16", "", { "os": "darwin", "cpu": "x64" }, "sha512-jLjApWTSNd7JZ5JaLYfelW1ytnGQOvB7ivl+2RD1xQvJTbi8I9gBjzcga7tDZVPyaxpl10YTfJt3BrYXR18KDw=="],
+    "@turbo/darwin-64": ["@turbo/darwin-64@2.9.18", "", { "os": "darwin", "cpu": "x64" }, "sha512-9f27peFu16ur8c0v9nUFUEyBnbKuuFsUTjHFWfmwGfzySBXbHwzU44QhZon6Mznz0cHsIr3984NQj/bVrnGSRw=="],
 
-    "@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.9.16", "", { "os": "darwin", "cpu": "arm64" }, "sha512-YPgrn+5HIGzrx0O2a631SV4MBQUe4W/DafMFUuBVgaU32PW9/OTT0ehviF0QSxTXuRJlHvW2eUTemddF5/spmw=="],
+    "@turbo/darwin-arm64": ["@turbo/darwin-arm64@2.9.18", "", { "os": "darwin", "cpu": "arm64" }, "sha512-9A6TMRq/Ib+QnbhLlgkhOm+624wO4pzSQ/yQviQfWHOlFvaYxdnIAYmu2H6TS6y7kSVL0DvzNe04NbESTOzFVQ=="],
 
-    "@turbo/linux-64": ["@turbo/linux-64@2.9.16", "", { "os": "linux", "cpu": "x64" }, "sha512-vAEf1H6l26lTpl9FJ/peQo1NUB8RC0sbEJJz5mPcUhHA2bPDup2x3CZPgo/bH8S4cUcBLm4FN3UHd5iUO2RAew=="],
+    "@turbo/linux-64": ["@turbo/linux-64@2.9.18", "", { "os": "linux", "cpu": "x64" }, "sha512-zCdIDtz69AnbYh913elJRRoF3QY5aa2HNnf+4rAkc7bQ+tWujiDkCNV7stazOUPggaDvhKIf2Z87qHftTeXSkw=="],
 
-    "@turbo/linux-arm64": ["@turbo/linux-arm64@2.9.16", "", { "os": "linux", "cpu": "arm64" }, "sha512-xDBLR2PZg4BrQOchfG6svgpv5FCNJ2TOtT2psLdEJcdKo1BH+pnPs9Xj6pvUjgfkHbuvBOfeE4R6tvxMoQKDHQ=="],
+    "@turbo/linux-arm64": ["@turbo/linux-arm64@2.9.18", "", { "os": "linux", "cpu": "arm64" }, "sha512-Va1kXI04naMgYwqv/5Dfa36dTDx8015U7oaQAjrXa45ua9OoFjSV4OmvkML4EmXvUclQHCiBRbY8bvd0jV7eAg=="],
 
-    "@turbo/windows-64": ["@turbo/windows-64@2.9.16", "", { "os": "win32", "cpu": "x64" }, "sha512-NBAJnaUiGdgkSzQwUIdOvkCkcpTSu58G/sBGa0mvBtzfvFOOgrQwepKOOQ8cp6sWM6OcKDNFj2p1dsZA1OWjPg=="],
+    "@turbo/windows-64": ["@turbo/windows-64@2.9.18", "", { "os": "win32", "cpu": "x64" }, "sha512-m0kDhZANxSNz9ck1ybogFscHabriAsp4eDFNrN/1H5WrgTF7b3VlcPZnhuO3v2+E2KnCbeAc+UUT10BZZHdDKw=="],
 
-    "@turbo/windows-arm64": ["@turbo/windows-arm64@2.9.16", "", { "os": "win32", "cpu": "arm64" }, "sha512-Y7SJppD0Z8wjO3Ec0ZGd9KQ4Yv0BMnA8CIowj5Vp+OEVsosXDG2weK6/t1RRLfJmc2Ozrnd6y4DOgQys+mn3WQ=="],
+    "@turbo/windows-arm64": ["@turbo/windows-arm64@2.9.18", "", { "os": "win32", "cpu": "arm64" }, "sha512-nUdR8WqoomUys9iIQmG45TMiizJ+5BV8egSeLLZba/AWblyp3fVBcIH1kSE58OtK4g2YzbMJEth6Ttv9w5rqMA=="],
 
     "@types/estree": ["@types/estree@1.0.9", "", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
+
+    "@types/js-yaml": ["@types/js-yaml@4.0.9", "", {}, "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg=="],
 
     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
 
@@ -1591,7 +1632,7 @@
 
     "tsup": ["tsup@8.5.1", "", { "dependencies": { "bundle-require": "^5.1.0", "cac": "^6.7.14", "chokidar": "^4.0.3", "consola": "^3.4.0", "debug": "^4.4.0", "esbuild": "^0.27.0", "fix-dts-default-cjs-exports": "^1.0.0", "joycon": "^3.1.1", "picocolors": "^1.1.1", "postcss-load-config": "^6.0.1", "resolve-from": "^5.0.0", "rollup": "^4.34.8", "source-map": "^0.7.6", "sucrase": "^3.35.0", "tinyexec": "^0.3.2", "tinyglobby": "^0.2.11", "tree-kill": "^1.2.2" }, "peerDependencies": { "@microsoft/api-extractor": "^7.36.0", "@swc/core": "^1", "postcss": "^8.4.12", "typescript": ">=4.5.0" }, "optionalPeers": ["@microsoft/api-extractor", "@swc/core", "postcss", "typescript"], "bin": { "tsup": "dist/cli-default.js", "tsup-node": "dist/cli-node.js" } }, "sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing=="],
 
-    "turbo": ["turbo@2.9.16", "", { "optionalDependencies": { "@turbo/darwin-64": "2.9.16", "@turbo/darwin-arm64": "2.9.16", "@turbo/linux-64": "2.9.16", "@turbo/linux-arm64": "2.9.16", "@turbo/windows-64": "2.9.16", "@turbo/windows-arm64": "2.9.16" }, "bin": { "turbo": "bin/turbo" } }, "sha512-NqgRQy6j6dPYcdSdv0q1g9QsZg7SWg87RERM8otw/1AtKU2yTFVClOM7cbwKzOonZr/Ek1blTBucw64L9H0Bwg=="],
+    "turbo": ["turbo@2.9.18", "", { "optionalDependencies": { "@turbo/darwin-64": "2.9.18", "@turbo/darwin-arm64": "2.9.18", "@turbo/linux-64": "2.9.18", "@turbo/linux-arm64": "2.9.18", "@turbo/windows-64": "2.9.18", "@turbo/windows-arm64": "2.9.18" }, "bin": { "turbo": "bin/turbo" } }, "sha512-bwabv6PupzeavybzEoArBAkwq5fnzwf8OFnRtpHwnviFWuwJPFxtyH+aVp36TmIqK3aYYgtTJ3J0m2ysxxSzQg=="],
 
     "type-check": ["type-check@0.4.0", "", { "dependencies": { "prelude-ls": "^1.2.1" } }, "sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew=="],
 

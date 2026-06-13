@@ -1,0 +1,7 @@
+# Office & School Supplies — CURATION MAP.
+department: Office & School Supplies
+tree:
+  - category: Office Supplies
+    leaves: { Printers: auto, Pens: auto, Printer Paper: manual, Staplers: auto, Office Chairs: auto }
+  - category: School Supplies
+    leaves: { Notebooks: auto, Calculators: auto, Backpacks: auto }

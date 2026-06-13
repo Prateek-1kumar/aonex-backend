@@ -1,0 +1,13 @@
+# Digital Products — CURATION MAP.
+# These are largely Aonex-own categories with NO physical-goods Shopify match;
+# expect `auto` to flag them (resolved in review as manual leaves w/ own attrs).
+department: Digital Products
+tree:
+  - category: Software
+    leaves: { Computer Software: manual }
+  - category: Online Courses
+    leaves: { Online Courses: manual }
+  - category: Digital Downloads
+    leaves: { Digital Goods: manual }
+  - category: Gift Cards
+    leaves: { Gift Cards: auto }

@@ -132,3 +132,16 @@ export type {
   ReconcilerDeps,
   ReconcilerJobData
 } from "./reconciler/async-debounced.js";
+
+// ---------------------------------------------------------------------------
+// Enrichment observation write-path (shared by worker auto-apply + API apply)
+// ---------------------------------------------------------------------------
+export {
+  appendEnrichmentObservations,
+  removeEnrichmentObservations,
+  ENRICHMENT_SOURCE
+} from "./enrichment-observations.js";
+export type {
+  AppendEnrichmentObservationsArgs,
+  EnrichmentObservation
+} from "./enrichment-observations.js";

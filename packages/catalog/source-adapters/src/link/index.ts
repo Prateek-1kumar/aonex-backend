@@ -17,6 +17,11 @@ import type {
   InventoryObservation,
   IdentityHint,
 } from "../types.js";
+import {
+  buildVocabulary,
+  isEmptyVocabulary,
+  resolveAttributeCode,
+} from "../attribute-resolver.js";
 
 /**
  * Envelope shape consumed by the link adapter.
@@ -379,23 +384,43 @@ function adapt(input: unknown, ctx: AdaptContext): AdapterOutput {
   }
 
   // sku.attributes map → one observation per attribute_code.
+  //
+  // Vocabulary boundary (Faithful Catalog §3): resolve each raw extraction key
+  // against the attribute registry so recognized keys become first-class
+  // canonical codes and unrecognized keys are quarantined under `custom.<slug>`
+  // (nothing dropped — see attribute-resolver.ts). When no vocabulary was loaded
+  // (empty defs + synonyms, e.g. legacy callers / unit tests) we preserve the
+  // raw key so behaviour is unchanged until a corpus is supplied.
+  const vocab = buildVocabulary(ctx.attributeDefinitions, ctx.attributeSynonyms);
+  const resolveKeys = !isEmptyVocabulary(vocab);
   for (const [attrCode, attrEntry] of Object.entries(sku.attributes)) {
+    const resolved = resolveKeys
+      ? resolveAttributeCode(attrCode, vocab)
+      : { code: attrCode, mapped: true, rawKey: attrCode };
+    // unit + source-tag preserved so downstream reconciliation isn't forced to
+    // re-derive them; the canonical reconciler may use these.
+    const extras: Record<string, unknown> = {
+      unit: attrEntry.unit,
+      sourceTag: attrEntry.source,
+    };
+    if (!resolved.mapped) {
+      // Provenance for the lab's attribute-graduation flow: keep the original
+      // key so a reviewer can confirm `custom.<slug> → <canonical>`.
+      extras.raw_key = resolved.rawKey;
+      extras.mapping = "custom";
+    }
     observations.push({
-      attributeCode: attrCode,
+      attributeCode: resolved.code,
       target: "parent",
       channelCode,
       localeCode: locale,
       source,
       sourceRecordId: recordId,
       value: attrEntry.value,
+      // Confidence is keyed by the raw field name in _field_confidence.
       confidence: pickConfidence(sku, attrCode),
       observedAt,
-      // unit + source-tag preserved so downstream reconciliation isn't
-      // forced to re-derive them; the canonical reconciler may use these.
-      extras: {
-        unit: attrEntry.unit,
-        sourceTag: attrEntry.source,
-      },
+      extras,
     });
   }
 

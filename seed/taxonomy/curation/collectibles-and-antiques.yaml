@@ -1,0 +1,7 @@
+# Collectibles & Antiques — CURATION MAP.
+department: Collectibles & Antiques
+tree:
+  - category: Collectibles
+    leaves: { Coins: auto, Stamps: auto, Trading Cards: auto, Sports Memorabilia: manual }
+  - category: Antiques
+    leaves: { Antiques: manual }

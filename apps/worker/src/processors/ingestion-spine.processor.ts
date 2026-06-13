@@ -8,7 +8,7 @@
 import type { DrizzleClient } from "@aonex/db";
 import type { AuditEmitter } from "@aonex/audit";
 import { runIngestion } from "@aonex/ingestion-spine";
-import type { IngestionEnvelope } from "@aonex/ingestion-spine";
+import type { IngestionEnvelope, SpineCategoryClassifier } from "@aonex/ingestion-spine";
 import { createLinkAdapter, createLinkAdapterWithAntibot } from "@aonex/link-adapter";
 import { type LLMProductExtractor } from "@aonex/ingestion-llm-extractor";
 import { channelCodeFromUrl } from "@aonex/catalog-source-adapters";
@@ -38,6 +38,8 @@ export interface IngestionSpineProcessorDeps {
   llmExtractor: LLMProductExtractor;
   /** Per-tenant reconcile queue provider; forwarded to runNewLinkCatalogPath for post-commit pricing/inventory reconcile. */
   reconcilerQueues: ReconcilerQueueProvider;
+  /** Taxonomy classifier closure forwarded to runIngestion's classify stage. */
+  classifyCategory?: SpineCategoryClassifier;
   /**
    * Overridable entry point for the catalog write path. Defaults to the real
    * `runNewLinkCatalogPath`. Exposed for tests so the spine test can inject a
@@ -81,7 +83,8 @@ export async function runSpineLink(
       tenantId: data.tenantId,
       merchantId: data.merchantId,
       requestId: data.requestId,
-      traceId: data.traceId
+      traceId: data.traceId,
+      ...(deps.classifyCategory ? { classifyCategory: deps.classifyCategory } : {})
     });
 
     // Land the extracted product in the canonical catalog (or anomaly lab).
@@ -121,6 +124,11 @@ async function writeSpineExtractionToCatalog(
     return;
   }
   const sourceUrl = envelope.sourceExternalId;
+  // Category node the spine resolved at the classify stage — persisted on admit
+  // (catalog_products) or stage (staged_products) so the product is enrich-ready
+  // and never lands in the Categorize surface.
+  const categoryNodeId =
+    "categoryNodeId" in result ? result.categoryNodeId ?? null : null;
   try {
     const channelCode = channelCodeFromUrl(sourceUrl);
     const resolved = await resolveChannelByCode(deps.db, data.tenantId, channelCode);
@@ -132,6 +140,7 @@ async function writeSpineExtractionToCatalog(
       artifactId: result.artifactId as ArtifactId,
       sourceUrl,
       sku: result.skuJson as SkuJson,
+      categoryNodeId,
       channelId: resolved?.channelId ?? null,
       channelCode: resolved ? resolved.channelCode : null,
       channelDefaultCurrency: resolved?.defaultCurrency ?? null,

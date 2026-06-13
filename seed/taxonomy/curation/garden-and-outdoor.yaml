@@ -1,0 +1,9 @@
+# Garden & Outdoor — CURATION MAP.
+department: Garden & Outdoor
+tree:
+  - category: Gardening
+    leaves: { Plant Pots: auto, Garden Tools: auto, Seeds: auto, Fertilizers: auto }
+  - category: Outdoor Living
+    leaves: { Patio Furniture: auto, Grills: auto, Outdoor Heaters: manual }
+  - category: Pools & Spas
+    leaves: { Pools: auto, Hot Tubs: auto }

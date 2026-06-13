@@ -1,0 +1,5 @@
+# Arts, Crafts & Hobbies — CURATION MAP.
+department: Arts, Crafts & Hobbies
+tree:
+  - category: Arts & Crafts
+    leaves: { Craft Supplies: ae-2-1, Painting Supplies: auto, Sewing Supplies: ae-2-1-7, Yarn: auto }

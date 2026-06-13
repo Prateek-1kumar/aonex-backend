@@ -1,0 +1,25 @@
+# Curated high-value synonyms -> node_id. The builder also auto-generates aliases
+# from each node's display name + variants (singular/plural/no-separator); this
+# file adds the non-obvious ones a classifier won't derive lexically.
+synonyms:
+  fashion/clothing/tops/t-shirts: [tee, tees, tee shirt, t shirt]
+  fashion/clothing/tops/sweaters-and-hoodies: [hoodie, hoodies, sweatshirt, jumper, pullover]
+  fashion/clothing/bottoms/trousers: [pants, slacks]
+  fashion/footwear/sneakers: [trainers, kicks, sports shoes, running shoes, athletic shoes]
+  fashion/bags-and-luggage/handbags: [purse, purses, handbag]
+  electronics/mobile-phones-and-accessories/mobile-phones: [smartphone, smart phone, cellphone, cell phone, mobile, handset]
+  electronics/computers-and-laptops/laptops: [notebook, notebook computer, ultrabook]
+  electronics/audio-and-headphones/headphones: [headset, earphones, earbuds]
+  electronics/tablets-and-accessories/tablet-computers: [tablet, ipad]
+  electronics/video-games-and-consoles/video-game-consoles: [gaming console, game console]
+  electronics/tv-and-video/televisions: [tv, tvs, television, led tv, smart tv, qled, oled tv]
+  home-and-kitchen/home-appliances/refrigerators: [fridge, refrigerator]
+  home-and-kitchen/home-appliances/vacuums: [vacuum cleaner, hoover]
+  home-and-kitchen/furniture/sofas: [couch, couches, settee]
+  beauty-and-personal-care/fragrances-and-perfumes/perfumes-and-colognes: [perfume, cologne, fragrance, eau de parfum]
+  beauty-and-personal-care/skincare/moisturizers: [moisturiser, face cream, lotion]
+  grocery-and-gourmet/food-and-beverages/soft-drinks: [soda, pop, fizzy drink, cola]
+  automotive/tires-and-wheels/tires: [tyre, tyres, tire]
+  toys-and-games/toys/building-sets: [building blocks, construction toys, lego]
+  pet-supplies/dog-supplies/dog-food: [dog kibble]
+  sports-fitness-and-outdoors/cycling/bicycles: [bike, bikes, cycle]

@@ -43,12 +43,10 @@ export interface AttrDef {
   weight?: number;
 }
 
-/** Commerce facts enrichment must never write — defense in depth on top of omission. */
-export const PROTECTED_KEYS: ReadonlySet<string> = new Set([
-  "base_price", "price", "pricing", "currency",
-  "inventory", "stock", "qty",
-  "identifier", "gtin", "mpn", "sku", "upc", "asin",
-]);
+/** Commerce facts enrichment must never write — the canonical set lives in
+ *  @aonex/types so every enrichment write-path shares one guard. */
+import { PROTECTED_KEYS } from "@aonex/types";
+export { PROTECTED_KEYS };
 
 // ── Universal groups (apply to all products, and now all SCORED) ─────────────
 const UNIVERSAL: AttrDef[] = [

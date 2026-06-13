@@ -53,6 +53,10 @@ export const catalogPricingCurrent = pgTable(
   "catalog_pricing_current",
   {
     productId:     uuid("product_id").notNull(),
+    // Tenant scope added migration 0029 (review §2 — side/read-model tables must
+    // be tenant-isolated). NOT NULL; the reconciler stamps it from the product
+    // row. Indexes lead with tenant_id so per-tenant scans never cross tenants.
+    tenantId:      uuid("tenant_id").notNull(),
     channelId:     uuid("channel_id").notNull(),
     locale:        text("locale").notNull().default("_unscoped"),
     source:        text("source").notNull(),
@@ -64,8 +68,12 @@ export const catalogPricingCurrent = pgTable(
   },
   (t) => ({
     pk:                  primaryKey({ columns: [t.productId, t.channelId, t.locale] }),
-    channelPriceIdx:     index().on(t.channelId, t.primaryAmount),
-    channelCurrencyIdx:  index().on(t.channelId, t.currency, t.primaryAmount)
+    // Tenant-leading composite indexes (migration 0029) supersede the old
+    // channel-leading ones for tenant-scoped price filters/sorts.
+    tenantPriceIdx:      index("idx_catalog_pricing_current_tenant_channel_price")
+                           .on(t.tenantId, t.channelId, t.primaryAmount),
+    tenantCurrencyIdx:   index("idx_catalog_pricing_current_tenant_channel_currency_price")
+                           .on(t.tenantId, t.channelId, t.currency, t.primaryAmount)
   })
 );
 

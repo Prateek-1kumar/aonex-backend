@@ -75,3 +75,6 @@ export * from "./archetype-attribute-specs.js";
 
 // Catalog enrichment Phase 1 — review-then-apply proposals
 export * from "./enrichment-proposals.js";
+
+// Taxonomy spine (P0) — canonical tree + aliases + external crosswalk + leaf schema
+export * from "./taxonomy.js";

@@ -13,6 +13,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@aonex/lib-utils": "workspace:*",
     "@aonex/types": "workspace:*"
   }
 }

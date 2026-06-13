@@ -13,3 +13,5 @@ export * from "./retry.js";
 export * from "./jwt.js";
 export * from "./webhooks.js";
 export * from "./errors.js";
+export * from "./protected-keys.js";
+export * from "./enrichment-proposal.js";

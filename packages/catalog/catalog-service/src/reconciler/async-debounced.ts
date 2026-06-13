@@ -432,10 +432,11 @@ async function reconcilePricing(
 
       await tx.execute(sql`
         INSERT INTO catalog_pricing_current
-          (product_id, channel_id, locale, source, currency, tiers,
+          (product_id, tenant_id, channel_id, locale, source, currency, tiers,
            price_per_unit, primary_amount, observed_at)
         VALUES
-          (${data.productId}, ${channelId}, ${locale}, ${winningRow.source},
+          (${data.productId}, ${product.tenantId}, ${channelId}, ${locale},
+           ${winningRow.source},
            ${winningRow.currency},
            ${JSON.stringify(winningRow.tiers)}::jsonb,
            ${winningRow.pricePerUnit === null || winningRow.pricePerUnit === undefined
@@ -444,6 +445,7 @@ async function reconcilePricing(
            ${extractPrimaryAmount(winningRow.tiers)},
            ${winningRow.observedAt})
         ON CONFLICT (product_id, channel_id, locale) DO UPDATE SET
+          tenant_id      = EXCLUDED.tenant_id,
           source         = EXCLUDED.source,
           currency       = EXCLUDED.currency,
           tiers          = EXCLUDED.tiers,
@@ -650,11 +652,12 @@ async function reconcileInventory(
       // winning_values.inventory.<channel>.<loc> per spec §9.1.
       await tx.execute(sql`
         INSERT INTO catalog_inventory_current
-          (product_id, channel_id, location_id, qty, source, observed_at)
+          (product_id, tenant_id, channel_id, location_id, qty, source, observed_at)
         VALUES
-          (${data.productId}, ${channelId}, ${winningRow.locationId},
+          (${data.productId}, ${product.tenantId}, ${channelId}, ${winningRow.locationId},
            ${winningRow.qty}, ${winningRow.source}, ${winningRow.observedAt})
         ON CONFLICT (product_id, channel_id, location_id_coalesced) DO UPDATE SET
+          tenant_id    = EXCLUDED.tenant_id,
           location_id  = EXCLUDED.location_id,
           qty          = EXCLUDED.qty,
           source       = EXCLUDED.source,

@@ -1,0 +1,9024 @@
+# GENERATED — shared canonical attributes (Shopify-sourced; tiers live on node_attributes).
+attributes:
+  - handle: color
+    label: Color
+    values:
+      - Beige
+      - Black
+      - Blue
+      - Bronze
+      - Brown
+      - Clear
+      - Gold
+      - Gray
+      - Green
+      - Multicolor
+      - Navy
+      - Orange
+      - Pink
+      - Purple
+      - Red
+      - Rose gold
+      - Silver
+      - White
+      - Yellow
+      - Cream
+      - Assorted
+    provenance:
+      sources:
+        - system: shopify
+  - handle: material
+    label: Material
+    values:
+      - Acrylic
+      - Alcantara
+      - Aluminum
+      - Burlap
+      - Canvas
+      - Carbon fiber
+      - Cordura
+      - Cotton
+      - Denim
+      - Ethylene vinyl acetate (EVA)
+      - Faux leather
+      - Felt
+      - Fiberglass
+      - Leather
+      - Leatherette
+      - Linen
+      - Memory foam
+      - Mesh
+      - Metal
+      - Microfiber
+      - Neoprene
+      - Nylon
+      - Plastic
+      - Polyester
+      - Polyvinyl chloride (PVC)
+      - Ripstop
+      - Synthetic
+      - Thermoplastic polyurethane (TPU)
+      - Tweed
+      - Velvet
+      - Vinyl
+      - Wood
+      - Other
+      - Angora
+      - Bamboo
+      - Biodegradable materials
+      - Brass
+      - Bronze
+      - Carbon
+      - Cardboard
+      - Cashmere
+      - Ceramic
+      - Chrome
+      - Clay
+      - Coir
+      - Concrete
+      - Copper
+      - Corduroy
+      - Cork
+      - Fabric
+      - Faux fur
+      - Flannel
+      - Fleece
+      - Fur
+      - Glass
+      - Graphite
+      - Hemp
+      - Iron
+      - Jute
+      - Latex
+      - Lycra
+      - Lyocell
+      - Marble
+      - Medium density fiberboard (MDF)
+      - Merino
+      - Modal
+      - Mohair
+      - Paper
+      - Plush
+      - Plywood
+      - Polyethylene (PE)
+      - Polypropylene (PP)
+      - Polyurethane (PU)
+      - Porcelain
+      - Rattan
+      - Rayon
+      - Resin
+      - Rubber
+      - Satin
+      - Sherpa
+      - Silicone
+      - Silk
+      - Stainless steel
+      - Stone
+      - Suede
+      - Terrycloth
+      - Thermoplastic elastomer (TPE)
+      - Twill
+      - Velour
+      - Viscose
+      - Wool
+      - Elastomer
+      - Kevlar
+      - Nitrile
+      - Spandex
+      - Acrylonitrile butadiene styrene (ABS)
+      - Elastane
+      - Foam
+      - Polyamide (PA)
+      - Rope
+      - Steel
+      - Tarpaulin
+      - Titanium
+      - Tin
+      - Artificial
+      - Dried/preserved
+      - Live
+      - Buckwheat hulls
+      - Down feather
+      - Feathers
+      - Microbeads
+      - Polystyrene (PS)
+      - Polycarbonate (PC)
+      - Thermoplastic
+      - Coral
+      - Crystal
+      - Gemstone
+      - Gold
+      - Pearl
+      - Rose gold
+      - Sequins
+      - Silver
+      - Wax
+      - Alloy
+      - Bakelite
+      - Black rhodium-plated
+      - Bronze-plated
+      - Copper-plated
+      - Diamond
+      - Duralumin
+      - Enamel
+      - Gold-plated
+      - Nickel
+      - Nickel-plated
+      - Non-precious metals
+      - Palladium
+      - Palladium-plated
+      - Pearls
+      - Platinum
+      - Platinum-plated
+      - Precious resin
+      - Precious/Semiprecious stones
+      - Red gold
+      - Rhodium-plated
+      - Rose gold-plated
+      - Silver-plated
+      - Sterling silver
+      - Tin-plated
+      - White gold
+      - White gold-plated
+      - Beech wood
+      - Cedar wood
+      - Cherry wood
+      - Fiber reinforced plastic (FRP)
+      - Granite
+      - High density fiberboard (HDF)
+      - Maple wood
+      - Melamine
+      - Oak wood
+      - Particle board
+      - Pine wood
+      - Teak wood
+      - Walnut wood
+      - Wicker
+      - Wood plastic composite (WPC)
+      - African blackwood
+      - Alder wood
+      - Ash wood
+      - Basswood
+      - Birch wood
+      - Brazilwood
+      - Cocobolo
+      - Ebony wood
+      - Hard rubber
+      - Mahogany
+      - Nickel silver
+      - Pernambuco
+      - Rosewood
+      - Spruce wood
+      - Fluorocarbon
+      - Carbon steel
+      - Cast iron
+      - Chrome-plated
+      - Galvanized iron
+      - Zinc
+      - Bone
+      - Pewter
+      - Seashell
+      - ABS
+      - Double-shot ABS
+      - Dye-sublimated PBT
+      - PBT
+      - POM
+      - PPS
+      - PVC
+      - Faux Leather
+      - TPU
+      - Beryllium
+      - Carbide
+      - Duroplast
+      - G-10
+      - Galvanized steel
+      - Teflon
+      - Acacia wood
+      - Olive wood
+      - Composite
+      - Capiz
+      - Papier-mâché
+      - Terracotta
+      - Veneer
+      - None
+      - Stainless Steel
+      - Cast Iron
+      - Cellulose
+      - Mineral wool
+      - Phenolic foam
+      - Polyisocyanurate (PIR)
+      - Straw
+      - Acetate
+      - CR-39
+      - High-index plastic
+      - Trivex
+      - Badger
+      - Boar bristle
+      - Goat
+      - Hog
+      - Horsehair
+      - Natural bristle
+      - Pony
+      - Sable
+      - Synthetic bristle
+      - Unknown
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pattern
+    label: Pattern
+    values:
+      - Abstract
+      - Animal
+      - Art
+      - Bead & reel
+      - Birds
+      - Brick
+      - Bull's eye
+      - Camouflage
+      - Characters
+      - Checkered
+      - Chevron
+      - Chinoiserie
+      - Christmas
+      - Collage
+      - Coral
+      - Damask
+      - Diagonal
+      - Diamond
+      - Dog's tooth
+      - Dots
+      - Egg & dart
+      - Ethnic
+      - Everlasting knot
+      - Floral
+      - Fret
+      - Geometric
+      - Guilloche
+      - Hearts
+      - Illusion
+      - Lace
+      - Leaves
+      - Logo
+      - Mosaic
+      - Ogee
+      - Organic
+      - Paisley
+      - Plaid
+      - Rainbow
+      - Random
+      - Scale
+      - Scroll
+      - Solid
+      - Stars
+      - Striped
+      - Swirl
+      - Text
+      - Texture
+      - Tie-dye
+      - Trellis
+      - Vehicle
+      - Other
+      - All-terrain
+      - Knobby
+      - Lug/Bar
+      - Multi-trac
+      - Rib
+      - Smooth
+      - Snow
+      - Turf
+      - 75 x 75 mm
+      - 100 x 100 mm
+      - 100 x 200 mm
+      - 200 x 100 mm
+      - 200 x 200 mm
+      - 300 x 300 mm
+      - 400 x 200 mm
+      - 400 x 400 mm
+      - 600 x 400 mm
+      - Cardioid
+      - Figure-8
+      - Hypercardioid
+      - Multi-pattern
+      - Omnidirectional
+      - Shotgun
+      - Subcardioid
+      - Super-cardioid
+    provenance:
+      sources:
+        - system: shopify
+  - handle: allergy-friendly-features
+    label: Allergy Friendly Features
+    values:
+      - Chemical-free
+      - Dust mite resistant
+      - Hypoallergenic
+      - Latex-free
+      - Low VOC
+      - Mold resistant
+      - Natural materials
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bag-case-features
+    label: Bag Case Features
+    values:
+      - Adjustable size
+      - Anti-theft
+      - Convertible
+      - Dustproof
+      - Easy to install
+      - Fire resistant
+      - Four-wheel spinner
+      - Internal padding
+      - Lightweight
+      - Lockable
+      - Luggage tag
+      - Reflective
+      - RFID protection
+      - Shockproof
+      - TSA approved
+      - Vegan friendly
+      - Waterproof
+      - Wheeled
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: body-area
+    label: Body Area
+    values:
+      - Abdomen
+      - Arms
+      - Back
+      - Bikini line
+      - Buttocks
+      - Calves
+      - Chest
+      - Eyes
+      - Face
+      - Feet
+      - Full body
+      - Hamstrings
+      - Hands
+      - Head
+      - Heels
+      - Hips
+      - Knees
+      - Legs
+      - Lips
+      - Lumbar region
+      - Neck
+      - Shoulders
+      - Soles
+      - Thighs
+      - Toes
+      - Waist
+      - Wrists
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: first-aid-container-type
+    label: First Aid Container Type
+    values:
+      - Backpack
+      - Cabinet
+      - Dry sack
+      - Hard plastic case
+      - Metal case
+      - Organizer box
+      - Pelican-style case
+      - Soft pouch
+      - Waist pack
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: first-aid-kit-compliance-standard
+    label: First Aid Kit Compliance Standard
+    values:
+      - ANSI/ISEA Z308.1-2015 Class A
+      - ANSI/ISEA Z308.1-2021 Class A
+      - ANSI/ISEA Z308.1-2015 Class B
+      - ANSI/ISEA Z308.1-2021 Class B
+      - BS 8599-1
+      - CSA Z1220-17
+      - DIN 13157
+      - DIN 13164
+      - OSHA 29 CFR 1910.151
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: first-aid-kit-usage
+    label: First Aid Kit Usage
+    values:
+      - Bicycle
+      - Car
+      - Home
+      - Industrial
+      - Pets
+      - Sport
+      - Travel
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: product-certifications-standards
+    label: Product Certifications Standards
+    values:
+      - Alcohol-free
+      - All-natural ingredients
+      - Aluminum-free
+      - ASC
+      - B corporation
+      - Biodegradable
+      - BPA-free
+      - CE certified
+      - Cruelty-free
+      - DBP
+      - Dermatologist tested
+      - Dye-free
+      - Eco-friendly
+      - Ecocert
+      - EWG verified
+      - Fair trade
+      - FDA approved
+      - Free from formaldehyde
+      - Free from toluene
+      - Gluten-free
+      - GMP
+      - GRAS
+      - Halal
+      - Hypoallergenic
+      - Informed choice
+      - ISO
+      - Kosher
+      - Latex-free
+      - Leaping bunny certified
+      - Made safe certified
+      - Marine stewardship council (MSC)
+      - Natrue certified
+      - Natural ingredients
+      - No artificial colors
+      - No artificial fragrance
+      - Non-GMO
+      - Non-toxic
+      - NSF
+      - Oil-free
+      - Organic
+      - Paraben-free
+      - PETA approved
+      - Phosphate-free
+      - Phthalate-free
+      - Plastic-free
+      - Pregnancy safe
+      - Rainforest alliance
+      - Restriction of hazardous substances (RoHS) compliant
+      - RSPO certified
+      - Sensitive skin
+      - Silicone-free
+      - SPF protection
+      - Sulfate-free
+      - UL certified
+      - Vegan
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: usage-type
+    label: Usage Type
+    values:
+      - Disposable
+      - Refillable
+      - Reusable
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mounting-type
+    label: Mounting Type
+    values:
+      - Built-in
+      - Ceiling
+      - Counter
+      - Floor
+      - Free-standing
+      - Hanging
+      - Mobile
+      - Portable
+      - Tabletop
+      - Undercounter
+      - Wall
+      - Other
+      - Freestanding
+      - Wall-Mounted
+    provenance:
+      sources:
+        - system: shopify
+  - handle: power-source
+    label: Power Source
+    values:
+      - AC-powered
+      - Alcohol
+      - Batteries
+      - Battery-powered
+      - Butane
+      - Charcoal
+      - Cigar lighter
+      - DC-powered
+      - Diesel
+      - Ethanol
+      - Firewood
+      - Gasoline
+      - Hot water
+      - Hybrid
+      - Hydraulic
+      - Infrared
+      - Manual
+      - Mechanical
+      - Natural gas
+      - Oil
+      - Pellet
+      - Pneumatic
+      - Propane
+      - Rechargeable
+      - Solar
+      - USB
+      - Vehicle electrical system
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: suitable-space
+    label: Suitable Space
+    values:
+      - Indoors
+      - Outdoors
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: thermometer-design
+    label: Thermometer Design
+    values:
+      - Analog
+      - Bimetallic
+      - Digital
+      - Infrared
+      - Liquid-in-glass
+      - Smart (app enabled)
+      - Wireless
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: battery-size
+    label: Battery Size
+    values:
+      - '10'
+      - '13'
+      - '312'
+      - '395'
+      - '675'
+      - '14500'
+      - '16340'
+      - '18490'
+      - '18650'
+      - '21700'
+      - 1/2AA
+      - 2/3AA
+      - 1/3AAA
+      - 2/3AAA
+      - 1/3N
+      - 4.5V
+      - 6V
+      - 9V
+      - 12V
+      - 3LR12
+      - 4LR44
+      - 4SR44
+      - 6LR61
+      - '>100Wh'
+      - ≤100Wh
+      - A
+      - A23
+      - A27
+      - AA
+      - AAA
+      - AAAA
+      - B
+      - BR1225
+      - Built-in battery
+      - C
+      - CR2
+      - CR123
+      - CR123A
+      - CR1025
+      - CR1216
+      - CR1220
+      - CR1225
+      - CR1616
+      - CR1620
+      - CR1632
+      - CR2012
+      - CR2016
+      - CR2025
+      - CR2032
+      - CR2320
+      - CR2325
+      - CR2330
+      - CR2354
+      - CR2430
+      - CR2450
+      - CR2477
+      - CR3032
+      - D
+      - F
+      - Large cell (appliance/tool/ride-on toy)
+      - LR06
+      - LR14
+      - LR27A
+      - LR32A
+      - LR41
+      - LR43
+      - LR44
+      - LR54
+      - LR60
+      - LR66
+      - LR1130
+      - MN11
+      - MN21
+      - MN27
+      - 'N'
+      - PR41
+      - PR44
+      - PR70
+      - SC
+      - Small household cell (AA/AAA/coin)
+      - SR41
+      - SR42
+      - SR43
+      - SR43W
+      - SR44
+      - SR45
+      - SR48
+      - SR54
+      - SR55
+      - SR57
+      - SR58
+      - SR59
+      - SR60
+      - SR63
+      - SR66
+      - SR69
+      - SR616SW
+      - SR731SW
+      - SR920SW
+      - SR936SW
+      - Unknown
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: battery-type
+    label: Battery Type
+    values:
+      - Contained-detachable
+      - Contained-undetachable
+      - Disposable
+      - Rechargeable
+      - Standalone (included)
+      - Standalone (not-included)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: connectivity-technology
+    label: Connectivity Technology
+    values:
+      - AirPlay
+      - ANT
+      - ANT+
+      - Bluetooth
+      - Cellular
+      - DECT
+      - DVI
+      - Ethernet
+      - GPS
+      - HDMI
+      - Infrared
+      - LTE
+      - Miracast
+      - NFC
+      - Radio
+      - Satellite
+      - USB
+      - Wi-Fi
+      - Wired
+      - Wireless
+      - Wireless dongle
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: display-technology
+    label: Display Technology
+    values:
+      - AHVA
+      - AMOLED
+      - Analog
+      - Color
+      - CRT
+      - Digital
+      - DLP
+      - E-ink
+      - FLD
+      - IPS
+      - LCD
+      - LCM
+      - LCoS
+      - LED
+      - MicroLED
+      - Mini-LED
+      - MIP
+      - Monochrome
+      - OLED
+      - Plasma
+      - PLS
+      - PMOLED
+      - QLED
+      - SAMOLED
+      - SVA
+      - TFT
+      - TFT-LCD
+      - TN
+      - VA
+      - VFD
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: ingress-protection-ip-rating
+    label: Ingress Protection Ip Rating
+    values:
+      - IP20
+      - IP22
+      - IP44
+      - IP52
+      - IP54
+      - IP55
+      - IP56
+      - IP57
+      - IP58
+      - IP64
+      - IP65
+      - IP66
+      - IP67
+      - IP68
+      - IP69
+      - IP69K
+      - IPX4
+      - IPX5
+      - IPX6
+      - IPX7
+      - IPX8
+      - Not rated
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: medical-device-certification
+    label: Medical Device Certification
+    values:
+      - CE
+      - FDA 510(k)
+      - Health Canada
+      - ISO 9001
+      - ISO 13485
+      - MDD 93/42/EEC
+      - MDR 2017/745
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: tracking-metrics
+    label: Tracking Metrics
+    values:
+      - Blood pressure
+      - Body fat
+      - Calories
+      - Distance traveled
+      - Heart rate
+      - Sleep
+      - Steps
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pet-dietary-preferences
+    label: Pet Dietary Preferences
+    values:
+      - All natural ingredients
+      - Grain free
+      - Made in the USA
+      - No artificial colors or flavors
+      - Non-GMO
+      - Veterinarian recommended
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pet-dietary-requirements
+    label: Pet Dietary Requirements
+    values:
+      - Allergy & food sensitivity
+      - Cardiovascular care
+      - Dental health
+      - Diabetes care
+      - Digestive health
+      - Gluten-free
+      - Grain-free
+      - Hairball control
+      - High protein
+      - Joint & mobility care
+      - Kidney care
+      - Liver care
+      - Sensitive stomach
+      - Skin & coat care
+      - Thyroid care
+      - Urinary health
+      - Weight control
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pet-food-flavor
+    label: Pet Food Flavor
+    values:
+      - Apple
+      - Avocado
+      - Bacon
+      - Banana
+      - Beef
+      - Beet
+      - Blueberry
+      - Bone
+      - Brown rice
+      - Carrot
+      - Cheese
+      - Chicken
+      - Cranberry
+      - Duck
+      - Fish
+      - Fruit
+      - Grains
+      - Grass
+      - Ham
+      - Lamb
+      - Liver
+      - Mango
+      - Meat
+      - Mixed flavors
+      - Peanut butter
+      - Peas
+      - Peppermint
+      - Pork
+      - Potatoes
+      - Rabbit
+      - Rice
+      - Salami
+      - Salmon
+      - Seafood
+      - Spinach
+      - Sweet potatoes
+      - Tuna
+      - Turkey
+      - Unflavored
+      - Veal
+      - Vegetables
+      - Venison
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pet-supply-product-form
+    label: Pet Supply Product Form
+    values:
+      - Balm
+      - Capsules
+      - Cream
+      - Drops
+      - Dry
+      - Gel
+      - Liquid
+      - Lotion
+      - Oil
+      - Pills
+      - Powder
+      - Soft chews
+      - Spray
+      - Tablets
+      - Wet
+      - Wipes
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: age-group
+    label: Age Group
+    values:
+      - 0-6 months
+      - 6-12 months
+      - 1-2 years
+      - Adults
+      - All ages
+      - Babies
+      - Kids
+      - Newborn
+      - Teens
+      - Toddlers
+      - Universal
+      - Other
+      - 0-1 year
+      - 1 year or older
+      - 1-3 years
+      - 3-5 years
+      - 6-8 years
+      - 9-12 years
+      - 13-18 years
+      - 2 years or older
+      - 3 years or older
+      - 4 years or older
+      - 5 years or older
+      - 6 years or older
+      - 7 years or older
+      - 8 years or older
+      - 9 years or older
+      - 10 years or older
+      - 12 years or older
+      - 18 years or older
+      - Preschoolers
+      - School-age children
+    provenance:
+      sources:
+        - system: shopify
+  - handle: application-method
+    label: Application Method
+    values:
+      - Cream
+      - Gel
+      - Granules
+      - Liquid
+      - Paste
+      - Powder
+      - Solid
+      - Spray
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: chemical-product-form
+    label: Chemical Product Form
+    values:
+      - Flakes
+      - Gel
+      - Granules
+      - Liquid
+      - Pellets
+      - Powder
+      - Stick
+      - Tablets
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: nutrient-content
+    label: Nutrient Content
+    values:
+      - Boron
+      - Calcium
+      - Copper
+      - Iron
+      - Magnesium
+      - Manganese
+      - Molybdenum
+      - Nitrogen
+      - Phosphorus
+      - Potassium
+      - Sulfur
+      - Zinc
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: ph-level
+    label: Ph Level
+    values:
+      - 4.0 (moderately acidic)
+      - 4.5 (moderately acidic)
+      - 5.0 (moderately acidic)
+      - 9.0 (moderately alkaline)
+      - 9.5 (moderately alkaline)
+      - 10.0 (moderately alkaline)
+      - 10.5 (moderately alkaline)
+      - 7.0 (neutral)
+      - 5.5 (slightly acidic)
+      - 6.0 (slightly acidic)
+      - 6.5 (slightly acidic)
+      - 7.5 (slightly alkaline)
+      - 8.0 (slightly alkaline)
+      - 8.5 (slightly alkaline)
+      - 0.0 (strongly acidic)
+      - 0.5 (strongly acidic)
+      - 1.0 (strongly acidic)
+      - 1.5 (strongly acidic)
+      - 2.0 (strongly acidic)
+      - 2.5 (strongly acidic)
+      - 3.0 (strongly acidic)
+      - 3.5 (strongly acidic)
+      - 11.0 (strongly alkaline)
+      - 11.5 (strongly alkaline)
+      - 12.0 (strongly alkaline)
+      - 12.5 (strongly alkaline)
+      - 13.0 (strongly alkaline)
+      - 13.5 (strongly alkaline)
+      - 14.0 (strongly alkaline)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: plant-stage
+    label: Plant Stage
+    values:
+      - Cloning
+      - Flowering
+      - Fruiting
+      - Germination
+      - Seedling
+      - Transition
+      - Vegetative
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: supplement-function
+    label: Supplement Function
+    values:
+      - Amino Acids
+      - Beneficial Bacteria
+      - Beneficial Fungi
+      - Bloom Booster
+      - Calcium-Magnesium
+      - Carbohydrate
+      - Enzyme
+      - Flavor/Aroma Enhancer
+      - Hormone/PK Booster
+      - Root Stimulator
+      - Silica
+      - Vitamin Blend
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: target-gender
+    label: Target Gender
+    values:
+      - Female
+      - Male
+      - Unisex
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: allergen-information
+    label: Allergen Information
+    values:
+      - Celery
+      - Crustaceans
+      - Eggs
+      - Fish
+      - Lupin
+      - Milk
+      - Molluscs
+      - Mustard
+      - Nuts
+      - Peanuts
+      - Sesame
+      - Soybeans
+      - Sulfur dioxide
+      - Sulphites
+      - Wheat
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: detailed-ingredients
+    label: Detailed Ingredients
+    values:
+      - Acacia
+      - Acai
+      - Aloe vera
+      - Animal protein
+      - Arnica
+      - Artichoke
+      - Bacillus coagulans
+      - Bacillus subtilis
+      - Bifidobacterium bifidum
+      - Calcium
+      - CBD
+      - Chamomile
+      - Chlorophyll
+      - Cinnamon
+      - Collagen
+      - Creatine
+      - Curcumin
+      - Echinacea
+      - Egg protein
+      - Flaxseed
+      - Fructooligosaccharides (FOS)
+      - Ginger
+      - Ginseng
+      - Green tea
+      - Guarana
+      - Hemp
+      - Hemp seed oil
+      - Honey
+      - Inulin
+      - Iodine
+      - Iron
+      - L-carnitine
+      - L-cysteine
+      - L-glutamine
+      - L-valine
+      - Lacticaseibacillus casei
+      - Lacticaseibacillus rhamnosus
+      - Lactobacillus acidophilus
+      - Lavender
+      - Lecithin
+      - Magnesium
+      - Manganese
+      - Mannan-oligosaccharide (MOS)
+      - Matcha
+      - Milk protein
+      - Moringa
+      - Natural flavors
+      - Olive oil
+      - Omega fatty acids
+      - Phosphorus
+      - Plant-based protein
+      - Potassium
+      - Propolis
+      - Rosehip
+      - Rosemary
+      - Royal jelly
+      - Selenium
+      - Sodium
+      - Soy protein
+      - Spirulina
+      - Stevia
+      - Tapioca
+      - Taurine
+      - Trace minerals
+      - Vitamin A
+      - Vitamin B
+      - Vitamin B1
+      - Vitamin B2
+      - Vitamin B3
+      - Vitamin B5
+      - Vitamin B6
+      - Vitamin B7
+      - Vitamin B9 (folic acid)
+      - Vitamin B12
+      - Vitamin C
+      - Vitamin D
+      - Vitamin D3
+      - Vitamin E
+      - Vitamin K
+      - Vitamin K1
+      - Vitamin K2
+      - Vitamin K3
+      - Whey protein
+      - Yeast
+      - Zinc
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dietary-preferences
+    label: Dietary Preferences
+    values:
+      - Alcohol-free
+      - Dairy-free
+      - Decaffeinated
+      - Gluten-free
+      - Halal
+      - High protein
+      - Keto
+      - Kosher
+      - Lactose-free
+      - Low fat
+      - Low sodium
+      - Mountain shade grown
+      - No added MSG
+      - No artificial colors
+      - No artificial flavors
+      - No artificial sweeteners
+      - No preservatives
+      - Non-GMO
+      - Nut-free
+      - Organic
+      - Paleo
+      - Single origin
+      - Soy-free
+      - Sugar-free
+      - Vegan
+      - Vegetarian
+      - Wholegrain
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dietary-supplements
+    label: Dietary Supplements
+    values:
+      - Aloe vera
+      - Caffeine
+      - Calcium
+      - CBD
+      - Collagen
+      - Creatine
+      - Electrolytes
+      - Fiber
+      - Iodine
+      - Iron
+      - L-carnitine
+      - Magnesium
+      - Manganese
+      - Omega fatty acids
+      - Potassium
+      - Probiotics
+      - Protein
+      - Selenium
+      - Sodium
+      - Spirulina
+      - Vitamin A
+      - Vitamin B
+      - Vitamin C
+      - Vitamin D
+      - Vitamin E
+      - Vitamin K
+      - Zinc
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dietary-use
+    label: Dietary Use
+    values:
+      - Balanced nutrition
+      - Blood sugar control
+      - Calorie control
+      - Endurance
+      - Energy
+      - High fiber
+      - High protein
+      - Low carb
+      - Meal replacement
+      - Muscle building
+      - Performance
+      - Recovery
+      - Snacking
+      - Weight gain
+      - Weight loss
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: flavor
+    label: Flavor
+    values:
+      - Almond
+      - Apple
+      - Banana
+      - Blueberry
+      - Caramel
+      - Cherry
+      - Chocolate
+      - Cinnamon
+      - Coconut
+      - Coffee
+      - Dulce de leche
+      - Elderflower
+      - Ginger
+      - Lemon
+      - Lime
+      - Lychee
+      - Mango
+      - Matcha
+      - Mint
+      - Mojito
+      - Orange
+      - Peach
+      - Raspberry
+      - Rose
+      - Salted caramel
+      - Strawberry
+      - Tropical
+      - Unflavored
+      - Vanilla
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: food-supplement-form
+    label: Food Supplement Form
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: ingredient-category
+    label: Ingredient Category
+    values:
+      - Amino acids
+      - Animal-derived
+      - Antioxidants
+      - Artificial ingredients
+      - Botanicals
+      - Dairy-based
+      - Enzymes
+      - Fatty acids
+      - Fiber
+      - Fruit extracts
+      - Herbs
+      - Minerals
+      - Mushroom extracts
+      - Natural ingredients
+      - Omega fatty acids
+      - Organic
+      - Plant-based
+      - Probiotics
+      - Protein
+      - Synthetic
+      - Vegetable extracts
+      - Vitamins
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: protein-processing-type
+    label: Protein Processing Type
+    values:
+      - Blend
+      - Clear protein
+      - Concentrate
+      - Fermented
+      - Hydrolyzed
+      - Isolate
+      - Micellar
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: diaper-size
+    label: Diaper Size
+    values:
+      - Preemie
+      - Newborn
+      - Toddler
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: accessory-size
+    label: Accessory Size
+    values:
+      - Triple extra small (XXXS)
+      - Double extra small (XXS)
+      - Extra small (XS)
+      - Small (S)
+      - Medium (M)
+      - Large (L)
+      - Extra large (XL)
+      - Double extra large (XXL)
+      - Triple extra large (XXXL)
+      - Four extra large (4XL)
+      - Five extra large (5XL)
+      - Six extra large (6XL)
+      - Extra short
+      - Short
+      - Regular (R)
+      - Long
+      - Extra long
+      - Standard
+      - Travel size
+      - Compact
+      - Customizable
+      - One size
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: stroller-features
+    label: Stroller Features
+    values:
+      - Adjustable handlebar
+      - Canopy
+      - Cup holders
+      - Foldable
+      - Lockable wheels
+      - Mesh windows
+      - Multiple access points
+      - Padded
+      - Rain cover
+      - Reclining seat
+      - Storage options
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: baby-monitor-features
+    label: Baby Monitor Features
+    values:
+      - Infrared sensor
+      - Lullabies
+      - Motion detection
+      - Night vision
+      - Temperature monitoring
+      - Two-way communication
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: display-color-mode
+    label: Display Color Mode
+    values:
+      - Black & white
+      - Color
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: range-type
+    label: Range Type
+    values:
+      - Long-range
+      - Short-range
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: illumination-technique
+    label: Illumination Technique
+    values:
+      - Brightfield
+      - Darkfield
+      - DIC
+      - Fluorescence
+      - Phase contrast
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: magnification
+    label: Magnification
+    values:
+      - 0.5x
+      - 1x
+      - 2x
+      - 4x
+      - 5x
+      - 10x
+      - 20x
+      - 40x
+      - 50x
+      - 60x
+      - 63x
+      - 100x
+      - 150x
+      - 200x
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: maximum-magnification
+    label: Maximum Magnification
+    values:
+      - 0.5x
+      - 1x
+      - 2x
+      - 4x
+      - 5x
+      - 10x
+      - 20x
+      - 40x
+      - 50x
+      - 60x
+      - 63x
+      - 100x
+      - 150x
+      - 200x
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: microscope-features
+    label: Microscope Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: protective-gear-features
+    label: Protective Gear Features
+    values:
+      - Adjustable
+      - Anti-fog
+      - Easy to install
+      - Insulated
+      - Noise cancellation
+      - Padded
+      - Pinlock ready
+      - Scratch resistant
+      - Shockproof
+      - Sun visor
+      - Touchscreen compatible
+      - UV protection
+      - Ventilation
+      - Waterproof
+      - Windproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: fabric
+    label: Fabric
+    values:
+      - Acrylic
+      - Angora
+      - Bamboo
+      - Canvas
+      - Cashmere
+      - Corduroy
+      - Cork
+      - Cotton
+      - Denim
+      - Faux fur
+      - Faux leather
+      - Felt
+      - Flannel
+      - Fleece
+      - Fur
+      - Hemp
+      - Jute
+      - Latex
+      - Leather
+      - Linen
+      - Lycra
+      - Lyocell
+      - Merino
+      - Mesh
+      - Modal
+      - Mohair
+      - Neoprene
+      - Nylon
+      - Plastic
+      - Plush
+      - Polyester
+      - Rattan
+      - Rayon
+      - Rubber
+      - Satin
+      - Sherpa
+      - Silk
+      - Suede
+      - Synthetic
+      - Terrycloth
+      - Tweed
+      - Twill
+      - Velour
+      - Velvet
+      - Vinyl
+      - Viscose
+      - Wool
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: size
+    label: Size
+    values:
+      - Triple extra small (XXXS)
+      - Double extra small (XXS)
+      - Extra small (XS)
+      - Small (S)
+      - Medium (M)
+      - Large (L)
+      - Extra large (XL)
+      - Double extra large (XXL)
+      - Triple extra large (XXXL)
+      - Four extra large (4XL)
+      - Five extra large (5XL)
+      - Six extra large (6XL)
+      - '000'
+      - '00'
+      - '0'
+      - '1'
+      - '2'
+      - '4'
+      - '6'
+      - '8'
+      - '10'
+      - '12'
+      - '14'
+      - '16'
+      - '18'
+      - '20'
+      - '22'
+      - '24'
+      - '26'
+      - '28'
+      - '30'
+      - '32'
+      - '34'
+      - '36'
+      - '38'
+      - '40'
+      - '42'
+      - '44'
+      - '46'
+      - '48'
+      - '50'
+      - '52'
+      - '54'
+      - '56'
+      - '58'
+      - '60'
+      - 0-3 months
+      - 3-6 months
+      - 6-9 months
+      - 9-12 months
+      - 12-18 months
+      - 18-24 months
+      - 2-3 years
+      - 3-4 years
+      - 4-5 years
+      - 5-6 years
+      - One size
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: headwear-features
+    label: Headwear Features
+    values:
+      - Adjustable fit
+      - Collapsible
+      - UV protection
+      - Versatile
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: protective-mask-design
+    label: Protective Mask Design
+    values:
+      - Full face
+      - Half mask
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: protective-mask-features
+    label: Protective Mask Features
+    values:
+      - Adjustable strap
+      - Anti-fog
+      - Anti-scratch
+      - Clog resistant
+      - Cushioned
+      - Face seal
+      - Fluid resistance
+      - Molded
+      - Powered air unit
+      - Valved
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dog-age-group
+    label: Dog Age Group
+    values:
+      - Adult
+      - Junior
+      - Puppy
+      - Senior
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: package-type
+    label: Package Type
+    values:
+      - Bag
+      - Bottle
+      - Box
+      - Can
+      - Canister
+      - Case
+      - Dispenser
+      - Flip-top
+      - Glass bottle
+      - Glass container
+      - Jar
+      - Keg
+      - Plastic bottle
+      - Plastic container
+      - Pot
+      - Pouch
+      - Pump bottle
+      - Refill
+      - Sachet
+      - Shaker
+      - Spray bottle
+      - Squeeze tube
+      - Stick
+      - Tin
+      - Travel size
+      - Tube
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pet-food-form
+    label: Pet Food Form
+    values:
+      - Dry
+      - Semi-moist
+      - Wet
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pet-food-supplements
+    label: Pet Food Supplements
+    values:
+      - Canola oil
+      - CBD oil
+      - Fish oil
+      - Flaxseed oil
+      - Omega-3
+      - Omega-6
+      - Probiotics
+      - Sunflower oil
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: animal-type
+    label: Animal Type
+    values:
+      - Beavers
+      - Birds
+      - Boars
+      - Bobcats
+      - Cats
+      - Cattle
+      - Chameleons
+      - Chickens
+      - Chinchillas
+      - Chipmunks
+      - Coyotes
+      - Deer
+      - Dogs
+      - Ducks
+      - Ferrets
+      - Foxes
+      - Frogs
+      - Geckos
+      - Geese
+      - Gerbils
+      - Goats
+      - Gophers
+      - Groundhogs
+      - Guinea pigs
+      - Hamsters
+      - Hermit crabs
+      - Lizards
+      - Mice
+      - Mixed herd
+      - Moles
+      - Pigs
+      - Possums
+      - Rabbits
+      - Raccoons
+      - Rats
+      - Reptiles
+      - Rodents
+      - Sheep
+      - Skunks
+      - Snakes
+      - Squirrels
+      - Turkeys
+      - Turtles
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pet-bedding-features
+    label: Pet Bedding Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: shape
+    label: Shape
+    values:
+      - Arrow
+      - Conical
+      - Custom
+      - Cylindrical
+      - Diamond
+      - Flower
+      - Free-form
+      - Heart
+      - Heptagonal
+      - Hexagonal
+      - Kidney-shaped
+      - Octagonal
+      - Oval
+      - Pentagonal
+      - Rectangular
+      - Round
+      - Semicircular
+      - Square
+      - Star
+      - Trapezoidal
+      - Triangular
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dog-toy-type
+    label: Dog Toy Type
+    values:
+      - Aggressive chewer
+      - Chew
+      - Interactive
+      - Plush
+      - Rope
+      - Squeaky
+      - Training
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: suitable-for-breed-size
+    label: Suitable For Breed Size
+    values:
+      - Small
+      - Medium
+      - Large
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: closure-type
+    label: Closure Type
+    values:
+      - Adjustable straps
+      - Adjustable/Pull
+      - Buckles
+      - Buttons
+      - Clasp
+      - Clip-on
+      - Drawstring
+      - Elastic
+      - Hook & eye
+      - Hook & loop
+      - Lace-up
+      - Magnetic
+      - None
+      - Screw-on
+      - Slip-on
+      - Snap
+      - Straps
+      - Ties
+      - Toggle
+      - Velcro
+      - Zipper
+      - Other
+      - Zippered
+    provenance:
+      sources:
+        - system: shopify
+  - handle: infant-age-group
+    label: Infant Age Group
+    values:
+      - 0-3 months
+      - 0-6 months
+      - 0-24 months
+      - 3-6 months
+      - 6-12 months
+      - 6 months or older
+      - 9 months or older
+      - 12 months or older
+      - 24 months or older
+      - 1-2 years
+      - 2-3 years
+      - 3 years or older
+      - All ages
+      - Newborn
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cat-age-group
+    label: Cat Age Group
+    values:
+      - Adult
+      - Kitten
+      - Senior
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: material-treatment
+    label: Material Treatment
+    values:
+      - Chemically treated
+      - Fumigated
+      - Heat treated
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cat-litter-formula
+    label: Cat Litter Formula
+    values:
+      - Clay
+      - Crystals
+      - Granules
+      - Wood pellets
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lumber-wood-type
+    label: Lumber Wood Type
+    values:
+      - Ash wood
+      - Balsa wood
+      - Bamboo
+      - Basswood
+      - Birch wood
+      - Cedar wood
+      - Cherry wood
+      - Cork
+      - Hickory wood
+      - Jute
+      - Maple wood
+      - Medium density fiberboard (MDF)
+      - Oak wood
+      - Palm
+      - Pine wood
+      - Plywood
+      - Poplar wood
+      - Raffia
+      - Rattan
+      - Redwood
+      - Straw
+      - Walnut wood
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: wood-finish
+    label: Wood Finish
+    values:
+      - Engineered (plywood/MDF)
+      - Lacquered/varnished
+      - Oiled
+      - Painted
+      - Solid wood
+      - Untreated/natural
+      - Veneered
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bird-cage-stand-design
+    label: Bird Cage Stand Design
+    values:
+      - Aviary cage
+      - Breeding cage
+      - Canary cage
+      - Cockatiel cage
+      - Dometop cage
+      - Hanging stand
+      - Macaw cage
+      - Multi-level stand
+      - Parrot cage
+      - Playtop cage
+      - Shelf stand
+      - Standard cage
+      - Tabletop stand
+      - Travel cage
+      - Wheeled stand
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: care-instructions
+    label: Care Instructions
+    values:
+      - Dry clean only
+      - Dryer safe
+      - Hand wash
+      - Ironing instructions
+      - Machine washable
+      - Tumble dry
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: features
+    label: Features
+    values:
+      - Adjustable dimensions
+      - Anti-slip
+      - Carry bag
+      - Easy to assemble
+      - Foldable
+      - Lightweight
+      - Lockable
+      - Portable
+      - Removable cover
+      - Retractable
+      - Storage options
+      - Weather resistant
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: filler-support
+    label: Filler Support
+    values:
+      - Adjustable
+      - Buckwheat
+      - Down
+      - Extra firm
+      - Firm
+      - Latex
+      - Medium
+      - Memory foam
+      - Microbead
+      - Mid-plush
+      - Plush
+      - Soft
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: inflation-method
+    label: Inflation Method
+    values:
+      - Automatic
+      - Hydrostatic
+      - Manual
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: product-form
+    label: Product Form
+    values:
+      - Cream
+      - Cream-to-powder
+      - Film
+      - Foam
+      - Foaming lotion
+      - Gel
+      - Kohl
+      - Liquid
+      - Loose powder
+      - Lotion
+      - Milk
+      - Mousse
+      - Oil
+      - Ointment
+      - Pads
+      - Paste
+      - Pencil
+      - Powder
+      - Pressed powder
+      - Roll-on
+      - Serum
+      - Solid
+      - Spray
+      - Stick
+      - Suppository
+      - Tablets
+      - Towelette
+      - Wipes
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: travel-pillow-features
+    label: Travel Pillow Features
+    values:
+      - Adjustable strap
+      - Chin support
+      - Compression bag included
+      - Cooling gel
+      - Eye mask included
+      - Hooded
+      - Inflatable
+      - Lightweight
+      - Machine washable cover
+      - Removable cover
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: travel-pillow-shape
+    label: Travel Pillow Shape
+    values:
+      - J-shaped
+      - U-shaped
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: luggage-bag-closure
+    label: Luggage Bag Closure
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: tag-fastening
+    label: Tag Fastening
+    values:
+      - Buckles
+      - Loop
+      - Strap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: battery-features
+    label: Battery Features
+    values:
+      - Battery life indicator
+      - Cold resistant
+      - Eco friendly
+      - Fast charge
+      - Heat resistant
+      - High cycle life
+      - Overcharge protection
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: battery-technology
+    label: Battery Technology
+    values:
+      - Alkaline
+      - Gel cell
+      - Lead-calcium (Pb-Ca)
+      - Lithium
+      - Lithium cobalt oxide (LiCoO2)
+      - Lithium imide (Li2NH)
+      - Lithium iron phosphate (LiFePO4)
+      - Lithium nickel cobalt aluminum oxide (LiNCA)
+      - Lithium nickel manganese cobalt oxide (LiNMC)
+      - Lithium polymer (LiPo)
+      - Lithium thionyl chloride (LiSOCl2)
+      - Lithium-ion (Li-ion)
+      - Lithium-ion high density (LiHD)
+      - Lithium-manganese dioxide (LiMnO2)
+      - Nickel-cadmium (NiCd)
+      - Nickel-metal hydride (NiMH)
+      - Nickel-oxyhydroxide (NiOx)
+      - Nickel-zinc (NiZn)
+      - Polymer
+      - Sealed lead acid
+      - Silver-oxide (Ag2O)
+      - VRLA
+      - Zinc chloride
+      - Zinc-air
+      - Zinc-carbon
+      - Zinc-manganese dioxide (Zn/MnO2)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-battery-technology
+    label: Compatible Battery Technology
+    values:
+      - Alkaline
+      - Gel cell
+      - Lead-acid
+      - Lead-calcium (Pb-Ca)
+      - Lithium
+      - Lithium cobalt oxide (LiCoO2)
+      - Lithium imide (Li2NH)
+      - Lithium iron phosphate (LiFePO4)
+      - Lithium nickel cobalt aluminum oxide (LiNCA)
+      - Lithium nickel manganese cobalt oxide (LiNMC)
+      - Lithium polymer (LiPo)
+      - Lithium thionyl chloride (LiSOCl2)
+      - Lithium-ion (Li-ion)
+      - Lithium-ion high density (LiHD)
+      - Lithium-manganese dioxide (LiMnO2)
+      - Nickel-cadmium (NiCd)
+      - Nickel-metal hydride (NiMH)
+      - Nickel-oxyhydroxide (NiOx)
+      - Nickel-zinc (NiZn)
+      - Polymer
+      - Silver-oxide (Ag2O)
+      - Valve-regulated lead-acid (VLRA)
+      - Zinc chloride
+      - Zinc-air
+      - Zinc-carbon
+      - Zinc-manganese dioxide (Zn/MnO2)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: connector-gender
+    label: Connector Gender
+    values:
+      - Female
+      - Female to female
+      - Female to male
+      - Male
+      - Male to female
+      - Male to male
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: connector-type
+    label: Connector Type
+    values:
+      - Alligator clip
+      - Banana plug
+      - Bare wire
+      - Crocodile clip
+      - Dupont
+      - Hook
+      - IDC
+      - JST-PH
+      - JST-XH
+      - Pin header
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: plug-type
+    label: Plug Type
+    values:
+      - AU
+      - BR
+      - CH
+      - CN
+      - DK
+      - EU
+      - FR
+      - IL
+      - IN
+      - IT
+      - JP
+      - KR
+      - RU
+      - UK
+      - US
+      - ZA
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: item-condition
+    label: Item Condition
+    values:
+      - Certified pre-owned
+      - New
+      - Refurbished
+      - Used
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: manufacturer-type
+    label: Manufacturer Type
+    values:
+      - Aftermarket
+      - Genuine
+      - OEM
+      - Third-party
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: vehicle-braking-features
+    label: Vehicle Braking Features
+    values:
+      - Corrosion resistant
+      - Drilled
+      - Improved heat dissipation
+      - Low dust
+      - Slotted
+      - Ventilation
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: fit-type
+    label: Fit Type
+    values:
+      - Custom
+      - Direct
+      - Universal
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: motor-vehicle-type
+    label: Motor Vehicle Type
+    values:
+      - Car
+      - SUV
+      - Truck
+      - Van
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: vehicle-oil-features
+    label: Vehicle Oil Features
+    values:
+      - Corrosion resistant
+      - Energy conserving
+      - High filtration efficiency
+      - High flow
+      - High temperature protection
+      - Low pressure drop
+      - Low temperature protection
+      - Wear protection
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: vehicle-type
+    label: Vehicle Type
+    values:
+      - Car
+      - Golf cart
+      - Motorcycle
+      - Recreational vehicle
+      - SUV
+      - Truck
+      - Van
+      - Watercraft
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: viscosity
+    label: Viscosity
+    values:
+      - 0W-16
+      - 0W-20
+      - 0W-30
+      - 0W-40
+      - 5W-20
+      - 5W-30
+      - 5W-40
+      - 5W-50
+      - 10W-30
+      - 10W-40
+      - 10W-50
+      - 10W-60
+      - 15W-40
+      - 15W-50
+      - 15W-60
+      - 20W-50
+      - 20W-60
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: motorcycle-tire-type
+    label: Motorcycle Tire Type
+    values:
+      - Adventure
+      - Cruiser
+      - Dirt
+      - Dual sport
+      - Racing
+      - Scooter
+      - Sport
+      - Touring
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: vehicle-drive-handling-features
+    label: Vehicle Drive Handling Features
+    values:
+      - Adjustable
+      - Corrosion resistant
+      - Hardware included
+      - Heat resistant
+      - High performance
+      - Wiring included
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: tire-construction-type
+    label: Tire Construction Type
+    values:
+      - Bias-ply
+      - Radial
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: shoe-size
+    label: Shoe Size
+    values:
+      - Extra small (XS)
+      - Small (S)
+      - Medium (M)
+      - Large (L)
+      - Extra large (XL)
+      - Double extra large (XXL)
+      - Triple extra large (XXXL)
+      - '0'
+      - '0.5'
+      - '1'
+      - '1.5'
+      - '2'
+      - '2.5'
+      - '3'
+      - '3.5'
+      - '4'
+      - '4.5'
+      - '5'
+      - '5.5'
+      - '6'
+      - '6.5'
+      - '7'
+      - '7.5'
+      - '8'
+      - '8.5'
+      - '9'
+      - '9.5'
+      - '10'
+      - '10.5'
+      - '11'
+      - '11.5'
+      - '12'
+      - '12.5'
+      - '13'
+      - '13.5'
+      - '14'
+      - '14.5'
+      - '15'
+      - '15.5'
+      - '16'
+      - '16.5'
+      - '17'
+      - '17.5'
+      - '18'
+      - '18.5'
+      - '19'
+      - '19.5'
+      - '20'
+      - '20.5'
+      - '21'
+      - '21.5'
+      - '22'
+      - '22.5'
+      - '23'
+      - '23.5'
+      - '24'
+      - '24.5'
+      - '25'
+      - '25.5'
+      - '26'
+      - '26.5'
+      - '27'
+      - '27.5'
+      - '28'
+      - '28.5'
+      - '29'
+      - '29.5'
+      - '30'
+      - '30.5'
+      - '31'
+      - '31.5'
+      - '32'
+      - '32.5'
+      - '33'
+      - '33.5'
+      - '34'
+      - '34.5'
+      - '35'
+      - '35.5'
+      - '36'
+      - '36.5'
+      - '37'
+      - '37.5'
+      - '38'
+      - '38.5'
+      - '39'
+      - '39.5'
+      - '40'
+      - '40.5'
+      - '41'
+      - '41.5'
+      - '42'
+      - '42.5'
+      - '43'
+      - '43.5'
+      - '44'
+      - '44.5'
+      - '45'
+      - '45.5'
+      - '46'
+      - '46.5'
+      - '47'
+      - '47.5'
+      - '48'
+      - '48.5'
+      - '49'
+      - '49.5'
+      - '50'
+      - '50.5'
+      - '51'
+      - '51.5'
+      - '52'
+      - '52.5'
+      - '53'
+      - '53.5'
+      - '54'
+      - '54.5'
+      - '55'
+      - '55.5'
+      - '56'
+      - '56.5'
+      - '57'
+      - '57.5'
+      - '58'
+      - '58.5'
+      - '59'
+      - '59.5'
+      - '60'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: heel-height-type
+    label: Heel Height Type
+    values:
+      - Flat
+      - High
+      - Low
+      - Mid
+      - Very high
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: heel-shoe-type
+    label: Heel Shoe Type
+    values:
+      - Ankle-strap d'Orsay
+      - Ankle-strap pumps
+      - Brogues heels
+      - Classic d'Orsay
+      - Classic pumps
+      - Loafer pumps
+      - Mary-Jane heels
+      - Mule heels
+      - Oxford heels
+      - Platform heels
+      - Slingback d'Orsay
+      - Slingback heels
+      - T-strap d'Orsay
+      - T-strap pumps
+      - Wedge heels
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: occasion-style
+    label: Occasion Style
+    values:
+      - Casual
+      - Dress
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: shoe-features
+    label: Shoe Features
+    values:
+      - Anti-microbial
+      - Arch support
+      - Breathable design
+      - Cushioned
+      - Eco friendly
+      - Lightweight
+      - Orthopedic
+      - Recycled materials
+      - Slip resistant
+      - Sustainable sourcing
+      - Vegan friendly
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: condition
+    label: Condition
+    values:
+      - Circulated
+      - Excellent (EX)
+      - Excellent-mint (EX-MT)
+      - Fair (F)
+      - Gem mint (GM)
+      - Good (G)
+      - Graded
+      - Mint (M)
+      - Near mint (NM)
+      - Near mint-mint (NM-MT)
+      - Poor (P)
+      - Pristine (P)
+      - Uncirculated
+      - Very good (VG)
+      - Very good-excellent (VG-EX)
+      - Other
+      - Mint
+      - Near Mint
+      - Excellent
+      - Good
+      - Fair
+      - Restored
+    provenance:
+      sources:
+        - system: shopify
+  - handle: construction
+    label: Construction
+    values:
+      - Clad
+      - Filled
+      - Plated
+      - Solid
+      - Toned
+      - Vermeil
+      - Whole
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: material-origin
+    label: Material Origin
+    values:
+      - Finished product (jewelry/watch)
+      - Loose/unmounted
+      - NFT)
+      - Printed/digital (gift card
+      - voucher
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: product-classification
+    label: Product Classification
+    values:
+      - Bullion
+      - Coupon
+      - Currency
+      - Gift card
+      - Loose precious stones
+      - NFT
+      - Semi-precious stones
+      - Voucher
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: product-use
+    label: Product Use
+    values:
+      - Collectible/numismatic
+      - Currency/legal tender
+      - Gift card/voucher
+      - Jewelry/ornament
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: customization
+    label: Customization
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: stamp-type
+    label: Stamp Type
+    values:
+      - Pre-inked
+      - Self-inking
+      - Traditional
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: card-attributes
+    label: Card Attributes
+    values:
+      - Autographed
+      - Foil
+      - Holographic
+      - Numbered
+      - Parallel
+      - Relic
+      - Rookie
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: grading
+    label: Grading
+    values:
+      - BCCG
+      - BGS
+      - BVG
+      - CGC trading cards
+      - CSG
+      - GAI
+      - GMA
+      - HGA
+      - KSA
+      - PSA
+      - SGC
+      - SGC authentic
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: rarity
+    label: Rarity
+    values:
+      - Common
+      - Limited edition
+      - Promo
+      - Rare
+      - Super rare
+      - Ultra rare
+      - Uncommon
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: sports-theme
+    label: Sports Theme
+    values:
+      - Aerobics
+      - Aikido
+      - Air hockey
+      - Australian football
+      - Badminton
+      - Ballet
+      - Baseball
+      - Basketball
+      - Boxing
+      - Brazilian jiu-jitsu
+      - Car racing
+      - Cheerleading
+      - Climbing
+      - Cricket
+      - Cycling
+      - Dancing
+      - Darts
+      - Field hockey
+      - Fishing
+      - Floorball
+      - Football
+      - Futsal
+      - Gaelic football
+      - Golf
+      - Gymnastics
+      - Handball
+      - Hiking
+      - Hockey
+      - Horse riding
+      - Hunting
+      - Hurling
+      - Ice hockey
+      - Inline skating
+      - Judo
+      - Karate
+      - Kickboxing
+      - Krav maga
+      - Lacrosse
+      - Mixed martial arts (MMA)
+      - Motorcycling
+      - Muay thai
+      - Netball
+      - Olympics
+      - Padel
+      - Pilates
+      - Racquetball
+      - Rounders
+      - Rugby
+      - Running
+      - Skiing
+      - Snowboarding
+      - Soccer
+      - Softball
+      - Squash
+      - Taekwondo
+      - Team handball
+      - Tennis
+      - Track & field
+      - Ultimate frisbee
+      - Universal
+      - Values
+      - Volleyball
+      - Water polo
+      - Wrestling
+      - Yoga
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: theme
+    label: Theme
+    values:
+      - Alphabet
+      - Animals
+      - Anime
+      - Architecture
+      - Art
+      - Beach
+      - Cars
+      - Cartoons
+      - Celebrities
+      - City
+      - Comics
+      - Ethnic
+      - Fantasy
+      - Fashion
+      - Floral
+      - Food & drinks
+      - History
+      - Holidays
+      - Landmarks
+      - Landscape
+      - Literature
+      - Modern
+      - Movies & TV
+      - Music
+      - Mythology
+      - Nature
+      - Numbers
+      - Pop culture
+      - Princesses
+      - Retro/Vintage
+      - Romantic
+      - Sci-fi
+      - Science
+      - Sea/Ocean
+      - Space
+      - Spirituality
+      - Sports
+      - Superheroes
+      - Travel
+      - Video games
+      - World map
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: trading-card-packaging
+    label: Trading Card Packaging
+    values:
+      - Blister pack
+      - Booster pack
+      - Box
+      - Starter deck
+      - Tin
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: sport
+    label: Sport
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: team
+    label: Team
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: authenticity
+    label: Authenticity
+    values:
+      - Certified
+      - Autographed
+      - Unverified
+      - Verified
+    provenance:
+      sources:
+        - system: manual
+  - handle: era
+    label: Era
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: bed-leveling-type
+    label: Bed Leveling Type
+    values:
+      - Assisted
+      - Automatic
+      - Automatic (auto-mesh)
+      - Dynamic
+      - Hybrid
+      - Manual
+      - None
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-filament
+    label: Compatible Filament
+    values:
+      - Acrylonitrile butadiene styrene (ABS)
+      - Carbon fiber
+      - Ceramic
+      - Conductive
+      - Flexible
+      - Food-safe
+      - Glitter
+      - Glow-in-the-dark
+      - High impact polystyrene (HIPS)
+      - Magnetic
+      - Marble
+      - Metal
+      - Nylon
+      - Polychromatic
+      - Polyethylene terephthalate glycol (PETG)
+      - Polylactic acid (PLA)
+      - Polyvinyl alcohol (PVA)
+      - Recycled filament
+      - Resin
+      - Silk
+      - Thermoplastic polyurethane (TPU)
+      - Transparent/Clear
+      - UV-sensitive
+      - Water-soluble support material
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-resin-type
+    label: Compatible Resin Type
+    values:
+      - ABS-like
+      - Bio-compatible
+      - Castable
+      - Ceramic-filled
+      - Clear
+      - Color-shift
+      - Dental
+      - Elastic
+      - Flexible
+      - High-temperature
+      - Medical
+      - Plant-based
+      - Rapid-cure
+      - Standard photopolymer
+      - Tough
+      - Transparent
+      - UV-sensitive
+      - Water-washable
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: enclosure-type
+    label: Enclosure Type
+    values:
+      - DIY enclosure
+      - Fully enclosed
+      - No enclosure
+      - Open frame
+      - Partially enclosed
+      - Upgradable enclosure
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: energy-efficiency-class
+    label: Energy Efficiency Class
+    values:
+      - A
+      - A+
+      - A++
+      - A+++
+      - B
+      - C
+      - D
+      - E
+      - F
+      - G
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: file-format-type
+    label: File Format Type
+    values:
+      - AI
+      - AVI
+      - BMP
+      - CSV
+      - DOC
+      - DOCX
+      - EOT
+      - EPS
+      - GIF
+      - ICO
+      - INDD
+      - JPEG
+      - MOV
+      - MP4
+      - OTF
+      - PDF
+      - PNG
+      - PPT
+      - PPTX
+      - PSD
+      - RAW
+      - RTF
+      - SVG
+      - TIFF
+      - TTF
+      - WebM
+      - WOFF
+      - XLS
+      - XLSX
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: memory-technology
+    label: Memory Technology
+    values:
+      - Asynchronous SRAM
+      - DDR
+      - DDR2
+      - DDR3
+      - DDR4
+      - DDR5
+      - DRAM
+      - EDO DRAM
+      - Flash
+      - FPM DRAM
+      - GDDR
+      - GDDR2
+      - GDDR3
+      - GDDR4
+      - GDDR5
+      - GDDR6
+      - GDDR6X
+      - HBM
+      - HBM2
+      - HBM2E
+      - HBM3
+      - NAND flash
+      - NOR flash
+      - NVRAM
+      - PLC
+      - Pseudo SRAM
+      - QLC
+      - RDRAM
+      - SDR SDRAM
+      - SDRAM
+      - Serial NOR
+      - SLC
+      - SRAM
+      - Synchronous SRAM
+      - TLC
+      - XIP NOR
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: print-technology
+    label: Print Technology
+    values:
+      - 3D printing
+      - Additive manufacturing
+      - Dye sublimation
+      - FDM
+      - FFF
+      - Impact
+      - Inkjet
+      - Laser
+      - LED
+      - Line matrix
+      - MEM inkjet
+      - PJP
+      - Solid ink
+      - Stereolithography
+      - Thermal transfer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: printer-functions
+    label: Printer Functions
+    values:
+      - CD/DVD print
+      - Cloud print
+      - Copy
+      - Duplex (double-sided) print
+      - Email
+      - Fax
+      - Network print
+      - Photo print
+      - Print
+      - Scan
+      - Wireless print
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: paper-size
+    label: Paper Size
+    values:
+      - A4
+      - A3
+      - Letter
+      - Legal
+      - A5
+    provenance:
+      sources:
+        - system: manual
+  - handle: sheet-count
+    label: Sheet Count
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: weight-gsm
+    label: Weight Gsm
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: backrest-type
+    label: Backrest Type
+    values:
+      - Hard
+      - Mesh
+      - Padded
+      - Strap
+      - Upholstered
+      - Upholstered padded
+      - Upholstered strap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: chair-features
+    label: Chair Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: genre
+    label: Genre
+    values:
+      - Action & adventure
+      - Animation
+      - Anime
+      - Arts
+      - Biography
+      - Business
+      - Children
+      - Comics & graphic novels
+      - Crime & mystery
+      - Design
+      - Documentary
+      - Drama
+      - Education
+      - Family
+      - Fantasy
+      - Fashion & beauty
+      - Finance
+      - Food & cooking
+      - Game show
+      - Gaming
+      - Health & fitness
+      - Historical fiction
+      - History
+      - Hobbies & interests
+      - Horror
+      - Humor & comedy
+      - Literature
+      - Marketing
+      - Mental health
+      - Movies & TV
+      - Music
+      - News & politics
+      - Parenting
+      - Period drama
+      - Philosophy
+      - Reality TV
+      - Relationships
+      - Religion & spirituality
+      - Romance
+      - Sci-fi
+      - Self-help & personal development
+      - Society & culture
+      - Sports
+      - Supernatural
+      - Suspense
+      - Talk show
+      - Technology
+      - Thriller & suspense
+      - Travel
+      - War
+      - Western
+      - Young adult
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: language-version
+    label: Language Version
+    values:
+      - AAR- Afar
+      - AFR- Afrikaans
+      - AKA- Akan
+      - AMH- Amharic
+      - ARA- Arabic
+      - ARA-EG- Arabic (Egypt)
+      - ARA-GUL- Arabic (Gulf)
+      - ARA-IQ- Arabic (Iraq)
+      - ARA-LEV- Arabic (Levantine)
+      - ARA-MAG- Arabic (Maghrebi)
+      - ARA-SUD- Arabic (Sudanese)
+      - ASM- Assamese
+      - AYM- Aymara
+      - AZE- Azerbaijani
+      - BEL- Belarusian
+      - BEN- Bengali
+      - BOD- Tibetan
+      - BOS- Bosnian
+      - BRA- Brazilian Portuguese
+      - BRE- Breton
+      - BUL- Bulgarian
+      - CAT- Catalan
+      - CES- Czech
+      - CRO- Croatian
+      - CYM- Welsh
+      - DAN- Danish
+      - DEU- German
+      - DEU-BE- German (Belgium)
+      - DEU-CH- German (Switzerland)
+      - ELL- Greek
+      - ENG- English
+      - ENG-AU- English (Australia)
+      - ENG-CA- English (Canada)
+      - ENG-GB- English (United Kingdom)
+      - ENG-HK- English (Hong Kong)
+      - ENG-IN- English (India)
+      - ENG-NZ- English (New Zealand)
+      - ENG-SG- English (Singapore)
+      - ENG-US- English (United States)
+      - ENG-ZA- English (South Africa)
+      - EPO- Esperanto
+      - EST- Estonian
+      - EUS- Basque
+      - EWE- Ewe
+      - FAO- Faroese
+      - FAS- Farsi
+      - FAS- Persian
+      - FIL- Filipino
+      - FIN- Finnish
+      - FRA- French
+      - FRA-BE- French (Belgium)
+      - FRA-CA- French (Canada)
+      - FRA-CH- French (Switzerland)
+      - GLE- Irish
+      - GLG- Galician
+      - GRC- Ancient Greek
+      - GRN- Guarani
+      - GSW- Swiss German
+      - GUJ- Gujarati
+      - HAU- Hausa
+      - HEB- Hebrew
+      - HIN- Hindi
+      - HRV- Croatian
+      - HUN- Hungarian
+      - HYE- Armenian
+      - IBO- Igbo
+      - INC- Indonesian
+      - IND- Indonesian
+      - IRA- Iranian
+      - ISL- Icelandic
+      - ITA- Italian
+      - JAV- Javanese
+      - JPN- Japanese
+      - KAL- Greenlandic
+      - KAN- Kannada
+      - KAT- Georgian
+      - KAZ- Kazakh
+      - KHM- Khmer
+      - KIN- Kinyarwanda
+      - KIR- Kirghiz
+      - KOR- Korean
+      - KUR- Kurdish
+      - LAO- Lao
+      - LAT- Latin
+      - LAV- Latvian
+      - LIN- Lingala
+      - LIT- Lithuanian
+      - LTZ- Luxembourgish
+      - MAL- Malayalam
+      - MAR- Marathi
+      - MDR- Mandar
+      - MKD- Macedonian
+      - MLG- Malagasy
+      - MLT- Maltese
+      - MON- Mongolian
+      - MRI- Maori
+      - MSA- Malay
+      - Multilingual- multilingual (not specific to one language)
+      - MYA- Burmese
+      - NAV- Navajo
+      - NEP- Nepali
+      - NLD- Dutch
+      - NLD-BE- Dutch (Belgium)
+      - NNO- Norwegian (Nynorsk)
+      - NOB- Norwegian (Bokmål)
+      - NOR- Norwegian
+      - NYA- Chichewa
+      - ORM- Oromo
+      - PAN- Punjabi
+      - POL- Polish
+      - POR- Portuguese
+      - POR-BR- Portuguese (Brazil)
+      - PUS- Pashto
+      - QUE- Quechua
+      - ROH- Romansh
+      - RON- Romanian
+      - RUS- Russian
+      - SCR- Croatian
+      - SLK- Slovak
+      - SLV- Slovenian
+      - SME- Northern Sámi
+      - SMO- Samoan
+      - SOM- Somali
+      - SOT- Southern Sotho
+      - SPA- Spanish
+      - SPA-LATAM- Spanish (Latin American)
+      - SPA-MX- Spanish (Mexico)
+      - SQI- Albanian
+      - SRP- Serbian
+      - SUN- Sundanese
+      - SWA- Swahili
+      - SWE- Swedish
+      - TAM- Tamil
+      - TEL- Telugu
+      - TGK- Tajik
+      - TGL- Tagalog
+      - THA- Thai
+      - TON- Tongan
+      - TUK- Turkmen
+      - TUR- Turkish
+      - UIG- Uyghur
+      - UKR- Ukrainian
+      - URD- Urdu
+      - UZB- Uzbek
+      - VIE- Vietnamese
+      - WOL- Wolof
+      - XHO- Xhosa
+      - YID- Yiddish
+      - YOR- Yoruba
+      - ZHO (simpl)- Chinese (simplified)
+      - ZHO (tr)- Chinese (traditional)
+      - ZUL- Zulu
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: target-audience
+    label: Target Audience
+    values:
+      - Adults
+      - Kids
+      - Suitable for all ages
+      - Teens & young adults
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bag-case-closure
+    label: Bag Case Closure
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bag-case-storage-features
+    label: Bag Case Storage Features
+    values:
+      - Adjustable dividers
+      - Bow holders
+      - Built-in compartments
+      - Clear window
+      - Elastic loops
+      - External pockets
+      - Garment mesh
+      - Hanging toiletry
+      - Hidden pockets
+      - Insulated bottle pocket
+      - Keychain holder
+      - Laptop compartment
+      - Mallet holders
+      - Protective sleeves
+      - Removable pouch
+      - Sheet music pocket
+      - Single compartment
+      - Water bottle holder
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: carry-options
+    label: Carry Options
+    values:
+      - Backpack strap
+      - Belt loops
+      - Chest/Waist strap
+      - Crossbody strap
+      - Detachable strap
+      - Handle
+      - Shoulder strap
+      - Stroller strap
+      - Trolley sleeve
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: media-content-type
+    label: Media Content Type
+    values:
+      - Animated series
+      - Concert
+      - Documentary
+      - Educational program
+      - Exercise/Fitness program
+      - Live performance
+      - Mini-series
+      - Movie
+      - Music video compilation
+      - Reality TV
+      - Special event coverage
+      - Sport event
+      - Stand-up comedy
+      - TV show
+      - Web series
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mpaa-rating
+    label: Mpaa Rating
+    values:
+      - G
+      - NC-17
+      - NR
+      - PG
+      - PG-13
+      - R
+      - U
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: guitar-size
+    label: Guitar Size
+    values:
+      - 1/4
+      - 1/2
+      - 3/4
+      - Concert
+      - Full size
+      - Jumbo
+      - Parlor
+      - Short scale
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: interface-type
+    label: Interface Type
+    values:
+      - Audio output
+      - Bluetooth
+      - MIDI
+      - USB
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-action
+    label: Keyboard Action
+    values:
+      - Hammer action
+      - Weighted keys
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: piano-additional-features
+    label: Piano Additional Features
+    values:
+      - Built-in speakers
+      - Metronome
+      - Recording function
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: piano-pedals
+    label: Piano Pedals
+    values:
+      - Soft
+      - Sostenuto
+      - Sustain
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: piano-size
+    label: Piano Size
+    values:
+      - Baby grand
+      - Concert grand
+      - Console
+      - Medium grand
+      - Parlor grand
+      - Semi-concert grand
+      - Spinet
+      - Studio
+      - Upright
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: alcohol-solvent-content
+    label: Alcohol Solvent Content
+    values:
+      - Alcohol >24%
+      - Alcohol ≤24%
+      - Solvent - large container (>1L)
+      - Solvent - small container (≤1L)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: finish
+    label: Finish
+    values:
+      - Gloss
+      - Matte
+      - Metallic
+      - Satin
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: intended-application
+    label: Intended Application
+    values:
+      - Cabinets
+      - Ceilings
+      - Concrete
+      - Decks/Fences
+      - Doors
+      - Drywall
+      - Exterior walls
+      - Floors
+      - Furniture
+      - Interior walls
+      - Marine transport
+      - Metal
+      - Plastic
+      - Radiators
+      - Trim/Molding
+      - Windows
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: style
+    label: Style
+    values:
+      - Barroco
+      - Bohemian
+      - Classic
+      - Colonial
+      - Contemporary
+      - Farmhouse
+      - Industrial
+      - Minimalist
+      - Modern
+      - Retro/Vintage
+      - Rustic
+      - Scandinavian
+      - Traditional
+      - Transitional
+      - Victorian
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: suitable-location
+    label: Suitable Location
+    values:
+      - Balcony
+      - Bathroom
+      - Bedroom
+      - Children's room
+      - Corridor
+      - Courtyard
+      - Dining room
+      - Entrance
+      - Garage
+      - Garden
+      - Hallway
+      - Kitchen
+      - Laundry room
+      - Living room
+      - Patio
+      - Porch
+      - Storage room
+      - Toilet
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: chuck-type
+    label: Chuck Type
+    values:
+      - Key
+      - Keyless
+      - SDS
+      - SDS max
+      - SDS plus
+      - SDS top
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: drill-features
+    label: Drill Features
+    values:
+      - Adjustable speed
+      - Adjustable torque
+      - Anger drilling
+      - Built-in lighting
+      - Hammer drilling
+      - Screwdriving
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: fastener-finish
+    label: Fastener Finish
+    values:
+      - Aluminum
+      - Anodized
+      - Black oxide
+      - Brass
+      - Bright zinc plated (BZP) steel
+      - Bronze
+      - Cadmium
+      - Chrome
+      - Copper
+      - Galvanized steel
+      - Gold
+      - Nickel
+      - Nylon
+      - Painted
+      - Plated steel
+      - Powder coated
+      - Stainless steel
+      - Titanium
+      - Zinc
+      - Zinc alloy
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: knitting-project-type
+    label: Knitting Project Type
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: yarn-weight-category
+    label: Yarn Weight Category
+    values:
+      - Afghan
+      - Aran
+      - Babies
+      - Chunky
+      - Craft
+      - DK
+      - Felting
+      - Fingering
+      - Jumbo
+      - Macramé
+      - Roving
+      - Rug
+      - Sock
+      - Sports
+      - Super bulky
+      - Worsted
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: brand
+    label: Brand
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: storage
+    label: Storage
+    values:
+      - 32GB
+      - 64GB
+      - 128GB
+      - 256GB
+      - 512GB
+      - 1TB
+    provenance:
+      sources:
+        - system: manual
+  - handle: ram
+    label: Ram
+    values:
+      - 2GB
+      - 3GB
+      - 4GB
+      - 6GB
+      - 8GB
+      - 12GB
+      - 16GB
+    provenance:
+      sources:
+        - system: manual
+  - handle: operating-system
+    label: Operating System
+    values:
+      - Android
+      - iOS
+      - Android TV
+      - Chrome OS
+      - Cross-platform
+      - Fire OS
+      - FreeBSD
+      - Linux
+      - macOS
+      - Raspberry Pi OS
+      - Tizen
+      - tvOS
+      - Unix
+      - watchOS
+      - webOS
+      - Windows
+      - Other
+    provenance:
+      sources:
+        - system: manual
+  - handle: screen-size
+    label: Screen Size
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: battery-capacity
+    label: Battery Capacity
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: rear-camera
+    label: Rear Camera
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: network
+    label: Network
+    values:
+      - 3G
+      - 4G
+      - 5G
+    provenance:
+      sources:
+        - system: manual
+  - handle: sim-type
+    label: Sim Type
+    values:
+      - Single SIM
+      - Dual SIM
+      - eSIM
+    provenance:
+      sources:
+        - system: manual
+  - handle: attachment-method
+    label: Attachment Method
+    values:
+      - Clamping
+      - Clip-on
+      - Hanging
+      - Standalone
+      - Velcro
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: attachment-options
+    label: Attachment Options
+    values:
+      - Clip
+      - Lanyard
+      - Magnet
+      - Pin
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: case-transparency-level
+    label: Case Transparency Level
+    values:
+      - Clear
+      - Frosted
+      - Gloss Clear
+      - Opaque
+      - Patterned Transparent
+      - Semi-Clear
+      - Smoke
+      - Tinted
+      - Translucent
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: case-type
+    label: Case Type
+    values:
+      - Armband
+      - Back cover
+      - Belt clip
+      - Book style
+      - Bumper
+      - Bumper with built-in screen protector
+      - Decal
+      - Finger grip
+      - Flip
+      - Folio
+      - Holder
+      - Holster
+      - Interchangeable loop
+      - Keyboard case
+      - Lanyard
+      - Shell cover
+      - Skin
+      - Stand
+      - Wallet
+      - Wallet with card slots
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: connection-type
+    label: Connection Type
+    values:
+      - AC adapter
+      - AirPlay
+      - ANT
+      - ANT+
+      - AUX
+      - Bluetooth
+      - BNC
+      - Cellular
+      - Coaxial
+      - Coaxial (F-Type)
+      - Composite video
+      - DECT
+      - Display port
+      - DVI
+      - Ethernet
+      - Firewire
+      - HDMI
+      - Infrared
+      - LTE
+      - Micro SD card
+      - Micro USB
+      - Mini USB
+      - Miracast
+      - NFC
+      - Power cord
+      - Power splitter
+      - Radio
+      - RCA
+      - S-video
+      - Satellite
+      - SD card
+      - Thunderbolt
+      - USB
+      - VGA
+      - Wi-Fi
+      - Wired
+      - Wireless
+      - Wireless dongle
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-device
+    label: Compatible Device
+    values:
+      - Digital camera
+      - Keyboard
+      - Mouse
+      - Power bank
+      - Smartphone
+      - Smartwatch
+      - Tablet
+      - Wireless earbud
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hardness-rating-pencil-scale
+    label: Hardness Rating Pencil Scale
+    values:
+      - 1H
+      - 2H
+      - 3H
+      - 4H
+      - 5H
+      - 6H
+      - 7H
+      - 8H
+      - 9H
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: screen-protector-coverage-style
+    label: Screen Protector Coverage Style
+    values:
+      - Case-friendly (slightly smaller)
+      - Curved / 2.5D glass
+      - Edge-to-edge / full coverage
+      - Flat glass
+      - Frame adhesive
+      - Full adhesive
+      - Hole-punch cut-out
+      - Notch cut-out
+      - Ultra-thin film
+      - Ultra-wide fit
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: screen-protector-features
+    label: Screen Protector Features
+    values:
+      - Anti-blue light
+      - Anti-fingerprint
+      - Anti-glare
+      - Case-friendly edges
+      - Hydrophobic
+      - Oleophobic coating
+      - Privacy (2-way)
+      - Privacy (4-way)
+      - Scratch resistant
+      - Shatterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: signal-types-blocked
+    label: Signal Types Blocked
+    values:
+      - 5G
+      - Bluetooth
+      - Cellular
+      - EMF
+      - GPS
+      - NFC
+      - Radio
+      - RFID
+      - Static electricity
+      - Wi-Fi
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: charging-method
+    label: Charging Method
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: power-conversion-semiconductor-type
+    label: Power Conversion Semiconductor Type
+    values:
+      - Gallium nitride (GaN)
+      - Silicon (Si)
+      - Silicon carbide (SiC)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: usb-connector-type
+    label: Usb Connector Type
+    values:
+      - Proprietary USB
+      - USB Micro-B
+      - USB Mini-B
+      - USB Type-A
+      - USB Type-B
+      - USB Type-C
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: computer-form
+    label: Computer Form
+    values:
+      - All-in-one
+      - Blade server
+      - Chromebook
+      - Cloud client
+      - Compact
+      - Convertible
+      - JBOD
+      - NAS
+      - Netbook
+      - Notebook
+      - Remote desktop client
+      - SAN
+      - Storage enclosure
+      - Ultrabook
+      - USF
+      - VDI client
+      - Workstation
+      - Zero client
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: computer-specialized-features
+    label: Computer Specialized Features
+    values:
+      - AI-powered
+      - BIOS security
+      - ECC memory support
+      - Kensington lock
+      - Liquid cooling system
+      - Multi-GPU support
+      - Overclocking support
+      - Quiet operation
+      - Remote management
+      - RGB lighting
+      - Touchscreen
+      - TPM (trusted platform module)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cosmetic-condition
+    label: Cosmetic Condition
+    values:
+      - New
+      - Opened-never used
+      - Refurbished-certified
+      - Refurbished-excellent
+      - Refurbished-fair
+      - Refurbished-good
+      - Refurbished-very good
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: display-resolution
+    label: Display Resolution
+    values:
+      - 1024 x 768
+      - 1280 x 768
+      - 1280 x 1024
+      - 1366 x 768
+      - 1440 x 900
+      - 1680 x 1050
+      - 1920 x 1080
+      - 4096 x 2160
+      - 4K ultra HD
+      - 5K ultra HD
+      - 8K ultra HD
+      - 144p
+      - 240p
+      - 360p
+      - 480p
+      - 720p
+      - 1080p
+      - 1440p
+      - 2160p
+      - 4320p
+      - 2560 x 1440
+      - Full HD
+      - HD
+      - Quad HD
+      - SD
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: graphics-card-type
+    label: Graphics Card Type
+    values:
+      - Dedicated
+      - Integrated
+      - None
+      - Professional
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-layout
+    label: Keyboard Layout
+    values:
+      - AZERTY
+      - BÉPO
+      - Colemak
+      - DVORAK
+      - Hangul
+      - JIS
+      - QWERTY
+      - QWERTZ
+      - QZERTY
+      - Workman
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-type
+    label: Keyboard Type
+    values:
+      - Backlit
+      - Butterfly
+      - Compact
+      - Detachable
+      - Island-style
+      - Mechanical
+      - Scissor switch
+      - Standard
+      - Touchscreen
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cooling-technology
+    label: Cooling Technology
+    values:
+      - Active
+      - Air
+      - Blower
+      - Closed-loop
+      - Direct-to-die
+      - Dual-fan
+      - Fan
+      - Heat pipe
+      - Heat sink
+      - Hybrid
+      - Liquid
+      - Micro-fin
+      - Open-loop
+      - Passive
+      - Peltier
+      - Phase-change
+      - Radiator
+      - Tower
+      - Vapor chamber
+      - Water
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: internal-drive-form-factor-supported
+    label: Internal Drive Form Factor Supported
+    values:
+      - 2.5-inch
+      - 3.5-inch
+      - 5.25-inch
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: memory-form-factor
+    label: Memory Form Factor
+    values:
+      - DIMM
+      - Micro-DIMM
+      - RIMM
+      - SIMM
+      - SO-DIMM
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: optical-drive-type
+    label: Optical Drive Type
+    values:
+      - Blu-ray disc
+      - Blu-ray disc RE
+      - CD-ROM
+      - CD-RW
+      - Combo
+      - DVD+RW
+      - DVD-ROM
+      - DVD-RW
+      - Super multi
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: adaptive-sync-technology
+    label: Adaptive Sync Technology
+    values:
+      - AMD FreeSync
+      - AMD FreeSync Premium
+      - AMD FreeSync Premium Pro
+      - None
+      - NVIDIA G-Sync
+      - NVIDIA G-Sync Compatible
+      - VESA Adaptive Sync
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: color-accuracy-standards
+    label: Color Accuracy Standards
+    values:
+      - Adobe RGB
+      - CIE lab
+      - CIE LCh
+      - CIE RGB
+      - CIE XYZ
+      - DCI-P3
+      - DICOM
+      - EBU
+      - NTSC
+      - PAL
+      - Pantone
+      - Rec. 709
+      - Rec. 2020
+      - SMPTE-C
+      - sRGB
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: contrast-ratio-typical
+    label: Contrast Ratio Typical
+    values:
+      - '100000000:1'
+      - '10000000:1'
+      - '1000000:1'
+      - '10000:1'
+      - '1000:1'
+      - '100:1'
+      - '11000:1'
+      - '1100:1'
+      - '12000:1'
+      - '1200:1'
+      - '120:1'
+      - '1300:1'
+      - '1400:1'
+      - '1450:1'
+      - '150000:1'
+      - '15000:1'
+      - '1500:1'
+      - '150:1'
+      - '1600:1'
+      - '1650:1'
+      - '1700:1'
+      - '1800:1'
+      - '2000000:1'
+      - '200000:1'
+      - '20000:1'
+      - '2000:1'
+      - '200:1'
+      - '2100:1'
+      - '2200:1'
+      - '2300:1'
+      - '2400:1'
+      - '250:1'
+      - '2600:1'
+      - '2700:1'
+      - '2800:1'
+      - '2900:1'
+      - '30000000:1'
+      - '3000000:1'
+      - '300000:1'
+      - '30000:1'
+      - '3000:1'
+      - '300:1'
+      - '3100:1'
+      - '3200:1'
+      - '3300:1'
+      - '3500:1'
+      - '350:1'
+      - '3700:1'
+      - '3750:1'
+      - '3800:1'
+      - '40000:1'
+      - '4000:1'
+      - '400:1'
+      - '4150:1'
+      - '430:1'
+      - '4500:1'
+      - '450:1'
+      - '4600:1'
+      - '4800:1'
+      - '500000:1'
+      - '50000:1'
+      - '5000:1'
+      - '500:1'
+      - '5300:1'
+      - '5500:1'
+      - '550:1'
+      - '580:1'
+      - '6000:1'
+      - '600:1'
+      - '6500:1'
+      - '650:1'
+      - '7000:1'
+      - '700:1'
+      - '7500:1'
+      - '750:1'
+      - '8000:1'
+      - '800:1'
+      - '8300:1'
+      - '850:1'
+      - '900:1'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: device-interface
+    label: Device Interface
+    values:
+      - 2.5 mm
+      - 3.5 mm
+      - 6.35 mm
+      - 12G-SDI
+      - 3G-SDI
+      - 6G-SDI
+      - AUX
+      - Banana connector
+      - Binding post
+      - Bluetooth
+      - BNC
+      - Coaxial
+      - Coaxial (F-Type)
+      - Component video
+      - Composite video
+      - DIN
+      - Display port
+      - DVI
+      - DVI-I
+      - eSATA
+      - Ethernet
+      - Firewire
+      - HD-SDI
+      - HDMI
+      - I2C
+      - IDE (PATA)
+      - Infrared
+      - Lightning
+      - M.2
+      - Micro BNC
+      - Micro DIN
+      - Micro SD card
+      - Micro USB
+      - Micro XLR
+      - Micro-VGA
+      - MIDI
+      - Mini-DIN
+      - Mini-VGA
+      - Molex
+      - NFC
+      - NL2
+      - NL4
+      - PCIe
+      - PS/2
+      - RCA
+      - RFID
+      - S-video
+      - SATA
+      - Satellite
+      - SCART
+      - SCSI
+      - SD card
+      - SDI
+      - SMA
+      - SPI
+      - Tethering
+      - Thunderbolt
+      - TOSLINK
+      - TRS
+      - UART
+      - USB
+      - VGA
+      - Wi-Fi
+      - Wireless charging
+      - Wireless display
+      - XLR
+      - XLR-5
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: energy-efficiency-class-hdr
+    label: Energy Efficiency Class Hdr
+    values:
+      - A
+      - A+
+      - A++
+      - A+++
+      - B
+      - C
+      - D
+      - E
+      - F
+      - G
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: energy-efficiency-class-sdr
+    label: Energy Efficiency Class Sdr
+    values:
+      - A
+      - A+
+      - A++
+      - A+++
+      - B
+      - C
+      - D
+      - E
+      - F
+      - G
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: monitor-shape
+    label: Monitor Shape
+    values:
+      - Curved
+      - Flat
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: monitor-specialized-features
+    label: Monitor Specialized Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-backlight-type
+    label: Keyboard Backlight Type
+    values:
+      - Edge lighting
+      - Multi-color fixed-zone RGB
+      - None
+      - Per-key RGB
+      - RGB
+      - Side RGB
+      - Single-color
+      - Underglow RGB
+      - White LED
+      - Zone RGB
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-format
+    label: Keyboard Format
+    values:
+      - '0.4'
+      - '0.6'
+      - '0.65'
+      - '0.75'
+      - Compact
+      - Ergonomic
+      - Full-size
+      - Mini
+      - Split
+      - Tenkeyless (TKL)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-language
+    label: Keyboard Language
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-mounting-style
+    label: Keyboard Mounting Style
+    values:
+      - Block mount
+      - Gasket mount
+      - Integrated plate
+      - Leaf spring mount
+      - Magnetic gasket
+      - Sandwich mount
+      - Top mount
+      - Tray mount
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keyboard-specialized-features
+    label: Keyboard Specialized Features
+    values:
+      - Adjustable angle
+      - Adjustable height
+      - AI-powered
+      - Anti-ghosting
+      - Backlighting
+      - Customizable keycaps
+      - Key rollover
+      - Macro recording
+      - Multimedia keys
+      - N-key rollover
+      - Numeric keypad
+      - Onboard memory
+      - Programmable keys
+      - Shine-through
+      - Split keyboard
+      - Suitable for gaming
+      - Tenkeyless
+      - Volume control wheel
+      - Wrist rest
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cellular-capability
+    label: Cellular Capability
+    values:
+      - Wi-Fi + Cellular
+      - Wi-Fi only
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: data-network
+    label: Data Network
+    values:
+      - 3G
+      - 4G
+      - 5G
+      - LTE
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: smart-watch-features
+    label: Smart Watch Features
+    values:
+      - Alarm
+      - Anti-reflective
+      - Blood oxygen level monitoring
+      - Blood pressure monitoring
+      - Camera control
+      - Compass
+      - Customizable watch faces
+      - Device location feature
+      - ECG monitoring
+      - Fitness tracker
+      - GPS support
+      - Heart rate monitor
+      - Interchangeable strap
+      - Music control
+      - Offline music storage
+      - Sleep tracker
+      - Step counter
+      - Thermometer
+      - Touchscreen
+      - Vibration
+      - Voice control
+      - Waterproof
+      - World timer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: watch-display
+    label: Watch Display
+    values:
+      - Ana-Digi
+      - Analog
+      - Digital
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: watch-features
+    label: Watch Features
+    values:
+      - Alarm
+      - Anti-reflective
+      - Automatic movement
+      - Date display
+      - Deployment clasp
+      - Interchangeable strap
+      - Limited edition
+      - Luminous hands
+      - Luminous markers
+      - Magnetic resistance
+      - Manual winding
+      - Moon phase display
+      - Multiple time zones
+      - Perpetual calendar
+      - Power reserve indicator
+      - Quartz movement
+      - Rotating bezel
+      - Screw-down crown
+      - Shockproof
+      - Skeleton dial
+      - Solar powered
+      - Tachymeter
+      - Waterproof
+      - World timer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: display-type
+    label: Display Type
+    values:
+      - OLED
+      - AMOLED
+      - LCD
+      - E-Ink
+      - None
+    provenance:
+      sources:
+        - system: manual
+  - handle: battery-life
+    label: Battery Life
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: water-resistance
+    label: Water Resistance
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: connectivity
+    label: Connectivity
+    values:
+      - Bluetooth
+      - Wi-Fi
+      - GPS
+      - NFC
+    provenance:
+      sources:
+        - system: manual
+  - handle: auto-focusing-modes
+    label: Auto Focusing Modes
+    values:
+      - AI
+      - Area
+      - Center weighted
+      - Continuous
+      - Contrast detection
+      - Far/Near
+      - Flexible spot
+      - Monitoring
+      - Multi point
+      - One shot
+      - Selective
+      - Servo
+      - Single
+      - Spot
+      - Tracking
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: camera-display-technology
+    label: Camera Display Technology
+    values:
+      - AMOLED
+      - LCD
+      - OLED
+      - Super AMOLED
+      - TFT
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: camera-features
+    label: Camera Features
+    values:
+      - Adjustable aperture
+      - Adjustable ISO
+      - Adjustable shutter speed
+      - Anti-reflective
+      - Articulating screen
+      - Built-in flash
+      - Built-in speakers
+      - Digital zoom
+      - Face detection
+      - Freezeproof
+      - Hot shoe mount
+      - Image stabilization
+      - Interchangeable lens
+      - LED backlight
+      - Lightweight
+      - Remote control
+      - Self-timer
+      - Shockproof
+      - Slow motion mode
+      - Time lapse mode
+      - Timer
+      - Touchscreen
+      - Viewfinder
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: camera-hd-type
+    label: Camera Hd Type
+    values:
+      - 4K
+      - 4.4K
+      - 5.7K
+      - 5.8K
+      - 8K
+      - 4K ultra HD
+      - 5K ultra HD
+      - 6K ultra HD
+      - 8K ultra HD
+      - Full HD
+      - HD
+      - Not supported
+      - Quad HD
+      - SD
+      - VGA
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: camera-sensor-type
+    label: Camera Sensor Type
+    values:
+      - 3CMOS
+      - 3MOS
+      - BSI
+      - BSI CMOS
+      - CCD
+      - CMOS
+      - CMOS II
+      - CMOS III
+      - EMCCD
+      - Exmor R CMOS
+      - Exmor RS CMOS
+      - Foveon
+      - Live MOS
+      - MOS
+      - MOS BSI
+      - NMOS
+      - sCMOS
+      - Super CCD
+      - X-trans CMOS 4
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-memory-cards
+    label: Compatible Memory Cards
+    values:
+      - CF
+      - CF Type II
+      - CF+
+      - CFast
+      - CFast 2.0
+      - CFexpress
+      - DV RS-MMC
+      - EXD
+      - expressP2
+      - Eye-Fi
+      - FLU
+      - HC MMC+
+      - Microdrive
+      - MicroP2
+      - MicroSD (transflash)
+      - microSDHC
+      - microSDXC
+      - MiniMMC
+      - MiniSD
+      - MiniSDHC
+      - MMC
+      - MMC micro
+      - MMC mobile
+      - MMCplus
+      - MS
+      - MS duo
+      - MS micro (M2)
+      - MS PRO
+      - MS PRO duo
+      - MS PRO duo HS
+      - MS PRO duo mark 2
+      - MS Pro-HG
+      - MS Pro-HG duo
+      - MS Pro-HG duo HX
+      - MS XC-HG duo
+      - MSXC
+      - Nano memory (NM)
+      - Not supported
+      - P2
+      - PSVita
+      - RS-MMC
+      - SD
+      - SDHC
+      - SDIO
+      - SDXC
+      - Smart media
+      - Smart media xD
+      - SR memory
+      - SxS
+      - SxS Pro
+      - SxS-1
+      - xD
+      - XQD
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: flash-modes
+    label: Flash Modes
+    values:
+      - Auto
+      - Fill-in
+      - Flash off
+      - Flash on
+      - Forced off
+      - Forced on
+      - High-speed sync
+      - Manual
+      - Multi
+      - Normal
+      - Pre-flash
+      - Rear curtain
+      - Red-eye reduction
+      - Second curtain sync
+      - Slave
+      - Slow synchronization
+      - Soft
+      - Stroboscopic
+      - Suppressed
+      - TTL
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: focus-adjustment
+    label: Focus Adjustment
+    values:
+      - Auto
+      - Manual
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: focus-type
+    label: Focus Type
+    values:
+      - TTL
+      - TTL iESP
+      - TTL-CT-SIR
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: camera-lens-type
+    label: Camera Lens Type
+    values:
+      - Cinema
+      - Extender
+      - Fisheye
+      - Fixed focus
+      - Macro
+      - Macro telephoto
+      - Standard
+      - Standard zoom
+      - Super telephoto
+      - Super wide
+      - Telephoto
+      - Telephoto zoom
+      - Tilt-shift
+      - Ultra-telephoto zoom
+      - Ultra-wide
+      - Wide
+      - Wide angle macro
+      - Wide fish-eye
+      - Wide zoom
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: suitable-for-camera-type
+    label: Suitable For Camera Type
+    values:
+      - Action sports camera
+      - Bridge camera
+      - Camcorder
+      - Camera drone
+      - CCTV camera
+      - Compact camera
+      - Gimbal camera
+      - Instant print camera
+      - IP camera
+      - MILC
+      - SLR
+      - Smartphone
+      - Tablet
+      - Time lapse camera
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: feet-type
+    label: Feet Type
+    values:
+      - Pivoting
+      - Retractable
+      - Rubber
+      - Spiked
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: leg-lock-type
+    label: Leg Lock Type
+    values:
+      - Flip lock
+      - Push-pull lock
+      - Twist lock
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: leg-sections
+    label: Leg Sections
+    values:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - 5+
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mount-stand-features
+    label: Mount Stand Features
+    values:
+      - 360 degree rotation
+      - Adjustable angle
+      - Adjustable dimensions
+      - AI-powered
+      - Anti-slip base
+      - Cable management
+      - Collapsible
+      - Easy to install
+      - Foldable
+      - Motorized operation
+      - Portable
+      - Quick release
+      - Remote control
+      - Retractable
+      - Shockproof
+      - Swivel
+      - Telescopic
+      - Tilt function
+      - Vibration reduction
+      - Weather resistant
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: audio-component-form-factor
+    label: Audio Component Form Factor
+    values:
+      - 500-series module
+      - Desktop
+      - Eurorack module
+      - Pedal
+      - Portable/Field
+      - Rackmount 1U
+      - Rackmount 2U
+      - Rackmount 3U+
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: audio-connectivity
+    label: Audio Connectivity
+    values:
+      - 2.5 mm
+      - 3.5 mm
+      - 6.35 mm
+      - Bluetooth
+      - Display port
+      - HDMI
+      - Micro USB
+      - Optical
+      - USB
+      - Wi-Fi
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: charging-interface-type
+    label: Charging Interface Type
+    values:
+      - DC barrel connector
+      - Lightning
+      - MagSafe
+      - Micro USB
+      - Mini USB
+      - Proprietary connector
+      - USB type-A
+      - USB type-C
+      - Wireless charging
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: earphone-features
+    label: Earphone Features
+    values:
+      - AI-powered
+      - Awareness mode
+      - Built-in microphone
+      - High fidelity audio
+      - Noise cancellation
+      - Volume control
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: headphone-driver-technology
+    label: Headphone Driver Technology
+    values:
+      - Balanced armature
+      - Bone conduction
+      - Dynamic
+      - Electrostatic
+      - Hybrid
+      - Piezoelectric
+      - Planar magnetic
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: audio-output-channel
+    label: Audio Output Channel
+    values:
+      - '2'
+      - '2.1'
+      - '3'
+      - '3.1'
+      - '4'
+      - '4.1'
+      - '5'
+      - '5.1'
+      - '6'
+      - '6.1'
+      - '7'
+      - '7.1'
+      - '9'
+      - '9.1'
+      - '11'
+      - '11.1'
+      - '13.2'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: audio-purpose
+    label: Audio Purpose
+    values:
+      - Car audio
+      - Computer audio
+      - Home audio
+      - Home cinema
+      - Outdoor use
+      - PA system
+      - Portable audio
+      - Professional audio
+      - Smart home
+      - Studio monitoring
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-voice-assistant
+    label: Compatible Voice Assistant
+    values:
+      - Amazon Alexa
+      - Apple Siri
+      - Google Assistant
+      - None
+      - Works with Sonos Voice
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: maximum-bit-depth
+    label: Maximum Bit Depth
+    values:
+      - 12-bit
+      - 16-bit
+      - 20-bit
+      - 24-bit
+      - 32-bit
+      - 48-bit
+      - 8-bit
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: microphone-design
+    label: Microphone Design
+    values:
+      - Boundary
+      - Condenser
+      - Dynamic
+      - Lavalier
+      - Parabolic
+      - Ribbon
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: microphone-thread
+    label: Microphone Thread
+    values:
+      - 1/4"-20
+      - 3/8"-16
+      - 5/8"-27
+      - M6
+      - M10
+      - M20
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-game-format
+    label: Compatible Game Format
+    values:
+      - Backward compatibility
+      - Digital download only
+      - Physical disc
+      - Virtual console
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-resolution
+    label: Compatible Resolution
+    values:
+      - 4K ultra HD
+      - 8K ultra HD
+      - 144p
+      - 240p
+      - 360p
+      - 480p
+      - 720p
+      - 1080p
+      - 1440p
+      - 2160p
+      - 4320p
+      - Full HD
+      - HD
+      - Quad HD
+      - SD
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: console-accessories-included
+    label: Console Accessories Included
+    values:
+      - Carrying case
+      - Charging cable
+      - Controller
+      - Dock
+      - Games
+      - HDMI cable
+      - Headset
+      - Memory card
+      - Power cable
+      - Stand
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: console-type
+    label: Console Type
+    values:
+      - Handheld
+      - Home
+      - Hybrid
+      - Plug-and-play micro console
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: region-code
+    label: Region Code
+    values:
+      - Africa (AF)
+      - Asia (AS)
+      - Australia (AUS)
+      - Europe (EU)
+      - Global (GL)
+      - Japan (JP)
+      - Latin America (LA)
+      - Middle East (ME)
+      - North America (NA)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: video-game-platform
+    label: Video Game Platform
+    values:
+      - Amiga
+      - Arcade
+      - Atari 2600
+      - Atari 7800
+      - Commodore 64
+      - Game Boy
+      - Mobile
+      - Neo Geo
+      - Nintendo 2DS
+      - Nintendo 3DS
+      - Nintendo 64
+      - Nintendo DS
+      - Nintendo Entertainment System (NES)
+      - Nintendo GameCube
+      - Nintendo Switch
+      - Nintendo Wii
+      - Nintendo Wii U
+      - PC
+      - PlayStation 1
+      - PlayStation 2
+      - PlayStation 3
+      - PlayStation 4
+      - PlayStation 5
+      - PlayStation Portable (PSP)
+      - PlayStation Vita
+      - Sega Dreamcast
+      - Sega Genesis
+      - Sega Saturn
+      - Steam
+      - Super Nintendo Entertainment System (SNES)
+      - Virtual Reality
+      - Xbox
+      - Xbox 360
+      - Xbox One
+      - Xbox Series XS
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: audio-technology
+    label: Audio Technology
+    values:
+      - AAC
+      - Dolby atmos
+      - Dolby digital (AC-3)
+      - Dolby Digital Plus (E-AC-3)
+      - Dolby Pro Logic IIz
+      - Dolby trueHD
+      - DTS
+      - DTS Neo
+      - DTS Virtual
+      - DTS-HD High Resolution Audio
+      - DTS-HD master audio
+      - DTS-X
+      - LPCM (Linear Pulse Code Modulation)
+      - PCM (Pulse Code Modulation)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hdr-format
+    label: Hdr Format
+    values:
+      - Advanced HDR
+      - Dolby vision
+      - HDR10
+      - HDR10+
+      - HLG
+      - No HDR
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: native-aspect-ratio
+    label: Native Aspect Ratio
+    values:
+      - '15:9'
+      - '16:10'
+      - '16:18'
+      - '16:9'
+      - '17:10'
+      - '17:9'
+      - '1:1'
+      - '21:9'
+      - '24:10:00'
+      - '32:10:00'
+      - '32:9'
+      - '3:2'
+      - '3:4'
+      - '4:3'
+      - '4:5'
+      - '5:4'
+      - '8:5'
+      - '9:16'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: smart-tv-platform
+    label: Smart Tv Platform
+    values:
+      - Android TV
+      - Apple tvOS
+      - Fire TV
+      - Panasonic My Home Screen
+      - Roku TV
+      - Tizen
+      - Vizio SmartCast
+      - webOS
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: keystone-correction-type
+    label: Keystone Correction Type
+    values:
+      - Automatic
+      - Automatic 4-corner
+      - Automatic horizontal
+      - Automatic horizontal & vertical
+      - Automatic vertical
+      - Four-point
+      - Manual
+      - Manual 4-corner
+      - Manual horizontal
+      - Manual vertical
+      - None
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: projector-light-source
+    label: Projector Light Source
+    values:
+      - Laser
+      - LED
+      - Metal halide
+      - NSH
+      - P-VIP
+      - SHP
+      - UHP
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: clasp-type
+    label: Clasp Type
+    values:
+      - Buckle
+      - Butterfly
+      - Deployment
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: watch-accessory-style
+    label: Watch Accessory Style
+    values:
+      - Classic
+      - Modern
+      - Sporty
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: gemstone-type
+    label: Gemstone Type
+    values:
+      - Abalone
+      - Agate
+      - Alexandrite
+      - Amazonite
+      - Amber
+      - Amethyst
+      - Ammolite
+      - Apatite
+      - Aquamarine
+      - Aventurine
+      - Beryl
+      - Bloodstone
+      - Carnelian
+      - Chalcedony
+      - Chrysocolla
+      - Chrysoprase
+      - Citrine
+      - Coral
+      - Cubic zirconia
+      - Diamond
+      - Diaspore
+      - Diopside
+      - Emerald
+      - Fluorite
+      - Garnet
+      - Goldstone
+      - Hematite
+      - Howlite
+      - Iolite
+      - Jade
+      - Jadeite
+      - Jasper
+      - Jet
+      - Kunzite
+      - Kyanite
+      - Labradorite
+      - Lapis lazuli
+      - Larimar
+      - Malachite
+      - Marcasite
+      - Moissanite
+      - Moldavite
+      - Moonstone
+      - Morganite
+      - Mother of pearl
+      - Nephrite
+      - Obsidian
+      - Onyx
+      - Opal
+      - Opalite
+      - Pearl
+      - Peridot
+      - Prehnite
+      - Quartz
+      - Rhodochrosite
+      - Rhodonite
+      - Rose quartz
+      - Rutilated quartz
+      - Sapphire
+      - Shell
+      - Smoky quartz
+      - Sodalite
+      - Spinel
+      - Sunstone
+      - Tanzanite
+      - Tiger's eye
+      - Topaz
+      - Tourmaline
+      - Turquoise
+      - Unakite
+      - Variscite
+      - Zircon
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: jewelry-type
+    label: Jewelry Type
+    values:
+      - Fine jewelry
+      - Imitation jewelry
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: ring-design
+    label: Ring Design
+    values:
+      - Band
+      - Beaded
+      - Birthstone
+      - Chain
+      - Charm
+      - Claddagh
+      - Cocktail
+      - Cuff
+      - Eternity
+      - Halo
+      - Row
+      - Signet
+      - Solitaire
+      - Stackable
+      - Tennis
+      - Three-stone
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: ring-size
+    label: Ring Size
+    values:
+      - '0.25'
+      - '0.5'
+      - '0.75'
+      - '1'
+      - '1.25'
+      - '1.5'
+      - '1.75'
+      - '2'
+      - '2.25'
+      - '2.5'
+      - '2.75'
+      - '3'
+      - '3.25'
+      - '3.5'
+      - '3.75'
+      - '4'
+      - '4.25'
+      - '4.5'
+      - '4.75'
+      - '5'
+      - '5.25'
+      - '5.5'
+      - '5.75'
+      - '6'
+      - '6.25'
+      - '6.5'
+      - '6.75'
+      - '7'
+      - '7.25'
+      - '7.5'
+      - '7.75'
+      - '8'
+      - '8.25'
+      - '8.5'
+      - '8.75'
+      - '9'
+      - '9.25'
+      - '9.5'
+      - '9.75'
+      - '10'
+      - '10.25'
+      - '10.5'
+      - '10.75'
+      - '11'
+      - '11.25'
+      - '11.5'
+      - '11.75'
+      - '12'
+      - '12.25'
+      - '12.5'
+      - '12.75'
+      - '13'
+      - '13.25'
+      - '13.5'
+      - '13.75'
+      - '14'
+      - '38'
+      - '39'
+      - '40'
+      - '41'
+      - '42'
+      - '43'
+      - '44'
+      - '45'
+      - '46'
+      - '47'
+      - '48'
+      - '49'
+      - '50'
+      - '51'
+      - '52'
+      - '53'
+      - '54'
+      - '55'
+      - '56'
+      - '57'
+      - '58'
+      - '59'
+      - '60'
+      - '61'
+      - '62'
+      - '63'
+      - '64'
+      - '65'
+      - '66'
+      - '67'
+      - '68'
+      - '69'
+      - A
+      - B
+      - C
+      - D
+      - E
+      - F
+      - G
+      - H
+      - I
+      - J
+      - K
+      - L
+      - M
+      - 'N'
+      - O
+      - P
+      - Q
+      - R
+      - S
+      - T
+      - U
+      - V
+      - W
+      - X
+      - 'Y'
+      - Z
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: stone-shape
+    label: Stone Shape
+    values:
+      - Heart
+      - Hexagonal
+      - Marquise
+      - Oval
+      - Pear
+      - Rectangular
+      - Round
+      - Square
+      - Teardrop
+      - Triangular
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: necklace-design
+    label: Necklace Design
+    values:
+      - Beaded
+      - Chain
+      - Choker
+      - Cord
+      - Cuff
+      - Lariat
+      - Pendant
+      - Riviera
+      - Statement
+      - Strand
+      - Y-shaped
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: earring-design
+    label: Earring Design
+    values:
+      - Chandelier
+      - Clip-On
+      - Dangle
+      - Drop
+      - Ear climber
+      - Ear cuff
+      - Hoop
+      - Huggie
+      - Jacket
+      - Stud
+      - Teardrop
+      - Threader
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bracelet-design
+    label: Bracelet Design
+    values:
+      - Bangle
+      - Beaded
+      - Chain
+      - Charm
+      - Cord
+      - Cuff
+      - Friendship
+      - Link
+      - Slider
+      - Tennis
+      - Woven beaded
+      - Wrap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: platform
+    label: Platform
+    values:
+      - Windows
+      - macOS
+      - Linux
+      - Cross-Platform
+      - Web
+    provenance:
+      sources:
+        - system: manual
+  - handle: license-type
+    label: License Type
+    values:
+      - Perpetual
+      - Subscription
+      - Freeware
+      - Open Source
+      - Personal Use
+      - Commercial Use
+      - Royalty-Free
+    provenance:
+      sources:
+        - system: manual
+  - handle: software-category
+    label: Software Category
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: delivery-method
+    label: Delivery Method
+    values:
+      - Download
+      - Physical
+      - Cloud Key
+    provenance:
+      sources:
+        - system: manual
+  - handle: subject
+    label: Subject
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: skill-level
+    label: Skill Level
+    values:
+      - Beginner
+      - Intermediate
+      - Advanced
+      - All Levels
+    provenance:
+      sources:
+        - system: manual
+  - handle: duration
+    label: Duration
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: format
+    label: Format
+    values:
+      - Video
+      - Text
+      - Live
+      - Interactive
+    provenance:
+      sources:
+        - system: manual
+  - handle: language
+    label: Language
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: file-format
+    label: File Format
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: file-size
+    label: File Size
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: control-type
+    label: Control Type
+    values:
+      - Button
+      - Lever
+      - Not available
+      - Rotary
+      - Scrollbar
+      - Sensor
+      - Slider
+      - Tilt
+      - Touch
+      - Wireless
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: loading-type
+    label: Loading Type
+    values:
+      - Front-load
+      - Top-load
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: washing-machine-features
+    label: Washing Machine Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: washing-programs
+    label: Washing Programs
+    values:
+      - Anti-allergy
+      - Auto
+      - Baby care
+      - Beddings
+      - Bio
+      - Black color
+      - Cold wash
+      - Cotton
+      - Delicate
+      - Easy care
+      - Eco
+      - Hand
+      - Intensive
+      - Jeans
+      - Lingerie
+      - Microfiber
+      - Mixed colors
+      - Outdoor
+      - Pillow
+      - Pre-wash
+      - Quick wash
+      - Rinse
+      - Shoes
+      - Silk
+      - Spin & drain
+      - Spin only
+      - Sport
+      - Steam
+      - Towel
+      - White color
+      - Wool
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: refrigerator-configuration
+    label: Refrigerator Configuration
+    values:
+      - Beverage center
+      - Bottom freezer
+      - Commercial
+      - Compact/mini
+      - Counter-depth column
+      - Door-in-door
+      - Drawer
+      - French door
+      - Quad door
+      - Side-by-side
+      - Top freezer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: star-rating
+    label: Star Rating
+    values:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: umbrella-opening-mechanism
+    label: Umbrella Opening Mechanism
+    values:
+      - Automatic
+      - Manual
+      - Semi-automatic
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cleaning-surfaces
+    label: Cleaning Surfaces
+    values:
+      - Appliances
+      - Bathroom fixtures
+      - Carpet
+      - Clothing
+      - Countertops
+      - Fabric
+      - Glass surfaces
+      - Grout lines
+      - Hard surfaces
+      - Kitchen sinks
+      - Laminate flooring
+      - Pet bedding
+      - Rug
+      - Stair steps
+      - Stone flooring
+      - Stovetops
+      - Tiles
+      - Upholstery
+      - Vinyl flooring
+      - Wood flooring
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dirt-separating-method
+    label: Dirt Separating Method
+    values:
+      - Aqua filtering
+      - Cyclonic
+      - Filtering
+      - Multi cyclonic
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dry-wet-cleaning
+    label: Dry Wet Cleaning
+    values:
+      - Dry
+      - Dry & wet
+      - Wet
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dust-container-type
+    label: Dust Container Type
+    values:
+      - Bagless
+      - Combi
+      - Dust bag
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: vacuum-air-filtering-technology
+    label: Vacuum Air Filtering Technology
+    values:
+      - Allergy
+      - Carbon
+      - EPA
+      - HEPA
+      - Microfilter
+      - Odor
+      - Pet
+      - Post-motor
+      - Pre-motor
+      - S-class
+      - Standard
+      - Washable
+      - Water
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: microwave-oven-functions
+    label: Microwave Oven Functions
+    values:
+      - Air fry
+      - Auto defrost
+      - Child lock
+      - Combination cook
+      - Convection bake
+      - Grill
+      - Keep warm
+      - Melt/soften
+      - Popcorn preset
+      - Reheat
+      - Sensor cook
+      - Steam
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: turntable-type
+    label: Turntable Type
+    values:
+      - Flatbed
+      - Removable turntable with ring
+      - Roller ring only
+      - Rotating glass turntable
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: blending-type
+    label: Blending Type
+    values:
+      - Batch
+      - Continuous
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: caffeine-content
+    label: Caffeine Content
+    values:
+      - Decaf
+      - Low caffeine
+      - Regular
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: coffee-product-form
+    label: Coffee Product Form
+    values:
+      - Ground
+      - Whole bean
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: coffee-roast
+    label: Coffee Roast
+    values:
+      - Dark
+      - Light
+      - Medium
+      - Medium-dark
+      - Medium-light
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: country
+    label: Country
+    values:
+      - Afghanistan
+      - Åland Islands
+      - Albania
+      - Algeria
+      - Andorra
+      - Angola
+      - Anguilla
+      - Antigua & Barbuda
+      - Argentina
+      - Armenia
+      - Aruba
+      - Ascension Island
+      - Australia
+      - Austria
+      - Azerbaijan
+      - Bahamas
+      - Bahrain
+      - Bangladesh
+      - Barbados
+      - Belarus
+      - Belgium
+      - Belize
+      - Benin
+      - Bermuda
+      - Bhutan
+      - Bolivia
+      - Bosnia & Herzegovina
+      - Botswana
+      - Brazil
+      - British Indian Ocean Territory
+      - British Virgin Islands
+      - Brunei
+      - Bulgaria
+      - Burkina Faso
+      - Burundi
+      - Cambodia
+      - Cameroon
+      - Canada
+      - Cape Verde
+      - Caribbean Netherlands
+      - Cayman Islands
+      - Central African Republic
+      - Chad
+      - Chile
+      - China
+      - Christmas Island
+      - Cocos (Keeling) Islands
+      - Colombia
+      - Comoros
+      - Congo - Brazzaville
+      - Congo - Kinshasa
+      - Cook Islands
+      - Costa Rica
+      - Côte d'Ivoire
+      - Croatia
+      - Curaçao
+      - Cyprus
+      - Czechia
+      - Denmark
+      - Djibouti
+      - Dominica
+      - Dominican Republic
+      - Ecuador
+      - Egypt
+      - El Salvador
+      - Equatorial Guinea
+      - Eritrea
+      - Estonia
+      - Eswatini
+      - Ethiopia
+      - Falkland Islands
+      - Faroe Islands
+      - Fiji
+      - Finland
+      - France
+      - French Guiana
+      - French Polynesia
+      - French Southern Territories
+      - Gabon
+      - Gambia
+      - Georgia
+      - Germany
+      - Ghana
+      - Gibraltar
+      - Greece
+      - Greenland
+      - Grenada
+      - Guadeloupe
+      - Guatemala
+      - Guernsey
+      - Guinea
+      - Guinea-Bissau
+      - Guyana
+      - Haiti
+      - Honduras
+      - Hong Kong SAR
+      - Hungary
+      - Iceland
+      - India
+      - Indonesia
+      - Iraq
+      - Ireland
+      - Isle of Man
+      - Israel
+      - Italy
+      - Jamaica
+      - Japan
+      - Jersey
+      - Jordan
+      - Kazakhstan
+      - Kenya
+      - Kiribati
+      - Kosovo
+      - Kuwait
+      - Kyrgyzstan
+      - Laos
+      - Latvia
+      - Lebanon
+      - Lesotho
+      - Liberia
+      - Libya
+      - Liechtenstein
+      - Lithuania
+      - Luxembourg
+      - Macao SAR
+      - Madagascar
+      - Malawi
+      - Malaysia
+      - Maldives
+      - Mali
+      - Malta
+      - Martinique
+      - Mauritania
+      - Mauritius
+      - Mayotte
+      - Mexico
+      - Moldova
+      - Monaco
+      - Mongolia
+      - Montenegro
+      - Montserrat
+      - Morocco
+      - Mozambique
+      - Myanmar (Burma)
+      - Namibia
+      - Nauru
+      - Nepal
+      - Netherlands
+      - New Caledonia
+      - New Zealand
+      - Nicaragua
+      - Niger
+      - Nigeria
+      - Niue
+      - Norfolk Island
+      - North Macedonia
+      - Norway
+      - Oman
+      - Pakistan
+      - Palestinian Territories
+      - Panama
+      - Papua New Guinea
+      - Paraguay
+      - Peru
+      - Philippines
+      - Pitcairn Islands
+      - Poland
+      - Portugal
+      - Qatar
+      - Réunion
+      - Romania
+      - Russia
+      - Rwanda
+      - Samoa
+      - San Marino
+      - São Tomé & Príncipe
+      - Saudi Arabia
+      - Senegal
+      - Serbia
+      - Seychelles
+      - Sierra Leone
+      - Singapore
+      - Sint Maarten
+      - Slovakia
+      - Slovenia
+      - Solomon Islands
+      - Somalia
+      - South Africa
+      - South Georgia & South Sandwich Islands
+      - South Korea
+      - South Sudan
+      - Spain
+      - Sri Lanka
+      - St Barthélemy
+      - St Helena
+      - St Kitts & Nevis
+      - St Lucia
+      - St Martin
+      - St Pierre & Miquelon
+      - St Vincent & the Grenadines
+      - Sudan
+      - Suriname
+      - Svalbard & Jan Mayen
+      - Sweden
+      - Switzerland
+      - Taiwan
+      - Tajikistan
+      - Tanzania
+      - Thailand
+      - Timor-Leste
+      - Togo
+      - Tokelau
+      - Tonga
+      - Trinidad & Tobago
+      - Tristan da Cunha
+      - Tunisia
+      - Türkiye
+      - Turkmenistan
+      - Turks & Caicos Islands
+      - Tuvalu
+      - Uganda
+      - Ukraine
+      - United Arab Emirates
+      - United Kingdom
+      - United States
+      - Uruguay
+      - US Outlying Islands
+      - Uzbekistan
+      - Vanuatu
+      - Vatican City
+      - Venezuela
+      - Vietnam
+      - Wallis & Futuna
+      - Western Sahara
+      - Yemen
+      - Zambia
+      - Zimbabwe
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: temperature-control
+    label: Temperature Control
+    values:
+      - Adjustable temperature
+      - Preset temperature
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: toaster-features
+    label: Toaster Features
+    values:
+      - Automatic shut-off
+      - Bagel function
+      - Browning control
+      - Cancel button
+      - Cord storage
+      - Countdown timer
+      - Defrost function
+      - Digital display
+      - Extra-lift lever
+      - High-lift carriage
+      - Illuminated buttons
+      - Keep warm
+      - Lift and look
+      - Reheat function
+      - Removable crumb tray
+      - Safety cool-touch walls
+      - Self-centering guides
+      - Shade selector
+      - Sound notification
+      - Wide slots
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bottle-container-closure
+    label: Bottle Container Closure
+    values:
+      - Flip cap
+      - Pump
+      - Screw cap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cleaning-instructions
+    label: Cleaning Instructions
+    values:
+      - Dishwasher safe
+      - Hand wash only
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lid-type
+    label: Lid Type
+    values:
+      - Flip-top
+      - Screw-on
+      - Snap-on
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mixing-mechanism
+    label: Mixing Mechanism
+    values:
+      - Electric motor
+      - Manual plunger
+      - Pump-action
+      - Rotary whisk
+      - Shaker only
+      - Wire ball
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: electric-kettle-features
+    label: Electric Kettle Features
+    values:
+      - 360-degree swivel base
+      - Auto shut-off
+      - Boil-dry protection
+      - Cool-touch exterior
+      - Keep-warm function
+      - Locking lid
+      - Removable filter
+      - Temperature display
+      - Water level indicator
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: firmness
+    label: Firmness
+    values:
+      - Extra firm
+      - Extra soft
+      - Firm
+      - Medium
+      - Medium firm
+      - Medium soft
+      - Soft
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: seat-type
+    label: Seat Type
+    values:
+      - Air filled
+      - Bucket (cradle)
+      - Flat
+      - Hard
+      - Mesh
+      - Nest
+      - Padded
+      - Strap
+      - Swing bag
+      - Upholstered
+      - Upholstered padded
+      - Upholstered strap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: sofa-features
+    label: Sofa Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bedding-size
+    label: Bedding Size
+    values:
+      - Single
+      - Twin
+      - Twin XL
+      - Standard
+      - Double
+      - Queen
+      - King
+      - California king
+      - Bunk
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: tabletop-shape
+    label: Tabletop Shape
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: furniture-fixture-features
+    label: Furniture Fixture Features
+    values:
+      - Adjustable shelves
+      - Assembly required
+      - Built-in mirror
+      - Built-in sink
+      - Corner unit
+      - Doors
+      - Drawers
+      - Expandable
+      - Free standing
+      - Hanging rods
+      - Modular
+      - Mountable
+      - Paintable
+      - Removable bin
+      - Roll-out tray
+      - Shelves
+      - Storage options
+      - Wardrobe lift
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pile-type
+    label: Pile Type
+    values:
+      - Berber
+      - Braided
+      - Cable
+      - Cut
+      - Cut & loop
+      - Flatweave
+      - Frieze
+      - Hand-knotted
+      - Hand-tufted
+      - Level loop
+      - Loop
+      - Low
+      - Machine made
+      - Multi-level loop
+      - Plush
+      - Saxony
+      - Shag
+      - Textured saxony
+      - Tufted
+      - Velvet
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: rug-features
+    label: Rug Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: rug-shape
+    label: Rug Shape
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: curtain-heading-style
+    label: Curtain Heading Style
+    values:
+      - Back tab
+      - Box pleat
+      - Goblet pleat
+      - Grommet/eyelet
+      - Hidden tab
+      - Pencil pleat
+      - Pinch pleat
+      - Ring top
+      - Ripple fold
+      - Rod pocket
+      - Tab top
+      - Tie top
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: curtain-lining-type
+    label: Curtain Lining Type
+    values:
+      - Blackout Lined
+      - Dimout Lined
+      - Interlined
+      - Privacy Lined
+      - Room Darkening Lined
+      - Sheer
+      - Thermal Lined
+      - Unlined
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: light-control
+    label: Light Control
+    values:
+      - Blackout
+      - Light filtering
+      - Opaque
+      - Room darkening
+      - Semi-opaque
+      - Sheer
+      - Solar
+      - Translucent
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: art-movement
+    label: Art Movement
+    values:
+      - Abstract
+      - Art deco
+      - Art nouveau
+      - Baroque
+      - Bauhaus
+      - Classicism
+      - Cubism
+      - Dadaism
+      - Expressionism
+      - Fauvism
+      - Futurism
+      - Gothic
+      - Impressionism
+      - Minimalism
+      - Modernism
+      - Neoclassicism
+      - Pop art
+      - Post-Impressionism
+      - Realism
+      - Renaissance
+      - Rococo
+      - Romanticism
+      - Surrealism
+      - Symbolism
+      - Victorian
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: artwork-authenticity
+    label: Artwork Authenticity
+    values:
+      - Original
+      - Reproduction
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: frame-style
+    label: Frame Style
+    values:
+      - Acrylic
+      - Braided
+      - Canvas
+      - Clip
+      - Floater
+      - Framed
+      - Gallery wrapped
+      - Matted
+      - Modern
+      - Ornate
+      - Poster
+      - Rustic
+      - Shadow box
+      - Unframed
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: orientation
+    label: Orientation
+    values:
+      - Horizontal
+      - Vertical
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: edge-style
+    label: Edge Style
+    values:
+      - Beveled
+      - Bullnose
+      - Eased
+      - Ogee
+      - Square
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: frame-design
+    label: Frame Design
+    values:
+      - Aluminum
+      - Frameless
+      - Metal
+      - Plastic
+      - Wood
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lighting-options
+    label: Lighting Options
+    values:
+      - Illuminated
+      - Non-illuminated
+      - Photoluminescent
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mirror-type
+    label: Mirror Type
+    values:
+      - Bathroom vanity
+      - Cheval
+      - Decorative accent
+      - Floor
+      - Full-length
+      - Over-the-door
+      - Standing
+      - Tabletop
+      - Wall
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: item-style
+    label: Item Style
+    values:
+      - Abstract
+      - Colorful
+      - Elegant
+      - Floral
+      - Formal
+      - Geometric
+      - Minimalist
+      - Modern
+      - Novelty
+      - Retro/Vintage
+      - Rustic
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: vase-shape
+    label: Vase Shape
+    values:
+      - Bottle
+      - Conical
+      - Cylindrical
+      - Gourd
+      - Jar
+      - Mushroom
+      - Oval
+      - Pitcher
+      - Round
+      - Square
+      - Turnip
+      - Urn
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bulb-cap-type
+    label: Bulb Cap Type
+    values:
+      - B22
+      - E5
+      - E6
+      - E9
+      - E10
+      - E12
+      - E14
+      - E17
+      - E18
+      - E20
+      - E23
+      - E26
+      - E27
+      - E29
+      - E30
+      - E31
+      - E32
+      - E39
+      - E40
+      - G4
+      - G9
+      - GU10
+      - GU24
+      - MR16
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bulb-size
+    label: Bulb Size
+    values:
+      - A15
+      - A19
+      - A21
+      - BR30
+      - BR40
+      - C7
+      - C9
+      - G25
+      - PAR20
+      - PAR30
+      - PAR38
+      - T2
+      - T4
+      - T5
+      - T8
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bulb-type
+    label: Bulb Type
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: light-temperature
+    label: Light Temperature
+    values:
+      - Blue light
+      - Cool white
+      - Daylight
+      - Ember glow
+      - Warm white
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lighting-features
+    label: Lighting Features
+    values:
+      - Adjustable angle
+      - Adjustable brightness
+      - Adjustable color temperature
+      - AI-powered
+      - Dimmable
+      - Energy efficient
+      - LED lighting
+      - Programmable timer function
+      - Remote control
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: switch-control-type
+    label: Switch Control Type
+    values:
+      - Button
+      - Lever
+      - Rotary
+      - Scrollbar
+      - Sensor
+      - Slider
+      - Tilt
+      - Touch
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bulb-finish
+    label: Bulb Finish
+    values:
+      - Amber tinted
+      - Clear
+      - Colored
+      - Frosted
+      - Half chrome
+      - Mirror front
+      - Opal
+      - Prismatic
+      - Silvered
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bulb-shape
+    label: Bulb Shape
+    values:
+      - A-shape
+      - Bullet
+      - Candle
+      - Edison
+      - Globe
+      - PAR
+      - Reflector
+      - Spiral
+      - Tube
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bedding-pieces-included
+    label: Bedding Pieces Included
+    values:
+      - Bottom sheet
+      - Pillowcase
+      - Top sheet
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: co2-supplementation-requirement
+    label: Co2 Supplementation Requirement
+    values:
+      - High
+      - Low
+      - Medium
+      - Not required
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cover-closure-design
+    label: Cover Closure Design
+    values:
+      - Envelope
+      - Zipper
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pillow-shape
+    label: Pillow Shape
+    values:
+      - Bolster
+      - Lumbar
+      - Neck roll
+      - Rectangular
+      - Round
+      - Square
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: sleeping-position-suitability
+    label: Sleeping Position Suitability
+    values:
+      - Back
+      - Combination
+      - Side
+      - Stomach
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: quilt-construction-type
+    label: Quilt Construction Type
+    values:
+      - Baffle box
+      - Box stitch
+      - Channel
+      - Diamond
+      - Gusseted
+      - Karo step
+      - Ring stitch
+      - Ring-spun
+      - Sewn-through
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: warmth-level
+    label: Warmth Level
+    values:
+      - Extra warm
+      - Lightweight (summer)
+      - Medium (all-season)
+      - Warm (winter)
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: season
+    label: Season
+    values:
+      - Fall
+      - Spring
+      - Summer
+      - Winter
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: warmth-rating
+    label: Warmth Rating
+    values:
+      - All season
+      - Extra warm
+      - Lightweight
+      - Medium
+      - Warm
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: towel-weave
+    label: Towel Weave
+    values:
+      - Flat weave
+      - Honeycomb
+      - Jacquard
+      - Ribbed
+      - Terry
+      - Velour
+      - Waffle
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: exercise-machine-features
+    label: Exercise Machine Features
+    values:
+      - Adjustable inclination
+      - Adjustable speed
+      - Built-in display
+      - Foldable
+      - Handrail
+      - Performance monitor
+      - Pre-set exercise programs
+      - Remote control
+      - Safety stop
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: resistance-system
+    label: Resistance System
+    values:
+      - Air
+      - Electromagnetic
+      - Hydraulic piston
+      - Magnetic
+      - Water
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: fuel-type
+    label: Fuel Type
+    values:
+      - Propane
+      - Butane
+      - White Gas
+      - Wood
+      - Alcohol
+      - Natural Gas
+      - Electric
+    provenance:
+      sources:
+        - system: manual
+  - handle: burner-count
+    label: Burner Count
+    values:
+      - '1'
+      - '2'
+      - '3'
+    provenance:
+      sources:
+        - system: manual
+  - handle: weight
+    label: Weight
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: cooler-style
+    label: Cooler Style
+    values:
+      - Backpack
+      - Bucket
+      - Chest
+      - Collapsible
+      - Cooler bag
+      - Electric/thermoelectric
+      - Hard-sided
+      - Rolling
+      - Soft-sided
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: handle-type
+    label: Handle Type
+    values:
+      - Long
+      - No handle
+      - Short
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: safety-certifications
+    label: Safety Certifications
+    values:
+      - ASTM F1967-19
+      - BPA-free
+      - EN 71
+      - Phthalate-free
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bicycle-features
+    label: Bicycle Features
+    values:
+      - Adjustable handlebar
+      - Built-in brake light
+      - Built-in front light
+      - Certified safety
+      - Heavy duty brakes
+      - LED control panel
+      - Luggage rack
+      - Puncture resistant tires
+      - Telescoping seat
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: gearing-type
+    label: Gearing Type
+    values:
+      - Belt
+      - Chain
+      - Chainless
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: compatible-bike-type
+    label: Compatible Bike Type
+    values:
+      - Downhill
+      - Electric
+      - Hybrid
+      - Mountain
+      - Road
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: food-product-form
+    label: Food Product Form
+    values:
+      - Dried
+      - Fresh
+      - Frozen
+      - Granules
+      - Ground
+      - Powder
+      - Preserved
+      - Sheets
+      - Untreated/Raw
+      - Whole
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: tea-input-type
+    label: Tea Input Type
+    values:
+      - Bags
+      - Blossoms
+      - Capsules
+      - Compressed
+      - Instant
+      - K-cups
+      - Loose
+      - Pods
+      - T-disks
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: chocolate-type
+    label: Chocolate Type
+    values:
+      - Dark chocolate
+      - Milk chocolate
+      - White chocolate
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: soda-variety
+    label: Soda Variety
+    values:
+      - Cola
+      - Ginger ale
+      - Ginger beer
+      - Lemon-lime
+      - Orange
+      - Soda cream
+      - Tonic water
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cultivar-type
+    label: Cultivar Type
+    values:
+      - Genetically modified
+      - Heirloom
+      - Hybrid
+      - Open-pollinated
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hardiness-zone
+    label: Hardiness Zone
+    values:
+      - 1a
+      - 2a
+      - 3a
+      - 4a
+      - 5a
+      - 6a
+      - 7a
+      - 8a
+      - 9a
+      - 10a
+      - 11a
+      - 12a
+      - 13a
+      - 1b
+      - 2b
+      - 3b
+      - 4b
+      - 5b
+      - 6b
+      - 7b
+      - 8b
+      - 9b
+      - 10b
+      - 11b
+      - 12b
+      - 13b
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: plant-characteristics
+    label: Plant Characteristics
+    values:
+      - Attracts pollinators
+      - Cold hardy
+      - Deer-resistant
+      - Disease resistant
+      - Drought resistant
+      - Edible
+      - Evergreen
+      - Fast-growing
+      - Flowering
+      - Fragrant
+      - Groundcover
+      - Self-fertile
+      - Self-pollinating
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: plant-class
+    label: Plant Class
+    values:
+      - Apiales
+      - Aquifoliaceae
+      - Arecidae
+      - Asparagales
+      - Asterales
+      - Brassicales
+      - Bryophyta
+      - Caryophyllales
+      - Charophyceae
+      - Chlorophyceae
+      - Commelinidae
+      - Coniferopsida
+      - Cornales
+      - Cucurbitales
+      - Cycadopsida
+      - Dilleniidae
+      - Dioscoreales
+      - Equisetopsida
+      - Ericales
+      - Fabidae
+      - Fagales
+      - Geraniales
+      - Ginkgopsida
+      - Gnetidae
+      - Gnetopsida
+      - Lamiales
+      - Liliopsida
+      - Lycopodiopsida
+      - Magnoliidae
+      - Magnoliopsida
+      - Malpighiales
+      - Marchantiophyta
+      - Myrtales
+      - Ophioglossopsida
+      - Oxalidales
+      - Pinopsida
+      - Piperales
+      - Poales
+      - Polypodiopsida
+      - Psilotopsida
+      - Ranunculales
+      - Rosales
+      - Rosidae
+      - Santalales
+      - Sapindales
+      - Saxifragales
+      - Solanales
+      - Vitales
+      - Zingiberales
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: plant-life-cycle
+    label: Plant Life Cycle
+    values:
+      - Annual
+      - Biennial
+      - Perennial
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: plant-name
+    label: Plant Name
+    values:
+      - Aeonium
+      - Allium
+      - Alocasia
+      - Aloe vera
+      - Amaryllis
+      - Anthurium
+      - Aralia
+      - Aubergine
+      - Bamboo
+      - Basil
+      - Bay leaves
+      - Begonia
+      - Bell pepper
+      - Bird of paradise
+      - Bonsai
+      - Bougainvillea
+      - Boxwood
+      - Cactus
+      - Calathea
+      - Cherry
+      - Cherry tomato
+      - Chervil
+      - Chives
+      - Chrysanthemum
+      - Cilantro
+      - Coriander
+      - Cotton
+      - Courgette
+      - Crocus
+      - Cucumber
+      - Curry leaves
+      - Cyclamen
+      - Daffodil
+      - Dahlia
+      - Daisy
+      - Dandelion
+      - Dill
+      - Echeveria
+      - Echinacea
+      - Edelweiss
+      - Eucalyptus
+      - Fennel
+      - Fern
+      - Ficus
+      - Fir
+      - Forsythia
+      - Galanthus
+      - Gardenia
+      - Geranium
+      - Grape vine
+      - Grass
+      - Hibiscus
+      - Honeysuckle
+      - Hosta
+      - Hyacinth
+      - Hydrangea
+      - Ivy
+      - Jasmine
+      - Lavender
+      - Lily
+      - Magnolia
+      - Marigold
+      - Marjoram
+      - Mint
+      - Miscanthus sinensis
+      - Monstera
+      - Olive
+      - Orchid
+      - Oregano
+      - Palm
+      - Pampas grass
+      - Pansy
+      - Papyrus
+      - Parsley
+      - Peony
+      - Petunia
+      - Phalaenopsis
+      - Philodendron
+      - Pine
+      - Poinsettia
+      - Protea
+      - Ranunculus
+      - Rose
+      - Rosemary
+      - Rubber plant
+      - Sage
+      - Sansevieria
+      - Spider plant
+      - Sunflower
+      - Sweet pea
+      - Tarragon
+      - Thyme
+      - Tomato
+      - Tulip
+      - Venus flytrap
+      - Violet
+      - Water lily
+      - Weeping fig
+      - Wildflower
+      - Willow
+      - Yarrow
+      - Yucca
+      - Zamioculcas
+      - Zinnia
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: gardening-use
+    label: Gardening Use
+    values:
+      - Flower gardening
+      - Landscaping
+      - Mulching
+      - Multi-purpose
+      - Plant growth
+      - Soil quality
+      - Standard
+      - Vegetable gardening
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: release-type
+    label: Release Type
+    values:
+      - Controlled release
+      - Extended release
+      - Fast acting
+      - Gradual release
+      - Immediate release
+      - Slow release
+      - Time release
+      - Water soluble
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cookware-bakeware-features
+    label: Cookware Bakeware Features
+    values:
+      - Induction ready
+      - Lid
+      - Lifetime warranty
+      - Non-stick coating
+      - Oven safe
+      - Stay cool handle
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: heat-output
+    label: Heat Output
+    values: []
+    provenance:
+      sources:
+        - system: manual
+  - handle: pool-type
+    label: Pool Type
+    values:
+      - Above-ground
+      - In-ground
+      - Inflatable
+      - Kiddie
+      - Lap
+      - Plunge
+      - Wading
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: card-size
+    label: Card Size
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: celebration-type
+    label: Celebration Type
+    values:
+      - Baby gender reveal
+      - Baby shower
+      - Birthday
+      - Christmas
+      - Concert
+      - Conference
+      - Easter
+      - Graduation
+      - Halloween
+      - Retirement
+      - Summer
+      - Theater performance
+      - Travel
+      - Valentine's day
+      - Wedding
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: personalization-design
+    label: Personalization Design
+    values:
+      - Blank
+      - Customizable
+      - Printed
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: balloon-shape
+    label: Balloon Shape
+    values:
+      - Animal-shaped
+      - Cartoon character
+      - Heart
+      - Round
+      - Star
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: doll-features
+    label: Doll Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: doll-type
+    label: Doll Type
+    values:
+      - Baby
+      - Collectible
+      - Dress-up
+      - Fashion
+      - Historical
+      - Interactive
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: toy-figure-features
+    label: Toy Figure Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: building-toy-type
+    label: Building Toy Type
+    values:
+      - Architectural construction
+      - Building blocks
+      - Interlocking bricks
+      - Magnetic tiles
+      - Model kits
+      - Robotics building kits
+      - STEM building sets
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: board-game-features
+    label: Board Game Features
+    values:
+      - Award winning
+      - Expansion available
+      - Multi-level
+      - Quick set-up
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: board-game-mechanics
+    label: Board Game Mechanics
+    values:
+      - Adventure & travel
+      - Area control
+      - Card exchange
+      - Cooperative
+      - Deck building
+      - Deduction & detectives
+      - Economic simulation
+      - Educational
+      - Escape game
+      - Family
+      - Hidden role
+      - Legacy
+      - Party
+      - Quiz & trivia
+      - Race
+      - Role-playing
+      - Strategy
+      - Tile-based
+      - War simulation
+      - Words
+      - Worker placement
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: gameplay-skills
+    label: Gameplay Skills
+    values:
+      - Arithmetic
+      - Concentration
+      - Deduction
+      - Dexterity
+      - Drawing
+      - Lateral thinking
+      - Learning
+      - Matching
+      - Memory
+      - Negotiation
+      - Pattern recognition
+      - Strategic thinking
+      - Tactical decision making
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: difficulty-level
+    label: Difficulty Level
+    values:
+      - Easy
+      - Expert
+      - Hard
+      - Medium
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: puzzle-theme
+    label: Puzzle Theme
+    values:
+      - Aircraft
+      - Animals
+      - Architecture
+      - Art
+      - Ballet
+      - Cartoons
+      - Children
+      - Christmas
+      - Circus
+      - City
+      - Comics
+      - Dinosaurs
+      - Education
+      - Fairy
+      - Fantasy
+      - Farm
+      - Fauna
+      - Flags
+      - Flora
+      - Food & drinks
+      - History
+      - Holidays
+      - Humor
+      - Insects
+      - Landscape
+      - Maps
+      - Movies & TV
+      - Music
+      - People
+      - Professions
+      - Science
+      - Shapes
+      - Ships
+      - Space
+      - Sports
+      - Toys
+      - Trains
+      - Vehicles
+      - Video games
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: puzzle-type
+    label: Puzzle Type
+    values:
+      - 3D
+      - Block
+      - Brain teaser
+      - Contour
+      - Dexterity game
+      - Disentanglement puzzle
+      - Dissection
+      - Frame
+      - Interlocking game
+      - Puzzle box
+      - Rubik's cube
+      - Sequential puzzle
+      - Sliding puzzle
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: neckline
+    label: Neckline
+    values:
+      - Asymmetric
+      - Bardot
+      - Boat
+      - Cowl
+      - Crew
+      - Halter
+      - Hooded
+      - Mandarin
+      - Mock
+      - Plunging
+      - Round
+      - Split
+      - Square
+      - Sweetheart
+      - Turtle
+      - V-neck
+      - Wrap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: sleeve-length-type
+    label: Sleeve Length Type
+    values:
+      - 3/4
+      - Cap
+      - Long
+      - Short
+      - Sleeveless
+      - Spaghetti strap
+      - Strapless
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: clothing-features
+    label: Clothing Features
+    values:
+      - Hypoallergenic
+      - Insulated
+      - Moisture wicking
+      - Quick drying
+      - Reversible
+      - Stretchable
+      - UV protection
+      - Vegan friendly
+      - Water resistant
+      - Windproof
+      - Wrinkle resistant
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: top-length-type
+    label: Top Length Type
+    values:
+      - Bodysuit
+      - Crop top
+      - Long
+      - Medium
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: fit
+    label: Fit
+    values:
+      - Boyfriend
+      - Mom
+      - Skinny leg
+      - Slim
+      - Straight leg
+      - Tapered leg
+      - Wide
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: waist-rise
+    label: Waist Rise
+    values:
+      - High
+      - Low
+      - Mid
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pants-length-type
+    label: Pants Length Type
+    values:
+      - Above the knee
+      - Capri
+      - Cropped
+      - Footed
+      - Knee
+      - Long
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: skirt-dress-length-type
+    label: Skirt Dress Length Type
+    values:
+      - Knee
+      - Maxi
+      - Midi
+      - Mini
+      - Short
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: skirt-style
+    label: Skirt Style
+    values:
+      - Bracer
+      - Circle
+      - Denim
+      - Gathered
+      - Kilt
+      - Layered
+      - Pencil
+      - Pleated
+      - Plisse
+      - Prairie
+      - Sheath
+      - Skirtall
+      - Tailored
+      - Tutu
+      - Wrap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dress-occasion
+    label: Dress Occasion
+    values:
+      - Birthday
+      - Casual
+      - Dance
+      - Everyday
+      - Formal
+      - Holiday
+      - Pageant
+      - Party
+      - Portrait
+      - Religious ceremony
+      - School
+      - Wedding
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dress-style
+    label: Dress Style
+    values:
+      - A-line
+      - Babydoll
+      - Blouson
+      - Caftan
+      - Drop waist
+      - Empire waist
+      - Flared
+      - Gown
+      - Jacket
+      - Mermaid
+      - Pencil
+      - Peplum
+      - Sheath
+      - Shift
+      - Shirt
+      - Skater
+      - Slip
+      - Sweater
+      - Tank
+      - Trumpet
+      - Wrap
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: shoe-fit
+    label: Shoe Fit
+    values:
+      - Narrow
+      - Regular
+      - Wide
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: boot-style
+    label: Boot Style
+    values:
+      - Biker
+      - Boot
+      - Booties
+      - Chelsea
+      - Chukka
+      - Classic
+      - Combat
+      - Cowboy
+      - Cut-out
+      - Duck
+      - Hiking
+      - Indian
+      - Rain
+      - Riding
+      - Sheepskin
+      - Slouch
+      - Snow
+      - Sock
+      - Strap
+      - Winter
+      - Work
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: sandal-style
+    label: Sandal Style
+    values:
+      - Ankle strap
+      - Clogs
+      - Comfort
+      - Fisherman
+      - Flip-flop
+      - Gladiator
+      - Huarache
+      - Lace-up
+      - Mule flat
+      - Slide
+      - Slingback
+      - T-strap
+      - Thong
+      - Toe ring
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: spinner-type
+    label: Spinner Type
+    values:
+      - 2-wheel
+      - 4-wheel
+      - 8-wheel
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: suitcase-handle-type
+    label: Suitcase Handle Type
+    values:
+      - Side carry
+      - Telescopic
+      - Top carry
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: wallet-features
+    label: Wallet Features
+    values:
+      - Card organization
+      - Compact design
+      - RFID protection
+      - Vegan friendly
+      - Waterproof
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: eyewear-frame-design
+    label: Eyewear Frame Design
+    values:
+      - Aviator
+      - Cat-eye
+      - Rectangle
+      - Round
+      - Wayfarer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lens-polarization
+    label: Lens Polarization
+    values:
+      - Non-polarized
+      - Photo polarized
+      - Polarized
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: treatment-objective
+    label: Treatment Objective
+    values:
+      - Bowel cleansing
+      - Comfort
+      - Constipation relief
+      - Ear cleaning
+      - Ear infection relief
+      - Earwax removal
+      - Fever
+      - Hydration
+      - Joint pain
+      - Muscle pain
+      - Obstructive sleep apnea
+      - Pain relief
+      - Preparation for a medical procedure
+      - Relieving irritation
+      - Snoring
+      - Support
+      - Swelling
+      - Vaginal pH balancing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: absorbency-level
+    label: Absorbency Level
+    values:
+      - Heavy
+      - Light
+      - Moderate
+      - Overnight
+      - Regular
+      - Super
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: incontinence-aid-features
+    label: Incontinence Aid Features
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: active-ingredient
+    label: Active Ingredient
+    values:
+      - Aloe vera
+      - Caffeine
+      - CBD
+      - Ceramides
+      - Collagen
+      - Green tea extract
+      - Hemp oil
+      - Hyaluronic acid
+      - Niacinamide
+      - Peptides
+      - Retinol
+      - Shea butter
+      - Vitamin C
+      - Vitamin K
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cosmetic-function
+    label: Cosmetic Function
+    values:
+      - Anti-aging
+      - Brightening
+      - Cleansing
+      - Exfoliating
+      - Healing
+      - Hydrating
+      - Hydration
+      - Moisturizing
+      - Nourishing
+      - Pore minimizing
+      - Protecting
+      - Repairing
+      - Soothing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: dispenser-type
+    label: Dispenser Type
+    values:
+      - Ampoule
+      - Bottle
+      - Box
+      - Can
+      - Capsules
+      - Case
+      - Jar
+      - Palette
+      - Pan
+      - Pencil
+      - Pot
+      - Pouch
+      - Pump bottle
+      - Roll-on
+      - Sachet
+      - Spray
+      - Squeeze bottle
+      - Stick
+      - Tube
+      - Wipes
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: fragrance
+    label: Fragrance
+    values:
+      - Aquatic
+      - Cherry
+      - Cinnamon
+      - Citrus
+      - Eucalyptus
+      - Floral
+      - Fresh
+      - Fresh linen
+      - Fruity
+      - Herbal
+      - Jasmine
+      - Lavender
+      - Ocean breeze
+      - Oriental
+      - Pine
+      - Rose
+      - Sandalwood
+      - Spicy
+      - Strawberry
+      - Tea tree
+      - Unscented
+      - Vanilla
+      - Woody
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: fragrance-level
+    label: Fragrance Level
+    values:
+      - Fragrance-free
+      - Lightly scented
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: ingredient-origin
+    label: Ingredient Origin
+    values:
+      - Natural
+      - Synthetic
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: moisturizer-type
+    label: Moisturizer Type
+    values:
+      - All day
+      - Day care
+      - Night care
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: application-area
+    label: Application Area
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: constitutive-ingredients
+    label: Constitutive Ingredients
+    values:
+      - Acacia honey
+      - Acerola cherry
+      - Alcohol
+      - Almond oil
+      - Aloe vera
+      - Aluminum sulfate
+      - Apricot oil
+      - Argan oil
+      - Avocado oil
+      - Beeswax
+      - Blueberry seed oil
+      - Calendula
+      - Calendula oil
+      - Castor oil
+      - Catnip oil
+      - CBD
+      - Chamomile
+      - Charcoal
+      - Cherry oil
+      - Citronella oil
+      - Clay
+      - Cocoa butter
+      - Coconut oil
+      - Collagen
+      - Cucumber extract
+      - Essential oil
+      - Eucalyptus
+      - Ferulic acid
+      - Fruit extracts
+      - Glycerin
+      - Glycolic acid
+      - Goji berry extract
+      - Grapeseed oil
+      - Green tea
+      - Hazelnut oil
+      - Hemp oil
+      - Honey
+      - Hyaluronic acid
+      - Jojoba oil
+      - Keratin
+      - Lactic acid
+      - Lanolin
+      - Lavender oil
+      - Lemon butter
+      - Lemongrass oil
+      - Macadamia oil
+      - Menthol
+      - Moringa butter
+      - Olive oil
+      - Orange
+      - Peppermint oil
+      - Retinol
+      - Rose extract
+      - Rosehip oil
+      - Rosemary oil
+      - Salicylic acid
+      - Shea butter
+      - Sodium lauryl sulfate
+      - Sorbitol
+      - Sunflower seed oil
+      - Tea tree oil
+      - Titanium dioxide
+      - Vitamin A
+      - Vitamin C
+      - Vitamin E
+      - Walnut oil
+      - Water
+      - Wheat protein
+      - Zinc oxide
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: pa-rating
+    label: Pa Rating
+    values:
+      - Not rated
+      - PA+
+      - PA++
+      - PA+++
+      - PA++++
+      - PA+++++
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cosmetic-finish
+    label: Cosmetic Finish
+    values:
+      - Dewy
+      - Embossed
+      - Glitter
+      - Glossy
+      - Holographic
+      - Luminous
+      - Matte
+      - Metallic
+      - Natural
+      - Neon
+      - Opaque
+      - Pearlescent
+      - Radiant
+      - Satin
+      - Satin-matte
+      - Semi-matte
+      - Sheer
+      - Shimmer
+      - Shine-free
+      - Smooth
+      - Soft-focus
+      - Sparkly
+      - Velvet
+      - Velvet-matte
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: coverage-level
+    label: Coverage Level
+    values:
+      - Adjustable
+      - Buildable
+      - Color correcting
+      - Full
+      - High coverage
+      - Light
+      - Medium
+      - Sheer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lip-makeup-opacity
+    label: Lip Makeup Opacity
+    values:
+      - Buildable
+      - Full
+      - High pigment
+      - Medium
+      - Semi-sheer
+      - Sheer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lipstick-coverage
+    label: Lipstick Coverage
+    values:
+      - Buildable
+      - Full
+      - High-pigment
+      - Medium
+      - Sheer
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: lipstick-effect
+    label: Lipstick Effect
+    values:
+      - Coloring
+      - Conditioning
+      - Firming
+      - Hydrating
+      - Moisturizing
+      - Nourishing
+      - Plumping
+      - Protection
+      - Refreshing
+      - Smoothing
+      - Softening
+      - Soothing
+      - Volumizing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: makeup-color-shade
+    label: Makeup Color Shade
+    values:
+      - Beige
+      - Blue
+      - Brown
+      - Deep beige
+      - Deep brown
+      - Gold
+      - Green
+      - Light beige
+      - Light gold
+      - Light peach
+      - Light pink
+      - Light rose gold
+      - Medium beige
+      - Medium gold
+      - Medium peach
+      - Medium pink
+      - Medium rose gold
+      - Multicolor
+      - Natural
+      - Peach
+      - Pink
+      - Purple
+      - Red
+      - Rose gold
+      - Silver
+      - Tan beige
+      - Tan brown
+      - White
+      - Yellow
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: durability-features
+    label: Durability Features
+    values:
+      - Cold resistant
+      - Fire resistant
+      - Heat resistant
+      - Moisture resistant
+      - Mold resistant
+      - Rustproof
+      - Shockproof
+      - UV resistant
+      - Waterproof
+      - Weather resistant
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: makeup-features
+    label: Makeup Features
+    values:
+      - Buildable coverage
+      - Conditioning
+      - Contains hyaluronic acid
+      - Contains vitamins
+      - Durable
+      - Easy to apply
+      - Easy to remove
+      - Fragrance-free
+      - High pigmentation
+      - Hydrating
+      - Long lasting
+      - Moisturizing
+      - Non-comedogenic
+      - Non-drying
+      - Non-irritating
+      - Nourishing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: skin-care-effect
+    label: Skin Care Effect
+    values:
+      - Anti-acne
+      - Anti-aging
+      - Anti-bacterial
+      - Anti-blackhead
+      - Anti-blemish
+      - Anti-cellulite
+      - Anti-dark circle
+      - Anti-dark spot
+      - Anti-drying
+      - Anti-dullness
+      - Anti-fatigue
+      - Anti-imperfections
+      - Anti-irritation
+      - Anti-itching
+      - Anti-keratin
+      - Anti-particles
+      - Anti-perleche
+      - Anti-pimple
+      - Anti-puffiness
+      - Anti-redness
+      - Anti-rubbing
+      - Anti-scars
+      - Anti-shine
+      - Anti-stress
+      - Anti-stretch mark
+      - Anti-wrinkle
+      - Brightening
+      - Bronzing
+      - Calming
+      - Clarity
+      - Cleansing
+      - Color correction
+      - Cooling
+      - Drying
+      - Elasticity
+      - Energizing
+      - Exfoliating
+      - Filler effect
+      - Firming
+      - Healing
+      - Hydrating
+      - Illuminating
+      - Invigorating
+      - Keratin reduction
+      - Leveling
+      - Lifting
+      - Mattifying
+      - Moisturizing
+      - Nourishing
+      - Oxygenating
+      - Plumping
+      - Pore refining
+      - Pore shrinking
+      - Pore tightening
+      - Prevents age spots
+      - Prevents freckles
+      - Priming
+      - Protection
+      - Purifying
+      - Rebalancing
+      - Refreshing
+      - Regenerating
+      - Relaxation
+      - Repairing
+      - Replenishing
+      - Revitalizing
+      - Reviving
+      - Scrub
+      - Shimmering
+      - Shine
+      - Slimming
+      - Smoothing
+      - Softening
+      - Soothing
+      - Strengthening
+      - Tightening
+      - Tonifying
+      - Treatment
+      - Unclogging
+      - Uneven skin tone
+      - Warming
+      - Whitening
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: skin-tone
+    label: Skin Tone
+    values:
+      - All skin tones
+      - Cafe skin
+      - Dark skin
+      - Deep skin
+      - Fair skin
+      - Light skin
+      - Medium skin
+      - Nude skin
+      - Sand skin
+      - Tanned skin
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mascara-brush-shape
+    label: Mascara Brush Shape
+    values:
+      - Ball
+      - Comb
+      - Cone
+      - Corkscrew
+      - Curved
+      - Curved silicone
+      - Dual-sided
+      - Hourglass
+      - Molded
+      - Skinny
+      - Spiral
+      - Straight
+      - Tapered
+      - Twisted spiral
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mascara-effect
+    label: Mascara Effect
+    values:
+      - Coloring
+      - Curling
+      - Definition
+      - Elasticity
+      - Fixation
+      - Glitter
+      - Highlighting
+      - Hydration
+      - Lengthening
+      - Nourishing
+      - Plumping
+      - Precision
+      - Protection
+      - Revitalizing
+      - Strengthening
+      - Thickening
+      - Volumizing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: mascara-formulation
+    label: Mascara Formulation
+    values:
+      - Cake
+      - Cream
+      - Fiber-infused
+      - Gel
+      - Liquid
+      - Powder
+      - Tubing
+      - Water-based
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: eye-shadow-effect
+    label: Eye Shadow Effect
+    values:
+      - Glitter
+      - Metallic
+      - Nourishing
+      - Smoky
+      - Smoothing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: eye-shadow-palette-size
+    label: Eye Shadow Palette Size
+    values:
+      - 20+ pan
+      - 5 pan
+      - 6 pan
+      - 8 pan
+      - 10 pan
+      - 12 pan
+      - 15 pan
+      - Duo
+      - Quad
+      - Single
+      - Trio
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: application-type
+    label: Application Type
+    values:
+      - Heat-activated
+      - Leave-in
+      - Overnight treatment
+      - Pre-wash
+      - Rinse-out
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: conditioner-effect
+    label: Conditioner Effect
+    values:
+      - Anti hair loss
+      - Anti-dandruff
+      - Anti-frizz
+      - Cleansing
+      - Color protection
+      - Densifying
+      - Detangling
+      - Moisturizing
+      - Nourishing
+      - Protection
+      - Purifying
+      - Regenerating
+      - Repair
+      - Revitalizing
+      - Shine
+      - Smoothing
+      - Strengthening
+      - Thickening
+      - Volumizing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hair-care-finish
+    label: Hair Care Finish
+    values:
+      - Glossy
+      - Matte
+      - Shiny
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hair-care-items-included
+    label: Hair Care Items Included
+    values:
+      - Conditioner
+      - Hair balm
+      - Hair cream
+      - Hair gel
+      - Hair mask
+      - Hair oil
+      - Hair perfume
+      - Hair serum
+      - Shampoo
+      - Straightening treatment
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hair-styling-benefits
+    label: Hair Styling Benefits
+    values:
+      - Anti-frizz
+      - Color protection
+      - Curl defining
+      - Detangling
+      - Flexible hold
+      - Glossy finish
+      - Heat protection
+      - Hold and set
+      - Humidity resistance
+      - Lightweight feel
+      - Matte finish
+      - Moisturizing
+      - Root lift
+      - Scalp soothing
+      - Separation
+      - Shine enhancing
+      - Smoothing
+      - Straightening
+      - Strengthening
+      - Strong hold
+      - Texturizing
+      - Thickening
+      - UV protection
+      - Volumizing
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hair-type
+    label: Hair Type
+    values:
+      - Curly
+      - Dry
+      - Normal
+      - Straight
+      - Wavy
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: hold-level
+    label: Hold Level
+    values:
+      - Light
+      - Medium
+      - Strong
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: gift-set-format
+    label: Gift Set Format
+    values:
+      - Gift bag
+      - Gift basket
+      - Gift box
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: occasion
+    label: Occasion
+    values:
+      - Casual
+      - Everyday
+      - Formal
+      - Special occasion
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: olfactory-family
+    label: Olfactory Family
+    values:
+      - Aldehydic
+      - Animalic
+      - Aquatic
+      - Aromatic
+      - Balsamic
+      - Chypre
+      - Citrus
+      - Earthy
+      - Eccentric
+      - Floral
+      - Fougere
+      - Fresh
+      - Fruity
+      - Gourmand
+      - Green
+      - Herbal
+      - Leather
+      - Musky
+      - Oriental
+      - Powdery
+      - Resinous
+      - Spicy
+      - Woody
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: scent
+    label: Scent
+    values: []
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bristle-hardness
+    label: Bristle Hardness
+    values:
+      - Extra-soft
+      - Hard
+      - Medium
+      - Soft
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: bristle-shape
+    label: Bristle Shape
+    values:
+      - Angled
+      - Flat
+      - Rounded
+      - Tapered
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: brushing-mode
+    label: Brushing Mode
+    values:
+      - Clean
+      - Daily Clean
+      - Deep Clean
+      - Extra Sensitive
+      - Gum care
+      - Massage
+      - Polish
+      - Sensitive
+      - Tongue Clean
+      - Whitening
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: cleaning-technology
+    label: Cleaning Technology
+    values:
+      - Hybrid
+      - Ionic
+      - Oscillating
+      - Pulsating
+      - Rotary
+      - Sonic
+      - Ultrasonic
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: beard-care-benefits
+    label: Beard Care Benefits
+    values:
+      - Anti-dandruff
+      - Conditioning
+      - Frizz control
+      - Growth stimulation
+      - Itch relief
+      - Moisturizing
+      - Scented enhancement
+      - Shine enhancing
+      - Softening
+      - Styling hold
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: razor-flexibility
+    label: Razor Flexibility
+    values:
+      - Fixed
+      - Flexible
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: razor-head-design
+    label: Razor Head Design
+    values:
+      - Double
+      - Single
+      - Triple
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: usage-conditions
+    label: Usage Conditions
+    values:
+      - Dry
+      - Wet
+      - Other
+    provenance:
+      sources:
+        - system: shopify
+  - handle: incense-type
+    label: Incense Type
+    values:
+      - Cone
+      - Powder
+      - Resin
+      - Stick
+      - Other
+    provenance:
+      sources:
+        - system: shopify

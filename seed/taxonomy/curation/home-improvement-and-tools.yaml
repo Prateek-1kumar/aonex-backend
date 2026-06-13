@@ -1,0 +1,7 @@
+# Home Improvement & Tools — CURATION MAP.
+department: Home Improvement & Tools
+tree:
+  - category: Home Improvement
+    leaves: { Paint: auto, Plumbing Fixtures: auto, Door Hardware: auto, Flooring: auto }
+  - category: Tools & Hardware
+    leaves: { Power Tools: auto, Hand Tools: auto, Drills: auto, Fasteners: auto, Ladders: auto }

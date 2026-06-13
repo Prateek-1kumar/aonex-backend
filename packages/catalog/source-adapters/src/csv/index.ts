@@ -8,15 +8,29 @@
 
 import { parse } from "csv-parse/sync";
 import type { ArtifactId } from "@aonex/types";
+import { editDistance } from "@aonex/lib-utils";
+import { detectDelimiter, type Delimiter } from "./delimiter.js";
+import {
+  buildCustomAttrs,
+  buildImages,
+  buildParentObservations,
+  buildParentPricing,
+  buildVariants,
+  hasAnyVariantField,
+  nonEmpty,
+  type CsvRow,
+  type CsvRowIssue,
+  type GroupShared,
+  type IndexedRow,
+} from "./group-builders.js";
 import type {
   SourceAdapter,
   AdapterOutput,
   AdaptContext,
-  CanonicalObservation,
-  PricingObservation,
-  InventoryObservation,
   IdentityHint,
 } from "../types.js";
+
+export type { CsvRowIssue } from "./group-builders.js";
 
 /**
  * Envelope shape consumed by the csv adapter.
@@ -43,8 +57,14 @@ export const KNOWN_CSV_COLUMNS = [
   "title", "brand", "gtin", "mpn", "category", "description_long",
   "list_price", "sale_price", "currency", "weight_value", "weight_unit",
   "variant_sku", "variant_color", "variant_size", "variant_gtin", "variant_inventory_qty",
+  "variant_list_price", "variant_sale_price", "variant_currency",
   "picture", "image_url", "image_urls", "variant_image_url", "variant_image", "variant_images",
 ] as const;
+
+/** Hard cap on data rows — guards against a multi-GB upload OOMing the sync
+ *  parser/event loop. Beyond this the upload must be chunked (streaming is a
+ *  follow-up; see the worker). Tunable but deliberately generous. */
+export const MAX_CSV_ROWS = 50_000;
 
 /**
  * Alias mapping — maps common non-canonical column names to their canonical
@@ -93,14 +113,6 @@ function applyAlias(header: string): string {
   return COLUMN_ALIASES[header] ?? header;
 }
 
-export interface CsvRowIssue {
-  /** 1-based data row index (header excluded). 0 means "file-level / header". */
-  row: number;
-  code: string;
-  message: string;
-  primaryIdentifier?: string;
-}
-
 export interface CsvGroupResult {
   primaryIdentifier: string;
   /** 1-based data row indices that formed this group. */
@@ -121,77 +133,32 @@ export interface CsvAdaptGroupsResult {
 export interface CsvInspectResult {
   headers: string[];
   rowCount: number;
-  delimiter: "," | ";";
+  delimiter: Delimiter;
 }
 
-/** Default confidence stamp on every CSV-sourced observation. */
-const DEFAULT_CONFIDENCE = 0.85;
-/** Identity (gtin/mpn/brand) signals are high-confidence by convention. */
-const IDENTITY_CONFIDENCE = 0.9;
 /** Default channel code when caller doesn't pass one. */
 const DEFAULT_CHANNEL = "csv";
 
 /** Required header columns. */
 const REQUIRED_COLUMNS = ["primary_identifier"] as const;
 
-/** Variant columns — presence of any non-empty value flips a row into "variant" mode. */
-const VARIANT_VALUE_COLUMNS = [
-  "variant_color",
-  "variant_size",
-  "variant_gtin",
-  "variant_sku",
-  "variant_inventory_qty",
-] as const;
-
-type CsvRow = Record<string, string>;
-
-/**
- * Treat empty strings as missing. csv-parse with `trim: true` strips surrounding
- * whitespace but keeps `""` as a value (versus undefined). Centralising the
- * "is this column populated?" check avoids subtle bugs where a column with the
- * value `""` is mistaken for a real value.
- */
-function nonEmpty(row: CsvRow, col: string): string | undefined {
-  const v = row[col];
-  if (v === undefined) return undefined;
-  if (v === "") return undefined;
-  return v;
-}
-
-function hasAnyVariantField(row: CsvRow): boolean {
-  return VARIANT_VALUE_COLUMNS.some((col) => nonEmpty(row, col) !== undefined);
-}
-
 /** Strip a UTF-8 BOM if present. Excel/Sheets prepend one and it corrupts the first header. */
 function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
-/** Sniff the delimiter from the header line: ';' (common in European locales) else ','. */
-function detectDelimiter(text: string): "," | ";" {
-  const firstLine = text.slice(0, text.indexOf("\n") === -1 ? text.length : text.indexOf("\n"));
-  const commas = (firstLine.match(/,/g) ?? []).length;
-  const semis = (firstLine.match(/;/g) ?? []).length;
-  return semis > commas ? ";" : ",";
-}
-
-/** Strip currency symbols and thousands separators so "$1,299.00" parses as 1299. */
-function cleanNumeric(raw: string): string {
-  return raw.replace(/[^0-9.-]/g, "");
-}
-
-/** Levenshtein distance — bounded use for "did you mean" header suggestions. */
-function editDistance(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
-  for (let j = 0; j <= n; j++) d[0]![j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost);
+/** Cheap upper-bound row-count guard before the (synchronous) full-file parse —
+ *  a newline scan over-counts on quoted newlines but never under-counts, so it
+ *  safely rejects pathologically large uploads early. */
+function assertWithinRowCap(text: string): void {
+  let newlines = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10 /* \n */) {
+      if (++newlines > MAX_CSV_ROWS) {
+        throw new Error(`csvAdapter: file exceeds ${MAX_CSV_ROWS} rows — split the upload into smaller batches`);
+      }
     }
   }
-  return d[m]![n]!;
 }
 
 /** Nearest known column within edit distance 2, else null. */
@@ -205,33 +172,11 @@ function suggestColumn(header: string): string | null {
   return best;
 }
 
-function parseNumber(raw: string, col: string, rowIndex: number): number {
-  const cleaned = cleanNumeric(raw);
-  const n = cleaned === "" ? NaN : Number(cleaned);
-  if (!Number.isFinite(n)) {
-    throw new Error(
-      `csvAdapter: row ${rowIndex}: ${col} is not a number (got "${raw}")`,
-    );
-  }
-  return n;
-}
-
-interface IndexedRow { row: CsvRow; index: number; }
-
-interface GroupShared {
-  channelCode: string;
-  locale: string;
-  source: string;
-  observedAt: Date;
-  artifactId?: ArtifactId;
-  channelDefaultCurrency: string | null;
-  warnings: CsvRowIssue[];
-}
-
 /**
- * Build the AdapterOutput for ONE product group. Throws on a row-level
- * validation error (caught per-group by adaptGroups so one bad group does not
- * abort the file). Identity hint is for THIS group only.
+ * Build the AdapterOutput for ONE product group by composing the focused
+ * builders (see group-builders.ts). Throws on a row-level validation error
+ * (caught per-group by adaptGroups so one bad group does not abort the file).
+ * Identity hint is for THIS group only.
  */
 function adaptGroup(
   primaryIdentifier: string,
@@ -239,393 +184,31 @@ function adaptGroup(
   shared: GroupShared,
   customColumns: string[] = [],
 ): AdapterOutput {
-  const { channelCode, locale, source, observedAt } = shared;
-  const observations: CanonicalObservation[] = [];
-  const pricing: PricingObservation[] = [];
-  const inventory: InventoryObservation[] = [];
+  const parent = buildParentObservations(primaryIdentifier, groupRows, shared);
+  const parentPricing = buildParentPricing(primaryIdentifier, groupRows, shared);
+  const variants = buildVariants(primaryIdentifier, groupRows, parentPricing, shared);
+  const imageObservations = buildImages(primaryIdentifier, groupRows, shared);
+  const customObservations = buildCustomAttrs(primaryIdentifier, groupRows, customColumns, shared);
 
-  const first = groupRows[0]!;
-  const firstRow = first.row;
-  const firstIndex = first.index;
-  const productHint = primaryIdentifier;
-  const parentRecordId = primaryIdentifier;
-
-  const titleVal = nonEmpty(firstRow, "title");
-  const brandVal = nonEmpty(firstRow, "brand");
-
-  // NEW: title-or-brand presence rule — a product with neither is unusable.
-  if (titleVal === undefined && brandVal === undefined) {
-    throw new Error(
-      `csvAdapter: row ${firstIndex}: product "${primaryIdentifier}" has neither title nor brand`,
-    );
-  }
-
-  // --- Parent observations (first row in group only) ----------------------
-
-  if (titleVal !== undefined) {
-    observations.push({
-      attributeCode: "title",
-      target: "parent",
-      channelCode,
-      localeCode: locale,
-      source,
-      sourceRecordId: parentRecordId,
-      value: titleVal,
-      confidence: DEFAULT_CONFIDENCE,
-      observedAt,
-    });
-  }
-
-  if (brandVal !== undefined) {
-    observations.push({
-      attributeCode: "brand",
-      target: "parent",
-      channelCode: "_unscoped",
-      localeCode: "_unscoped",
-      source,
-      sourceRecordId: parentRecordId,
-      value: brandVal,
-      confidence: IDENTITY_CONFIDENCE,
-      observedAt,
-    });
-  }
-
-  const mpnVal = nonEmpty(firstRow, "mpn");
-  if (mpnVal !== undefined) {
-    observations.push({
-      attributeCode: "identity.mpn",
-      target: "parent",
-      channelCode: "_unscoped",
-      localeCode: "_unscoped",
-      source,
-      sourceRecordId: parentRecordId,
-      value: mpnVal,
-      confidence: IDENTITY_CONFIDENCE,
-      observedAt,
-    });
-  }
-
-  const gtinVal = nonEmpty(firstRow, "gtin");
-  if (gtinVal !== undefined) {
-    const isValidGtin = /^\d+$/.test(gtinVal) && [8, 12, 13, 14].includes(gtinVal.length);
-    if (!isValidGtin) {
-      shared.warnings.push({
-        row: firstIndex,
-        code: "INVALID_GTIN",
-        message: `row ${firstIndex}: parent GTIN "${gtinVal}" is invalid (must be 8, 12, 13, or 14 digits)`,
-        primaryIdentifier,
-      });
-    }
-    observations.push({
-      attributeCode: "identity.gtin",
-      target: "parent",
-      channelCode: "_unscoped",
-      localeCode: "_unscoped",
-      source,
-      sourceRecordId: parentRecordId,
-      value: gtinVal,
-      confidence: IDENTITY_CONFIDENCE,
-      observedAt,
-    });
-  }
-
-  const categoryVal = nonEmpty(firstRow, "category");
-  if (categoryVal !== undefined) {
-    observations.push({
-      attributeCode: "category_path",
-      target: "parent",
-      channelCode,
-      localeCode: locale,
-      source,
-      sourceRecordId: parentRecordId,
-      value: categoryVal,
-      confidence: DEFAULT_CONFIDENCE,
-      observedAt,
-    });
-  }
-
-  const descLongVal = nonEmpty(firstRow, "description_long");
-  if (descLongVal !== undefined) {
-    observations.push({
-      attributeCode: "description_long",
-      target: "parent",
-      channelCode,
-      localeCode: locale,
-      source,
-      sourceRecordId: parentRecordId,
-      value: descLongVal,
-      confidence: DEFAULT_CONFIDENCE,
-      observedAt,
-    });
-  }
-
-  // weight: emitted as a single observation with unit preserved in extras
-  const weightValRaw = nonEmpty(firstRow, "weight_value");
-  const weightUnitVal = nonEmpty(firstRow, "weight_unit");
-  if (weightValRaw !== undefined) {
-    const weight = parseNumber(weightValRaw, "weight_value", firstIndex);
-    observations.push({
-      attributeCode: "weight",
-      target: "parent",
-      channelCode,
-      localeCode: locale,
-      source,
-      sourceRecordId: parentRecordId,
-      value: weight,
-      confidence: DEFAULT_CONFIDENCE,
-      observedAt,
-      ...(weightUnitVal !== undefined
-        ? { extras: { unit: weightUnitVal } }
-        : {}),
-    });
-  }
-
-  // --- Parent pricing (first row in group) -------------------------------
-
-  const listPriceRaw = nonEmpty(firstRow, "list_price");
-  const salePriceRaw = nonEmpty(firstRow, "sale_price");
-  const parentCurrency = nonEmpty(firstRow, "currency") ?? shared.channelDefaultCurrency;
-
-  const parentTiers: PricingObservation["tiers"] = [];
-  if (listPriceRaw !== undefined) {
-    parentTiers.push({
-      kind: "list",
-      amount: parseNumber(listPriceRaw, "list_price", firstIndex),
-    });
-  }
-  if (salePriceRaw !== undefined) {
-    parentTiers.push({
-      kind: "sale",
-      amount: parseNumber(salePriceRaw, "sale_price", firstIndex),
-    });
-  }
-
-  if (parentTiers.length > 0) {
-    if (parentCurrency === null || parentCurrency === undefined) {
-      throw new Error(
-        `csvAdapter: row ${firstIndex}: pricing currency missing (column blank and ctx.channelDefaultCurrency is null)`,
-      );
-    }
-    pricing.push({
-      productHint,
-      channelCode,
-      locale,
-      source,
-      sourceRecordId: parentRecordId,
-      currency: parentCurrency,
-      tiers: parentTiers,
-      observedAt,
-      ...(shared.artifactId !== undefined
-        ? { artifactId: shared.artifactId }
-        : {}),
-    });
-  }
-
-  // --- Variants (every row with variant_* fields, including first row) ---
-
-  for (const { row, index } of groupRows) {
-    if (!hasAnyVariantField(row)) continue;
-
-    const colorVal = nonEmpty(row, "variant_color");
-    const sizeVal = nonEmpty(row, "variant_size");
-    const variantAxes: Record<string, string> = {};
-    if (colorVal !== undefined) variantAxes.color = colorVal;
-    if (sizeVal !== undefined) variantAxes.size = sizeVal;
-
-    const variantSkuVal = nonEmpty(row, "variant_sku");
-    const variantGtinVal = nonEmpty(row, "variant_gtin");
-    const variantInvRaw = nonEmpty(row, "variant_inventory_qty");
-
-    const variantRecordId = variantSkuVal ?? variantGtinVal ?? parentRecordId;
-
-    // identity.sku (channel-scoped)
-    if (variantSkuVal !== undefined) {
-      observations.push({
-        attributeCode: "identity.sku",
-        target: "variant",
-        variantAxes,
-        channelCode,
-        localeCode: locale,
-        source,
-        sourceRecordId: variantRecordId,
-        value: variantSkuVal,
-        confidence: DEFAULT_CONFIDENCE,
-        observedAt,
-      });
-    }
-
-    // identity.gtin (global / _unscoped)
-    if (variantGtinVal !== undefined) {
-      const isValidGtin = /^\d+$/.test(variantGtinVal) && [8, 12, 13, 14].includes(variantGtinVal.length);
-      if (!isValidGtin) {
-        shared.warnings.push({
-          row: index,
-          code: "INVALID_GTIN",
-          message: `row ${index}: variant GTIN "${variantGtinVal}" is invalid (must be 8, 12, 13, or 14 digits)`,
-          primaryIdentifier,
-        });
-      }
-      observations.push({
-        attributeCode: "identity.gtin",
-        target: "variant",
-        variantAxes,
-        channelCode: "_unscoped",
-        localeCode: "_unscoped",
-        source,
-        sourceRecordId: variantRecordId,
-        value: variantGtinVal,
-        confidence: IDENTITY_CONFIDENCE,
-        observedAt,
-      });
-    }
-
-    // Pricing
-    if (parentTiers.length > 0) {
-      pricing.push({
-        productHint,
-        variantAxes,
-        channelCode,
-        locale,
-        source,
-        sourceRecordId: variantRecordId,
-        currency: parentCurrency as string,
-        tiers: parentTiers,
-        observedAt,
-        ...(shared.artifactId !== undefined
-          ? { artifactId: shared.artifactId }
-          : {}),
-      });
-    }
-
-    // Inventory
-    if (variantInvRaw !== undefined) {
-      const qty = parseNumber(variantInvRaw, "variant_inventory_qty", index);
-      inventory.push({
-        productHint,
-        variantAxes,
-        channelCode,
-        qty,
-        source,
-        sourceRecordId: variantRecordId,
-        observedAt,
-        ...(shared.artifactId !== undefined
-          ? { artifactId: shared.artifactId }
-          : {}),
-      });
-    }
-  }
-
-  // --- Images Extraction (Parent & Variants combined) -------------------
-  interface ExtractedImage {
-    url: string;
-    altText?: string | undefined;
-    rowIndex: number;
-  }
-
-  const extractedImages: ExtractedImage[] = [];
-  const extractFromRow = (row: CsvRow, rowIndex: number, cols: string[], alt?: string) => {
-    for (const col of cols) {
-      const val = nonEmpty(row, col);
-      if (val !== undefined) {
-        const parts = val.startsWith("data:") ? [val] : val.split(",").map(p => p.trim()).filter(Boolean);
-        for (const part of parts) {
-          const isValidUrl = part.startsWith("http://") || part.startsWith("https://") || part.startsWith("data:image/");
-          if (!isValidUrl) {
-            shared.warnings.push({
-              row: rowIndex,
-              code: "INVALID_IMAGE_URL",
-              message: `row ${rowIndex}: Image URL "${part.slice(0, 60)}" must start with http://, https://, or data:image/`,
-              primaryIdentifier,
-            });
-          }
-          extractedImages.push({
-            url: part,
-            altText: alt,
-            rowIndex,
-          });
-        }
-      }
-    }
-  };
-
-  for (const { row, index } of groupRows) {
-    const colorVal = nonEmpty(row, "variant_color");
-    const sizeVal = nonEmpty(row, "variant_size");
-    const axesParts: string[] = [];
-    if (colorVal !== undefined) axesParts.push(`Color: ${colorVal}`);
-    if (sizeVal !== undefined) axesParts.push(`Size: ${sizeVal}`);
-    const altText = axesParts.length > 0 ? axesParts.join(", ") : undefined;
-
-    extractFromRow(row, index, [
-      "picture", "image_url", "image_urls",
-      "variant_image_url", "variant_image", "variant_images"
-    ], altText);
-  }
-
-  const dedupedMap = new Map<string, ExtractedImage>();
-  for (const img of extractedImages) {
-    const existing = dedupedMap.get(img.url);
-    if (!existing || (!existing.altText && img.altText)) {
-      dedupedMap.set(img.url, img);
-    }
-  }
-
-  const finalImages = Array.from(dedupedMap.values()).map(img => ({
-    url: img.url,
-    ...(img.altText ? { altText: img.altText } : {}),
-  }));
-
-  if (finalImages.length > 0) {
-    observations.push({
-      attributeCode: "images",
-      target: "parent",
-      channelCode,
-      localeCode: locale,
-      source,
-      sourceRecordId: parentRecordId,
-      value: finalImages,
-      confidence: DEFAULT_CONFIDENCE,
-      observedAt,
-    });
-  }
-
-  // --- Custom attributes (columns not in KNOWN_CSV_COLUMNS) ----------------
-  // Emit each custom column as a custom.<column_name> observation. Values are
-  // taken from the first row only (same as parent-level fields like title/brand).
-
-  for (const col of customColumns) {
-    const customVal = nonEmpty(firstRow, col);
-    if (customVal !== undefined) {
-      observations.push({
-        attributeCode: `custom.${col}`,
-        target: "parent",
-        channelCode,
-        localeCode: locale,
-        source,
-        sourceRecordId: parentRecordId,
-        value: customVal,
-        confidence: DEFAULT_CONFIDENCE,
-        observedAt,
-      });
-    }
-  }
-
-  // --- Identity hint (for THIS group) ------------------------------------
-
-  const hasVariants = groupRows.some((r) => hasAnyVariantField(r.row));
+  const { title, brand, mpn, gtin } = parent.fields;
   const identityHint: IdentityHint = {
-    ...(gtinVal !== undefined ? { gtin: gtinVal } : {}),
-    ...(mpnVal !== undefined ? { mpn: mpnVal } : {}),
-    ...(brandVal !== undefined ? { brand: brandVal } : {}),
-    ...(titleVal !== undefined ? { titleForFuzzy: titleVal } : {}),
+    ...(gtin !== undefined ? { gtin } : {}),
+    ...(mpn !== undefined ? { mpn } : {}),
+    ...(brand !== undefined ? { brand } : {}),
+    ...(title !== undefined ? { titleForFuzzy: title } : {}),
     primary_identifier: primaryIdentifier,
-    targetIsVariant: hasVariants,
+    targetIsVariant: groupRows.some((r) => hasAnyVariantField(r.row)),
   };
 
   return {
-    observations,
-    pricingObservations: pricing,
-    inventoryObservations: inventory,
+    observations: [
+      ...parent.observations,
+      ...variants.observations,
+      ...imageObservations,
+      ...customObservations,
+    ],
+    pricingObservations: [...parentPricing.pricing, ...variants.pricing],
+    inventoryObservations: variants.inventory,
     identityHint,
     rawPayload: groupRows.map((r) => r.row),
   };
@@ -638,6 +221,7 @@ function adaptGroup(
  */
 export function inspectCsv(csvText: string): CsvInspectResult {
   const text = stripBom(csvText);
+  assertWithinRowCap(text);
   const delimiter = detectDelimiter(text);
   const rows = parse(text, {
     columns: (headers: string[]) => headers.map(h => applyAlias(h.trim().toLowerCase().replace(/[-\s]/g, "_"))),
@@ -665,6 +249,7 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
     throw new Error("csvAdapter: expected CsvAdapterInput { csv, filename, observedAt }");
   }
   const text = stripBom(input.csv);
+  assertWithinRowCap(text);
   const delimiter = detectDelimiter(text);
 
   // Track original headers before aliasing so we can identify custom columns.
@@ -708,18 +293,24 @@ export function adaptGroups(input: CsvAdapterInput, ctx: AdaptContext): CsvAdapt
   }
 
   for (const h of headerKeys) {
-    if (!(KNOWN_CSV_COLUMNS as readonly string[]).includes(h) && !ALIAS_SOURCE_NAMES.has(h)) {
-      // Only warn if it's not being captured as a custom column
-      if (!customColumns.includes(h)) {
-        const suggestion = suggestColumn(h);
-        warnings.push({
-          row: 0,
-          code: "UNKNOWN_COLUMN",
-          message: suggestion
-            ? `unrecognized column "${h}" — did you mean "${suggestion}"?`
-            : `unrecognized column "${h}" — stored as custom attribute`,
-        });
-      }
+    if ((KNOWN_CSV_COLUMNS as readonly string[]).includes(h) || ALIAS_SOURCE_NAMES.has(h)) continue;
+    const suggestion = suggestColumn(h);
+    if (suggestion) {
+      // A near-miss of a known column is almost certainly a typo (e.g.
+      // "primary_identifer"). Surface the suggestion EVEN THOUGH we also keep it
+      // as a custom attribute, so the user can correct the header — previously
+      // this warning was dead code because every unknown header is a custom one.
+      warnings.push({
+        row: 0,
+        code: "UNKNOWN_COLUMN",
+        message: `unrecognized column "${h}" — did you mean "${suggestion}"?`,
+      });
+    } else if (!customColumns.includes(h)) {
+      warnings.push({
+        row: 0,
+        code: "UNKNOWN_COLUMN",
+        message: `unrecognized column "${h}" — stored as custom attribute`,
+      });
     }
   }
 

@@ -13,6 +13,7 @@ export type StageName =
   | "extract"
   | "map"
   | "validate"
+  | "classify"
   | "score"
   | "diff"
   | "approve";

@@ -14,6 +14,9 @@ export interface StageProductInput {
   adapterOutput: AdapterOutput;
   sourceKind: string;
   channelCode: string | null;
+  /** Canonical taxonomy node resolved at ingestion; persisted so the Review
+   *  Queue modal can confirm it and post-approve enrichment can run. */
+  categoryNodeId?: string | null;
   sourceArtifactId?: string;
   verdict: GateVerdict;
   matchCandidates: Array<{ productId: string; score: number; kind: "live" | "staged" }>;
@@ -38,6 +41,7 @@ export async function stageProduct(input: StageProductInput): Promise<StageProdu
     denormBrand: out.identityHint.brand ?? null,
     denormPrice: typeof amount === "number" ? String(amount) : null,
     denormCurrency: priceObs?.currency ?? null,
+    categoryNodeId: input.categoryNodeId ?? null,
     sourceKind: input.sourceKind,
     sourceArtifactId: input.sourceArtifactId ?? null,
     channelCode: input.channelCode,

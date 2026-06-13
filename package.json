@@ -15,7 +15,7 @@
     "dev": "turbo run dev --parallel",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "turbo run typecheck && tsc -p scripts",
     "depcheck": "depcruise --config .dependency-cruiser.cjs apps packages",
     "db:migrate": "bun --cwd packages/db node-pg-migrate --envPath ../../.env",
     "db:migrate:up": "bun --cwd packages/db node-pg-migrate --envPath ../../.env up",
@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
@@ -33,7 +34,7 @@
     "eslint": "^9.16.0",
     "playwright": "^1.60.0",
     "prettier": "^3.4.2",
-    "turbo": "^2.9.16",
+    "turbo": "^2.9.18",
     "typescript": "^5.7.2",
     "typescript-eslint": "8.59.2"
   },

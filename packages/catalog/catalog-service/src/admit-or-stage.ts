@@ -34,6 +34,9 @@ export interface AdmitOrStageInput {
   channelCode: string | null;
   /** Required when the AdapterOutput carries pricing/inventory observations. */
   channelCodeToId?: Record<string, ChannelId>;
+  /** Canonical taxonomy node resolved at ingestion; stamped on admit (new
+   *  product) and stage. Omitted → category left null for the sweep backstop. */
+  categoryNodeId?: string | null;
   sourceArtifactId?: string;
   /** Per-tenant reconcile queue, forwarded to writeAdapterOutput for post-commit
    *  pricing/inventory reconcile. Optional → omit to skip enqueue. */
@@ -215,6 +218,7 @@ export async function admitOrStage(
       merchantId,
       adapterOutput: out,
       actor: input.actor,
+      ...(input.categoryNodeId ? { categoryNodeId: input.categoryNodeId } : {}),
       ...(input.channelCodeToId !== undefined
         ? { channelCodeToId: input.channelCodeToId }
         : {}),
@@ -231,6 +235,7 @@ export async function admitOrStage(
     adapterOutput: out,
     sourceKind: input.sourceKind,
     channelCode: input.channelCode,
+    ...(input.categoryNodeId ? { categoryNodeId: input.categoryNodeId } : {}),
     ...(input.sourceArtifactId !== undefined
       ? { sourceArtifactId: input.sourceArtifactId }
       : {}),

@@ -111,6 +111,13 @@ export interface WriteAdapterOutputInput {
    *     not the downstream identity-field promotion.
    */
   forceProductId?: string;
+  /**
+   * Canonical taxonomy node resolved at ingestion. Stamped on the row ONLY when
+   * this call CREATES a new product (category_source='auto'); never overrides an
+   * existing product's category (which may be human-set). Null/omitted leaves
+   * category_node_id null (the classify sweep is the backstop).
+   */
+  categoryNodeId?: string | null;
 }
 
 export type WriteMatchPath = IdentityMatchPath | "newly_created";
@@ -229,7 +236,8 @@ export async function writeAdapterOutput(
     reconcilerQueue,
     reasonOverride,
     sourceOverride,
-    forceProductId
+    forceProductId,
+    categoryNodeId
   } = input;
 
   const hasSideTableObservations =
@@ -429,7 +437,12 @@ export async function writeAdapterOutput(
           pipelineVersion: 2,
           status: "draft",
           values: {},
-          winningValues: {}
+          winningValues: {},
+          // Category resolved by the ingestion-spine classify stage. Stamped
+          // only on create; 'auto' so the Lab can tell it from a human pick.
+          ...(categoryNodeId
+            ? { categoryNodeId, categorySource: "auto" as const }
+            : {})
         })
         .returning({ productId: schema.catalogProducts.productId });
       const row = inserted[0];

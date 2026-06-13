@@ -1,0 +1,5 @@
+# Travel — CURATION MAP.
+department: Travel
+tree:
+  - category: Travel Accessories
+    leaves: { Travel Pillows: auto, Packing Organizers: auto, Luggage Tags: auto }
