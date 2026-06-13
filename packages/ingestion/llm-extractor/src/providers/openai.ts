@@ -20,7 +20,10 @@ const PRICING: Record<string, { input: number; output: number }> = {
   "llama-3.1-70b-versatile": { input: 0.59, output: 0.79 },
   "llama-3.1-8b-instant": { input: 0.05, output: 0.08 },
   "llama-3.2-90b-vision-preview": { input: 0.90, output: 0.90 },
-  "llama-3.2-11b-vision-preview": { input: 0.18, output: 0.18 }
+  "llama-3.2-11b-vision-preview": { input: 0.18, output: 0.18 },
+  // DeepSeek (via baseUrl https://api.deepseek.com/v1) — OpenAI-compatible.
+  "deepseek-chat": { input: 0.27, output: 1.10 },
+  "deepseek-reasoner": { input: 0.55, output: 2.19 }
 };
 
 const DEFAULT_PRICING = { input: 1.0, output: 3.0 };

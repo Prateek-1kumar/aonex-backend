@@ -21,6 +21,7 @@ import { readFileSync } from "node:fs";
 import yaml from "js-yaml";
 import { createDb } from "@aonex/db";
 import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
+import { selectEnrichProvider } from "@aonex/lib-utils";
 import {
   enrichProduct,
   retrieveExamples,
@@ -40,16 +41,18 @@ const LIMIT = argNum("--limit", Infinity);
 const CONCURRENCY = argNum("--conc", 1);
 const MAX_TOKENS = argNum("--max-tokens", 1500); // enrichment JSON is small; 4000 wasted TPM.
 
-const llmKey = process.env.GROQ_API_KEY ?? process.env.OPENAI_API_KEY;
-if (!llmKey) {
-  console.error("No GROQ_API_KEY / OPENAI_API_KEY set — enrichment needs a model. Aborting.");
+// Provider precedence: DeepSeek → Groq → OpenAI (shared with the worker).
+const selected = selectEnrichProvider(process.env);
+if (!selected) {
+  console.error("No DEEPSEEK_API_KEY / GROQ_API_KEY / OPENAI_API_KEY set — enrichment needs a model. Aborting.");
   process.exit(1);
 }
 const provider = new OpenAIProvider({
-  apiKey: llmKey,
-  baseUrl: process.env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1",
+  apiKey: selected.apiKey,
+  baseUrl: selected.baseUrl,
+  fallbackModels: selected.fallbackModels,
 });
-const model = process.env.GROQ_MODEL_ENRICH ?? "llama-3.3-70b-versatile";
+const model = selected.model;
 
 interface GoldenProduct {
   id: string;
