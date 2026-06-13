@@ -15,4 +15,5 @@ export * from "./edit-distance.js";
 export * from "./text-normalize.js";
 export * from "./gtin.js";
 export * from "./llm-provider-select.js";
+export * from "./fallback-chat-provider.js";
 export type { ChatProvider } from "./chat-provider.js";

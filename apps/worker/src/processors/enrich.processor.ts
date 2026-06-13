@@ -16,12 +16,12 @@ import type { Job } from "bullmq";
 import { and, eq, sql } from "drizzle-orm";
 import type { DrizzleClient } from "@aonex/db";
 import { schema } from "@aonex/db";
-import type { IModelProvider } from "@aonex/ingestion-llm-extractor";
 import {
   enrichProduct,
   retrieveExamples,
   ENRICH_PROMPT_VERSION,
   type EnrichmentResult,
+  type ChatProvider,
 } from "@aonex/taxonomy-enrichment";
 import {
   loadLeafSchemas,
@@ -47,7 +47,9 @@ export interface ProductEnrichJobData {
 
 export interface EnrichProcessorDeps {
   db: DrizzleClient;
-  provider: IModelProvider;
+  /** ChatProvider (not the richer IModelProvider) so a cross-provider
+   *  FallbackChatProvider can be injected for runtime Gemini→Groq failover. */
+  provider: ChatProvider;
   model: string;
 }
 

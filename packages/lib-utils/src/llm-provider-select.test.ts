@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { selectEnrichProvider } from "./llm-provider-select.js";
+import { selectEnrichProvider, selectEnrichChain } from "./llm-provider-select.js";
 
 describe("selectEnrichProvider", () => {
   test("returns null when no provider key is set", () => {
@@ -40,5 +40,21 @@ describe("selectEnrichProvider", () => {
     expect(r?.provider).toBe("openai");
     expect(r?.baseUrl).toBe("https://api.openai.com/v1");
     expect(r?.model).toBe("gpt-4o-mini");
+  });
+});
+
+describe("selectEnrichChain", () => {
+  test("returns all configured providers in precedence order", () => {
+    const chain = selectEnrichChain({ GEMINI_API_KEY: "gm", GROQ_API_KEY: "gq", OPENAI_API_KEY: "oa" });
+    expect(chain.map((s) => s.provider)).toEqual(["gemini", "groq", "openai"]);
+  });
+
+  test("skips providers with no key (Gemini + Groq only)", () => {
+    const chain = selectEnrichChain({ GEMINI_API_KEY: "gm", GROQ_API_KEY: "gq" });
+    expect(chain.map((s) => s.provider)).toEqual(["gemini", "groq"]);
+  });
+
+  test("empty when nothing configured", () => {
+    expect(selectEnrichChain({})).toEqual([]);
   });
 });

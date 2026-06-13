@@ -40,43 +40,56 @@ const GEMINI_DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta/op
 const GROQ_DEFAULT_BASE = "https://api.groq.com/openai/v1";
 const OPENAI_DEFAULT_BASE = "https://api.openai.com/v1";
 
+function geminiSelection(env: ProviderEnv): SelectedProvider | null {
+  if (!env.GEMINI_API_KEY) return null;
+  return {
+    apiKey: env.GEMINI_API_KEY,
+    baseUrl: env.GEMINI_BASE_URL ?? GEMINI_DEFAULT_BASE,
+    // gemini-2.0-flash (not 2.5): no hidden "thinking" tokens, so the whole output
+    // budget goes to the JSON answer (2.5-flash thinking truncates our structured
+    // responses). Also higher free-tier limits + cheaper + faster.
+    model: env.GEMINI_MODEL_ENRICH ?? "gemini-2.0-flash",
+    fallbackModels: [],
+    provider: "gemini",
+  };
+}
+function groqSelection(env: ProviderEnv): SelectedProvider | null {
+  if (!env.GROQ_API_KEY) return null;
+  return {
+    apiKey: env.GROQ_API_KEY,
+    baseUrl: env.GROQ_BASE_URL ?? GROQ_DEFAULT_BASE,
+    model: env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile",
+    // Groq enforces TPD PER MODEL; fall back to an independent-budget model.
+    fallbackModels: [env.GROQ_MODEL_FALLBACK ?? "llama-3.1-8b-instant"],
+    provider: "groq",
+  };
+}
+function openaiSelection(env: ProviderEnv): SelectedProvider | null {
+  if (!env.OPENAI_API_KEY) return null;
+  return {
+    apiKey: env.OPENAI_API_KEY,
+    baseUrl: env.OPENAI_BASE_URL ?? OPENAI_DEFAULT_BASE,
+    model: env.OPENAI_MODEL ?? "gpt-4o-mini",
+    fallbackModels: [],
+    provider: "openai",
+  };
+}
+
 /**
- * Resolve the enrichment LLM provider from env. Precedence: Gemini → Groq →
- * OpenAI. Returns null when none is configured (caller should disable the
- * LLM-dependent path and fall back to deterministic behavior).
+ * The full ordered enrichment provider chain (Gemini → Groq → OpenAI), including
+ * only those with a key set. Wrap these in a FallbackChatProvider for runtime
+ * failover: when the primary 429s/errors, the request continues on the next.
+ */
+export function selectEnrichChain(env: ProviderEnv): SelectedProvider[] {
+  return [geminiSelection(env), groqSelection(env), openaiSelection(env)].filter(
+    (s): s is SelectedProvider => s !== null
+  );
+}
+
+/**
+ * The single preferred enrichment provider (chain head), or null when none is
+ * configured. Use selectEnrichChain when you want runtime fallback.
  */
 export function selectEnrichProvider(env: ProviderEnv): SelectedProvider | null {
-  if (env.GEMINI_API_KEY) {
-    return {
-      apiKey: env.GEMINI_API_KEY,
-      baseUrl: env.GEMINI_BASE_URL ?? GEMINI_DEFAULT_BASE,
-      // gemini-2.0-flash (not 2.5): no hidden "thinking" tokens, so the whole
-      // output budget goes to the JSON answer (2.5-flash thinking truncates our
-      // structured responses). Also higher free-tier limits + cheaper + faster.
-      model: env.GEMINI_MODEL_ENRICH ?? "gemini-2.0-flash",
-      // Gemini's OpenAI shim has no per-model daily wall like Groq — no model dance.
-      fallbackModels: [],
-      provider: "gemini",
-    };
-  }
-  if (env.GROQ_API_KEY) {
-    return {
-      apiKey: env.GROQ_API_KEY,
-      baseUrl: env.GROQ_BASE_URL ?? GROQ_DEFAULT_BASE,
-      model: env.GROQ_MODEL_ENRICH ?? env.GROQ_MODEL_GAP_FILL ?? "llama-3.3-70b-versatile",
-      // Groq enforces TPD PER MODEL; fall back to an independent-budget model.
-      fallbackModels: [env.GROQ_MODEL_FALLBACK ?? "llama-3.1-8b-instant"],
-      provider: "groq",
-    };
-  }
-  if (env.OPENAI_API_KEY) {
-    return {
-      apiKey: env.OPENAI_API_KEY,
-      baseUrl: env.OPENAI_BASE_URL ?? OPENAI_DEFAULT_BASE,
-      model: env.OPENAI_MODEL ?? "gpt-4o-mini",
-      fallbackModels: [],
-      provider: "openai",
-    };
-  }
-  return null;
+  return selectEnrichChain(env)[0] ?? null;
 }

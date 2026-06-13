@@ -23,7 +23,7 @@
  */
 import { createDb, schema } from "@aonex/db";
 import { OpenAIProvider } from "@aonex/ingestion-llm-extractor";
-import { selectEnrichProvider } from "@aonex/lib-utils";
+import { selectEnrichChain, FallbackChatProvider } from "@aonex/lib-utils";
 import { loadGoldenProducts, type GoldenYamlProduct } from "./load-golden-yaml.js";
 import {
   enrichProduct,
@@ -51,18 +51,20 @@ const argStr = (flag: string): string | undefined => {
 };
 const LABEL = argStr("--label") ?? null;
 
-// Provider precedence: DeepSeek → Groq → OpenAI (shared with the worker).
-const selected = selectEnrichProvider(process.env);
-if (!selected) {
+// Provider chain Gemini → Groq → OpenAI with runtime failover (shared with worker):
+// if the primary 429s/errors mid-request, the SAME call continues on the next.
+const chain = selectEnrichChain(process.env);
+if (chain.length === 0) {
   console.error("No GEMINI_API_KEY / GROQ_API_KEY / OPENAI_API_KEY set — enrichment needs a model. Aborting.");
   process.exit(1);
 }
-const provider = new OpenAIProvider({
-  apiKey: selected.apiKey,
-  baseUrl: selected.baseUrl,
-  fallbackModels: selected.fallbackModels,
-});
-const model = selected.model;
+const links = chain.map((s) => ({
+  provider: new OpenAIProvider({ apiKey: s.apiKey, baseUrl: s.baseUrl, fallbackModels: s.fallbackModels }),
+  model: s.model,
+  label: s.provider,
+}));
+const provider = links.length === 1 ? links[0]!.provider : new FallbackChatProvider(links);
+const model = chain[0]!.model;
 
 /** Promise pool — bounded concurrency over an ordered list. */
 async function mapPool<T, R>(items: T[], n: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {

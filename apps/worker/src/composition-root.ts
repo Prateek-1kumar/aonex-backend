@@ -10,7 +10,7 @@ import { createNangoClient } from "@aonex/connector-gateway/adapters/nango";
 import { SyncService } from "./services/sync-service.js";
 import { PostgresAuditEmitter } from "@aonex/audit";
 import { parseEnv, QUEUE, type Env } from "@aonex/types";
-import { selectEnrichProvider } from "@aonex/lib-utils";
+import { selectEnrichChain, FallbackChatProvider, type ChatProvider } from "@aonex/lib-utils";
 
 import { makeNangoAuthProcessor } from "./processors/nango-auth.processor.js";
 import { makeNangoSyncProcessor } from "./processors/nango-sync.processor.js";
@@ -107,21 +107,26 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
   // provider transparently falls back to this model (independent TPD budget)
   // instead of failing. 8b-instant has a much larger daily allowance.
   const groqFallbackModels = [process.env.GROQ_MODEL_FALLBACK ?? "llama-3.1-8b-instant"];
-  // Enrichment + classify-sweep provider: DeepSeek → Groq → OpenAI (shared rule
-  // with the enrichment eval via @aonex/lib-utils, so they can't drift).
-  const selectedEnrich = selectEnrichProvider(process.env);
-  let llmProvider: IModelProvider | undefined;
+  // Enrichment provider chain: Gemini → Groq → OpenAI (shared rule with the
+  // enrichment eval via @aonex/lib-utils). The classifier sweep uses the PRIMARY
+  // provider; enrichment uses a FallbackChatProvider so a primary 429 (e.g. Gemini
+  // quota) transparently fails over to the next provider mid-request.
+  const enrichChain = selectEnrichChain(process.env);
+  let llmProvider: IModelProvider | undefined; // primary — classifier sweep
+  let enrichProvider: ChatProvider | undefined; // chain w/ runtime failover — enrichment
   let llmModel = "";
-  if (selectedEnrich) {
-    llmProvider = createModelProvider({
-      provider: "openai",
-      config: {
-        apiKey: selectedEnrich.apiKey,
-        baseUrl: selectedEnrich.baseUrl,
-        fallbackModels: selectedEnrich.fallbackModels,
-      },
-    });
-    llmModel = selectedEnrich.model;
+  if (enrichChain.length > 0) {
+    const links = enrichChain.map((s) => ({
+      provider: createModelProvider({
+        provider: "openai",
+        config: { apiKey: s.apiKey, baseUrl: s.baseUrl, fallbackModels: s.fallbackModels },
+      }),
+      model: s.model,
+      label: s.provider,
+    }));
+    llmProvider = links[0]!.provider;
+    llmModel = enrichChain[0]!.model;
+    enrichProvider = links.length === 1 ? links[0]!.provider : new FallbackChatProvider(links);
   }
   const classifierResolver: ClassifierResolver = llmProvider
     ? llmResolver(llmProvider, llmModel)
@@ -202,19 +207,22 @@ export async function buildContainer(env: Env): Promise<WorkerContainer> {
     { connection: redis, concurrency: 3 },
   );
 
-  // Catalog enrichment worker — reuses the shared llmProvider/llmModel above.
+  // Catalog enrichment worker — uses the failover chain (enrichProvider) above.
   let enrichWorker: Worker | undefined;
-  if (llmProvider) {
+  if (enrichProvider) {
     // Serial: Groq's on-demand TPM budget (12k) reserves prompt+max_tokens per
     // request (~9.7k each), so parallel jobs trip 429s. The provider retries
     // transient 429s with Retry-After backoff; serializing keeps us in budget.
     // (DeepSeek has no such TPM wall, but serial is still a safe default.)
     enrichWorker = new Worker(
       QUEUE.PRODUCT_ENRICH,
-      makeEnrichProcessor({ db: db.client, provider: llmProvider, model: llmModel }),
+      makeEnrichProcessor({ db: db.client, provider: enrichProvider, model: llmModel }),
       { connection: redis, concurrency: 1 },
     );
-    logger.info({ model: llmModel, provider: selectedEnrich?.provider }, "enrichment worker: enabled");
+    logger.info(
+      { model: llmModel, chain: enrichChain.map((s) => s.provider).join("→") },
+      "enrichment worker: enabled"
+    );
   } else {
     logger.warn("No GEMINI_API_KEY / GROQ_API_KEY — enrichment worker disabled");
   }
