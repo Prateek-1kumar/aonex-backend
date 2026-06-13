@@ -50,7 +50,10 @@ export function selectEnrichProvider(env: ProviderEnv): SelectedProvider | null 
     return {
       apiKey: env.GEMINI_API_KEY,
       baseUrl: env.GEMINI_BASE_URL ?? GEMINI_DEFAULT_BASE,
-      model: env.GEMINI_MODEL_ENRICH ?? "gemini-2.5-flash",
+      // gemini-2.0-flash (not 2.5): no hidden "thinking" tokens, so the whole
+      // output budget goes to the JSON answer (2.5-flash thinking truncates our
+      // structured responses). Also higher free-tier limits + cheaper + faster.
+      model: env.GEMINI_MODEL_ENRICH ?? "gemini-2.0-flash",
       // Gemini's OpenAI shim has no per-model daily wall like Groq — no model dance.
       fallbackModels: [],
       provider: "gemini",

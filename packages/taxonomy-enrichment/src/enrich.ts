@@ -38,6 +38,9 @@ export interface EnrichDeps {
   provider: ChatProvider;
   model: string;
   maxTokens?: number;
+  /** Separate (larger) cap for the content stage's big JSON. Defaults to
+   *  max(maxTokens, 8000) so content copy is never truncated. */
+  contentMaxTokens?: number;
   temperature?: number;
   jsonMode?: boolean;
   calibration?: CalibrationConfig;
@@ -344,6 +347,7 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
   });
 
   let contentResults: FieldResult[] = [];
+  let contentError: string | undefined;
   if (contentFields.length > 0) {
     try {
       const res = await deps.provider.chatCompletion({
@@ -356,11 +360,11 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
           ...(input.product.description ? { description: input.product.description } : {}),
           fields: contentFields,
         }),
-        // Groq counts (input + max_tokens) against the per-minute TPM limit
-        // (6000 on the free-tier fallback model), so an over-large reservation
-        // 413s a perfectly small request. 3000 covers any enrichment completion
-        // (specs are tiny; content is a few hundred tokens) and halves daily burn.
-        maxTokens: deps.maxTokens ?? 3000,
+        // Content is the BIG response (10+ copy fields: description, bullets, FAQ,
+        // pros/cons…), and models with hidden "thinking" (e.g. gemini-2.5-flash)
+        // spend output budget before emitting JSON — so an under-sized cap truncates
+        // the JSON and the whole stage is lost. Give content its own generous budget.
+        maxTokens: deps.contentMaxTokens ?? Math.max(deps.maxTokens ?? 0, 8000),
         temperature: deps.temperature ?? 0.4,
         jsonMode: deps.jsonMode ?? true,
       });
@@ -370,8 +374,11 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
       accCost(res.model ?? model, res.usage);
       const genByKey = new Map(parsed.fields.map((f) => [f.key, f]));
       contentResults = contentFields.map((spec) => buildContentField(spec, genByKey.get(spec.key), known, contentCtx, cfg));
-    } catch {
-      // Content failure is non-fatal — the grounded specs are still valuable.
+    } catch (err) {
+      // Content failure is non-fatal — the grounded specs are still valuable — but
+      // we surface the reason (was silently swallowed) so a broken content stage is
+      // diagnosable instead of just showing 0 content quality.
+      contentError = (err as Error).message;
       contentResults = contentFields.map((spec) => buildContentField(spec, undefined, known, contentCtx, cfg));
     }
   }
@@ -418,6 +425,7 @@ export async function enrichProduct(input: EnrichmentInput, deps: EnrichDeps): P
     proposedInferred,
     unverifiedCount,
     ...(consistencyFlags ? { consistencyFlags } : {}),
+    ...(contentError ? { contentError } : {}),
     model,
     ...(usage ? { usage } : {}),
     ...(costUsd !== undefined ? { costUsd } : {}),

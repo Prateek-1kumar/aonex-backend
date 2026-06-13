@@ -159,7 +159,7 @@ try {
     const before = result.completenessBefore.score.toFixed(0).padStart(3);
     const after = result.completenessAfter.score.toFixed(0).padStart(3);
     const proposed = result.completenessProposed.score.toFixed(0).padStart(3);
-    const flag = result.error ? " ⚠ERR" : "";
+    const flag = result.error ? ` ⚠ERR: ${result.error.slice(0, 160)}` : result.contentError ? ` ⚠CONTENT-ERR: ${result.contentError.slice(0, 160)}` : "";
     const content = result.contentQualityProposed.score.toFixed(0).padStart(3);
     const contentFields = result.fields.filter((f) => f.kind === "content" && f.proposable).length;
     process.stdout.write(

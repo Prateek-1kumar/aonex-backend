@@ -220,6 +220,9 @@ export interface EnrichmentResult {
   costUsd?: number;
   /** Set when the model call/parse failed and the result is empty. */
   error?: string;
+  /** Set when the (non-fatal) content stage failed — specs still applied, but no
+   *  content was produced. Surfaced so a broken content stage is diagnosable. */
+  contentError?: string;
 }
 
 export type { Completeness } from "@aonex/taxonomy-validator";

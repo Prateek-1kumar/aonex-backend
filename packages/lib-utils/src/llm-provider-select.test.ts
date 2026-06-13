@@ -14,7 +14,7 @@ describe("selectEnrichProvider", () => {
     });
     expect(r?.provider).toBe("gemini");
     expect(r?.baseUrl).toBe("https://generativelanguage.googleapis.com/v1beta/openai");
-    expect(r?.model).toBe("gemini-2.5-flash");
+    expect(r?.model).toBe("gemini-2.0-flash");
     expect(r?.fallbackModels).toEqual([]); // no per-model TPD wall
   });
 
